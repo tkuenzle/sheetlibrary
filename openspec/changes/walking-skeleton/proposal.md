@@ -7,7 +7,7 @@ Before we build the editor, we want the full path from a pull request to sheetli
 ## What Changes
 
 - Set up the repo as a pnpm monorepo with TypeScript (strict), linting, formatting and tests, driven by a `justfile`.
-- Add `apps/web`: a React Router v7 app on Cloudflare Workers that shows a very simple placeholder page.
+- Add `apps/web`: a React Router v8 app on Cloudflare Workers that shows a very simple placeholder page.
 - Run checks on every pull request: lint, format, typecheck, unit tests, build, end-to-end tests and OpenSpec validation.
 - Deploy a preview of every pull request and post its link on the pull request.
 - Deploy to sheetlibrary.com on every merge to `main`, then check that the site responds.

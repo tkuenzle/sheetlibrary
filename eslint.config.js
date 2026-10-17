@@ -12,6 +12,7 @@ export default defineConfig(
       "**/dist/",
       "**/.react-router/",
       "**/.wrangler/",
+      "**/worker-configuration.d.ts",
     ],
   },
   js.configs.recommended,

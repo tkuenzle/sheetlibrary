@@ -9,10 +9,10 @@
 
 ## 2. Web app
 
-- [ ] 2.1 Create `apps/web` with React Router v7 on Workers and a prerendered, very simple placeholder page, and verify `just dev` serves it locally
-- [ ] 2.2 Add a Vitest unit test for the page and verify `just check` runs it
-- [ ] 2.3 Add a Playwright smoke test against the built app and verify `just check` runs it
-- [ ] 2.4 Add a short "Development" section to the README and verify its commands run as written
+- [x] 2.1 Create `apps/web` with React Router v8 on Workers and a prerendered, very simple placeholder page, and verify `just dev` serves it locally
+- [x] 2.2 Add a Vitest unit test for the page and verify `just check` runs it
+- [x] 2.3 Add a Playwright smoke test against the built app and verify `just check` runs it
+- [x] 2.4 Add a short "Development" section to the README and verify its commands run as written
 
 ## 3. Accounts and secrets (manual, repo owner)
 

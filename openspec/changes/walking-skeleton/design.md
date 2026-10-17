@@ -14,7 +14,7 @@ The repo has only a README and OpenSpec. The sheetlibrary.com zone already exist
 
 ## Decisions
 
-**React + React Router v7 on Cloudflare Workers.** The user knows React best. React Router v7 can prerender pages now and run server code on Workers later, so adding a backend needs no platform change. TanStack Start was the alternative. It's newer, and stricter route types aren't worth that yet.
+**React + React Router v8 on Cloudflare Workers.** The user knows React best. React Router v8 (current major since June 2026) can prerender pages now and run server code on Workers later, so adding a backend needs no platform change. TanStack Start was the alternative. It's newer, and stricter route types aren't worth that yet.
 
 **Workers instead of Pages.** Cloudflare recommends Workers for new projects, and the future backend runs there anyway. This differs from detox-browser, which uses Pages.
 
