@@ -31,7 +31,7 @@
 
 ## 5. CI on pull requests
 
-- [ ] 5.1 Add a CI workflow running `just check` and `just spec-check`, and verify a deliberately failing test turns it red
+- [x] 5.1 Add a CI workflow running `just check` and `just spec-check`, and verify a deliberately failing test turns it red
 - [ ] 5.2 Add a `tofu plan -lock=false` job for pull requests that change `infra/`, using the pull request credentials, and verify the plan appears in the run
 - [ ] 5.3 Add the wrangler environment `preview` (worker `sheetlibrary-preview`) and a preview job (build with `CLOUDFLARE_ENV=preview`, then `wrangler versions upload --preview-alias pr-<n>`) that comments the link on the pull request, and verify the link shows the placeholder
 
