@@ -29,13 +29,13 @@ None.
 
 - New: root workspace config, `justfile`, `apps/web`, `infra/`, `.github/workflows/`.
 - Cloudflare: the sheetlibrary.com zone comes under OpenTofu control. A new worker and custom domains are added.
-- One-time manual setup: GitHub secrets (`CLOUDFLARE_API_TOKEN`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`), the workers.dev subdomain on the account, and branch protection on `main`.
+- One-time manual setup: two sets of credentials (limited ones for pull requests, full ones in a GitHub `production` environment that only `main` can use), the workers.dev subdomain on the account, and branch protection on `main`.
 - Not in this change: chord sheet model, editor, design, dependency updates (tracked in a separate issue).
+- Later: previews share the production worker's bindings. Before the app gets a database, previews need their own worker.
 
 ## Open Questions
 
 - Should preview links be public, or protected (for example with Cloudflare Access)?
-- Should old previews be removed when a pull request closes?
 - If the check after a production deploy fails, should it roll back automatically or only fail the run?
 - Should the zone force HTTPS and set HSTS?
 - Pull requests from forks get no secrets, so no preview. Is that fine?

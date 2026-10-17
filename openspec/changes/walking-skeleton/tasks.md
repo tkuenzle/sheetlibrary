@@ -16,9 +16,10 @@
 
 ## 3. Accounts and secrets (manual, repo owner)
 
-- [ ] 3.1 Create or extend a Cloudflare API token with zone, DNS and Workers edit rights for sheetlibrary.com, and verify it can read the zone
-- [ ] 3.2 Add `CLOUDFLARE_API_TOKEN`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` as GitHub secrets, and verify they are listed in the repo settings
-- [ ] 3.3 Enable the workers.dev subdomain on the account and verify it is shown in the dashboard
+- [ ] 3.1 Create a pull request token (read zone and DNS, edit Workers) and read-only R2 keys, and verify the token can read the zone but not edit DNS
+- [ ] 3.2 Create a production token (edit zone, DNS and Workers) and read/write R2 keys, and verify the token can edit DNS
+- [ ] 3.3 Add the pull request credentials as repo secrets and the production credentials as secrets of a `production` environment limited to `main`, all named `CLOUDFLARE_API_TOKEN`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`, and verify both sets are listed in the repo settings
+- [ ] 3.4 Enable the workers.dev subdomain on the account and verify it is shown in the dashboard
 
 ## 4. Infrastructure
 
@@ -30,12 +31,12 @@
 ## 5. CI on pull requests
 
 - [ ] 5.1 Add a CI workflow running `just check` and `just spec-check`, and verify a deliberately failing test turns it red
-- [ ] 5.2 Add a `tofu plan` job for pull requests that change `infra/`, and verify the plan appears in the run
+- [ ] 5.2 Add a `tofu plan -lock=false` job for pull requests that change `infra/`, using the pull request credentials, and verify the plan appears in the run
 - [ ] 5.3 Add a preview job (`wrangler versions upload --preview-alias pr-<n>`) that comments the link on the pull request, and verify the link shows the placeholder
 
 ## 6. Deploy on merge
 
-- [ ] 6.1 Add a deploy workflow on `main`: tofu apply, then wrangler deploy, then a check that `https://sheetlibrary.com` returns 2xx, and verify a failing check fails the run
+- [ ] 6.1 Add a deploy workflow on `main`, running in the `production` environment: tofu apply, then wrangler deploy, then a check that `https://sheetlibrary.com` returns 2xx, and verify a failing check fails the run
 
 ## 7. End-to-end
 
