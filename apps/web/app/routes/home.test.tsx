@@ -5,7 +5,7 @@ import Home, { meta } from "./home";
 
 describe("home page", () => {
   it("shows the app name", () => {
-    expect(renderToString(<Home />)).toContain("<h1>Sheet Library</h1>");
+    expect(renderToString(<Home />)).toContain("<h1>Deliberately wrong</h1>");
   });
 
   it("sets the page title", () => {
