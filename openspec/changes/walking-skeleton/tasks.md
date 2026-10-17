@@ -2,10 +2,10 @@
 
 ## 1. Repo tooling
 
-- [ ] 1.1 Set up the pnpm workspace (root `package.json` with `packageManager`, `pnpm-workspace.yaml`, Node LTS pinned) and verify `pnpm install` succeeds
-- [ ] 1.2 Add a strict base TypeScript config, ESLint and Prettier, and verify lint and format checks pass on the repo
-- [ ] 1.3 Add a `justfile` with `check`, `fix`, `spec-check`, `dev` and `build`, and verify `just spec-check` passes
-- [ ] 1.4 Update the CLAUDE.md line saying no stack is chosen, and verify it no longer contradicts the repo
+- [x] 1.1 Set up the pnpm workspace (root `package.json` with `packageManager`, `pnpm-workspace.yaml`, Node LTS pinned) and verify `pnpm install` succeeds
+- [x] 1.2 Add a strict base TypeScript config, ESLint and Prettier, and verify lint and format checks pass on the repo
+- [x] 1.3 Add a `justfile` with `check`, `fix`, `spec-check`, `dev` and `build`, and verify `just spec-check` passes
+- [x] 1.4 Update the CLAUDE.md line saying no stack is chosen, and verify it no longer contradicts the repo
 
 ## 2. Web app
 
