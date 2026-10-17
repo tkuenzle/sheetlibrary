@@ -40,3 +40,10 @@ Every pull request SHALL get its own preview deploy, and its link SHALL be poste
 #### Scenario: Pull request opened
 - **WHEN** a pull request is opened or updated
 - **THEN** a preview of that commit is deployed and its link appears on the pull request, while `https://sheetlibrary.com` stays unchanged
+
+### Requirement: Pull requests can't change production
+The credentials available to pull request jobs SHALL NOT allow changing the production site, its worker or its DNS.
+
+#### Scenario: Pull request credentials used against production
+- **WHEN** the pull request credentials are used to deploy to the production worker or to change a DNS record
+- **THEN** Cloudflare rejects the request

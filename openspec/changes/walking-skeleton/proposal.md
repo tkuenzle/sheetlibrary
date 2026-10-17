@@ -28,10 +28,9 @@ None.
 ## Impact
 
 - New: root workspace config, `justfile`, `apps/web`, `infra/`, `.github/workflows/`.
-- Cloudflare: the sheetlibrary.com zone comes under OpenTofu control. A new worker and custom domains are added.
-- One-time manual setup: two sets of credentials (limited ones for pull requests, full ones in a GitHub `production` environment that only `main` can use), the workers.dev subdomain on the account, and branch protection on `main`.
+- Cloudflare: the sheetlibrary.com zone comes under OpenTofu control. A production worker, a separate preview worker and custom domains are added.
+- One-time manual setup: two sets of credentials (pull request ones that can only touch the preview worker, full ones in a GitHub `production` environment that only `main` can use), the workers.dev subdomain on the account, and branch protection on `main`.
 - Not in this change: chord sheet model, editor, design, dependency updates (tracked in a separate issue).
-- Later: previews share the production worker's bindings. Before the app gets a database, previews need their own worker.
 
 ## Open Questions
 

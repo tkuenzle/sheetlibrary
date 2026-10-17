@@ -16,23 +16,24 @@
 
 ## 3. Accounts and secrets (manual, repo owner)
 
-- [ ] 3.1 Create a pull request token (read zone and DNS, edit Workers) and read-only R2 keys, and verify the token can read the zone but not edit DNS
-- [ ] 3.2 Create a production token (edit zone, DNS and Workers) and read/write R2 keys, and verify the token can edit DNS
-- [ ] 3.3 Add the pull request credentials as repo secrets and the production credentials as secrets of a `production` environment limited to `main`, all named `CLOUDFLARE_API_TOKEN`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`, and verify both sets are listed in the repo settings
-- [ ] 3.4 Enable the workers.dev subdomain on the account and verify it is shown in the dashboard
+- [ ] 3.1 Create a production token (create and edit Workers, edit zone and DNS) and read/write R2 keys, and verify the token can edit DNS
+- [ ] 3.2 Add the production credentials as secrets of a `production` environment limited to `main`, named `CLOUDFLARE_API_TOKEN`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`, and verify they are listed in the repo settings
+- [ ] 3.3 Enable the workers.dev subdomain on the account and verify it is shown in the dashboard
 
 ## 4. Infrastructure
 
 - [ ] 4.1 Add `infra/` with the provider, the R2 backend (key `sheetlibrary/terraform.tfstate`), the account ID variable and `.gitignore`, and verify `tofu init` and `tofu validate` pass
 - [ ] 4.2 Import the existing zone with an `import` block and verify `tofu plan` shows only the import, with no changes or deletions
-- [ ] 4.3 Add the worker resource and the custom domain for sheetlibrary.com (check `cloudflare_worker` first, use the fallback from design.md if needed), and verify the plan
+- [ ] 4.3 Add the workers `sheetlibrary` and `sheetlibrary-preview` and the custom domain for sheetlibrary.com (check `cloudflare_worker` first, use the fallback from design.md if needed), and verify the plan
 - [ ] 4.4 Add the www record and a permanent redirect to the apex, and verify the plan
+- [ ] 4.5 Run the first `tofu apply` locally with the production credentials (repo owner), and verify both workers and the custom domain exist in the dashboard
+- [ ] 4.6 Create the pull request token (Editor on `sheetlibrary-preview` only, read on zone, DNS and Workers) and read-only R2 keys, add them as repo secrets with the same names, and verify uploading a version to `sheetlibrary` with them is rejected (manual, repo owner; split into two tokens per design.md if needed)
 
 ## 5. CI on pull requests
 
 - [ ] 5.1 Add a CI workflow running `just check` and `just spec-check`, and verify a deliberately failing test turns it red
 - [ ] 5.2 Add a `tofu plan -lock=false` job for pull requests that change `infra/`, using the pull request credentials, and verify the plan appears in the run
-- [ ] 5.3 Add a preview job (`wrangler versions upload --preview-alias pr-<n>`) that comments the link on the pull request, and verify the link shows the placeholder
+- [ ] 5.3 Add the wrangler environment `preview` (worker `sheetlibrary-preview`) and a preview job (`wrangler versions upload --env preview --preview-alias pr-<n>`) that comments the link on the pull request, and verify the link shows the placeholder
 
 ## 6. Deploy on merge
 
