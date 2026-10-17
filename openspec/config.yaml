@@ -1,0 +1,26 @@
+schema: spec-driven
+
+context: |
+  Write in plain, simple language. Short sentences, common words, no jargon.
+  Be concise. Say each thing once. Leave out boilerplate and filler.
+  Cover only what the user discussed and agreed on. Do not try to be exhaustive.
+  When you notice a likely requirement, scenario or edge case the user has not
+  discussed, do not write it into the artifacts as decided. List it under
+  "Open Questions" in proposal.md and mention it to the user, so they can decide.
+
+rules:
+  proposal:
+    - Keep it short. A few sentences per section is enough.
+    - End with an "## Open Questions" section listing requirements or scenarios
+      you noticed but the user has not discussed. One line each. Omit it if empty.
+  specs:
+    - Only write requirements the user discussed. Do not invent extra ones.
+    - Give each requirement only the scenarios needed to show its main behavior,
+      usually one or two. Skip obvious or repetitive scenarios.
+    - Put suspected missing requirements or edge cases in the proposal's
+      Open Questions, not in the spec.
+  design:
+    - Only write design.md when there is a real decision to record. Keep it brief.
+    - Do not restate the proposal or specs.
+  tasks:
+    - Keep tasks short and concrete. No sub-bullets unless needed.
