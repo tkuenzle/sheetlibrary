@@ -50,8 +50,8 @@ fix: fmt
     pnpm lint --fix
 
 # Initialize OpenTofu with the R2 state backend. Needs R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY.
-tofu-init:
-    cd infra && tofu init -input=false -backend-config=backend.tfbackend -backend-config="access_key=$R2_ACCESS_KEY_ID" -backend-config="secret_key=$R2_SECRET_ACCESS_KEY"
+tofu-init *args:
+    cd infra && tofu init -input=false {{ args }} -backend-config=backend.tfbackend -backend-config="access_key=$R2_ACCESS_KEY_ID" -backend-config="secret_key=$R2_SECRET_ACCESS_KEY"
 
 # Show planned infrastructure changes. Needs CLOUDFLARE_API_TOKEN.
 tofu-plan *args:

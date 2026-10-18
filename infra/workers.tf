@@ -3,6 +3,11 @@
 resource "cloudflare_worker" "production" {
   account_id = var.cloudflare_account_id
   name       = "sheetlibrary"
+
+  # Settings come from apps/web/wrangler.jsonc and are set by wrangler on deploy.
+  lifecycle {
+    ignore_changes = [observability, subdomain, tags, logpush, tail_consumers, previews_base_config]
+  }
 }
 
 # Separate worker for pull request previews, so the pull request token can be
@@ -10,6 +15,11 @@ resource "cloudflare_worker" "production" {
 resource "cloudflare_worker" "preview" {
   account_id = var.cloudflare_account_id
   name       = "sheetlibrary-preview"
+
+  # Settings come from apps/web/wrangler.jsonc and are set by wrangler on deploy.
+  lifecycle {
+    ignore_changes = [observability, subdomain, tags, logpush, tail_consumers, previews_base_config]
+  }
 }
 
 resource "cloudflare_workers_custom_domain" "apex" {

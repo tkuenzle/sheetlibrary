@@ -18,7 +18,7 @@ The repo has only a README and OpenSpec. The sheetlibrary.com zone already exist
 
 **Workers instead of Pages.** Cloudflare recommends Workers for new projects, and the future backend runs there anyway. This differs from detox-browser, which uses Pages.
 
-**tofu owns infrastructure, wrangler owns code.** tofu manages the zone, both workers (without code), the custom domain and the www redirect. wrangler uploads code and deploys versions. Each tool only touches its own resources, so they never overwrite each other.
+**tofu owns infrastructure, wrangler owns code.** tofu manages the zone, both workers (without code), the custom domain and the www redirect. wrangler uploads code, deploys versions and sets the worker settings from `wrangler.jsonc` (observability, workers.dev, preview URLs). tofu ignores those settings (`ignore_changes`), so the two tools never overwrite each other. A later `wrangler deploy` leaves the custom domain in place.
 
 **Zone imported with an `import` block.** The zone ID becomes a resource instead of a variable (unlike detox-browser, where another repo owns the zone). State key: `sheetlibrary/terraform.tfstate`.
 
@@ -34,7 +34,7 @@ The repo has only a README and OpenSpec. The sheetlibrary.com zone already exist
 
 ## Risks / Trade-offs
 
-- [The provider's `cloudflare_worker` resource may not work as expected, i.e. creating a worker without code] → Check this first. Fallback: define the custom domain in `wrangler.jsonc`, so tofu only manages the zone and the redirect.
+- [A custom domain can only be attached to a worker that has a deployment] → Only matters when setting up from scratch: apply the workers, run `wrangler deploy` once, then apply again. Afterwards the normal order (apply, then deploy) works.
 - [The first apply could change the hand-made zone settings] → Review the first plan by hand. It should show only an import and additions.
 - [Preview links are public] → Fine for a placeholder page. See the proposal's Open Questions.
 - [A token can only be scoped to a worker that already exists] → The repo owner runs the first `tofu apply` locally with the production token, then creates the pull request token. Until then, the preview job on the first pull request fails.
