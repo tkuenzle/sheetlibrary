@@ -1,5 +1,6 @@
-# Workers are created here without code. wrangler uploads and deploys the code
-# (.github/workflows), and owns the worker settings in apps/web/wrangler.jsonc.
+# Workers are created here without code, so they exist before the first deploy
+# (the pull request token is scoped to the preview worker). wrangler uploads and
+# deploys the code and owns everything set in apps/web/wrangler.jsonc.
 resource "cloudflare_worker" "production" {
   account_id = var.cloudflare_account_id
   name       = "sheetlibrary"
@@ -22,9 +23,12 @@ resource "cloudflare_worker" "preview" {
   }
 }
 
-resource "cloudflare_workers_custom_domain" "apex" {
-  account_id = var.cloudflare_account_id
-  zone_id    = cloudflare_zone.sheetlibrary.id
-  hostname   = "sheetlibrary.com"
-  service    = cloudflare_worker.production.name
+# The custom domain is set in apps/web/wrangler.jsonc and attached on deploy.
+# It used to be managed here; this only drops it from the state.
+removed {
+  from = cloudflare_workers_custom_domain.apex
+
+  lifecycle {
+    destroy = false
+  }
 }
