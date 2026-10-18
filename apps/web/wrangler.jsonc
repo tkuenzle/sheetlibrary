@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Production worker. The worker itself is created in infra/; wrangler
+  // deploys it and attaches the custom domain.
+  "name": "sheetlibrary",
+  "compatibility_date": "2026-10-06",
+  "main": "./workers/app.ts",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "sheetlibrary.com", "custom_domain": true }],
+  "observability": {
+    "enabled": true,
+  },
+  "upload_source_maps": true,
+  "env": {
+    // Pull request previews. Select at build time with CLOUDFLARE_ENV=preview.
+    "preview": {
+      "name": "sheetlibrary-preview",
+      // Previews only get preview URLs, never the production domain.
+      "routes": [],
+      // Preview URLs fail with error 1042 while workers.dev is off
+      // (https://github.com/cloudflare/workers-sdk/issues/15890).
+      "workers_dev": true,
+      "preview_urls": true,
+    },
+  },
+}
