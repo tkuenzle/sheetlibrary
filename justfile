@@ -64,6 +64,8 @@ tofu-apply *args:
 # Build a preview and upload it to the preview worker under the given alias. Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
 preview alias:
     CLOUDFLARE_ENV=preview pnpm --filter web build
+    # Applies the preview worker's URL settings (preview URLs on, no routes); versions upload doesn't.
+    pnpm --filter web exec wrangler triggers deploy
     pnpm --filter web exec wrangler versions upload --preview-alias {{ alias }}
 
 # Build and deploy to production. Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
