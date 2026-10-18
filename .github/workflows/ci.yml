@@ -68,4 +68,8 @@ jobs:
           just preview pr-${{ github.event.pull_request.number }}
           url=$(jq -r 'select(.type == "version-upload") | .preview_alias_url // empty' "$WRANGLER_OUTPUT_FILE_PATH" | tail -n 1)
           test -n "$url" || { echo "No preview URL in wrangler output"; exit 1; }
+          # Preview URLs return error 1042 while the preview worker has no deployment
+          # (https://github.com/cloudflare/workers-sdk/issues/15890), so deploy the version too.
+          version=$(jq -r 'select(.type == "version-upload") | .version_id' "$WRANGLER_OUTPUT_FILE_PATH" | tail -n 1)
+          pnpm --filter web exec wrangler versions deploy "$version@100%" --yes --message "PR #${{ github.event.pull_request.number }}"
           echo "url=$url" >> "$GITHUB_OUTPUT"
