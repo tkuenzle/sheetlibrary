@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, types, tests & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: extractions/setup-just@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: just check
+
+  spec-check:
+    name: OpenSpec validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - uses: extractions/setup-just@v4
+      - run: just spec-check
+
+  preview:
+    name: Preview deploy
+    runs-on: ubuntu-latest
+    # Pull requests from forks get no secrets, so they get no preview.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    # GitHub shows the preview link on the pull request as a deployment.
+    environment:
+      name: preview
+      url: ${{ steps.upload.outputs.url }}
+    env:
+      # Secret of the preview environment: scoped to the preview worker only.
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: extractions/setup-just@v4
+      - run: pnpm install --frozen-lockfile
+      - name: Upload preview
+        id: upload
+        env:
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.json
+        run: |
+          just preview pr-${{ github.event.pull_request.number }}
+          url=$(jq -r 'select(.type == "version-upload") | .preview_alias_url // empty' "$WRANGLER_OUTPUT_FILE_PATH" | tail -n 1)
+          test -n "$url" || { echo "No preview URL in wrangler output"; exit 1; }
+          # Preview URLs return error 1042 while the preview worker has no deployment
+          # (https://github.com/cloudflare/workers-sdk/issues/15890), so deploy the version too.
+          version=$(jq -r 'select(.type == "version-upload") | .version_id' "$WRANGLER_OUTPUT_FILE_PATH" | tail -n 1)
+          pnpm --filter web exec wrangler versions deploy "$version@100%" --yes --message "PR #${{ github.event.pull_request.number }}"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
