@@ -23,9 +23,9 @@
 ## 4. Infrastructure
 
 - [ ] 4.1 Add `infra/` with the provider, the R2 backend (key `sheetlibrary/terraform.tfstate`), the account ID variable and `.gitignore`, and verify `tofu init` and `tofu validate` pass
-- [ ] 4.2 Import the existing zone with an `import` block and verify `tofu plan` shows only the import, with no changes or deletions
-- [ ] 4.3 Add the workers `sheetlibrary` and `sheetlibrary-preview` and the custom domain for sheetlibrary.com (check `cloudflare_worker` first, use the fallback from design.md if needed), and verify the plan
-- [ ] 4.4 Add the www record and a permanent redirect to the apex, and verify the plan
+- [x] 4.2 Import the existing zone with an `import` block and verify `tofu plan` shows only the import, with no changes or deletions
+- [x] 4.3 Add the workers `sheetlibrary` and `sheetlibrary-preview` and the custom domain for sheetlibrary.com (check `cloudflare_worker` first, use the fallback from design.md if needed), and verify the plan
+- [x] 4.4 Add the www record and a permanent redirect to the apex, and verify the plan
 - [ ] 4.5 Run the first `tofu apply` locally with the production credentials (repo owner), and verify both workers and the custom domain exist in the dashboard
 - [ ] 4.6 Create the pull request token (Editor on `sheetlibrary-preview` only, read on zone, DNS and Workers) and read-only R2 keys, add them as repo secrets with the same names, and verify uploading a version to `sheetlibrary` with them is rejected (manual, repo owner; split into two tokens per design.md if needed)
 
