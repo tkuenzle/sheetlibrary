@@ -27,13 +27,13 @@
 - [x] 4.3 Add the workers `sheetlibrary` and `sheetlibrary-preview` in tofu and the custom domain for sheetlibrary.com in `wrangler.jsonc`, and verify the plan and a deploy
 - [x] 4.4 Add the www record and a permanent redirect to the apex, and verify the plan
 - [x] 4.5 Run the first `tofu apply` locally with the production credentials (repo owner), and verify both workers exist and `tofu plan` shows no changes
-- [ ] 4.6 Create the pull request token (Editor on `sheetlibrary-preview` only, read on zone, DNS and Workers) and read-only R2 keys, add them as repo secrets with the same names, and verify uploading a version to `sheetlibrary` with them is rejected (manual, repo owner; split into two tokens per design.md if needed)
+- [ ] 4.6 Create the pull request token (Editor on `sheetlibrary-preview` only, read on zone, DNS and Workers) and read-only R2 keys, add them as secrets of a `preview` environment with the same names, and verify uploading a version to `sheetlibrary` with them is rejected (manual, repo owner; split into two tokens per design.md if needed)
 
 ## 5. CI on pull requests
 
 - [x] 5.1 Add a CI workflow running `just check` and `just spec-check`, and verify a deliberately failing test turns it red
 - [ ] 5.2 Add a `tofu plan -lock=false` job for pull requests that change `infra/`, using the pull request credentials, and verify the plan appears in the run
-- [ ] 5.3 Add the wrangler environment `preview` (worker `sheetlibrary-preview`) and a preview job (build with `CLOUDFLARE_ENV=preview`, then `wrangler versions upload --preview-alias pr-<n>`) that comments the link on the pull request, and verify the link shows the placeholder
+- [ ] 5.3 Add the wrangler environment `preview` (worker `sheetlibrary-preview`) and a preview job (build with `CLOUDFLARE_ENV=preview`, then `wrangler versions upload --preview-alias pr-<n>`) that shows the link on the pull request as a `preview` deployment, and verify the link shows the placeholder
 
 ## 6. Deploy on merge
 
