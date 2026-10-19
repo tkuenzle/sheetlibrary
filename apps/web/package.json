@@ -13,6 +13,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "chord-editor": "workspace:*",
+    "chordsheet": "workspace:*",
     "isbot": "^5.2.2",
     "prosemirror-commands": "^1.7.2",
     "prosemirror-history": "^1.5.1",

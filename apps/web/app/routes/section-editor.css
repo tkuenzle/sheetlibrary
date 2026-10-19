@@ -1,0 +1,24 @@
+.section-editor-page {
+  max-width: 44rem;
+  margin: var(--space-4) auto;
+  padding: 0 var(--space-3);
+}
+
+.section-editor-page h1 {
+  font-size: 1.25rem;
+}
+
+.section-editor-page .hint {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.section-editor-page button {
+  font: inherit;
+  padding: var(--space-1) var(--space-2);
+}
+
+.section-editor-page pre {
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
