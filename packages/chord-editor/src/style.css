@@ -8,6 +8,8 @@
   --chord-editor-font-size: the lyrics' size; chords are 0.8 of it
   --chord-editor-line-height: room for the lyrics and the chords above them
   --chord-editor-chord-color: the chords' color
+  --chord-editor-dimmed-opacity: the opacity of sections that aren't active
+  --chord-editor-section-gap: the space between sections
 */
 
 .chord-editor {
@@ -25,6 +27,16 @@
   margin: 0;
   min-height: var(--chord-editor-line-height, 2.8em);
   line-height: var(--chord-editor-line-height, 2.8em);
+}
+
+/* While editing, sections other than the active one are dimmed. */
+.chord-editor .is-editing .section:not(.is-active),
+.chord-label.is-dimmed {
+  opacity: var(--chord-editor-dimmed-opacity, 0.5);
+}
+
+.chord-editor .section + .section {
+  margin-top: var(--chord-editor-section-gap, 1em);
 }
 
 /* Chord labels sit in a layer over the editor, outside the editable text. */

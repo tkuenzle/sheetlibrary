@@ -4,10 +4,12 @@ import { keymap } from "prosemirror-keymap";
 import { Fragment, type Node, Slice } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 
+import { activeSection, endEditing } from "./active-section";
 import { chordLayer, type ChordLayerOptions } from "./chord-layer";
 import { selectedChord } from "./chords";
 import { chordRescue } from "./rescue";
 import { chordMark, chordsOn, newChordId } from "./schema";
+import { joinWithPrevious, sectionBreaks, splitOnEmptyLine } from "./sections";
 
 export interface EditorOptions extends ChordLayerOptions {
   // Ctrl+K or Cmd+K, with the position of the caret. The app opens the
@@ -23,13 +25,18 @@ export function createEditorState(doc: Node, options: EditorOptions = {}) {
     doc,
     plugins: [
       chordRescue(),
+      activeSection(),
       selectedChord(),
       freshIdsOnPaste(),
+      sectionBreaks(),
       history(),
       keymap({
         "Mod-z": undo,
         "Shift-Mod-z": redo,
         "Mod-y": redo,
+        Enter: splitOnEmptyLine,
+        Backspace: joinWithPrevious,
+        Escape: endEditing,
         ...(onChordShortcut && {
           "Mod-k": (state) => {
             onChordShortcut(state.selection.head);

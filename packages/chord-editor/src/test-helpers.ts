@@ -8,10 +8,11 @@ import {
 } from "prosemirror-state";
 
 import { createEditorState } from "./editor";
-import { chordMark, chordsOn, newChordId, schema } from "./schema";
+import { chordMark, chordsOn, forEachLine, newChordId, schema } from "./schema";
 
-// Tests write a section as lines of text with chords in brackets before
-// their letter, for example "[G]Amazing grace". Chords after the last
+// Tests write a sheet as lines of text with chords in brackets before their
+// letter, for example "[G]Amazing grace". A blank line starts a new section,
+// and "~" stands for an empty line inside a section. Chords after the last
 // letter sit on a trailing space, as in the editor.
 
 export function song(text: string) {
@@ -19,25 +20,40 @@ export function song(text: string) {
 }
 
 export function notation(state: EditorState) {
-  const lines: string[] = [];
-  state.doc.forEach((line) => {
-    let text = "";
-    line.forEach((child) => {
-      text += chordsOn(child)
-        .map((chord) => `[${chord.chord}]`)
-        .join("");
-      text += child.text ?? "";
+  const sections: string[] = [];
+  state.doc.forEach((section) => {
+    const lines: string[] = [];
+    section.forEach((line) => {
+      let text = "";
+      line.forEach((child) => {
+        text += chordsOn(child)
+          .map((chord) => `[${chord.chord}]`)
+          .join("");
+        text += child.text ?? "";
+      });
+      lines.push(text || "~");
     });
-    lines.push(text);
+    sections.push(lines.join("\n"));
   });
-  return lines.join("\n");
+  return sections.join("\n\n");
 }
 
 function docFromNotation(text: string): Node {
-  return schema.nodes.doc.create(null, text.split("\n").map(lineFromNotation));
+  return schema.nodes.doc.create(
+    null,
+    text
+      .split("\n\n")
+      .map((section) =>
+        schema.nodes.section.create(
+          null,
+          section.split("\n").map(lineFromNotation),
+        ),
+      ),
+  );
 }
 
 function lineFromNotation(line: string): Node {
+  if (line === "~") return schema.nodes.line.create();
   const content: Node[] = [];
   let chords: { id: string; chord: string }[] = [];
   const parts = line.split(/\[([^\]]*)\]/);
@@ -64,15 +80,15 @@ function lineFromNotation(line: string): Node {
 // `needle`.
 export function at(state: EditorState, needle: string, offset = 0) {
   const matches: number[] = [];
-  state.doc.forEach((line, lineOffset) => {
+  forEachLine(state.doc, (line, linePos) => {
     let text = "";
     const positions: number[] = [];
     line.forEach((child, childOffset) => {
-      const start = lineOffset + 1 + childOffset;
+      const start = linePos + 1 + childOffset;
       for (let i = 0; i < child.nodeSize; i++) positions.push(start + i);
       text += child.text ?? "";
     });
-    positions.push(lineOffset + 1 + line.content.size);
+    positions.push(linePos + 1 + line.content.size);
     const index = text.indexOf(needle);
     const pos = positions[index + offset];
     if (index >= 0 && pos !== undefined) matches.push(pos);
@@ -95,10 +111,11 @@ export function withCaret(state: EditorState, pos: number) {
   );
 }
 
+// Runs a command. One that changes the document is its own undo step.
 export function exec(state: EditorState, command: Command) {
   let next = state;
   const handled = command(state, (tr) => {
-    next = state.apply(closeHistory(tr));
+    next = state.apply(tr.docChanged ? closeHistory(tr) : tr);
   });
   if (!handled) throw new Error("command not handled");
   return next;

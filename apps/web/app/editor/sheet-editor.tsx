@@ -1,19 +1,20 @@
 import "chord-editor/style.css";
-import "./section-editor.css";
+import "./sheet-editor.css";
 
 import {
   changeChord,
   chordsAt,
   createEditorState,
-  docFromSection,
+  docFromSheet,
+  endEditing,
   findChord,
   type HandBack,
-  handBackSection,
+  handBackSheet,
   insertChord,
   removeChord,
   selectChord,
 } from "chord-editor";
-import type { Section } from "chordsheet";
+import type { ChordSheet } from "chordsheet";
 import type { Command } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import {
@@ -25,7 +26,7 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 
-export interface SectionEditorHandle {
+export interface SheetEditorHandle {
   handBack(): HandBack;
 }
 
@@ -33,28 +34,28 @@ type ChordInput = { left: number; top: number } & (
   { kind: "new"; pos: number } | { kind: "edit"; id: string }
 );
 
-// Edits one section. The section is read once, when the editor is created;
-// give the component a new key to load another one.
-export function SectionEditor({
-  section,
+// Edits a sheet, one active section at a time. The sheet is read once, when
+// the editor is created; give the component a new key to load another one.
+export function SheetEditor({
+  sheet,
   ref,
 }: {
-  section: Section;
-  ref?: Ref<SectionEditorHandle>;
+  sheet: ChordSheet;
+  ref?: Ref<SheetEditorHandle>;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const mountRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const chordInputRef = useRef<ChordInput | null>(null);
-  const sectionRef = useRef(section);
+  const sheetRef = useRef(sheet);
   const [chordInput, setChordInput] = useState<ChordInput | null>(null);
 
   useImperativeHandle(ref, () => ({
     handBack: () => {
       const view = viewRef.current;
       if (!view) throw new Error("The editor is not ready");
-      return handBackSection(view.state.doc);
+      return handBackSheet(view.state.doc);
     },
   }));
 
@@ -134,13 +135,28 @@ export function SectionEditor({
     };
 
     const view = new EditorView(mount, {
-      state: createEditorState(docFromSection(sectionRef.current), {
+      state: createEditorState(docFromSheet(sheetRef.current), {
         onChordShortcut,
         onChordClick: editChord,
       }),
     });
     viewRef.current = view;
+
+    // A click outside the sheet ends editing. The chord input and the chord
+    // labels are inside it. It waits for the click, not the press: clean-up
+    // can shrink the sheet and move a button away from under the pointer.
+    function onClick(event: MouseEvent) {
+      if (frameRef.current?.contains(event.target as Node)) return;
+      if (chordInputRef.current) {
+        showInput(null);
+        run(selectChord(null));
+      }
+      endEditing(view.state, view.dispatch, view);
+    }
+    document.addEventListener("click", onClick);
+
     return () => {
+      document.removeEventListener("click", onClick);
       view.destroy();
       viewRef.current = null;
     };
@@ -148,7 +164,7 @@ export function SectionEditor({
   }, []);
 
   return (
-    <div className="section-editor" ref={frameRef}>
+    <div className="sheet-editor" ref={frameRef}>
       <div className="chord-editor" ref={mountRef} data-testid="editor" />
       {chordInput && (
         <form

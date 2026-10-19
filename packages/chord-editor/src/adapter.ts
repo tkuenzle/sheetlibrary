@@ -1,4 +1,5 @@
 import {
+  type ChordSheet,
   checkSheet,
   cleanUpSection,
   FORMAT,
@@ -11,16 +12,25 @@ import type { Node } from "prosemirror-model";
 
 import { type Chord, chordMark, chordsOn, newChordId, schema } from "./schema";
 
-// Converts between a stored section (`chordsheet`) and the editor. The
-// editor puts chords after the last letter on a trailing space and gives
-// every chord an id; the stored section has neither.
+// Converts between a stored sheet (`chordsheet`) and the editor. The editor
+// puts chords after the last letter on a trailing space and gives every
+// chord an id; the stored sheet has neither.
 
-export function docFromSection(section: Section): Node {
-  const lines = section.lines.map(lineToEditor);
+export function docFromSheet(sheet: ChordSheet): Node {
+  const sections = sheet.sections.map(sectionToEditor);
+  // The editor needs one section to type in, even for an empty sheet.
   return schema.nodes.doc.create(
     null,
-    lines.length > 0 ? lines : [schema.nodes.line.create()],
+    sections.length > 0 ? sections : [emptySection()],
   );
+}
+
+export function emptySection(): Node {
+  return schema.nodes.section.create(null, schema.nodes.line.create());
+}
+
+function sectionToEditor(section: Section): Node {
+  return schema.nodes.section.create(null, section.lines.map(lineToEditor));
 }
 
 function lineToEditor(line: Line): Node {
@@ -41,25 +51,28 @@ function lineToEditor(line: Line): Node {
 }
 
 export type HandBack =
-  // No section means that nothing was left after clean-up.
-  | { ok: true; section: Section | undefined }
-  | { ok: false; problems: Problem[] };
+  { ok: true; sheet: ChordSheet } | { ok: false; problems: Problem[] };
 
-// Turns the editor's draft back into a stored section: cleaned up, and
-// checked against the model's rules.
-export function handBackSection(doc: Node): HandBack {
-  const lines: Line[] = [];
+// Turns the editor's draft back into a stored sheet: every section cleaned
+// up, and the result checked against the model's rules.
+export function handBackSheet(doc: Node): HandBack {
+  const sections: Section[] = [];
   doc.forEach((node) => {
-    lines.push(normalize(lineFromEditor(node)));
+    const section = sectionFromEditor(node);
+    if (section) sections.push(section);
   });
-  const section = cleanUpSection({ lines });
-  if (!section) return { ok: true, section: undefined };
-  const problems = checkSheet({
-    format: FORMAT,
-    version: VERSION,
-    sections: [section],
+  const sheet: ChordSheet = { format: FORMAT, version: VERSION, sections };
+  const problems = checkSheet(sheet);
+  return problems.length > 0 ? { ok: false, problems } : { ok: true, sheet };
+}
+
+// The section as stored, cleaned up. Undefined when nothing is left.
+function sectionFromEditor(node: Node): Section | undefined {
+  const lines: Line[] = [];
+  node.forEach((line) => {
+    lines.push(normalize(lineFromEditor(line)));
   });
-  return problems.length > 0 ? { ok: false, problems } : { ok: true, section };
+  return cleanUpSection({ lines });
 }
 
 function lineFromEditor(node: Node): Line {
