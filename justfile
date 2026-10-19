@@ -45,6 +45,14 @@ check: fmt-check lint typecheck test build e2e
 spec-check:
     OPENSPEC_TELEMETRY=0 pnpm dlx @fission-ai/openspec@1.14.3 validate --all --strict
 
+# Update the agent skills listed in skills-lock.json. Re-adds each one, since `skills update` moves some to .agents/.
+skills-update:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for skill in $(node -p 'Object.entries(require("./skills-lock.json").skills).map(([name, s]) => `${s.source}@${name}`).join(" ")'); do
+        DO_NOT_TRACK=1 pnpm dlx skills@1.7.2 add "$skill" --agent claude-code --yes
+    done
+
 # Fix everything that can be fixed automatically: formatting and lint.
 fix: fmt
     pnpm lint --fix

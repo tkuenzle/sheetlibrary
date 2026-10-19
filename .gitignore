@@ -5,6 +5,7 @@ build/
 .wrangler/
 test-results/
 playwright-report/
+.playwright-cli/
 .env
 .dev.vars
 worker-configuration.d.ts
