@@ -193,6 +193,12 @@ importers:
 
   apps/web:
     dependencies:
+      chord-editor:
+        specifier: workspace:*
+        version: link:../../packages/chord-editor
+      chordsheet:
+        specifier: workspace:*
+        version: link:../../packages/chordsheet
       isbot:
         specifier: ^5.2.2
         version: 5.2.2
@@ -257,6 +263,40 @@ importers:
       wrangler:
         specifier: ^4.151.1
         version: 4.151.1(@types/node@24.19.2)
+
+  packages/chord-editor:
+    dependencies:
+      chordsheet:
+        specifier: workspace:*
+        version: link:../chordsheet
+      prosemirror-commands:
+        specifier: ^1.7.2
+        version: 1.7.2
+      prosemirror-history:
+        specifier: ^1.5.1
+        version: 1.5.1
+      prosemirror-keymap:
+        specifier: ^1.2.3
+        version: 1.2.3
+      prosemirror-model:
+        specifier: ^1.25.12
+        version: 1.25.12
+      prosemirror-state:
+        specifier: ^1.4.4
+        version: 1.4.4
+      prosemirror-transform:
+        specifier: ^1.12.2
+        version: 1.12.2
+      prosemirror-view:
+        specifier: ^1.42.6
+        version: 1.42.6
+    devDependencies:
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2))
 
   packages/chordsheet:
     devDependencies:

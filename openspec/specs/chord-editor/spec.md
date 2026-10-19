@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Lets musicians edit a chord sheet visually: chords appear above the lyrics, are placed by click, tap or keyboard, and stay on their letters while the lyrics change.
+Lets musicians edit a chord sheet visually, one section at a time: chords appear above the lyrics, are added and edited by keyboard or by clicking them, and stay on their letters while the lyrics change.
 
 ## Requirements
 
@@ -17,12 +17,12 @@ The editor SHALL show each chord above the letter it belongs to. A chord wider t
 - **WHEN** a line is too long for the screen and wraps
 - **THEN** every chord stays above its letter on the wrapped part
 
-### Requirement: Placing chords
-The user SHALL be able to place a chord on a letter by mouse, by keyboard and by touch, and to edit, move and delete a chord. Any chord text is accepted.
+### Requirement: Adding and editing chords
+The user SHALL be able to add a chord at the caret, and to edit and delete a chord, by keyboard. Clicking or tapping a chord's label SHALL open it for editing. Any chord text is accepted.
 
-#### Scenario: Place by tap
-- **WHEN** the user taps a letter and enters "G"
-- **THEN** "G" appears above that letter
+#### Scenario: Add by keyboard
+- **WHEN** the caret is just before the "r" in "wretch" and the user presses Ctrl+K or Cmd+K and enters "Am"
+- **THEN** "Am" appears above the "r"
 
 #### Scenario: Delete a chord
 - **WHEN** the user deletes a chord with the chord controls
@@ -81,3 +81,21 @@ Undo SHALL restore lyrics and chords to the state before the edit in one step. R
 #### Scenario: Undo a deletion
 - **WHEN** the user deletes a letter that carries a chord and then presses undo once
 - **THEN** the letter is back and the chord sits on it again
+
+### Requirement: Editing one section
+The editor SHALL edit one section of a chord sheet. It SHALL show the section's lines and chords as stored, and hand back the same lines and chords when nothing was changed.
+
+#### Scenario: Unchanged section
+- **WHEN** a section whose last line ends with a chord after its last letter is loaded and handed back without changes
+- **THEN** the section has the same text and chords as before
+
+### Requirement: Handing back a section
+When the user finishes the section, the editor SHALL hand it back cleaned up and checked by the chord sheet model. While the user types, the section may break the model's rules, for example with an empty line.
+
+#### Scenario: Empty line dropped
+- **WHEN** the user adds an empty line between two lines and finishes the section
+- **THEN** the handed-back section holds only the two lines
+
+#### Scenario: Nothing left
+- **WHEN** the user selects everything in the section, deletes it and finishes the section
+- **THEN** no section is handed back

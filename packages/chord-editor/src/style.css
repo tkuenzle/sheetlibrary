@@ -1,0 +1,59 @@
+@import "prosemirror-view/style/prosemirror.css";
+
+/*
+  Layout the chord layer depends on. Put the editor's view inside an element
+  with the class "chord-editor". Set these custom properties to style it:
+
+  --chord-editor-font: the lyrics' font family
+  --chord-editor-font-size: the lyrics' size; chords are 0.8 of it
+  --chord-editor-line-height: room for the lyrics and the chords above them
+  --chord-editor-chord-color: the chords' color
+*/
+
+.chord-editor {
+  position: relative;
+  font-family: var(--chord-editor-font, inherit);
+  font-size: var(--chord-editor-font-size, 1.15rem);
+}
+
+.chord-editor .ProseMirror {
+  outline: none;
+  padding: 0.5rem 0 1rem;
+}
+
+.chord-editor .line {
+  margin: 0;
+  min-height: var(--chord-editor-line-height, 2.8em);
+  line-height: var(--chord-editor-line-height, 2.8em);
+}
+
+/* Chord labels sit in a layer over the editor, outside the editable text. */
+.chord-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.chord-label {
+  position: absolute;
+  color: var(--chord-editor-chord-color, currentColor);
+  font-size: 0.8em;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Bigger tap target, without changing the label's measured size. */
+.chord-label::after {
+  content: "";
+  position: absolute;
+  inset: -0.35em -0.3em;
+}
+
+.chord-label.is-selected {
+  outline: 2px solid var(--chord-editor-chord-color, currentColor);
+  outline-offset: 2px;
+}

@@ -57,15 +57,16 @@ M0 walking skeleton  ->  M1 editor spike  ->  M2 published editor  ->  later
 - The "chords stick to the lyrics" rule, including undo.
 - Placing chords by mouse, keyboard and touch.
 
-**M2: Published editor.** The chord sheet model (with ChordPro import and export) and the real editor. Published as a static page with an editable public-domain seed song. No backend and no saving.
+**M2: Published editor.** The chord sheet model and the real editor. Published as a static page with an editable public-domain seed song. No backend and no saving.
 
-M2 is built in small steps. Each step after the iPhone check gets its own OpenSpec change and pull request:
+M2 is built in small steps, each with its own OpenSpec change and pull request. The editor was not checked on an iPhone before building on it (marks were only tested on Android). That risk is accepted.
 
-1. **iPhone check.** Run the stop-criteria and drag rows of the checklist in `docs/editor-spike.md` on an iPhone. Marks were only tested on Android, and this is the one risk that could still change the approach.
-2. **M2a: Chord sheet model.** The versioned JSON model for the content (sections of lines, no metadata), its rules and a check, and a clean-up step for a section. No UI. See `openspec/specs/chord-sheet-model`. From the spike: several chords at one spot keep their order, and a chord can sit at the end of a line or on a space.
-3. **M2b: Real editor.** Built on the model the way the spike works: marks, the chord layer, and the rescue rules with their tests. An adapter converts between the editor and the model, one section at a time. Fixes the spike's rough edges (trailing space left behind, labels placed one frame late).
-4. **M2c: Chord interactions.** Dragging to move and add chords, an add icon on hover on desktop, maybe tapping above a word on phones. A chord on a space pushes the next word past its label. Can run alongside M2b.
-5. **M2d: Publish.** The editor page with the seed song replaces `/spike/editor`.
+1. **M2a: Chord sheet model (done).** The versioned JSON model for the content (sections of lines, no metadata), its rules and a check, and a clean-up step for a section. No UI. See `openspec/specs/chord-sheet-model`. From the spike: several chords at one spot keep their order, and a chord can sit at the end of a line or on a space.
+2. **M2b: Section editor.** The real editor for one section, in `packages/chord-editor`, built the way the spike works: marks, the chord layer, and the rescue rules with their tests. An adapter loads a section from the model and hands it back cleaned up and checked. Chords are added and edited by keyboard (Ctrl+K or Cmd+K) and by clicking their label. A test page at `/section-editor`.
+3. **M2c: Sheet editing.** Editing a whole sheet one section at a time: opening and finishing a section, adding, removing and reordering sections, undo across sections, and pasting text with blank lines.
+4. **M2d: Chord interactions.** Dragging to move and add chords, an add icon on hover on desktop, maybe tapping above a word on phones. A chord on a space pushes the next word past its label. Fixes the spike's rough edges: the trailing space left after removing a chord at the end of a line, and labels placed one frame late. Can run alongside M2c.
+5. **M2e: Publish.** The editor page with the seed song replaces `/spike/editor`.
+6. **M2f: UI polish.** A design foundation: tokens for color, type and spacing, a few base components, and a glossary and voice for the UI text. Until then, pages stay plain, with colors, fonts and spacing in CSS custom properties so this step changes values, not structure.
 
 **Later, roughly in this order:**
 
@@ -81,7 +82,7 @@ M2 is built in small steps. Each step after the iPhone check gets its own OpenSp
 - Autosave in the browser and ChordPro export already in M2?
 - How important are phones for M2? The spike shows they work well, especially with dragging.
 - What does the sheet around the content hold (title, artist, key), and what do sections need besides their lines (verse, chorus, a label)?
-- Editing one section at a time: how do undo across sections, and pasting text with blank lines, work?
+- Editing one section at a time: how do undo across sections, and pasting text with blank lines, work? (M2c)
 - Is chord mode still needed once chords can be dragged, and added by hover or tap?
 - Local-first or a classic backend?
 - Preview links: public or protected?
