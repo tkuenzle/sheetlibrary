@@ -4,6 +4,7 @@
   "exclude": ["worker-configuration.d.ts"],
   "compilerOptions": {
     "composite": true,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"]
   }
 }

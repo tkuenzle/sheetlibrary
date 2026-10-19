@@ -1,0 +1,128 @@
+.spike {
+  --chord: light-dark(#b4451f, #ff9b6b);
+  max-width: 44rem;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
+
+.spike h1 {
+  font-size: 1.25rem;
+}
+
+.spike-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.spike-toolbar button {
+  font: inherit;
+  padding: 0.4rem 0.75rem;
+}
+
+.spike-toolbar button[aria-pressed="true"] {
+  font-weight: 700;
+  outline: 2px solid var(--chord);
+}
+
+.spike-hint {
+  color: GrayText;
+  font-size: 0.9rem;
+}
+
+.spike-frame {
+  position: relative;
+}
+
+.spike-frame .ProseMirror {
+  font-size: 1.15rem;
+  outline: none;
+  padding: 0.5rem 0 1rem;
+}
+
+.spike-frame .line {
+  margin: 0;
+  min-height: 2.8em;
+  line-height: 2.8;
+}
+
+.spike[data-mode="chords"] .ProseMirror {
+  cursor: pointer;
+  user-select: none;
+}
+
+.spike-editor {
+  position: relative;
+}
+
+/* Chord labels sit in a layer over the editor, outside the editable text. */
+.chord-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-size: 1.15rem;
+  user-select: none;
+}
+
+.chord-label {
+  position: absolute;
+  color: var(--chord);
+  font-size: 0.8em;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+/* Bigger tap target, without changing the label's measured size. */
+.chord-label::after {
+  content: "";
+  position: absolute;
+  inset: -0.35em -0.3em;
+}
+
+.chord-label.is-selected {
+  outline: 2px solid var(--chord);
+  outline-offset: 2px;
+}
+
+.chord-label.is-dragging {
+  z-index: 1;
+  cursor: grabbing;
+  opacity: 0.8;
+}
+
+.chord-drop-caret {
+  position: absolute;
+  width: 2px;
+  background: var(--chord);
+}
+
+.chord-input {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  border: 1px solid GrayText;
+  border-radius: 6px;
+  background: Canvas;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+}
+
+/* 16px stops iOS from zooming in on focus. */
+.chord-input input,
+.chord-input button {
+  font-size: 16px;
+}
+
+.chord-input input {
+  width: 6em;
+}
+
+.spike details {
+  margin-top: 1rem;
+}
