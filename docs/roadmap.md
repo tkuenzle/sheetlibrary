@@ -62,7 +62,7 @@ M0 walking skeleton  ->  M1 editor spike  ->  M2 published editor  ->  later
 M2 is built in small steps. Each step after the iPhone check gets its own OpenSpec change and pull request:
 
 1. **iPhone check.** Run the stop-criteria and drag rows of the checklist in `docs/editor-spike.md` on an iPhone. Marks were only tested on Android, and this is the one risk that could still change the approach.
-2. **M2a: Chord sheet model.** The versioned JSON model for the content (sections of lines, no metadata), its rules and a check, and a clean-up step for a section. No UI. See `openspec/changes/chord-sheet-model`. From the spike: several chords at one spot keep their order, and a chord can sit at the end of a line or on a space.
+2. **M2a: Chord sheet model.** The versioned JSON model for the content (sections of lines, no metadata), its rules and a check, and a clean-up step for a section. No UI. See `openspec/specs/chord-sheet-model`. From the spike: several chords at one spot keep their order, and a chord can sit at the end of a line or on a space.
 3. **M2b: Real editor.** Built on the model the way the spike works: marks, the chord layer, and the rescue rules with their tests. An adapter converts between the editor and the model, one section at a time. Fixes the spike's rough edges (trailing space left behind, labels placed one frame late).
 4. **M2c: Chord interactions.** Dragging to move and add chords, an add icon on hover on desktop, maybe tapping above a word on phones. A chord on a space pushes the next word past its label. Can run alongside M2b.
 5. **M2d: Publish.** The editor page with the seed song replaces `/spike/editor`.
