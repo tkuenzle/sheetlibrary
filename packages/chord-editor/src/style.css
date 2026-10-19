@@ -55,7 +55,9 @@
   line-height: 1;
   white-space: nowrap;
   pointer-events: auto;
-  cursor: pointer;
+  /* Dragging a label must not scroll the page. */
+  touch-action: none;
+  cursor: grab;
 }
 
 /* Bigger tap target, without changing the label's measured size. */
@@ -76,4 +78,18 @@
 .chord-label.is-selected {
   outline: 2px solid var(--chord-editor-chord-color, currentColor);
   outline-offset: 2px;
+}
+
+.chord-label.is-dragging {
+  position: fixed;
+  z-index: 1;
+  cursor: grabbing;
+  opacity: 0.8;
+}
+
+/* Where a dragged chord lands. */
+.chord-drop-caret {
+  position: absolute;
+  width: 2px;
+  background: var(--chord-editor-chord-color, currentColor);
 }

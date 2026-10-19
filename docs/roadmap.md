@@ -64,8 +64,11 @@ M2 is built in small steps, each with its own OpenSpec change and pull request. 
 
 1. **M2a: Chord sheet model (done).** The versioned JSON model for the content (sections of lines, no metadata), its rules and a check, and a clean-up step for a section. No UI. See `openspec/specs/chord-sheet-model`. From the spike: several chords at one spot keep their order, and a chord can sit at the end of a line or on a space.
 2. **M2b: Section editor (done).** The real editor for one section, in `packages/chord-editor`, built the way the spike works: marks, the chord layer, and the rescue rules with their tests. An adapter loads a section from the model and hands it back cleaned up and checked. Chords are added and edited by keyboard (Ctrl+K or Cmd+K) and by clicking their label.
-3. **M2c: Sheet editing.** Editing a whole sheet in one editor, one active section at a time: finishing a section when the caret leaves it, blank lines as section breaks (typed or pasted), joining sections, and undo across sections. A test page at `/sheet-editor`.
-4. **M2d: Chord interactions.** Dragging to move and add chords, an add icon on hover on desktop, maybe tapping above a word on phones. A chord on a space pushes the next word past its label. Fixes the spike's rough edges: the trailing space left after removing a chord at the end of a line, and labels placed one frame late. Can run alongside M2c.
+3. **M2c: Sheet editing (done).** Editing a whole sheet in one editor, one active section at a time: finishing a section when the caret leaves it, blank lines as section breaks (typed or pasted), joining sections, and undo across sections. A test page at `/sheet-editor`.
+4. **M2d: Chord interactions.** In three changes:
+   - **chord-drag:** Dragging a chord to move it, inside the active section, including to a spot in a pile. The page scrolls while dragging near the window's edge.
+   - **chord-layout:** A pile, or a chord on a space, pushes the text after it past its labels. Fixes the spike's rough edges: the trailing space left after removing a chord at the end of a line, and labels placed one frame late.
+   - **chord-add:** Adding chords by pointer: an add icon on hover on desktop, maybe tapping above a word on phones, and dragging.
 5. **M2e: Section operations.** Dragging sections to reorder them. Until then, a section is moved by cut and paste.
 6. **M2f: Publish.** The editor page with the seed song replaces `/spike/editor`.
 7. **M2g: UI polish.** A design foundation: tokens for color, type and spacing, a few base components, and a glossary and voice for the UI text. Until then, pages stay plain, with colors, fonts and spacing in CSS custom properties so this step changes values, not structure.
