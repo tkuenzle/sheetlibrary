@@ -77,6 +77,7 @@ test.describe("adding and editing chords", () => {
   test("changes and deletes a chord by clicking its label", async ({
     page,
   }) => {
+    await clickChar(page, "before", "Amazing");
     await clickLabel(page, "G7");
     await page.getByLabel("Chord").fill("C");
     await page.getByRole("button", { name: "OK" }).click();
@@ -85,6 +86,35 @@ test.describe("adding and editing chords", () => {
     const [lines = []] = await handBack(page);
     expect(lines[0]).toBe("[G]Amazing [C]grace, how [C]sweet the [G]sound");
     expect(lines[1]).toBe("That saved a wretch like me");
+  });
+
+  test("keeps the section active after the chord input's buttons", async ({
+    page,
+  }) => {
+    await clickChar(page, "before", "Amazing");
+    for (const button of ["Cancel", "OK"]) {
+      await clickLabel(page, "G7");
+      await page.getByRole("button", { name: button }).click();
+      await expect(page.getByLabel("Chord")).toHaveCount(0);
+      await expect(activeSection(page)).toContainText("Amazing grace");
+      await expect(page.locator(".chord-label.is-dimmed")).toHaveCount(12);
+    }
+  });
+
+  test("makes a section active on a click on one of its labels", async ({
+    page,
+  }) => {
+    await clickChar(page, "before", "Amazing");
+    const label = page.locator(".chord-label", { hasText: "Cmaj7" });
+    const box = await label.boundingBox();
+    if (!box) throw new Error("Cmaj7 has no box");
+    await afterSelectionChange(page, () =>
+      page.mouse.click(box.x + box.width / 2, box.y + box.height / 2),
+    );
+    await expect(activeSection(page)).toContainText("'Twas grace");
+    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await clickLabel(page, "Cmaj7");
+    await expect(page.getByLabel("Chord")).toHaveValue("Cmaj7");
   });
 });
 

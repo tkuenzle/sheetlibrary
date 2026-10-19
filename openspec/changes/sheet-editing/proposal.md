@@ -7,7 +7,7 @@ The editor from M2b edits one section, but a song has several. Users need to edi
 ## What Changes
 
 - The editor edits a whole sheet in one editor. Sections are part of the editor's document, so one undo history covers them all.
-- The section with the caret is the active one. Other sections are dimmed but not locked: clicking or moving the caret into one makes it active. A selection stays inside one section.
+- The section with the caret is the active one. Other sections are dimmed but not locked: clicking or moving the caret into one makes it active. Only the active section's chords can be clicked; a click on another chord makes its section active. A selection stays inside one section.
 - When the caret leaves a section, the section is cleaned up: empty lines are dropped, and an emptied section is removed. Escape or a click outside the sheet ends editing. Opening the chord input does not.
 - A blank line is a section break. Enter on an empty line splits the section there, and pasted text with blank lines becomes several sections.
 - Backspace at the start of a section joins it with the one before.
@@ -38,5 +38,4 @@ None.
 
 - Enter on an empty line that is the first line of a section, for example in a new section: split, or do nothing?
 - Delete at the end of a section: join it with the next one, as the opposite of Backspace?
-- Clicking a chord label in an inactive section: does that make the section active?
 - Do sections need a label (verse, chorus), and does it belong in M2e?

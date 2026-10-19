@@ -103,11 +103,12 @@ class ChordLayerView {
         top = NaN;
       }
       const chords = JSON.parse(span.dataset.chords ?? "[]") as Chord[];
-      // Labels are outside their section, so they are dimmed here.
-      const dimmed = editing && !span.closest(".section.is-active");
+      // Labels are outside their section, so they follow it here: only the
+      // active section's labels can be clicked, and the others are dimmed.
+      const active = span.closest(".section.is-active") !== null;
       const labels = chords.map((chord) => {
         seen.add(chord.id);
-        return this.label(chord, selected, dimmed);
+        return this.label(chord, selected, active, editing && !active);
       });
       const space = parseFloat(getComputedStyle(span).fontSize) * 0.3;
       let box = span.getBoundingClientRect();
@@ -132,7 +133,12 @@ class ChordLayerView {
     }
   }
 
-  private label(chord: Chord, selected: string | null, dimmed: boolean) {
+  private label(
+    chord: Chord,
+    selected: string | null,
+    active: boolean,
+    dimmed: boolean,
+  ) {
     let label = this.labels.get(chord.id);
     if (!label) {
       label = document.createElement("span");
@@ -142,6 +148,7 @@ class ChordLayerView {
     }
     label.className = "chord-label";
     if (chord.id === selected) label.classList.add("is-selected");
+    if (!active) label.classList.add("is-inert");
     if (dimmed) label.classList.add("is-dimmed");
     label.textContent = chord.chord;
     return label;

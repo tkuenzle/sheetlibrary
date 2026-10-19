@@ -18,11 +18,15 @@ The editor SHALL edit all sections of a chord sheet in one place. It SHALL show 
 - **THEN** the sheet has the same sections, text and chords as before
 
 ### Requirement: Active section
-The section with the caret SHALL be the active section and SHALL look active. The other sections SHALL look dimmed but stay editable: moving the caret into one, by click or arrow key, makes it active. A selection SHALL stay inside one section.
+The section with the caret SHALL be the active section and SHALL look active. The other sections SHALL look dimmed but stay editable: moving the caret into one, by click or arrow key, makes it active. Only the active section's chord labels SHALL open for editing; a click on another label makes its section active. A selection SHALL stay inside one section.
 
 #### Scenario: Arrow into the next section
 - **WHEN** the caret is on the last line of the first section and the user presses the down arrow key
 - **THEN** the caret is in the second section, and the second section is active
+
+#### Scenario: Chord in another section
+- **WHEN** the first section is active and the user clicks a chord label in the second section
+- **THEN** the second section is active and no chord is opened for editing
 
 #### Scenario: Selection across sections
 - **WHEN** the user drags a selection from the first section into the second

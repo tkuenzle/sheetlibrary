@@ -17,7 +17,7 @@
 
 **Sections are nodes.** The schema becomes `doc: section+`, `section: line+`. A section renders as `<section class="section">`. Splitting the sheet into one editor per section was rejected: undo across sections, pasting blank lines and joining would each need code that crosses editors, and Yjs wants one document per sheet.
 
-**Active state lives in plugin state.** A plugin keeps the active section (its position, or none). It follows the selection's section while editing, and turns to none on an "end editing" command. Losing focus doesn't count, so the chord input keeps the section active. The look comes from a node decoration (`section active`), and dimming is a CSS custom property in the package stylesheet. The state isn't in the document, so it's not stored, not undone, and with Yjs each user would have their own.
+**Active state lives in plugin state.** A plugin keeps the active section (its position, or none). It follows the selection's section while editing, and turns to none on an "end editing" command. Losing focus doesn't count, so the chord input keeps the section active. The look comes from a node decoration (`section active`), and dimming is a CSS custom property in the package stylesheet. The state isn't in the document, so it's not stored, not undone, and with Yjs each user would have their own. Chord labels live in a layer outside their sections, so the layer dims them and makes them ignore the pointer when their section isn't active. A click on such a label then lands on the line under it, which moves the caret there like any click into the section.
 
 **The selection is kept in one section.** An `appendTransaction` moves a text selection's head back inside the section of its anchor. Mod-a selects the active section's text. Blocking such transactions with `filterTransaction` was rejected: it would stop a mouse drag instead of limiting it.
 
@@ -32,6 +32,8 @@
 **The adapter covers the sheet.** `docFromSheet` and `handBackSheet` replace the section functions and reuse their per-line code. Hand-back cleans up every section, drops empty ones, and checks the whole sheet with `checkSheet`. A sheet with no sections loads as one section with one empty line.
 
 **The rescue plugin walks lines at any depth.** It visits every `line` node with `descendants` instead of the doc's children. The rules don't change. The test notation separates sections with a blank line, which matches the new rule.
+
+**A click outside the sheet ends editing on the click, not the press.** Clean-up can shrink the sheet and move a button, such as **Done**, away from under the pointer before it is released. The check uses the event's path, since the chord input's buttons remove themselves before the click reaches the document.
 
 **The test page moves to `/sheet-editor`.** It edits the whole seed song. **Done** ends editing, hands back the sheet and shows it as JSON. **Edit** loads it again. The `/section-editor` route goes away.
 

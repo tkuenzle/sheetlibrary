@@ -145,8 +145,11 @@ export function SheetEditor({
     // A click outside the sheet ends editing. The chord input and the chord
     // labels are inside it. It waits for the click, not the press: clean-up
     // can shrink the sheet and move a button away from under the pointer.
+    // The event's path is checked, not its target: the chord input's buttons
+    // close it, so they are gone from the page by the time the click gets here.
     function onClick(event: MouseEvent) {
-      if (frameRef.current?.contains(event.target as Node)) return;
+      const frame = frameRef.current;
+      if (frame && event.composedPath().includes(frame)) return;
       if (chordInputRef.current) {
         showInput(null);
         run(selectChord(null));

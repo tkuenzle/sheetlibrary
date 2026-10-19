@@ -28,7 +28,12 @@
 - [x] 5.2 Move the test page to `/sheet-editor` (noindex) with the whole seed song, **Done**, the JSON view and **Edit**, and remove `/section-editor`; verify by hand with `just dev`
 - [x] 5.3 Move the Playwright tests to `/sheet-editor` and add tests for arrowing into the next section, selection across sections, Escape removing an emptied section, the chord input keeping the section active, Enter twice, paste and undo of a removed section; verify `just e2e` passes on desktop and phone
 
-## 6. Docs and checks
+## 6. Feedback from the preview
 
-- [x] 6.1 Update `docs/roadmap.md`: M2c without reordering, a new M2e section operations (dragging sections to reorder them), publish as M2f and UI polish as M2g, and the open question on undo and pasting answered; verify the roadmap matches proposal.md
-- [x] 6.2 Run `just spec-check` and `just check`; verify both pass
+- [x] 6.1 Make chord labels in inactive sections ignore the pointer, so a click on one makes its section active; verify with a Playwright test for "Chord in another section"
+- [x] 6.2 Keep editing when the chord input's buttons close it (Cancel, OK, Delete counted as a click outside); verify with a Playwright test that fails without the fix
+
+## 7. Docs and checks
+
+- [x] 7.1 Update `docs/roadmap.md`: M2c without reordering, a new M2e section operations (dragging sections to reorder them), publish as M2f and UI polish as M2g, and the open question on undo and pasting answered; verify the roadmap matches proposal.md
+- [x] 7.2 Run `just spec-check` and `just check`; verify both pass

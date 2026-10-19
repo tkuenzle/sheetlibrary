@@ -65,6 +65,14 @@
   inset: -0.35em -0.3em;
 }
 
+/*
+  Only the active section's labels can be clicked. A click on another label
+  goes through to the line under it, which makes that section active.
+*/
+.chord-label.is-inert {
+  pointer-events: none;
+}
+
 .chord-label.is-selected {
   outline: 2px solid var(--chord-editor-chord-color, currentColor);
   outline-offset: 2px;
