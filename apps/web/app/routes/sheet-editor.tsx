@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { SheetEditor, type SheetEditorHandle } from "../editor/sheet-editor";
 import { seedSong } from "../editor/seed-song";
 
-// A test page for the sheet editor (M2c). See openspec/changes/sheet-editing.
+// A test page for the sheet editor (M2c). See openspec/specs/chord-editor.
 
 export function meta() {
   return [
