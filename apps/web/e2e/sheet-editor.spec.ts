@@ -1,11 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 
-interface Section {
-  lines: { text: string; chords: { at: number; chord: string }[] }[];
+interface Sheet {
+  sections: {
+    lines: { text: string; chords: { at: number; chord: string }[] }[];
+  }[];
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/section-editor");
+  await page.goto("/sheet-editor");
   await expect(page.locator(".chord-label").first()).toBeVisible();
 });
 
@@ -13,7 +15,7 @@ test.describe("chords above their letters", () => {
   test("shows each chord above its letter without overlaps", async ({
     page,
   }) => {
-    await expect(page.locator(".chord-label")).toHaveCount(12);
+    await expect(page.locator(".chord-label")).toHaveCount(24);
     await expect.poll(() => misplacedChords(page)).toEqual([]);
     await expect.poll(() => overlappingChords(page)).toEqual([]);
   });
@@ -35,7 +37,7 @@ test.describe("chords above their letters", () => {
     await addChord(page, "the", 2, "Dsus4");
     await expect.poll(() => misplacedChords(page)).toEqual([]);
     await expect.poll(() => overlappingChords(page)).toEqual([]);
-    expect((await handBack(page))[0]).toBe(
+    expect((await firstSection(page))[0]).toBe(
       "[G]Amazing [G7][C]t[Cmaj7]h[Dsus4]e [G]sound",
     );
   });
@@ -44,7 +46,7 @@ test.describe("chords above their letters", () => {
 test.describe("adding and editing chords", () => {
   test("adds a chord with the keyboard", async ({ page }) => {
     await addChord(page, "wretch", 1, "Am");
-    expect((await handBack(page))[1]).toBe(
+    expect((await firstSection(page))[1]).toBe(
       "That saved a w[Am]retch like [D]me",
     );
   });
@@ -55,7 +57,9 @@ test.describe("adding and editing chords", () => {
     await expect(page.getByLabel("Chord")).toHaveValue("D");
     await page.getByLabel("Chord").fill("D7");
     await page.keyboard.press("Enter");
-    expect((await handBack(page))[1]).toBe("That saved a wretch like [D7]me");
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a wretch like [D7]me",
+    );
   });
 
   test("closes the chord input with Escape", async ({ page }) => {
@@ -65,20 +69,52 @@ test.describe("adding and editing chords", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByLabel("Chord")).toHaveCount(0);
     await page.keyboard.type("x");
-    expect((await handBack(page))[1]).toBe("That saved a xwretch like [D]me");
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a xwretch like [D]me",
+    );
   });
 
   test("changes and deletes a chord by clicking its label", async ({
     page,
   }) => {
+    await clickChar(page, "before", "Amazing");
     await clickLabel(page, "G7");
     await page.getByLabel("Chord").fill("C");
     await page.getByRole("button", { name: "OK" }).click();
     await clickLabel(page, "D");
     await page.getByRole("button", { name: "Delete" }).click();
-    const lines = await handBack(page);
+    const [lines = []] = await handBack(page);
     expect(lines[0]).toBe("[G]Amazing [C]grace, how [C]sweet the [G]sound");
     expect(lines[1]).toBe("That saved a wretch like me");
+  });
+
+  test("keeps the section active after the chord input's buttons", async ({
+    page,
+  }) => {
+    await clickChar(page, "before", "Amazing");
+    for (const button of ["Cancel", "OK"]) {
+      await clickLabel(page, "G7");
+      await page.getByRole("button", { name: button }).click();
+      await expect(page.getByLabel("Chord")).toHaveCount(0);
+      await expect(activeSection(page)).toContainText("Amazing grace");
+      await expect(page.locator(".chord-label.is-dimmed")).toHaveCount(12);
+    }
+  });
+
+  test("makes a section active on a click on one of its labels", async ({
+    page,
+  }) => {
+    await clickChar(page, "before", "Amazing");
+    const label = page.locator(".chord-label", { hasText: "Cmaj7" });
+    const box = await label.boundingBox();
+    if (!box) throw new Error("Cmaj7 has no box");
+    await afterSelectionChange(page, () =>
+      page.mouse.click(box.x + box.width / 2, box.y + box.height / 2),
+    );
+    await expect(activeSection(page)).toContainText("'Twas grace");
+    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await clickLabel(page, "Cmaj7");
+    await expect(page.getByLabel("Chord")).toHaveValue("Cmaj7");
   });
 });
 
@@ -89,7 +125,7 @@ test.describe("editing lyrics", () => {
     await clickChar(page, "before", "Amazing");
     await page.keyboard.press("ArrowRight");
     await page.keyboard.type("X");
-    expect((await handBack(page))[0]).toMatch(/^\[G\]AXmazing/);
+    expect((await firstSection(page))[0]).toMatch(/^\[G\]AXmazing/);
   });
 
   test("rescues a chord and undoes it in one step", async ({ page }) => {
@@ -97,53 +133,181 @@ test.describe("editing lyrics", () => {
     await page.keyboard.type("you");
     await expect.poll(() => misplacedChords(page)).toEqual([]);
     await page.keyboard.press("ControlOrMeta+z");
-    expect((await handBack(page))[1]).toBe("That saved a wretch like [D]me");
-  });
-});
-
-test.describe("handing back the section", () => {
-  test("hands back an unchanged section as it was, and loads it again", async ({
-    page,
-  }) => {
-    const before = await handBack(page);
-    await page.getByRole("button", { name: "Edit" }).click();
-    await expect(page.locator(".chord-label")).toHaveCount(12);
-    expect(await handBack(page)).toEqual(before);
-    expect(before[3]).toBe("Was [Em]blind, but [D]now I [G]see");
-  });
-
-  test("drops an empty line", async ({ page }) => {
-    await clickChar(page, "after", "sound", 4);
-    await page.keyboard.press("Enter");
-    expect(await handBack(page)).toHaveLength(4);
-  });
-
-  test("removes the section when nothing is left", async ({ page }) => {
-    await clickChar(page, "before", "Amazing");
-    await page.keyboard.press("ControlOrMeta+a");
-    await page.keyboard.press("Backspace");
-    await page.getByRole("button", { name: "Done" }).click();
-    await expect(page.getByTestId("section")).toHaveText(
-      "Nothing is left, so the section is removed.",
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a wretch like [D]me",
     );
   });
 });
 
-// Clicks Done and returns the handed-back section's lines, with chords in
-// brackets before their letter.
+test.describe("handing back the sheet", () => {
+  test("hands back an unchanged sheet as it was, and loads it again", async ({
+    page,
+  }) => {
+    const before = await handBack(page);
+    await page.getByRole("button", { name: "Edit" }).click();
+    await expect(page.locator(".chord-label")).toHaveCount(24);
+    expect(await handBack(page)).toEqual(before);
+    expect(before[0]?.[3]).toBe("Was [Em]blind, but [D]now I [G]see");
+  });
+
+  test("drops empty lines from the active section", async ({ page }) => {
+    await clickChar(page, "after", "sound", 4);
+    await page.keyboard.press("Enter");
+    const [first = []] = await handBack(page);
+    expect(first).toHaveLength(4);
+  });
+});
+
+test.describe("the active section", () => {
+  test("follows the caret into the next section", async ({ page }) => {
+    await clickChar(page, "before", "Was blind");
+    await expect(activeSection(page)).toContainText("Amazing grace");
+    await afterSelectionChange(page, () => page.keyboard.press("ArrowDown"));
+    await expect(activeSection(page)).toContainText("'Twas grace");
+    await expect(page.locator(".section").first()).not.toHaveClass(/is-active/);
+  });
+
+  test("keeps a selection inside its section", async ({ page }) => {
+    const from = await charBox(page, "blind", 0);
+    const to = await charBox(page, "Twas", 2);
+    await page.mouse.move(from.left + 1, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.left + 1, to.y, { steps: 5 });
+    await afterSelectionChange(page, () => page.mouse.up());
+    await page.keyboard.type("X");
+    const [first = [], second = []] = await handBack(page);
+    expect(first[3]).toBe("Was [Em][D][G]X");
+    expect(second[0]).toBe(
+      "'Twas [G]grace that [G7]taught my [Cmaj7]heart to [G]fear",
+    );
+  });
+});
+
+test.describe("finishing a section", () => {
+  test("drops an empty line when the caret leaves", async ({ page }) => {
+    await clickChar(page, "after", "sound", 4);
+    await page.keyboard.press("Enter");
+    await expect(linesOf(page, 0)).toHaveCount(5);
+    await clickChar(page, "before", "Twas");
+    await expect(linesOf(page, 0)).toHaveCount(4);
+  });
+
+  test("removes an emptied section on Escape", async ({ page }) => {
+    await clickChar(page, "before", "Amazing");
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".section")).toHaveCount(1);
+    const sections = await handBack(page);
+    expect(sections).toHaveLength(1);
+    expect(sections[0]?.[0]).toMatch(/^'Twas/);
+  });
+
+  test("keeps the section active while the chord input is open", async ({
+    page,
+  }) => {
+    await clickChar(page, "after", "sound", 4);
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("ControlOrMeta+k");
+    await expect(page.getByLabel("Chord")).toBeFocused();
+    await expect(activeSection(page)).toContainText("Amazing grace");
+    await expect(linesOf(page, 0)).toHaveCount(5);
+    await page.keyboard.press("Escape");
+    await expect(linesOf(page, 0)).toHaveCount(5);
+  });
+});
+
+test.describe("section breaks", () => {
+  test("splits a section on Enter on an empty line", async ({ page }) => {
+    await clickChar(page, "after", "me", 1);
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("X");
+    const sections = await handBack(page);
+    expect(sections.map((lines) => lines.length)).toEqual([2, 2, 4]);
+    expect(sections[1]?.[0]).toBe(
+      "XI [G]once was [G7]lost, but [C]now am [G]found",
+    );
+  });
+
+  test("joins a section with the one before on Backspace", async ({ page }) => {
+    await clickChar(page, "before", "'Twas");
+    await page.keyboard.press("Backspace");
+    await expect(page.locator(".section")).toHaveCount(1);
+    expect((await handBack(page)).map((lines) => lines.length)).toEqual([8]);
+  });
+
+  test("makes sections from pasted text with blank lines", async ({ page }) => {
+    await clickChar(page, "before", "Amazing");
+    await paste(page, "a\nb\n\nc");
+    const sections = await handBack(page);
+    expect(sections.map((lines) => lines.length)).toEqual([2, 4, 4]);
+    expect(sections[0]).toEqual(["a", "b"]);
+    expect(sections[1]?.[0]).toMatch(/^c\[G\]Amazing/);
+  });
+});
+
+test.describe("undo across sections", () => {
+  test("brings back a removed section in one step", async ({ page }) => {
+    const before = await handBack(page);
+    await page.getByRole("button", { name: "Edit" }).click();
+    await clickChar(page, "before", "Amazing");
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await clickChar(page, "before", "Twas");
+    await expect(page.locator(".section")).toHaveCount(1);
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(page.locator(".section")).toHaveCount(2);
+    expect(await handBack(page)).toEqual(before);
+  });
+});
+
+function activeSection(page: Page) {
+  return page.locator(".section.is-active");
+}
+
+function linesOf(page: Page, section: number) {
+  return page.locator(".section").nth(section).locator(".line");
+}
+
+// Pastes plain text at the caret, as the browser does.
+async function paste(page: Page, text: string) {
+  await page.locator(".ProseMirror").evaluate((editor, text) => {
+    const data = new DataTransfer();
+    data.setData("text/plain", text);
+    editor.dispatchEvent(
+      new ClipboardEvent("paste", {
+        clipboardData: data,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  }, text);
+}
+
+// Clicks Done and returns the handed-back sheet's sections as lists of
+// lines, with chords in brackets before their letter.
 async function handBack(page: Page) {
   await page.getByRole("button", { name: "Done" }).click();
-  const json = await page.getByTestId("section").textContent();
-  const section = JSON.parse(json ?? "") as Section;
-  return section.lines.map(({ text, chords }) => {
-    let result = "";
-    let start = 0;
-    for (const { at, chord } of chords) {
-      result += `${text.slice(start, at)}[${chord}]`;
-      start = at;
-    }
-    return result + text.slice(start);
-  });
+  const json = await page.getByTestId("sheet").textContent();
+  const sheet = JSON.parse(json ?? "") as Sheet;
+  return sheet.sections.map((section) =>
+    section.lines.map(({ text, chords }) => {
+      let result = "";
+      let start = 0;
+      for (const { at, chord } of chords) {
+        result += `${text.slice(start, at)}[${chord}]`;
+        start = at;
+      }
+      return result + text.slice(start);
+    }),
+  );
+}
+
+// The lines of the handed-back sheet's first section.
+async function firstSection(page: Page) {
+  const [first = []] = await handBack(page);
+  return first;
 }
 
 async function addChord(

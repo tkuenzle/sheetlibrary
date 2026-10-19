@@ -1,6 +1,7 @@
 import { type EditorState, Plugin } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
+import { getActiveSection } from "./active-section";
 import { getSelectedChord } from "./chords";
 import { type Chord, chordsOf } from "./schema";
 
@@ -61,7 +62,8 @@ class ChordLayerView {
   update(view: EditorView, previous: EditorState) {
     if (
       view.state.doc !== previous.doc ||
-      getSelectedChord(view.state) !== getSelectedChord(previous)
+      getSelectedChord(view.state) !== getSelectedChord(previous) ||
+      getActiveSection(view.state) !== getActiveSection(previous)
     ) {
       this.schedule();
     }
@@ -90,6 +92,7 @@ class ChordLayerView {
     const seen = new Set<string>();
     const origin = this.layer.getBoundingClientRect();
     const selected = getSelectedChord(this.view.state);
+    const editing = getActiveSection(this.view.state) !== null;
     let line: Element | null = null;
     let end = -Infinity;
     let top = NaN;
@@ -100,9 +103,12 @@ class ChordLayerView {
         top = NaN;
       }
       const chords = JSON.parse(span.dataset.chords ?? "[]") as Chord[];
+      // Labels are outside their section, so they follow it here: only the
+      // active section's labels can be clicked, and the others are dimmed.
+      const active = span.closest(".section.is-active") !== null;
       const labels = chords.map((chord) => {
         seen.add(chord.id);
-        return this.label(chord, selected);
+        return this.label(chord, selected, active, editing && !active);
       });
       const space = parseFloat(getComputedStyle(span).fontSize) * 0.3;
       let box = span.getBoundingClientRect();
@@ -127,7 +133,12 @@ class ChordLayerView {
     }
   }
 
-  private label(chord: Chord, selected: string | null) {
+  private label(
+    chord: Chord,
+    selected: string | null,
+    active: boolean,
+    dimmed: boolean,
+  ) {
     let label = this.labels.get(chord.id);
     if (!label) {
       label = document.createElement("span");
@@ -137,6 +148,8 @@ class ChordLayerView {
     }
     label.className = "chord-label";
     if (chord.id === selected) label.classList.add("is-selected");
+    if (!active) label.classList.add("is-inert");
+    if (dimmed) label.classList.add("is-dimmed");
     label.textContent = chord.chord;
     return label;
   }

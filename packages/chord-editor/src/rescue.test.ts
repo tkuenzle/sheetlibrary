@@ -17,7 +17,7 @@ import {
 describe("chords as marks", () => {
   it("puts a pile of chords on one letter", () => {
     const state = song("[G7][C]grace");
-    const first = state.doc.firstChild?.firstChild;
+    const first = state.doc.nodeAt(at(state, "grace"));
     expect(first?.text).toBe("g");
     expect(chordsOn(first).map((c) => c.chord)).toEqual(["G7", "C"]);
   });
@@ -135,6 +135,24 @@ describe("deleting whole lines", () => {
       tr.delete(at(state, "two"), at(state, "ur")),
     );
     expect(notation(next)).toBe("one [A][D]ur five");
+  });
+});
+
+describe("chords in later sections", () => {
+  it("are rescued like in the first section", () => {
+    const state = song("[G]Amazing\n\nThat s[D]aved");
+    const next = edit(state, (tr) =>
+      tr.delete(at(state, "aved"), at(state, "aved", 1)),
+    );
+    expect(notation(next)).toBe("[G]Amazing\n\nThat s[D]ved");
+  });
+
+  it("go with their whole line", () => {
+    const state = song("first\n\nsecond\n[G]Amazing\nlast");
+    const next = edit(state, (tr) =>
+      tr.delete(at(state, "Amazing"), at(state, "last")),
+    );
+    expect(notation(next)).toBe("first\n\nsecond\nlast");
   });
 });
 

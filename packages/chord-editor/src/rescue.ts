@@ -8,7 +8,7 @@ import {
 import { Mapping } from "prosemirror-transform";
 
 import { chordsAt, deletedOnPurpose, setChords } from "./chords";
-import { type Chord, chordsOn, schema } from "./schema";
+import { type Chord, chordsOn, forEachLine, schema } from "./schema";
 
 // "Chords stick to the lyrics": a chord whose letter is deleted or replaced
 // is put on the nearest remaining letter. It is only allowed to go when the
@@ -33,8 +33,8 @@ export function chordRescue() {
 
       // Lost chords by their new position, in old document order.
       const lost = new Map<number, Chord[]>();
-      oldState.doc.forEach((line, offset) => {
-        const start = offset + 1;
+      forEachLine(oldState.doc, (line, pos) => {
+        const start = pos + 1;
         const end = start + line.content.size;
         let lineDeleted: boolean | undefined;
         line.forEach((child, childOffset) => {

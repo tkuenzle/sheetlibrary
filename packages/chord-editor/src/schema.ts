@@ -1,7 +1,8 @@
+import { isBlank } from "chordsheet";
 import { type Mark, type Node, Schema } from "prosemirror-model";
 
-// The editor's own model of one section. The adapter converts it to and from
-// the stored model in `chordsheet`.
+// The editor's own model of a sheet: sections of lines. The adapter converts
+// it to and from the stored model in `chordsheet`.
 
 export interface Chord {
   // Tells a chord that was deleted apart from one that was only moved. Only
@@ -17,7 +18,12 @@ export function newChordId(): string {
 
 export const schema = new Schema({
   nodes: {
-    doc: { content: "line+" },
+    doc: { content: "section+" },
+    section: {
+      content: "line+",
+      parseDOM: [{ tag: "section" }],
+      toDOM: () => ["section", { class: "section" }, 0],
+    },
     line: {
       content: "text*",
       marks: "chord",
@@ -61,4 +67,24 @@ export function chordMark(chords: Chord[]): Mark {
 export function chordsOn(node: Node | null | undefined): Chord[] {
   const mark = node ? schema.marks.chord.isInSet(node.marks) : undefined;
   return mark ? chordsOf(mark) : [];
+}
+
+// Calls `f` for every line, with the position right before it.
+export function forEachLine(doc: Node, f: (line: Node, pos: number) => void) {
+  doc.descendants((node, pos) => {
+    if (node.type !== schema.nodes.line) return true;
+    f(node, pos);
+    return false;
+  });
+}
+
+// A line without chords whose text is empty or only spaces. The chord sheet
+// model drops such lines.
+export function isEmptyLine(line: Node): boolean {
+  if (!isBlank(line.textContent)) return false;
+  let empty = true;
+  line.forEach((child) => {
+    if (chordsOn(child).length > 0) empty = false;
+  });
+  return empty;
 }

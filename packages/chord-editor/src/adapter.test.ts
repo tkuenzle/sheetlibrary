@@ -1,12 +1,15 @@
-import type { Line, Section } from "chordsheet";
-import { TextSelection } from "prosemirror-state";
+import type { ChordSheet, Line, Section } from "chordsheet";
 import { describe, expect, it } from "vitest";
 
-import { docFromSection, handBackSection } from "./adapter";
+import { docFromSheet, handBackSheet } from "./adapter";
 import { insertChord } from "./chords";
 import { createEditorState } from "./editor";
 import { chordsOn } from "./schema";
 import { at, edit, exec, notation, type, withCaret } from "./test-helpers";
+
+function sheet(...sections: Section[]): ChordSheet {
+  return { format: "chordsheet", version: 1, sections };
+}
 
 function section(...lines: Line[]): Section {
   return { lines };
@@ -17,15 +20,21 @@ function line(text: string, ...chords: [number, string][]): Line {
   return { text, chords: chords.map(([at, chord]) => ({ at, chord })) };
 }
 
-function load(stored: Section) {
-  return createEditorState(docFromSection(stored), { layer: false });
+function load(stored: Section | ChordSheet) {
+  const content = "lines" in stored ? sheet(stored) : stored;
+  return createEditorState(docFromSheet(content), { layer: false });
 }
 
 function handBack(state: ReturnType<typeof load>) {
-  return handBackSection(state.doc);
+  return handBackSheet(state.doc);
 }
 
-describe("loading a section", () => {
+// The result of handing back a sheet with these sections.
+function handedBack(...sections: Section[]) {
+  return { ok: true, sheet: sheet(...sections) };
+}
+
+describe("loading a sheet", () => {
   it("puts each chord on its letter", () => {
     const state = load(
       section(line("Amazing grace", [0, "G"], [8, "G7"]), line("how sweet")),
@@ -43,6 +52,20 @@ describe("loading a section", () => {
     expect(notation(state)).toBe("like [D]me[A7] ");
   });
 
+  it("puts each section in its own section", () => {
+    const state = load(
+      sheet(
+        section(line("Amazing grace"), line("how sweet")),
+        section(line("I once")),
+      ),
+    );
+    expect(notation(state)).toBe("Amazing grace\nhow sweet\n\nI once");
+  });
+
+  it("loads a sheet without sections as one empty section", () => {
+    expect(notation(load(sheet()))).toBe("~");
+  });
+
   it("gives every chord its own id", () => {
     const state = load(section(line("grace", [0, "G"], [0, "G"], [2, "G"])));
     const ids: string[] = [];
@@ -53,65 +76,73 @@ describe("loading a section", () => {
   });
 });
 
-describe("editing one section", () => {
-  it("hands back an unchanged section as it was", () => {
-    const stored = section(
-      line("Amazing grace", [0, "G"], [8, "G7"], [8, "C"]),
-      line("That saved a wretch like me", [27, "D"]),
-      line("  ", [0, "G"], [1, "C"], [2, "D"]),
+describe("editing a sheet", () => {
+  it("hands back an unchanged sheet as it was", () => {
+    const stored = sheet(
+      section(
+        line("Amazing grace", [0, "G"], [8, "G7"], [8, "C"]),
+        line("That saved a wretch like me", [27, "D"]),
+      ),
+      section(line("  ", [0, "G"], [1, "C"], [2, "D"])),
     );
-    expect(handBack(load(stored))).toEqual({ ok: true, section: stored });
+    expect(handBack(load(stored))).toEqual({ ok: true, sheet: stored });
   });
 
   it("hands back a chord added after the last letter without the space", () => {
     const state = load(section(line("like me")));
     const next = exec(state, insertChord(at(state, "me", 2), "D"));
-    expect(handBack(next)).toEqual({
-      ok: true,
-      section: section(line("like me", [7, "D"])),
-    });
+    expect(handBack(next)).toEqual(
+      handedBack(section(line("like me", [7, "D"]))),
+    );
   });
 
   it("keeps a trailing space the user typed", () => {
     const state = load(section(line("like me")));
     const next = type(withCaret(state, at(state, "me", 2)), " ");
-    expect(handBack(next)).toEqual({
-      ok: true,
-      section: section(line("like me ")),
-    });
+    expect(handBack(next)).toEqual(handedBack(section(line("like me "))));
   });
 
   it("normalizes text to NFC and keeps chords in place", () => {
     const state = load(section(line("Café au lait", [6, "D"])));
-    expect(handBack(state)).toEqual({
-      ok: true,
-      section: section(line("Café au lait", [5, "D"])),
-    });
+    expect(handBack(state)).toEqual(
+      handedBack(section(line("Café au lait", [5, "D"]))),
+    );
   });
 });
 
-describe("handing back a section", () => {
+describe("handing back a sheet", () => {
   it("drops empty lines", () => {
     const state = load(section(line("Amazing grace"), line("how sweet")));
     const next = edit(state, (tr) => tr.split(at(state, "grace", 5)));
-    expect(notation(next)).toBe("Amazing grace\n\nhow sweet");
-    expect(handBack(next)).toEqual({
-      ok: true,
-      section: section(line("Amazing grace"), line("how sweet")),
-    });
+    expect(notation(next)).toBe("Amazing grace\n~\nhow sweet");
+    expect(handBack(next)).toEqual(
+      handedBack(section(line("Amazing grace"), line("how sweet"))),
+    );
   });
 
-  it("hands back no section when nothing is left", () => {
+  it("drops sections with nothing left", () => {
     const state = load(
-      section(line("Amazing grace", [8, "G"]), line("how sweet", [0, "C"])),
-    );
-    const all = state.apply(
-      state.tr.setSelection(
-        TextSelection.create(state.doc, 1, state.doc.content.size - 1),
+      sheet(
+        section(line("Amazing grace")),
+        section(line("how sweet", [0, "C"])),
       ),
     );
-    const next = edit(all, (tr) => tr.deleteSelection());
-    expect(handBack(next)).toEqual({ ok: true, section: undefined });
+    const first = state.doc.child(0);
+    const next = edit(state, (tr) =>
+      tr.delete(2, 2 + first.child(0).content.size),
+    );
+    expect(notation(next)).toBe("~\n\n[C]how sweet");
+    expect(handBack(next)).toEqual(
+      handedBack(section(line("how sweet", [0, "C"]))),
+    );
+  });
+
+  it("hands back no sections when nothing is left", () => {
+    const state = load(section(line("Amazing grace")));
+    const next = edit(state, (tr) =>
+      tr.delete(2, 2 + state.doc.child(0).child(0).content.size),
+    );
+    expect(handBack(next)).toEqual(handedBack());
   });
 
   it("reports problems the clean-up can't fix", () => {
