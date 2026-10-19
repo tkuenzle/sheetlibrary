@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 interface Sheet {
   sections: {
@@ -262,12 +262,189 @@ test.describe("undo across sections", () => {
   });
 });
 
+test.describe("dragging chords", () => {
+  test("moves a chord onto a letter, in one undo step", async ({
+    page,
+  }, testInfo) => {
+    await clickChar(page, "before", "Amazing");
+    const target = await charBox(page, "wretch", 0);
+    const drag = await startDrag(page, label(page, "D"), isPhone(testInfo));
+    await drag.moveLabelTo(target.left, target.top - drag.height);
+    await expect(page.locator(".chord-drop-caret")).toBeVisible();
+    await drag.release();
+    await expect(page.locator(".chord-drop-caret")).toHaveCount(0);
+    await page.keyboard.press("ControlOrMeta+z");
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await page.keyboard.type("X");
+    const [lines = []] = await handBack(page);
+    expect(lines[0]).toBe("X[G]Amazing [G7]grace, how [C]sweet the [G]sound");
+    expect(lines[1]).toBe("That saved a [D]wretch like me");
+  });
+
+  test("cancels a drag on Escape", async ({ page }, testInfo) => {
+    await clickChar(page, "before", "Amazing");
+    const target = await charBox(page, "wretch", 0);
+    const drag = await startDrag(page, label(page, "D"), isPhone(testInfo));
+    await drag.moveLabelTo(target.left, target.top - drag.height);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".chord-drop-caret")).toHaveCount(0);
+    await drag.release();
+    await expect(activeSection(page)).toContainText("Amazing grace");
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a wretch like [D]me",
+    );
+  });
+
+  test("closes the chord input when a drag starts", async ({
+    page,
+  }, testInfo) => {
+    await clickChar(page, "before", "Amazing");
+    // The input opens below its chord, so use one below the dragged chord.
+    await clickLabel(page, "Em");
+    await page.getByLabel("Chord").fill("Am");
+    const target = await charBox(page, "wretch", 0);
+    const drag = await startDrag(page, label(page, "D"), isPhone(testInfo));
+    await drag.moveLabelTo(target.left, target.top - drag.height);
+    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await drag.release();
+    const [lines = []] = await handBack(page);
+    expect(lines[1]).toBe("That saved a [D]wretch like me");
+    expect(lines[3]).toBe("Was [Em]blind, but [D]now I [G]see");
+  });
+
+  test("only drops in the active section", async ({ page }, testInfo) => {
+    await clickChar(page, "before", "Amazing");
+    const target = await charBox(page, "Twas", 0);
+    const drag = await startDrag(page, label(page, "D"), isPhone(testInfo));
+    await drag.moveLabelTo(target.left, target.top - drag.height);
+    await expect(page.locator(".chord-drop-caret")).toHaveCount(0);
+    await drag.release();
+    await expect(activeSection(page)).toContainText("Amazing grace");
+    const [first = [], second = []] = await handBack(page);
+    expect(first[1]).toBe("That saved a wretch like [D]me");
+    expect(second[0]).toMatch(/^'Twas \[G\]grace/);
+  });
+
+  test("reorders a pile", async ({ page }, testInfo) => {
+    await selectText(page, "grace, how sweet the ");
+    await page.keyboard.press("Backspace");
+    const g7 = await box(label(page, "G7"));
+    const drag = await startDrag(page, label(page, "C"), isPhone(testInfo));
+    await drag.moveLabelTo(g7.x, g7.y);
+    const caret = await box(page.locator(".chord-drop-caret"));
+    expect(Math.abs(caret.y - g7.y)).toBeLessThan(2);
+    expect(caret.x).toBeLessThan(g7.x);
+    await drag.release();
+    expect((await firstSection(page))[0]).toBe("[G]Amazing [C][G7][G]sound");
+  });
+
+  test("drops a chord into a pile", async ({ page }, testInfo) => {
+    await selectText(page, "grace, how sweet the ");
+    await page.keyboard.press("Backspace");
+    const c = await box(label(page, "C"));
+    const drag = await startDrag(page, label(page, "G"), isPhone(testInfo));
+    await drag.moveLabelTo(c.x - 2, c.y);
+    await drag.release();
+    expect((await firstSection(page))[0]).toBe("Amazing [G7][G][C][G]sound");
+  });
+
+  test("scrolls the page near the window's edge", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 412, height: 180 });
+    const chord = label(page, "Cmaj7");
+    await page.evaluate(
+      (top) => {
+        window.scrollBy(0, top - 60);
+      },
+      (await box(chord)).y,
+    );
+    await clickChar(page, "before", "Twas");
+    const drag = await startDrag(page, chord, isPhone(testInfo));
+    await drag.moveTo({ x: 100, y: 175 });
+    await expect(page.locator(".chord-label.is-dragging")).toHaveCount(1);
+    await page.waitForFunction(
+      () =>
+        window.scrollY + window.innerHeight >=
+        document.documentElement.scrollHeight - 1,
+    );
+    const target = await charBox(page, "The hour", 0);
+    await drag.moveLabelTo(target.left, target.top - drag.height);
+    await drag.release();
+    const [, second = []] = await handBack(page);
+    expect(second[0]).not.toContain("Cmaj7");
+    expect(second[3]).toBe("[Cmaj7]The [Em]hour I [D]first be[G]lieved");
+  });
+});
+
 function activeSection(page: Page) {
   return page.locator(".section.is-active");
 }
 
 function linesOf(page: Page, section: number) {
   return page.locator(".section").nth(section).locator(".line");
+}
+
+function isPhone(testInfo: { project: { name: string } }) {
+  return testInfo.project.name === "phone";
+}
+
+function label(page: Page, chord: string) {
+  return page
+    .locator(".chord-label", { hasText: new RegExp(`^${chord}$`) })
+    .first();
+}
+
+async function box(locator: Locator) {
+  await nextLayout(locator.page());
+  const found = await locator.boundingBox();
+  if (!found) throw new Error("no box");
+  return found;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+// Presses on a chord label, with the mouse or by touch, and returns a way to
+// move it and let go. The label keeps its offset to the pointer.
+async function startDrag(page: Page, chord: Locator, touch: boolean) {
+  const from = await box(chord);
+  const grip = { x: 2, y: from.height / 2 };
+  const cdp = touch ? await page.context().newCDPSession(page) : null;
+  const send = (
+    type: "touchStart" | "touchMove" | "touchEnd",
+    points: Point[],
+  ) => cdp?.send("Input.dispatchTouchEvent", { type, touchPoints: points });
+  let at = { x: from.x + grip.x, y: from.y + grip.y };
+  if (touch) await send("touchStart", [at]);
+  else {
+    await page.mouse.move(at.x, at.y);
+    await page.mouse.down();
+  }
+  const moveTo = async (to: Point) => {
+    for (const t of [0.25, 0.5, 0.75, 1]) {
+      const point = {
+        x: at.x + (to.x - at.x) * t,
+        y: at.y + (to.y - at.y) * t,
+      };
+      if (touch) await send("touchMove", [point]);
+      else await page.mouse.move(point.x, point.y);
+    }
+    at = to;
+  };
+  return {
+    height: from.height,
+    moveTo,
+    // Moves the pointer so the label's top left corner is at `left`, `top`.
+    moveLabelTo: (left: number, top: number) =>
+      moveTo({ x: left + grip.x, y: top + grip.y }),
+    release: async () => {
+      if (touch) await send("touchEnd", []);
+      else await page.mouse.up();
+    },
+  };
 }
 
 // Pastes plain text at the caret, as the browser does.
@@ -377,14 +554,18 @@ async function afterSelectionChange(page: Page, action: () => Promise<void>) {
   );
 }
 
-async function charBox(page: Page, needle: string, offset: number) {
-  // Chord layout runs on the next frame after a change.
+// Chord layout runs on the next frame after a change.
+async function nextLayout(page: Page) {
   await page.evaluate(
     () =>
       new Promise((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(resolve)),
       ),
   );
+}
+
+async function charBox(page: Page, needle: string, offset: number) {
+  await nextLayout(page);
   const box = await page.evaluate(
     ([needle, offset]) => {
       for (const line of document.querySelectorAll(".ProseMirror .line")) {
@@ -407,6 +588,7 @@ async function charBox(page: Page, needle: string, offset: number) {
         return {
           left: rect.left,
           right: rect.right,
+          top: rect.top,
           y: rect.top + rect.height / 2,
         };
       }

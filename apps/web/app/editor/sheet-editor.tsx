@@ -138,6 +138,10 @@ export function SheetEditor({
       state: createEditorState(docFromSheet(sheetRef.current), {
         onChordShortcut,
         onChordClick: editChord,
+        // Dragging a chord cancels the chord input.
+        onDragStart: () => {
+          if (chordInputRef.current) closeInput();
+        },
       }),
     });
     viewRef.current = view;

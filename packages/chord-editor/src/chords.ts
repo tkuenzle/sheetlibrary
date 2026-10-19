@@ -4,6 +4,7 @@ import {
   type EditorState,
   Plugin,
   PluginKey,
+  TextSelection,
   type Transaction,
 } from "prosemirror-state";
 
@@ -85,6 +86,40 @@ export function removeChord(id: string): Command {
     );
     allowChordDeletion(tr, [id]);
     dispatch?.(tr.setMeta(selectedKey, { id: null }));
+    return true;
+  };
+}
+
+// Moves a chord to the letter right after `pos`, at `index` among the chords
+// on it, or after them. On its own letter, `index` counts the other chords.
+// The caret stays where it was. Moving a chord to where it is changes nothing.
+export function moveChord(id: string, pos: number, index?: number): Command {
+  return (state, dispatch) => {
+    const found = findChord(state.doc, id);
+    if (!found) return false;
+    const others = found.chords.filter((c) => c.id !== id);
+    const from = found.chords.indexOf(found.chord);
+    if (
+      pos === found.pos &&
+      Math.min(index ?? others.length, others.length) === from
+    ) {
+      return true;
+    }
+    const tr = state.tr;
+    setChords(tr, found.pos, others);
+    const target = tr.mapping.map(pos);
+    const chords = chordsAt(tr.doc, target);
+    const at = Math.min(index ?? chords.length, chords.length);
+    setChords(tr, target, chords.toSpliced(at, 0, found.chord));
+    const { anchor, head } = state.selection;
+    tr.setSelection(
+      TextSelection.create(
+        tr.doc,
+        tr.mapping.map(anchor, -1),
+        tr.mapping.map(head, -1),
+      ),
+    );
+    dispatch?.(tr);
     return true;
   };
 }

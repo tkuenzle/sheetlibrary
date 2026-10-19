@@ -52,7 +52,8 @@ export default function SheetEditorPage() {
             Click a section to edit it. Enter on an empty line starts a new
             section, Backspace at its start joins it with the one before, and
             Escape stops editing. Ctrl+K or Cmd+K adds a chord at the caret, or
-            changes the one there. Click a chord to change or delete it.
+            changes the one there. Click a chord to change or delete it, or drag
+            it to move it.
           </p>
           <SheetEditor key={key} ref={editorRef} sheet={page.sheet} />
           {page.problems.length > 0 && (
