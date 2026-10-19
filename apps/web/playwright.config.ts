@@ -12,7 +12,11 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${String(port)}`,
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // Phone layout and touch in Chromium. Not a real phone keyboard.
+    { name: "phone", use: { ...devices["Pixel 7"] } },
+  ],
   webServer: {
     command: `pnpm preview --port ${String(port)} --strictPort`,
     url: `http://localhost:${String(port)}`,

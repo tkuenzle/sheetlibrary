@@ -9,3 +9,11 @@ test("home page loads", async ({ page }) => {
     "Sheet Library",
   );
 });
+
+test("home page links to the chord editor prototype", async ({ page }) => {
+  await page.goto("/");
+  await page
+    .getByRole("link", { name: "Try the chord editor prototype" })
+    .click();
+  await expect(page).toHaveTitle("Editor spike | Sheet Library");
+});
