@@ -20,6 +20,6 @@
 
 ## Risks / Trade-offs
 
-- [Near the end of a long song, the finger may not get far enough below the last line to aim at it.] → It works on `/sheet-editor`, where the Done button leaves room below the sheet. A page without room there may need some. Listed in the proposal's open questions.
+- [Near the end of a long song, the finger may not get far enough below the last line to aim at it.] → It works on `/sheet-editor`, which has the Done button below the sheet. A page without anything below the sheet is untested. Listed in the proposal's open questions.
 - [Aiming with a lifted label takes getting used to.] → Tried by hand before merging. If it doesn't work, the change is dropped for a loupe.
 - [iPhone is untested.] → Accepted in the roadmap.
