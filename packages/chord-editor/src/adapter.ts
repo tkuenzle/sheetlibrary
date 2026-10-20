@@ -75,7 +75,9 @@ function sectionFromEditor(node: Node): Section | undefined {
   return cleanUpSection({ lines });
 }
 
-function lineFromEditor(node: Node): Line {
+// A line's text and chords exactly as the editor holds them, including a
+// trailing space that carries chords.
+export function editorLine(node: Node): Line {
   let text = "";
   const chords: Line["chords"] = [];
   node.forEach((child) => {
@@ -84,11 +86,16 @@ function lineFromEditor(node: Node): Line {
     }
     text += child.text ?? "";
   });
+  return { text, chords };
+}
+
+function lineFromEditor(node: Node): Line {
+  const { text, chords } = editorLine(node);
   // A trailing space with chords only carries them. Without it, the
   // chords' position is the text's length, which is the same number.
   const last = text.length - 1;
   if (text.endsWith(" ") && chords.some((chord) => chord.at === last)) {
-    text = text.slice(0, last);
+    return { text: text.slice(0, last), chords };
   }
   return { text, chords };
 }

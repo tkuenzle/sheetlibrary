@@ -1,3 +1,4 @@
+import { spacesToDrop } from "chordsheet";
 import {
   AllSelection,
   type Command,
@@ -11,6 +12,7 @@ import {
 import { Mapping } from "prosemirror-transform";
 import { Decoration, DecorationSet } from "prosemirror-view";
 
+import { editorLine } from "./adapter";
 import { isEmptyLine, schema } from "./schema";
 
 // The user edits one section at a time: the one with the caret. When the
@@ -125,15 +127,24 @@ function keepInOneSection(tr: Transaction, active: number | null) {
   tr.setSelection(TextSelection.create(tr.doc, $anchor.pos, head));
 }
 
-// Drops the empty lines of the section at `pos`, as the chord sheet model
-// does, and removes the section if nothing is left. The last section stays,
-// with one empty line, since the editor needs one to type in.
+// Cleans up the section at `pos` as the chord sheet model does: drops the
+// same spaces from each line, drops empty lines, and removes the section if
+// nothing is left. The last section stays, with one empty line,
+// since the editor needs one to type in.
 function cleanUpSection(tr: Transaction, pos: number) {
   const section = tr.doc.nodeAt(pos);
   if (section?.type !== schema.nodes.section) return;
   const empty: number[] = [];
+  const spaces: { from: number; to: number }[] = [];
   section.forEach((line, offset) => {
-    if (isEmptyLine(line)) empty.push(pos + 1 + offset);
+    const linePos = pos + 1 + offset;
+    if (isEmptyLine(line)) {
+      empty.push(linePos);
+      return;
+    }
+    for (const at of spacesToDrop(editorLine(line))) {
+      spaces.push({ from: linePos + 1 + at, to: linePos + 2 + at });
+    }
   });
   if (empty.length === section.childCount) {
     if (tr.doc.childCount > 1) {
@@ -142,7 +153,13 @@ function cleanUpSection(tr: Transaction, pos: number) {
     }
     empty.shift();
   }
-  for (const line of empty.reverse()) {
-    tr.delete(line, line + (tr.doc.nodeAt(line)?.nodeSize ?? 0));
-  }
+  // From the end, so earlier positions stay valid.
+  const ranges = [
+    ...spaces,
+    ...empty.map((line) => ({
+      from: line,
+      to: line + (tr.doc.nodeAt(line)?.nodeSize ?? 0),
+    })),
+  ].sort((a, b) => b.from - a.from);
+  for (const { from, to } of ranges) tr.delete(from, to);
 }
