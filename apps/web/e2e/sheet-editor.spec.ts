@@ -585,6 +585,91 @@ test.describe("dragging chords", () => {
   });
 });
 
+test.describe("dragging by touch", () => {
+  test("lifts the label and the caret above the finger", async ({
+    page,
+  }, testInfo) => {
+    test.skip(!isPhone(testInfo), "touch only");
+    await clickChar(page, "before", "Amazing");
+    const chord = label(page, "D");
+    const before = await box(chord);
+    const drag = await startDrag(page, chord, true);
+    const lift = await liftOf(page);
+    const lifted = await box(chord);
+    expect(lifted.y).toBeCloseTo(before.y - lift, 0);
+    // The label slid up while the finger held still, and the caret followed.
+    const caret = await box(page.locator(".chord-drop-caret"));
+    expect(caret.y).toBeGreaterThanOrEqual(lifted.y + lifted.height - 1);
+    expect(caret.y + caret.height).toBeLessThan(drag.pointer().y);
+    await drag.release();
+  });
+
+  test("drops on the letter under the label, not under the finger", async ({
+    page,
+  }, testInfo) => {
+    test.skip(!isPhone(testInfo), "touch only");
+    await clickChar(page, "before", "Amazing");
+    const target = await charBox(page, "wretch", 0);
+    const drag = await startDrag(page, label(page, "D"), true);
+    await drag.moveLabelTo(target.left, target.top - drag.height);
+    expect(drag.pointer().y).toBeGreaterThan(target.bottom);
+    await drag.release();
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a [D]wretch like me",
+    );
+  });
+
+  test("keeps a label dragged by mouse under the pointer", async ({
+    page,
+  }, testInfo) => {
+    test.skip(isPhone(testInfo), "mouse only");
+    await clickChar(page, "before", "Amazing");
+    const chord = label(page, "D");
+    const drag = await startDrag(page, chord, false);
+    const dragged = await box(chord);
+    const { x, y } = drag.pointer();
+    expect(x).toBeGreaterThanOrEqual(dragged.x);
+    expect(x).toBeLessThanOrEqual(dragged.x + dragged.width);
+    expect(y).toBeGreaterThanOrEqual(dragged.y);
+    expect(y).toBeLessThanOrEqual(dragged.y + dragged.height);
+    await drag.release();
+  });
+
+  test("scrolls up when the label nears the window's top", async ({
+    page,
+  }, testInfo) => {
+    test.skip(!isPhone(testInfo), "touch only");
+    await page.setViewportSize({ width: 412, height: 300 });
+    const chord = label(page, "Cmaj7");
+    await page.evaluate(
+      (top) => {
+        window.scrollBy(0, top - 100);
+      },
+      (await box(chord)).y,
+    );
+    await clickChar(page, "before", "Twas");
+    const scrolled = await page.evaluate(() => window.scrollY);
+    const drag = await startDrag(page, chord, true);
+    // Well outside the 48px zone at the top.
+    expect(drag.pointer().y).toBeGreaterThan(90);
+    await page.waitForFunction(
+      (before) => window.scrollY < before - 20,
+      scrolled,
+    );
+    await drag.release();
+  });
+
+  test("takes the lift from the test page's address", async ({ page }) => {
+    const fontSize = await page
+      .locator(".chord-layer")
+      .evaluate((layer) => parseFloat(getComputedStyle(layer).fontSize));
+    expect(await liftOf(page)).toBeCloseTo(4.2 * fontSize, 1);
+    await page.goto("/sheet-editor?lift=2em");
+    await expect(page.locator(".chord-label").first()).toBeVisible();
+    expect(await liftOf(page)).toBeCloseTo(2 * fontSize, 1);
+  });
+});
+
 function activeSection(page: Page) {
   return page.locator(".section.is-active");
 }
@@ -615,24 +700,24 @@ interface Point {
   y: number;
 }
 
-// Presses on a chord label, with the mouse or by touch, and returns a way to
-// move it and let go. The label keeps its offset to the pointer.
+// Presses on a chord label, with the mouse or by touch, moves it far enough
+// to start dragging, and returns a way to move it and let go. The label
+// keeps its offset to the pointer, which is larger once a touch lifts it.
 async function startDrag(page: Page, chord: Locator, touch: boolean) {
   const from = await box(chord);
-  const grip = { x: 2, y: from.height / 2 };
   const cdp = touch ? await page.context().newCDPSession(page) : null;
   const send = (
     type: "touchStart" | "touchMove" | "touchEnd",
     points: Point[],
   ) => cdp?.send("Input.dispatchTouchEvent", { type, touchPoints: points });
-  let at = { x: from.x + grip.x, y: from.y + grip.y };
+  let at = { x: from.x + 2, y: from.y + from.height / 2 };
   if (touch) await send("touchStart", [at]);
   else {
     await page.mouse.move(at.x, at.y);
     await page.mouse.down();
   }
-  const moveTo = async (to: Point) => {
-    for (const t of [0.25, 0.5, 0.75, 1]) {
+  const moveTo = async (to: Point, steps = [0.25, 0.5, 0.75, 1]) => {
+    for (const t of steps) {
       const point = {
         x: at.x + (to.x - at.x) * t,
         y: at.y + (to.y - at.y) * t,
@@ -642,8 +727,19 @@ async function startDrag(page: Page, chord: Locator, touch: boolean) {
     }
     at = to;
   };
+  // One move starts the drag, then the pointer holds still while a lifted
+  // label slides up.
+  await moveTo({ x: at.x + 8, y: at.y }, [1]);
+  await chord.evaluate((label) =>
+    Promise.all(label.getAnimations().map((animation) => animation.finished)),
+  );
+  const lifted = await chord.boundingBox();
+  if (!lifted) throw new Error("no box");
+  const grip = { x: at.x - lifted.x, y: at.y - lifted.y };
   return {
     height: from.height,
+    // The pointer, for tests that check where it is.
+    pointer: () => at,
     moveTo,
     // Moves the pointer so the label's top left corner is at `left`, `top`.
     moveLabelTo: (left: number, top: number) =>
@@ -653,6 +749,17 @@ async function startDrag(page: Page, chord: Locator, touch: boolean) {
       else await page.mouse.up();
     },
   };
+}
+
+// How far a touch lifts a dragged label, in pixels.
+function liftOf(page: Page) {
+  return page
+    .locator(".chord-layer")
+    .evaluate((layer) =>
+      parseFloat(
+        getComputedStyle(layer).getPropertyValue("--chord-layer-lift"),
+      ),
+    );
 }
 
 // Pastes plain text, or HTML, at the caret, as the browser does.
@@ -810,6 +917,7 @@ async function charBox(page: Page, needle: string, offset: number) {
           left: rect.left,
           right: rect.right,
           top: rect.top,
+          bottom: rect.bottom,
           y: rect.top + rect.height / 2,
         };
       }

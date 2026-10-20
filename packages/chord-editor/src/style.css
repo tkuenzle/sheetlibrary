@@ -11,6 +11,8 @@
   --chord-editor-dash-color: the dash in a word split by chords
   --chord-editor-dimmed-opacity: the opacity of sections that aren't active
   --chord-editor-section-gap: the space between sections
+  --chord-editor-touch-lift: how far a chord dragged by touch is lifted above
+    the finger, so it and the spot where it lands can be seen
 */
 
 .chord-editor {
@@ -47,6 +49,18 @@
   inset: 0;
   pointer-events: none;
   user-select: none;
+  /* About 1.5 lines. */
+  --chord-layer-lift: var(--chord-editor-touch-lift, 4.2em);
+}
+
+/*
+  The touch lift is worked out on the layer, which has the lyrics' size, so
+  em in it means the same as in the other properties.
+*/
+@property --chord-layer-lift {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
 }
 
 .chord-label {
@@ -87,6 +101,15 @@
   z-index: 1;
   cursor: grabbing;
   opacity: 0.8;
+}
+
+/*
+  `translate` adds to the `transform` that keeps the label under the pointer,
+  so the label slides up without lagging behind the finger.
+*/
+.chord-label.is-lifted {
+  translate: 0 calc(-1 * var(--chord-layer-lift));
+  transition: translate 0.15s ease-out;
 }
 
 /* In a word split by a pile of chords, a dash bridges the gap. */
