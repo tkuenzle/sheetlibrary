@@ -52,11 +52,13 @@ export function findChord(doc: Node, id: string) {
 }
 
 // Adds a chord to the letter right after `pos`, after any chords on it.
+// The caret stays where it was.
 export function insertChord(pos: number, chord: string): Command {
   return (state, dispatch) => {
     const tr = state.tr;
     const chords = chordsAt(state.doc, pos);
     setChords(tr, pos, [...chords, { id: newChordId(), chord }]);
+    keepSelection(tr, state);
     dispatch?.(tr);
     return true;
   };
@@ -111,17 +113,23 @@ export function moveChord(id: string, pos: number, index?: number): Command {
     const chords = chordsAt(tr.doc, target);
     const at = Math.min(index ?? chords.length, chords.length);
     setChords(tr, target, chords.toSpliced(at, 0, found.chord));
-    const { anchor, head } = state.selection;
-    tr.setSelection(
-      TextSelection.create(
-        tr.doc,
-        tr.mapping.map(anchor, -1),
-        tr.mapping.map(head, -1),
-      ),
-    );
+    keepSelection(tr, state);
     dispatch?.(tr);
     return true;
   };
+}
+
+// Keeps the selection before a trailing space that `setChords` added, which
+// would otherwise push a caret at the end of the line past it.
+function keepSelection(tr: Transaction, state: EditorState) {
+  const { anchor, head } = state.selection;
+  tr.setSelection(
+    TextSelection.create(
+      tr.doc,
+      tr.mapping.map(anchor, -1),
+      tr.mapping.map(head, -1),
+    ),
+  );
 }
 
 const selectedKey = new PluginKey<string | null>("selected-chord");

@@ -1,3 +1,4 @@
+import { isHistoryTransaction } from "prosemirror-history";
 import type { Node } from "prosemirror-model";
 import {
   Plugin,
@@ -18,6 +19,9 @@ export function chordRescue() {
   return new Plugin({
     appendTransaction(transactions, oldState, newState) {
       if (!transactions.some((tr) => tr.docChanged)) return null;
+      // Undo and redo bring back a state that was already rescued. Undoing
+      // an added chord removes it, and must not rescue it.
+      if (transactions.some(isHistoryTransaction)) return null;
 
       const mapping = new Mapping();
       const allowed = new Set<string>();

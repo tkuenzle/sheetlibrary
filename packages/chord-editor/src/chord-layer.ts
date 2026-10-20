@@ -15,6 +15,8 @@ export interface ChordLayerOptions {
   onChordClick?: (id: string) => void;
   // A chord's label starts being dragged, with the chord's id.
   onDragStart?: (id: string) => void;
+  // A click below the lyrics adds a chord to the letter right after `pos`.
+  onAddChord?: (pos: number) => void;
 }
 
 // Moving the pointer this far turns a press on a label into a drag.
@@ -82,6 +84,12 @@ interface Letter {
 class ChordLayerView {
   private layer = document.createElement("div");
   private caret = document.createElement("div");
+  // The "+" under a letter, while the mouse is below the lyrics, and the
+  // letter it adds to.
+  private plus = document.createElement("div");
+  private adding: number | null = null;
+  // The letter a mouse press below the lyrics was on, until its click.
+  private press: number | null = null;
   // Labels by chord id, reused across renders so a label stays the same
   // element while it is tapped or dragged.
   private labels = new Map<string, HTMLElement>();
@@ -100,11 +108,20 @@ class ChordLayerView {
   ) {
     this.layer.className = "chord-layer";
     this.caret.className = "chord-drop-caret";
+    this.plus.className = "chord-add";
+    this.plus.textContent = "+";
     view.dom.insertAdjacentElement("afterend", this.layer);
     this.layer.addEventListener("pointerdown", this.onPointerDown);
     this.layer.addEventListener("pointermove", this.onPointerMove);
     this.layer.addEventListener("pointerup", this.onPointerUp);
     this.layer.addEventListener("pointercancel", this.onPointerCancel);
+    view.dom.addEventListener("pointermove", this.onHover);
+    view.dom.addEventListener("pointerleave", this.hideAdd);
+    // Before the editor's own handlers, so a click below the lyrics doesn't
+    // move the caret.
+    view.dom.addEventListener("pointerdown", this.onAddPress, true);
+    view.dom.addEventListener("mousedown", this.onAddMouseDown, true);
+    view.dom.addEventListener("click", this.onAddClick, true);
     this.observer.observe(view.dom);
   }
 
@@ -124,7 +141,14 @@ class ChordLayerView {
 
   destroy() {
     this.endDrag();
+    this.hideAdd();
     this.observer.disconnect();
+    const { dom } = this.view;
+    dom.removeEventListener("pointermove", this.onHover);
+    dom.removeEventListener("pointerleave", this.hideAdd);
+    dom.removeEventListener("pointerdown", this.onAddPress, true);
+    dom.removeEventListener("mousedown", this.onAddMouseDown, true);
+    dom.removeEventListener("click", this.onAddClick, true);
     this.layer.remove();
   }
 
@@ -134,6 +158,8 @@ class ChordLayerView {
   // and dashes last.
   private render() {
     if (this.drag) return;
+    // The letters may have moved; the next mouse move shows the "+" again.
+    this.hideAdd();
     const letters = this.letters();
     const space = spacing(this.view.dom);
     this.spaceOut(letters, space);
@@ -379,6 +405,7 @@ class ChordLayerView {
       lifted: event.pointerType === "touch",
       target: null,
     };
+    this.hideAdd();
     window.addEventListener("keydown", this.onKeyDown, true);
   };
 
@@ -539,6 +566,95 @@ class ChordLayerView {
     }
     return null;
   }
+
+  // Shows the "+" while the mouse is below the lyrics. Touch and pen don't
+  // hover, and a tap there places the caret as before.
+  private onHover = (event: PointerEvent) => {
+    if (event.pointerType !== "mouse" || this.drag) return;
+    const pos = this.addSpot(event.clientX, event.clientY);
+    if (pos === null) this.hideAdd();
+    else this.showAdd(pos);
+  };
+
+  // A mouse press below the lyrics is kept from the editor, so the caret
+  // and the focus stay where they are. Stopping the press also stops the
+  // browser's mousedown, but not in every browser, so that is stopped too.
+  private onAddPress = (event: PointerEvent) => {
+    this.press = null;
+    if (event.pointerType !== "mouse" || !event.isPrimary) return;
+    if (event.button !== 0) return;
+    const pos = this.addSpot(event.clientX, event.clientY);
+    if (pos === null) return;
+    this.press = pos;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  private onAddMouseDown = (event: MouseEvent) => {
+    if (this.press === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  // A click that pressed and let go at the same letter adds a chord there.
+  private onAddClick = (event: MouseEvent) => {
+    const pos = this.press;
+    this.press = null;
+    if (pos === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.addSpot(event.clientX, event.clientY) !== pos) return;
+    this.options.onAddChord?.(pos);
+  };
+
+  // The letter at a point below the lyrics of the active section: below the
+  // text of a row, but still inside its line. The band is measured from the
+  // text, so it follows the line height.
+  private addSpot(x: number, y: number) {
+    const pos = letterAt(this.view, x, y);
+    if (pos === null || !this.inActiveSection(pos)) return null;
+    const line = this.view.nodeDOM(this.view.state.doc.resolve(pos).before());
+    if (!(line instanceof HTMLElement)) return null;
+    const text = this.letterBox(pos);
+    const height =
+      parseFloat(getComputedStyle(line).lineHeight) ||
+      (text.bottom - text.top) * 1.2;
+    const middle = (text.top + text.bottom) / 2;
+    if (y <= text.bottom || y > middle + height / 2) return null;
+    return pos;
+  }
+
+  // The caret in front of the letter after `pos`, or at the end of the line.
+  private letterBox(pos: number) {
+    const $pos = this.view.state.doc.resolve(pos);
+    return this.view.coordsAtPos(pos, pos >= $pos.end() ? -1 : 1);
+  }
+
+  // The drop caret in front of the letter, as when a chord is dragged
+  // there, and the "+" right under it.
+  private showAdd(pos: number) {
+    if (this.adding === pos) return;
+    this.adding = pos;
+    const origin = this.layer.getBoundingClientRect();
+    const text = this.letterBox(pos);
+    this.showCaret({
+      left: text.left,
+      top: text.top,
+      height: text.bottom - text.top,
+    });
+    this.plus.style.left = `${String(text.left - origin.left)}px`;
+    this.plus.style.top = `${String(text.bottom - origin.top)}px`;
+    this.layer.appendChild(this.plus);
+    this.layer.parentElement?.classList.add("is-adding");
+  }
+
+  private hideAdd = () => {
+    if (this.adding === null) return;
+    this.adding = null;
+    this.plus.remove();
+    this.caret.remove();
+    this.layer.parentElement?.classList.remove("is-adding");
+  };
 
   private inActiveSection(pos: number) {
     const start = getActiveSection(this.view.state);

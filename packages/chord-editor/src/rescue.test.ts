@@ -215,4 +215,18 @@ describe("undo restores chords", () => {
     expect(notation(redone)).toBe("[G]Amazing [C][D]how");
     expect(redone.doc.eq(deleted.doc)).toBe(true);
   });
+
+  it("removes an added chord on undo, and adds it again on redo", () => {
+    const state = song("Amazing grace");
+    const added = exec(state, insertChord(at(state, "grace"), "C"));
+    const undone = exec(added, undo);
+    expect(notation(undone)).toBe("Amazing grace");
+    expect(notation(exec(undone, redo))).toBe("Amazing [C]grace");
+  });
+
+  it("removes a deleted chord again on redo", () => {
+    const state = song("Amazing [C]grace");
+    const removed = exec(state, removeChord(idOf(state, "C")));
+    expect(notation(exec(exec(removed, undo), redo))).toBe("Amazing grace");
+  });
 });

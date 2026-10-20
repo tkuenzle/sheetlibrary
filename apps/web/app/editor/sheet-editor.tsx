@@ -138,6 +138,10 @@ export function SheetEditor({
       state: createEditorState(docFromSheet(sheetRef.current), {
         onChordShortcut,
         onChordClick: editChord,
+        // A click below the lyrics adds a chord to the letter above it.
+        onAddChord: (pos) => {
+          openInput({ kind: "new", pos, ...placeBelow(pos) }, "");
+        },
         // Dragging a chord cancels the chord input.
         onDragStart: () => {
           if (chordInputRef.current) closeInput();

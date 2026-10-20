@@ -7,6 +7,8 @@
   --chord-editor-font: the lyrics' font family
   --chord-editor-font-size: the lyrics' size; chords are 0.8 of it
   --chord-editor-line-height: room for the lyrics and the chords above them
+  --chord-editor-active-line-height: the same in the active section, a bit
+    more, so the "+" for adding a chord has room below the lyrics
   --chord-editor-chord-color: the chords' color
   --chord-editor-dash-color: the dash in a word split by chords
   --chord-editor-dimmed-opacity: the opacity of sections that aren't active
@@ -30,6 +32,11 @@
   margin: 0;
   min-height: var(--chord-editor-line-height, 2.8em);
   line-height: var(--chord-editor-line-height, 2.8em);
+}
+
+.chord-editor .is-editing .section.is-active .line {
+  min-height: var(--chord-editor-active-line-height, 3.4em);
+  line-height: var(--chord-editor-active-line-height, 3.4em);
 }
 
 /* While editing, sections other than the active one are dimmed. */
@@ -119,7 +126,24 @@
   background: var(--chord-editor-dash-color, currentColor);
 }
 
-/* Where a dragged chord lands. */
+/*
+  Below the lyrics, the "+" shows under the letter a click adds a chord to.
+  The click is caught by the line under it, not by the "+".
+*/
+.chord-add {
+  position: absolute;
+  translate: -50% 0;
+  color: var(--chord-editor-chord-color, currentColor);
+  font-size: 0.8em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.chord-editor.is-adding .ProseMirror {
+  cursor: pointer;
+}
+
+/* Where a dragged or added chord lands. */
 .chord-drop-caret {
   position: absolute;
   width: 2px;
