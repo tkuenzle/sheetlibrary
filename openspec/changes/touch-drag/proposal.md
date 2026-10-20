@@ -31,6 +31,6 @@ None.
 
 ## Open Questions
 
-- Can the last line of a long song still be reached when the page is scrolled to its end?
+- The last line of a long song can be reached at the end of the page on `/sheet-editor`, but only because the Done button leaves room below the sheet. A page that ends right after the sheet, such as M2f's, may need room below it.
 - iPhone is still untested.
 - A bigger label while dragging, if the lift alone isn't enough.

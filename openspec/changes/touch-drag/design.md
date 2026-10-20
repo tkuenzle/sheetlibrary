@@ -8,7 +8,7 @@
 
 **The lift is CSS, on top of the transform.** On a touch drag (`pointerType === "touch"` at pointerdown), the label gets the class `is-lifted`. The stylesheet moves it up with the separate `translate` property, which adds to the `transform` that follows the pointer, and slides it with a short `transition` on `translate`. A transition on `transform` was rejected, because it would make the label lag behind the finger. Pen and mouse drags don't get the class.
 
-**The lift is a length, not a number of lines.** `--chord-editor-touch-lift` takes any CSS length, for example `4.5em` or `calc(40px + 2em)`. The finger stays the same size when the font grows, while the label and the caret grow with it, so the right lift can be part fixed, part relative. In a custom property, `em` would be worked out at the label, which is 0.8 of the lyrics' size, so the layer turns the lift into pixels through a registered `@property`, and `em` means the lyrics' size as in the other properties. The default is about 1.5 lines, changed to the value found on the phone.
+**The lift is a length, not a number of lines.** `--chord-editor-touch-lift` takes any CSS length, for example `4.5em` or `calc(40px + 2em)`. The finger stays the same size when the font grows, while the label and the caret grow with it, so the right lift can be part fixed, part relative. In a custom property, `em` would be worked out at the label, which is 0.8 of the lyrics' size, so the layer turns the lift into pixels through a registered `@property`, and `em` means the lyrics' size as in the other properties. The default is `4.2em`, about 1.5 lines, which worked well on an Android phone.
 
 **The aim follows the lifted label without new code.** `getBoundingClientRect()` includes `translate`, so `dropTarget()` already aims under the lifted label. While the label slides, the pointer may not move, so the frame loop also updates the target on every frame of a touch drag, not only after a scroll. The drop uses the target the caret shows.
 
@@ -20,6 +20,6 @@
 
 ## Risks / Trade-offs
 
-- [Near the end of a long song, the finger may not get far enough below the last line to aim at it.] → Check by hand on the phone. Listed in the proposal's open questions.
+- [Near the end of a long song, the finger may not get far enough below the last line to aim at it.] → It works on `/sheet-editor`, where the Done button leaves room below the sheet. A page without room there may need some. Listed in the proposal's open questions.
 - [Aiming with a lifted label takes getting used to.] → Tried by hand before merging. If it doesn't work, the change is dropped for a loupe.
 - [iPhone is untested.] → Accepted in the roadmap.

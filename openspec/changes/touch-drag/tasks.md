@@ -14,8 +14,8 @@
 ## 3. Trying the lift
 
 - [x] 3.1 `/sheet-editor?lift=<length>` sets `--chord-editor-touch-lift` on the editor. Verify with a Playwright test that the lift changes with the parameter.
-- [ ] 3.2 Try lifts on an Android phone with the preview link, then set the default in `style.css` and in design.md. Verify by hand that the label and the drop caret show above the finger, and check whether the last line of a long song can be reached at the end of the page.
+- [x] 3.2 Try lifts on an Android phone with the preview link, then set the default in `style.css` and in design.md. Verify by hand that the label and the drop caret show above the finger, and check whether the last line of a long song can be reached at the end of the page.
 
 ## 4. Roadmap
 
-- [ ] 4.1 Mark touch-drag as done in `docs/roadmap.md`, with the approach and the chosen lift. Verify the text matches the merged behavior.
+- [x] 4.1 Mark touch-drag as done in `docs/roadmap.md`, with the approach and the chosen lift. Verify the text matches the merged behavior.

@@ -68,7 +68,7 @@ M2 is built in small steps, each with its own OpenSpec change and pull request. 
 4. **M2d: Chord interactions.** In four changes:
    - **chord-drag (done):** Dragging a chord to move it, inside the active section, including to a spot in a pile. The page scrolls while dragging near the window's edge.
    - **chord-layout (done):** A pile, or a chord on a space, pushes the text after it past its labels, with a dash in a split word. Clean-up trims spaces at both ends of a line and collapses double spaces, which fixes the trailing space left after removing a chord at the end of a line. Labels are placed in the same frame as the change.
-   - **touch-drag:** When a chord is dragged with a finger, the finger covers the label and the drop caret below it. Make both visible, for example by lifting the label above the finger. To be explored first.
+   - **touch-drag (done):** A chord dragged with a finger lifts about 1.5 lines above it, so the label and the drop caret under it can be seen. The chord lands under the label, not under the finger. Scrolling up follows the label. Tried on Android; a loupe was the alternative.
    - **chord-add:** Adding chords by pointer: an add icon on hover on desktop, maybe tapping above a word on phones, and dragging.
 5. **M2e: Section operations.** Dragging sections to reorder them. Until then, a section is moved by cut and paste.
 6. **M2f: Publish.** The editor page with the seed song replaces `/spike/editor`.
