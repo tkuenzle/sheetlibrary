@@ -1,7 +1,8 @@
 import "./sheet-editor.css";
 
 import type { ChordSheet, Problem } from "chordsheet";
-import { useRef, useState } from "react";
+import { type CSSProperties, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 
 import { SheetEditor, type SheetEditorHandle } from "../editor/sheet-editor";
 import { seedSong } from "../editor/seed-song";
@@ -20,6 +21,13 @@ type Page =
   | { kind: "done"; sheet: ChordSheet };
 
 export default function SheetEditorPage() {
+  // `?lift=5em` sets how far a chord dragged by touch is lifted, to try
+  // values on a phone.
+  const [params] = useSearchParams();
+  const lift = params.get("lift");
+  const style = lift
+    ? ({ "--chord-editor-touch-lift": lift } as CSSProperties)
+    : undefined;
   const editorRef = useRef<SheetEditorHandle>(null);
   // Each new editor gets a new key, so it loads its sheet.
   const [key, setKey] = useState(0);
@@ -44,7 +52,7 @@ export default function SheetEditorPage() {
   }
 
   return (
-    <main className="sheet-editor-page">
+    <main className="sheet-editor-page" style={style}>
       <h1>Sheet editor</h1>
       {page.kind === "editing" ? (
         <>

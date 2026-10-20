@@ -65,6 +65,9 @@ interface Drag {
   pointerX: number;
   pointerY: number;
   moved: boolean;
+  // A finger covers what is under it, so a label dragged by touch is lifted
+  // above it, and the chord lands under the lifted label.
+  lifted: boolean;
   target: Target | null;
 }
 
@@ -373,6 +376,7 @@ class ChordLayerView {
       pointerX: event.clientX,
       pointerY: event.clientY,
       moved: false,
+      lifted: event.pointerType === "touch",
       target: null,
     };
     window.addEventListener("keydown", this.onKeyDown, true);
@@ -394,6 +398,7 @@ class ChordLayerView {
       // longer while it scrolls.
       const box = drag.label.getBoundingClientRect();
       drag.label.classList.add("is-dragging");
+      if (drag.lifted) drag.label.classList.add("is-lifted");
       drag.label.style.left = `${String(box.left)}px`;
       drag.label.style.top = `${String(box.top)}px`;
       this.scrollFrame = requestAnimationFrame(this.scroll);
@@ -438,7 +443,7 @@ class ChordLayerView {
   }
 
   private endDrag() {
-    this.drag?.label.classList.remove("is-dragging");
+    this.drag?.label.classList.remove("is-dragging", "is-lifted");
     this.drag = null;
     cancelAnimationFrame(this.scrollFrame);
     window.removeEventListener("keydown", this.onKeyDown, true);
@@ -454,21 +459,26 @@ class ChordLayerView {
   }
 
   // Scrolls the page while the pointer is near the window's top or bottom.
-  // Pointer events stop while a finger holds still, so this runs every frame.
+  // A lifted label reaches the top long before the finger, so there its top
+  // counts instead. Pointer events stop while a finger holds still, so this
+  // runs every frame.
   private scroll = () => {
     const drag = this.drag;
     if (!drag) return;
-    const y = drag.pointerY;
-    const bottom = window.innerHeight - y;
+    const top = Math.max(
+      0,
+      drag.lifted ? drag.label.getBoundingClientRect().top : drag.pointerY,
+    );
+    const bottom = window.innerHeight - drag.pointerY;
     let speed = 0;
-    if (y < scrollZone) speed = -scrollSpeed * (1 - y / scrollZone);
+    if (top < scrollZone) speed = -scrollSpeed * (1 - top / scrollZone);
     else if (bottom < scrollZone)
       speed = scrollSpeed * (1 - bottom / scrollZone);
-    if (speed !== 0) {
-      const before = window.scrollY;
-      window.scrollBy(0, Math.round(speed));
-      if (window.scrollY !== before) this.follow(drag);
-    }
+    const before = window.scrollY;
+    if (speed !== 0) window.scrollBy(0, Math.round(speed));
+    // A lifted label slides up while the finger may hold still, so its
+    // target is updated every frame.
+    if (drag.lifted || window.scrollY !== before) this.follow(drag);
     this.scrollFrame = requestAnimationFrame(this.scroll);
   };
 
