@@ -312,6 +312,98 @@ test.describe("adding and editing chords", () => {
   });
 });
 
+test.describe("adding chords by mouse", () => {
+  test.skip(({ hasTouch }) => hasTouch, "Needs a mouse");
+
+  test("shows a caret in front of the letter and a + under it", async ({
+    page,
+  }) => {
+    await clickChar(page, "before", "Amazing");
+    await page.mouse.move(...(await below(page, "wretch", 1)));
+    const r = await charBox(page, "wretch", 1);
+    const caret = await box(page.locator(".chord-drop-caret"));
+    expect(Math.abs(caret.x - r.left)).toBeLessThan(2);
+    expect(Math.abs(caret.y - r.top)).toBeLessThan(2);
+    const plus = await box(page.locator(".chord-add"));
+    expect(Math.abs(plus.x + plus.width / 2 - caret.x)).toBeLessThan(2);
+    expect(plus.y).toBeGreaterThanOrEqual(r.bottom - 1);
+    await page.mouse.move(r.left + 1, r.y);
+    await expect(page.locator(".chord-add")).toHaveCount(0);
+    await expect(page.locator(".chord-drop-caret")).toHaveCount(0);
+  });
+
+  test("shows no + below another section", async ({ page }) => {
+    await clickChar(page, "before", "Amazing");
+    await page.mouse.move(...(await below(page, "Twas", 1)));
+    await nextLayout(page);
+    await expect(page.locator(".chord-add")).toHaveCount(0);
+  });
+
+  test("adds a chord on a letter, in one undo step, keeping the caret", async ({
+    page,
+  }) => {
+    await clickChar(page, "before", "Amazing");
+    await addBelow(page, "wretch", 1, "Am");
+    const r = await charBox(page, "wretch", 1);
+    const am = await box(label(page, "Am"));
+    expect(Math.abs(am.x - r.left)).toBeLessThan(2);
+    await expect(activeSection(page)).toContainText("Amazing grace");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(page.locator(".chord-label", { hasText: "Am" })).toHaveCount(
+      0,
+    );
+    await page.keyboard.type("X");
+    const [lines = []] = await handBack(page);
+    expect(lines[0]).toBe("X[G]Amazing [G7]grace, how [C]sweet the [G]sound");
+    expect(lines[1]).toBe("That saved a wretch like [D]me");
+  });
+
+  test("adds a chord after the chords on a letter", async ({ page }) => {
+    await clickChar(page, "before", "Amazing");
+    await addBelow(page, "grace", 0, "C");
+    expect((await firstSection(page))[0]).toBe(
+      "[G]Amazing [G7][C]grace, how [C]sweet the [G]sound",
+    );
+  });
+
+  test("adds a chord at the end of a line", async ({ page }) => {
+    await clickChar(page, "before", "Amazing");
+    const e = await charBox(page, "me", 1);
+    await page.mouse.click(e.right + 20, e.bottom + 6);
+    await page.getByLabel("Chord").fill("A");
+    await page.keyboard.press("Enter");
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a wretch like [D]me[A]",
+    );
+  });
+
+  test("places the caret on a click on the lyrics", async ({ page }) => {
+    await clickChar(page, "before", "wretch");
+    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await page.keyboard.type("X");
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a Xwretch like [D]me",
+    );
+  });
+});
+
+test.describe("tapping below the lyrics", () => {
+  test("places the caret", async ({ page }, testInfo) => {
+    test.skip(!isPhone(testInfo), "Needs touch");
+    await clickChar(page, "before", "Amazing");
+    const r = await charBox(page, "wretch", 1);
+    await afterSelectionChange(page, () =>
+      page.touchscreen.tap(r.left + 1, r.bottom + 6),
+    );
+    await expect(page.locator(".chord-add")).toHaveCount(0);
+    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await page.keyboard.type("X");
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a wXretch like [D]me",
+    );
+  });
+});
+
 test.describe("editing lyrics", () => {
   test("moves the caret past a chord with one arrow press", async ({
     page,
@@ -362,6 +454,8 @@ test.describe("the active section", () => {
   });
 
   test("keeps a selection inside its section", async ({ page }) => {
+    // The active section's lines are taller, so make it active first.
+    await clickChar(page, "before", "blind");
     const from = await charBox(page, "blind", 0);
     const to = await charBox(page, "Twas", 2);
     await page.mouse.move(from.left + 1, from.y);
@@ -823,6 +917,29 @@ async function addChord(
 ) {
   await clickChar(page, "before", needle, offset);
   await page.keyboard.press("ControlOrMeta+k");
+  await page.getByLabel("Chord").fill(chord);
+  await page.keyboard.press("Enter");
+}
+
+// A point just below the letter of `needle` at `offset`, in the band under
+// the lyrics.
+async function below(
+  page: Page,
+  needle: string,
+  offset: number,
+): Promise<[number, number]> {
+  const char = await charBox(page, needle, offset);
+  return [(char.left + char.right) / 2, char.bottom + 6];
+}
+
+// Clicks below a letter and enters a chord in the chord input.
+async function addBelow(
+  page: Page,
+  needle: string,
+  offset: number,
+  chord: string,
+) {
+  await page.mouse.click(...(await below(page, needle, offset)));
   await page.getByLabel("Chord").fill(chord);
   await page.keyboard.press("Enter");
 }
