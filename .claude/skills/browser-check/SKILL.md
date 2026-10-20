@@ -97,4 +97,4 @@ Look at it: `pw screenshot --filename=<scratchpad>/editor.png`, then read the im
 
 ## Timing
 
-ProseMirror reads a new selection from the `selectionchange` event, which comes a moment after a click or key press. Separate `pw` commands are slow enough. Inside one `run-code` with several steps, wait about 50 ms after each one, or use the `afterSelectionChange` pattern from `apps/web/e2e/sheet-editor.spec.ts`. Chord labels are placed on the next frame after a change, so check positions in a separate command.
+ProseMirror reads a new selection from the `selectionchange` event, which comes a moment after a click or key press. Separate `pw` commands are slow enough. Inside one `run-code` with several steps, wait about 50 ms after each one, or use the `afterSelectionChange` pattern from `apps/web/e2e/sheet-editor.spec.ts`. Chord labels are placed as part of each change, so their positions can be checked right after it.

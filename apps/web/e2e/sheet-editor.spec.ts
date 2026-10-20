@@ -37,9 +37,203 @@ test.describe("chords above their letters", () => {
     await addChord(page, "the", 2, "Dsus4");
     await expect.poll(() => misplacedChords(page)).toEqual([]);
     await expect.poll(() => overlappingChords(page)).toEqual([]);
+    // The pile pushes the "h" past its last label.
+    const c = await box(label(page, "C"));
+    expect((await charBox(page, "the", 1)).left).toBeGreaterThanOrEqual(
+      c.x + c.width,
+    );
     expect((await firstSection(page))[0]).toBe(
       "[G]Amazing [G7][C]t[Cmaj7]h[Dsus4]e [G]sound",
     );
+  });
+});
+
+test.describe("piles and chords on spaces", () => {
+  test("starts the letter after a pile past its labels, with a dash", async ({
+    page,
+  }) => {
+    await selectText(page, "grace, how sweet ");
+    await page.keyboard.press("Backspace");
+    const c = await box(label(page, "C"));
+    const t = await charBox(page, "the", 0);
+    const h = await charBox(page, "the", 1);
+    expect(h.left).toBeGreaterThanOrEqual(c.x + c.width);
+    await expect(page.locator(".chord-dash")).toHaveCount(1);
+    const dash = await box(page.locator(".chord-dash"));
+    expect(dash.x).toBeGreaterThanOrEqual(t.right);
+    expect(dash.x + dash.width).toBeLessThanOrEqual(h.left);
+    expect((await firstSection(page))[0]).toBe(
+      "[G]Amazing [G7][C]the [G]sound",
+    );
+  });
+
+  test("starts the word after a chord on a space past its label", async ({
+    page,
+  }) => {
+    await addChord(page, "That", 4, "Am");
+    const am = await box(label(page, "Am"));
+    expect((await charBox(page, "saved", 0)).left).toBeGreaterThanOrEqual(
+      am.x + am.width,
+    );
+    await expect(page.locator(".chord-dash")).toHaveCount(0);
+    expect((await firstSection(page))[1]).toBe(
+      "That[Am] saved a wretch like [D]me",
+    );
+  });
+
+  test("keeps a gap with a dash at least 0.6em wide", async ({ page }) => {
+    // Retyping "my" puts both chords on the new "m", in order.
+    await addChord(page, "my heart", 0, "I");
+    await addChord(page, "my heart", 1, "V");
+    await selectText(page, "my");
+    await page.keyboard.type("my");
+    const m = await charBox(page, "my heart", 0);
+    const y = await charBox(page, "my heart", 1);
+    const fontSize = await page
+      .locator(".ProseMirror")
+      .evaluate((editor) => parseFloat(getComputedStyle(editor).fontSize));
+    expect(y.left - m.right).toBeGreaterThanOrEqual(fontSize * 0.6 - 0.1);
+    await expect(page.locator(".chord-dash")).toHaveCount(1);
+    expect((await handBack(page))[1]?.[0]).toBe(
+      "'Twas [G]grace that [G7]taught [I][V]my [Cmaj7]heart to [G]fear",
+    );
+  });
+
+  test("shows a dash where long labels split a word", async ({ page }) => {
+    await addChord(page, "the sound", 0, "Cmaj7");
+    await addChord(page, "the sound", 1, "Dsus4");
+    const t = await charBox(page, "the sound", 0);
+    const h = await charBox(page, "the sound", 1);
+    const cmaj7 = await box(label(page, "Cmaj7"));
+    expect(h.left).toBeGreaterThanOrEqual(cmaj7.x + cmaj7.width);
+    await expect(page.locator(".chord-dash")).toHaveCount(1);
+    const dash = await box(page.locator(".chord-dash"));
+    expect(dash.x).toBeGreaterThanOrEqual(t.right);
+    expect(dash.x + dash.width).toBeLessThanOrEqual(h.left);
+  });
+
+  test("shows the caret where typed text appears in front of a pushed letter", async ({
+    page,
+  }) => {
+    await addChord(page, "the sound", 0, "Cmaj7");
+    await addChord(page, "the sound", 1, "Dsus4");
+    const t = await charBox(page, "the sound", 0);
+    const h = await charBox(page, "the sound", 1);
+    await afterSelectionChange(page, () => page.mouse.click(h.left - 2, h.y));
+    const caret = await caretBox(page);
+    expect(Math.abs((caret?.left ?? 0) - t.right)).toBeLessThan(1);
+    await page.keyboard.type("X");
+    const x = await charBox(page, "tXhe", 1);
+    expect(Math.abs(x.left - t.right)).toBeLessThan(1);
+  });
+
+  test("lets a single chord's label reach over the next letters", async ({
+    page,
+  }) => {
+    await addChord(page, "wretch", 0, "Cmaj7");
+    const cmaj7 = await box(label(page, "Cmaj7"));
+    expect((await charBox(page, "wretch", 1)).left).toBeLessThan(
+      cmaj7.x + cmaj7.width,
+    );
+  });
+
+  test("shows a chord and the pushed word in the same frame", async ({
+    page,
+  }) => {
+    await addChord(page, "That", 4, "Am");
+    await clickLabel(page, "Am");
+    await page.getByRole("button", { name: "Delete" }).click();
+    await expect(label(page, "Am")).toHaveCount(0);
+    // Undo, and read the layout before the browser gets to a new frame.
+    const layout = await page.locator(".ProseMirror").evaluate((editor) => {
+      const mac = /Mac|iP(hone|[oa]d)/.test(navigator.platform);
+      editor.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "z",
+          ctrlKey: !mac,
+          metaKey: mac,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      const am = [...document.querySelectorAll(".chord-label")].find(
+        (label) => label.textContent === "Am",
+      );
+      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+      let text: Text | null = null;
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if ((node as Text).data.includes("saved")) text = node as Text;
+      }
+      if (!am || !text) return null;
+      const range = document.createRange();
+      const start = text.data.indexOf("saved");
+      range.setStart(text, start);
+      range.setEnd(text, start + 1);
+      return {
+        label: am.getBoundingClientRect().right,
+        word: range.getBoundingClientRect().left,
+      };
+    });
+    expect(layout).not.toBeNull();
+    expect(layout?.word).toBeGreaterThanOrEqual(layout?.label ?? Infinity);
+  });
+
+  test("shows the caret at the end of a gap when it is clicked", async ({
+    page,
+  }) => {
+    await selectText(page, "grace, how sweet ");
+    await page.keyboard.press("Backspace");
+    const t = await charBox(page, "the", 0);
+    const h = await charBox(page, "the", 1);
+    // The third click finds the caret there already. Clicks this far apart
+    // don't count as a double click.
+    for (const x of [t.right + 2, h.left - 2, t.right + 2]) {
+      await afterSelectionChange(page, () => page.mouse.click(x, t.y));
+      const caret = await caretBox(page);
+      expect(Math.abs((caret?.left ?? 0) - h.left)).toBeLessThan(1);
+      await page.keyboard.type("X");
+      await expect(page.locator(".ProseMirror .line").first()).toContainText(
+        "tXhe",
+      );
+      await page.keyboard.press("Backspace");
+    }
+  });
+
+  test("lays out a long song once per edit", async ({ page }) => {
+    // A pile and a chord on a space push letters, then the song is copied.
+    await selectText(page, "grace, how sweet ");
+    await page.keyboard.press("Backspace");
+    await addChord(page, "That", 4, "Am");
+    const html = await page.locator(".ProseMirror").innerHTML();
+    await clickChar(page, "after", "believed", 7);
+    for (let i = 0; i < 8; i++) await paste(page, "", html);
+    await expect(page.locator(".chord-label")).toHaveCount(25 * 9);
+    await expect(page.locator(".chord-dash")).toHaveCount(9);
+    await clickChar(page, "before", "Amazing");
+    // Chrome counts how often it lays out the page. Unlike time, the count
+    // doesn't depend on how fast the machine is.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Performance.enable");
+    const layouts = async () => {
+      const { metrics } = await cdp.send("Performance.getMetrics");
+      return metrics.find((m) => m.name === "LayoutCount")?.value ?? NaN;
+    };
+    const before = await layouts();
+    const edits = 20;
+    await page.locator(".ProseMirror").evaluate((editor, edits) => {
+      for (let i = 0; i < edits; i++) {
+        const data = new DataTransfer();
+        data.setData("text/plain", "x");
+        editor.dispatchEvent(
+          new ClipboardEvent("paste", {
+            clipboardData: data,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      }
+    }, edits);
+    expect((await layouts()) - before).toBeLessThanOrEqual(edits * 2);
   });
 });
 
@@ -375,6 +569,20 @@ test.describe("dragging chords", () => {
     expect(second[0]).not.toContain("Cmaj7");
     expect(second[3]).toBe("[Cmaj7]The [Em]hour I [D]first be[G]lieved");
   });
+
+  test("drops a chord on the letter after a pile", async ({
+    page,
+  }, testInfo) => {
+    await selectText(page, "grace, how sweet ");
+    await page.keyboard.press("Backspace");
+    const target = await charBox(page, "the", 1);
+    const drag = await startDrag(page, label(page, "G"), isPhone(testInfo));
+    await drag.moveLabelTo(target.left, target.top - drag.height);
+    await drag.release();
+    expect((await firstSection(page))[0]).toBe(
+      "Amazing [G7][C]t[G]he [G]sound",
+    );
+  });
 });
 
 function activeSection(page: Page) {
@@ -447,19 +655,32 @@ async function startDrag(page: Page, chord: Locator, touch: boolean) {
   };
 }
 
-// Pastes plain text at the caret, as the browser does.
-async function paste(page: Page, text: string) {
-  await page.locator(".ProseMirror").evaluate((editor, text) => {
-    const data = new DataTransfer();
-    data.setData("text/plain", text);
-    editor.dispatchEvent(
-      new ClipboardEvent("paste", {
-        clipboardData: data,
-        bubbles: true,
-        cancelable: true,
-      }),
-    );
-  }, text);
+// Pastes plain text, or HTML, at the caret, as the browser does.
+async function paste(page: Page, text: string, html?: string) {
+  await page.locator(".ProseMirror").evaluate(
+    (editor, [text, html]) => {
+      const data = new DataTransfer();
+      data.setData("text/plain", text);
+      if (html) data.setData("text/html", html);
+      editor.dispatchEvent(
+        new ClipboardEvent("paste", {
+          clipboardData: data,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    },
+    [text, html] as const,
+  );
+}
+
+// Where the browser draws the caret.
+function caretBox(page: Page) {
+  return page.evaluate(() => {
+    const range = window.getSelection()?.getRangeAt(0);
+    const rect = range?.getBoundingClientRect();
+    return rect ? { left: rect.left, top: rect.top } : null;
+  });
 }
 
 // Clicks Done and returns the handed-back sheet's sections as lists of
@@ -554,7 +775,7 @@ async function afterSelectionChange(page: Page, action: () => Promise<void>) {
   );
 }
 
-// Chord layout runs on the next frame after a change.
+// Waits until the browser has drawn the latest change.
 async function nextLayout(page: Page) {
   await page.evaluate(
     () =>

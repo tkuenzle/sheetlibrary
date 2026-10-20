@@ -3,10 +3,12 @@ import { AllSelection, TextSelection } from "prosemirror-state";
 import { describe, expect, it } from "vitest";
 
 import { endEditing, getActiveSection, startEditing } from "./active-section";
+import { moveChord } from "./chords";
 import {
   at,
   edit,
   exec,
+  idOf,
   notation,
   song,
   type,
@@ -114,6 +116,44 @@ describe("finishing a section", () => {
   it("drops empty lines when editing ends", () => {
     const state = editing("one\n~\n\ntwo", "one");
     expect(notation(exec(state, endEditing))).toBe("one\n\ntwo");
+  });
+
+  it("trims spaces at both ends of each line when the caret leaves", () => {
+    const state = editing("  [G]one  \n more \n\ntwo", "one");
+    expect(notation(withCaret(state, at(state, "two")))).toBe(
+      "[G]one\nmore\n\ntwo",
+    );
+  });
+
+  it("keeps spaces while the section is active", () => {
+    const state = editing("one\n\ntwo", "one");
+    expect(notation(type(state, " "))).toBe(" one\n\ntwo");
+  });
+
+  it("keeps a space with a chord", () => {
+    const state = editing("  [G] one[D]\n\ntwo", "one");
+    expect(notation(exec(state, endEditing))).toBe("[G] one[D] \n\ntwo");
+  });
+
+  it("collapses double spaces when the caret leaves", () => {
+    const state = editing("one two\n\nthree", "two");
+    const typed = type(state, " ");
+    expect(notation(typed)).toBe("one  two\n\nthree");
+    expect(notation(withCaret(typed, at(typed, "three")))).toBe(
+      "one two\n\nthree",
+    );
+  });
+
+  it("keeps only the spaces with chords in a run", () => {
+    const state = editing("one  [G] two\n\nthree", "one");
+    expect(notation(exec(state, endEditing))).toBe("one[G] two\n\nthree");
+  });
+
+  it("leaves no trailing space after a chord moves off the end", () => {
+    const state = editing("one[D]\n\ntwo", "one");
+    const moved = exec(state, moveChord(idOf(state, "D"), at(state, "one")));
+    expect(notation(moved)).toBe("[D]one \n\ntwo");
+    expect(notation(withCaret(moved, at(moved, "two")))).toBe("[D]one\n\ntwo");
   });
 });
 

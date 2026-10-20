@@ -2,10 +2,18 @@ import type { ChordSheet, Line, Section } from "chordsheet";
 import { describe, expect, it } from "vitest";
 
 import { docFromSheet, handBackSheet } from "./adapter";
-import { insertChord } from "./chords";
+import { insertChord, moveChord } from "./chords";
 import { createEditorState } from "./editor";
 import { chordsOn } from "./schema";
-import { at, edit, exec, notation, type, withCaret } from "./test-helpers";
+import {
+  at,
+  edit,
+  exec,
+  idOf,
+  notation,
+  type,
+  withCaret,
+} from "./test-helpers";
 
 function sheet(...sections: Section[]): ChordSheet {
   return { format: "chordsheet", version: 1, sections };
@@ -96,10 +104,26 @@ describe("editing a sheet", () => {
     );
   });
 
-  it("keeps a trailing space the user typed", () => {
-    const state = load(section(line("like me")));
-    const next = type(withCaret(state, at(state, "me", 2)), " ");
-    expect(handBack(next)).toEqual(handedBack(section(line("like me "))));
+  it("trims spaces the user typed at both ends of a line", () => {
+    const state = load(section(line("like me", [5, "D"])));
+    const typed = type(withCaret(state, at(state, "me", 2)), " ");
+    const next = type(withCaret(typed, at(typed, "like")), "  ");
+    expect(handBack(next)).toEqual(
+      handedBack(section(line("like me", [5, "D"]))),
+    );
+  });
+
+  it("hands back no trailing space after a chord moves off the end", () => {
+    const state = load(section(line("like me", [7, "D"])));
+    const next = exec(state, moveChord(idOf(state, "D"), at(state, "me")));
+    expect(handBack(next)).toEqual(
+      handedBack(section(line("like me", [5, "D"]))),
+    );
+  });
+
+  it("keeps spaces with chords", () => {
+    const stored = sheet(section(line(" like me", [0, "G"], [8, "D"])));
+    expect(handBack(load(stored))).toEqual({ ok: true, sheet: stored });
   });
 
   it("normalizes text to NFC and keeps chords in place", () => {

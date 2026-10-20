@@ -8,6 +8,7 @@
   --chord-editor-font-size: the lyrics' size; chords are 0.8 of it
   --chord-editor-line-height: room for the lyrics and the chords above them
   --chord-editor-chord-color: the chords' color
+  --chord-editor-dash-color: the dash in a word split by chords
   --chord-editor-dimmed-opacity: the opacity of sections that aren't active
   --chord-editor-section-gap: the space between sections
 */
@@ -31,7 +32,8 @@
 
 /* While editing, sections other than the active one are dimmed. */
 .chord-editor .is-editing .section:not(.is-active),
-.chord-label.is-dimmed {
+.chord-label.is-dimmed,
+.chord-dash.is-dimmed {
   opacity: var(--chord-editor-dimmed-opacity, 0.5);
 }
 
@@ -85,6 +87,13 @@
   z-index: 1;
   cursor: grabbing;
   opacity: 0.8;
+}
+
+/* In a word split by a pile of chords, a dash bridges the gap. */
+.chord-dash {
+  position: absolute;
+  height: max(1px, 0.06em);
+  background: var(--chord-editor-dash-color, currentColor);
 }
 
 /* Where a dragged chord lands. */
