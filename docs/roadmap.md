@@ -28,6 +28,7 @@ Library features (search, collections, sets, sharing) only use the outer part. E
 
 - **Visual editor.** Chords appear above the lyrics, and you place and move them directly, for example by dragging them. It has to work for musicians who don't know ChordPro.
 - **Power users** can get shortcuts later, for example typing `[G` to insert a chord, or a ChordPro source view.
+- **Adding to a pile by keyboard** has no way yet: Ctrl+K or Cmd+K edits a letter's first chord. An "Add after" button in the chord input could do it. Mouse and touch already add after a letter's chords.
 - **Chords stick to the lyrics.** When the letter under a chord is deleted or replaced, the chord moves to the nearest letter (the start of the replacement). It is never silently deleted, except together with its whole line. Several chords on one letter are all kept, in order. A chord can also sit on a space, meaning "after the text before it".
 - **Built on ProseMirror.** The editor spike (M1) confirmed it: chords are marks on their letter, drawn in a layer above the editable text. It is mature and supports collaboration later (Yjs). The editor model stays separate from the stored model; an adapter converts between them.
 - **One section at a time.** The whole sheet is one editor document, but the user edits one section at a time: the one with the caret. Other sections are dimmed. The active section is a draft that may break the model's rules while the user types, for example with an empty line. When the caret leaves it, it is cleaned up.
@@ -60,19 +61,19 @@ M0 walking skeleton  ->  M1 editor spike  ->  M2 published editor  ->  later
 
 **M2: Published editor.** The chord sheet model and the real editor. Published as a static page with an editable public-domain seed song. No backend and no saving.
 
-M2 is built in small steps, each with its own OpenSpec change and pull request. The editor was not checked on an iPhone before building on it (marks were only tested on Android). That risk is accepted.
+M2 is built in small steps, each with its own OpenSpec change and pull request. The editor was not checked on an iPhone before building on it (it was only tried on Android). That risk is accepted until M2f.
 
 1. **M2a: Chord sheet model (done).** The versioned JSON model for the content (sections of lines, no metadata), its rules and a check, and a clean-up step for a section. No UI. See `openspec/specs/chord-sheet-model`. From the spike: several chords at one spot keep their order, and a chord can sit at the end of a line or on a space.
 2. **M2b: Section editor (done).** The real editor for one section, in `packages/chord-editor`, built the way the spike works: marks, the chord layer, and the rescue rules with their tests. An adapter loads a section from the model and hands it back cleaned up and checked. Chords are added and edited by keyboard (Ctrl+K or Cmd+K) and by clicking their label.
 3. **M2c: Sheet editing (done).** Editing a whole sheet in one editor, one active section at a time: finishing a section when the caret leaves it, blank lines as section breaks (typed or pasted), joining sections, and undo across sections. A test page at `/sheet-editor`.
-4. **M2d: Chord interactions.** In five changes:
+4. **M2d: Chord interactions (done).** In five changes:
    - **chord-drag (done):** Dragging a chord to move it, inside the active section, including to a spot in a pile. The page scrolls while dragging near the window's edge.
    - **chord-layout (done):** A pile, or a chord on a space, pushes the text after it past its labels, with a dash in a split word. Clean-up trims spaces at both ends of a line and collapses double spaces, which fixes the trailing space left after removing a chord at the end of a line. Labels are placed in the same frame as the change.
    - **touch-drag (done):** A chord dragged with a finger lifts about 1.5 lines above it, so the label and the drop caret under it can be seen. The chord lands under the label, not under the finger. Scrolling up follows the label. Tried on Android; a loupe was the alternative.
    - **chord-add (done):** Adding chords by mouse. Below the lyrics of the active section, a caret in front of the letter and a "+" under it show where a click adds a chord. Below the lyrics, the "+" never overlaps labels, and on a letter with chords it adds after them. The active section has a bit more line height to make room.
-   - **touch-add:** Adding chords on phones. The native caret or selection, with its magnifier, picks the letter, and a "+ Chord" button opens the chord input. An "Add after" button in the chord input could add to a pile by keyboard and touch. Dragging a "+" onto a letter is the fallback if this feels clumsy. Try it on an iPhone first.
+   - **touch-add (done):** Adding chords on phones. The native caret, with its magnifier, picks the letter. After a tap, a "+ Chord" button shows above the caret, where chords go, and opens the chord input. It shows once the caret has stopped moving and the finger is lifted, so it doesn't flicker or get in the way while the caret is dragged. On a letter with chords it adds after them. Tried on Android; not yet on an iPhone.
 5. **M2e: Section operations.** Dragging sections to reorder them. Until then, a section is moved by cut and paste.
-6. **M2f: Publish.** The editor page with the seed song replaces `/spike/editor`.
+6. **M2f: Publish.** The editor page with the seed song replaces `/spike/editor`. First, the editor is tried on an iPhone: placing and dragging the caret, typing and autocorrect around chords, Backspace, tapping and dragging labels, and the "+ Chord" button, also next to the Paste menu.
 7. **M2g: UI polish.** A design foundation: tokens for color, type and spacing, a few base components, and a glossary and voice for the UI text. Until then, pages stay plain, with colors, fonts and spacing in CSS custom properties so this step changes values, not structure.
 
 **Later, roughly in this order:**

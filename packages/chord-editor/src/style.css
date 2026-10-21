@@ -15,6 +15,8 @@
   --chord-editor-section-gap: the space between sections
   --chord-editor-touch-lift: how far a chord dragged by touch is lifted above
     the finger, so it and the spot where it lands can be seen
+  --chord-editor-add-offset: on touch, the gap between the lyrics and the
+    "+ Chord" button above the caret, or below it at the window's top
 */
 
 .chord-editor {
@@ -58,13 +60,21 @@
   user-select: none;
   /* About 1.5 lines. */
   --chord-layer-lift: var(--chord-editor-touch-lift, 4.2em);
+  --chord-layer-add-offset: var(--chord-editor-add-offset, 0.5em);
 }
 
 /*
-  The touch lift is worked out on the layer, which has the lyrics' size, so
-  em in it means the same as in the other properties.
+  The touch lift and the button's offset are worked out on the layer, which
+  has the lyrics' size, so em in them means the same as in the other
+  properties.
 */
 @property --chord-layer-lift {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --chord-layer-add-offset {
   syntax: "<length>";
   inherits: true;
   initial-value: 0px;
@@ -141,6 +151,34 @@
 
 .chord-editor.is-adding .ProseMirror {
   cursor: pointer;
+}
+
+/*
+  On touch, the button that adds a chord at the caret. It floats over the
+  line's chords, tall enough to tap. Its top is at the top of the lyrics, and
+  it is moved up by its height, or its top is at their bottom when it is
+  below.
+*/
+.chord-add-button {
+  position: absolute;
+  min-height: 44px;
+  padding: 0 0.9em;
+  border: 1px solid var(--chord-editor-chord-color, currentColor);
+  border-radius: 22px;
+  background: Canvas;
+  color: var(--chord-editor-chord-color, currentColor);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: auto;
+  touch-action: manipulation;
+  translate: 0 calc(-100% - var(--chord-layer-add-offset));
+}
+
+.chord-add-button.is-below {
+  translate: 0 var(--chord-layer-add-offset);
 }
 
 /* Where a dragged or added chord lands. */
