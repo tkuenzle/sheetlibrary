@@ -21,15 +21,12 @@ type Page =
   | { kind: "done"; sheet: ChordSheet };
 
 export default function SheetEditorPage() {
-  // `?lift=5em` sets how far a chord dragged by touch is lifted, and
-  // `?add-offset=2em` the gap between the lyrics and the "+ Chord" button,
-  // to try values on a phone.
+  // `?lift=5em` sets how far a chord dragged by touch is lifted, to try
+  // values on a phone.
   const [params] = useSearchParams();
   const lift = params.get("lift");
-  const addOffset = params.get("add-offset");
   const style = {
     ...(lift && { "--chord-editor-touch-lift": lift }),
-    ...(addOffset && { "--chord-editor-add-offset": addOffset }),
   } as CSSProperties;
   const editorRef = useRef<SheetEditorHandle>(null);
   // Each new editor gets a new key, so it loads its sheet.
@@ -60,11 +57,12 @@ export default function SheetEditorPage() {
       {page.kind === "editing" ? (
         <>
           <p className="hint">
-            Click a section to edit it. Enter on an empty line starts a new
-            section, Backspace at its start joins it with the one before, and
-            Escape stops editing. Ctrl+K or Cmd+K adds a chord at the caret, or
-            changes the one there. Click a chord to change or delete it, or drag
-            it to move it.
+            Click a section to edit it. Its toolbar adds a chord at the caret
+            and moves the section up or down. Enter on an empty line starts a
+            new section, Backspace at its start joins it with the one before,
+            and Escape stops editing. Ctrl+K or Cmd+K adds a chord at the caret,
+            or changes the one there. Click a chord to change or delete it, or
+            drag it to move it.
           </p>
           <SheetEditor key={key} ref={editorRef} sheet={page.sheet} />
           {page.problems.length > 0 && (

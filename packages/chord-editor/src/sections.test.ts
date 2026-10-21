@@ -3,7 +3,14 @@ import { undo } from "prosemirror-history";
 import { describe, expect, it } from "vitest";
 
 import { getActiveSection, startEditing } from "./active-section";
-import { joinWithPrevious, sliceFromText, splitOnEmptyLine } from "./sections";
+import { TextSelection } from "prosemirror-state";
+
+import {
+  joinWithPrevious,
+  moveSection,
+  sliceFromText,
+  splitOnEmptyLine,
+} from "./sections";
 import { at, edit, exec, notation, song, withCaret } from "./test-helpers";
 
 // A sheet with the caret before `needle`, or at `offset` letters into it,
@@ -90,5 +97,55 @@ describe("pasting text with blank lines", () => {
   it("pastes a single line into the line", () => {
     const state = editing("one two", "two");
     expect(notation(paste(state, "a "))).toBe("one a two");
+  });
+});
+
+describe("moving a section", () => {
+  const sheet = "[G]one\n\nWas [D]blind\nbut   now ~\n~\n\nthree";
+
+  it("moves it up and keeps the caret and the active section", () => {
+    const next = exec(editing(sheet, "blind", 2), moveSection(-1));
+    expect(notation(next)).toBe(
+      "Was [D]blind\nbut   now ~\n~\n\n[G]one\n\nthree",
+    );
+    expect(caret(next)).toEqual(["Was blind", 6]);
+    expect(getActiveSection(next)).toBe(0);
+  });
+
+  it("moves it down", () => {
+    const next = exec(editing(sheet, "now"), moveSection(1));
+    expect(notation(next)).toBe(
+      "[G]one\n\nthree\n\nWas [D]blind\nbut   now ~\n~",
+    );
+    expect(caret(next)).toEqual(["but   now ~", 6]);
+    expect(getActiveSection(next)).toBe(next.selection.$head.before(1));
+  });
+
+  it("keeps a selection", () => {
+    const state = editing(sheet, "Was");
+    const selected = state.apply(
+      state.tr.setSelection(
+        TextSelection.create(state.doc, at(state, "Was"), at(state, "blind")),
+      ),
+    );
+    const next = exec(selected, moveSection(-1));
+    expect(next.doc.textBetween(next.selection.from, next.selection.to)).toBe(
+      "Was ",
+    );
+  });
+
+  it("does nothing at the ends or when not editing", () => {
+    expect(moveSection(-1)(editing(sheet, "one"))).toBe(false);
+    expect(moveSection(1)(editing(sheet, "three"))).toBe(false);
+    expect(moveSection(1)(song(sheet))).toBe(false);
+  });
+
+  it("is undone one move at a time, with the moved section active", () => {
+    const once = exec(editing(sheet, "three"), moveSection(-1));
+    const twice = exec(once, moveSection(-1));
+    const undone = exec(twice, undo);
+    expect(notation(undone)).toBe(notation(once));
+    expect(caret(undone)).toEqual(["three", 0]);
+    expect(getActiveSection(undone)).toBe(undone.selection.$head.before(1));
   });
 });

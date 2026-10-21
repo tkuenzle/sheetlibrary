@@ -1,6 +1,8 @@
 import { Fragment, type Node, Slice } from "prosemirror-model";
+import { closeHistory } from "prosemirror-history";
 import { type Command, Plugin, TextSelection } from "prosemirror-state";
 
+import { getActiveSection } from "./active-section";
 import { isEmptyLine, schema } from "./schema";
 
 // A blank line is a section break, whether it is typed or pasted.
@@ -66,4 +68,41 @@ export function sectionBreaks() {
       clipboardTextParser: (text) => sliceFromText(text),
     },
   });
+}
+
+// Moves the active section up (-1) or down (1), past its neighbour. Both
+// sections are replaced in one step, so the active-section plugin sees the
+// old section as gone and cleans nothing up. The caret keeps its spot in the
+// moved section, which stays active.
+export function moveSection(direction: -1 | 1): Command {
+  return (state, dispatch) => {
+    const active = getActiveSection(state);
+    if (active === null) return false;
+    const { doc, selection } = state;
+    const index = doc.resolve(active).index(0);
+    const section = doc.child(index);
+    const other = index + direction;
+    if (other < 0 || other >= doc.childCount) return false;
+    if (dispatch) {
+      const neighbour = doc.child(other);
+      const from = direction < 0 ? active - neighbour.nodeSize : active;
+      const to = from + section.nodeSize + neighbour.nodeSize;
+      const start = direction < 0 ? from : from + neighbour.nodeSize;
+      const tr = state.tr.replaceWith(
+        from,
+        to,
+        direction < 0 ? [section, neighbour] : [neighbour, section],
+      );
+      tr.setSelection(
+        TextSelection.create(
+          tr.doc,
+          start + selection.anchor - active,
+          start + selection.head - active,
+        ),
+      );
+      // Each move is its own undo step, even when pressed in quick succession.
+      dispatch(closeHistory(tr));
+    }
+    return true;
+  };
 }

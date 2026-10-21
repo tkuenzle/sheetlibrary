@@ -9,6 +9,7 @@ import { chordLayer, type ChordLayerOptions } from "./chord-layer";
 import { selectedChord } from "./chords";
 import { chordRescue } from "./rescue";
 import { chordMark, chordsOn, newChordId } from "./schema";
+import { sectionToolbar } from "./section-toolbar";
 import { joinWithPrevious, sectionBreaks, splitOnEmptyLine } from "./sections";
 
 export interface EditorOptions extends ChordLayerOptions {
@@ -45,7 +46,9 @@ export function createEditorState(doc: Node, options: EditorOptions = {}) {
         }),
       }),
       keymap(baseKeymap),
-      ...(options.layer === false ? [] : [chordLayer(options)]),
+      ...(options.layer === false
+        ? []
+        : [chordLayer(options), sectionToolbar(options)]),
     ],
   });
 }
