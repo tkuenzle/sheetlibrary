@@ -21,6 +21,7 @@ import {
   type Ref,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -46,6 +47,7 @@ export function SheetEditor({
   const frameRef = useRef<HTMLDivElement>(null);
   const mountRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const chordInputRef = useRef<ChordInput | null>(null);
   const sheetRef = useRef(sheet);
@@ -105,6 +107,17 @@ export function SheetEditor({
     closeInput();
   }
 
+  // The form is wider when it edits a chord, so it is measured once drawn
+  // and moved left if it would stick out. A form past the window's edge
+  // widens the page on phones, which moves the docked toolbar.
+  useLayoutEffect(() => {
+    const form = formRef.current;
+    const frame = frameRef.current;
+    if (!form || !frame || !chordInput) return;
+    const max = Math.max(0, frame.clientWidth - form.offsetWidth);
+    form.style.left = `${String(Math.min(chordInput.left, max))}px`;
+  }, [chordInput]);
+
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
@@ -113,8 +126,11 @@ export function SheetEditor({
       const coords = view.coordsAtPos(pos);
       const frame = frameRef.current?.getBoundingClientRect();
       if (!frame) return { left: 0, top: 0 };
-      const left = Math.min(coords.left - frame.left, frame.width - 240);
-      return { left: Math.max(0, left), top: coords.bottom - frame.top + 4 };
+      // Kept inside the editor's width once the form is drawn.
+      return {
+        left: Math.max(0, coords.left - frame.left),
+        top: coords.bottom - frame.top + 4,
+      };
     }
 
     function editChord(id: string) {
@@ -179,6 +195,7 @@ export function SheetEditor({
       <div className="chord-editor" ref={mountRef} data-testid="editor" />
       {chordInput && (
         <form
+          ref={formRef}
           className="chord-input"
           style={{ left: chordInput.left, top: chordInput.top }}
           onSubmit={(event) => {

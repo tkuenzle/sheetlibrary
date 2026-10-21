@@ -71,9 +71,9 @@ M2 is built in small steps, each with its own OpenSpec change and pull request. 
    - **chord-layout (done):** A pile, or a chord on a space, pushes the text after it past its labels, with a dash in a split word. Clean-up trims spaces at both ends of a line and collapses double spaces, which fixes the trailing space left after removing a chord at the end of a line. Labels are placed in the same frame as the change.
    - **touch-drag (done):** A chord dragged with a finger lifts about 1.5 lines above it, so the label and the drop caret under it can be seen. The chord lands under the label, not under the finger. Scrolling up follows the label. Tried on Android; a loupe was the alternative.
    - **chord-add (done):** Adding chords by mouse. Below the lyrics of the active section, a caret in front of the letter and a "+" under it show where a click adds a chord. Below the lyrics, the "+" never overlaps labels, and on a letter with chords it adds after them. The active section has a bit more line height to make room.
-   - **touch-add (done):** Adding chords on phones. The native caret, with its magnifier, picks the letter. After a tap, a "+ Chord" button shows above the caret, where chords go, and opens the chord input. It shows once the caret has stopped moving and the finger is lifted, so it doesn't flicker or get in the way while the caret is dragged. On a letter with chords it adds after them. Tried on Android; not yet on an iPhone.
-5. **M2e: Section operations.** Dragging sections to reorder them. Until then, a section is moved by cut and paste.
-6. **M2f: Publish.** The editor page with the seed song replaces `/spike/editor`. First, the editor is tried on an iPhone: placing and dragging the caret, typing and autocorrect around chords, Backspace, tapping and dragging labels, and the "+ Chord" button, also next to the Paste menu.
+   - **touch-add (done):** Adding chords on phones. The native caret, with its magnifier, picks the letter. After a tap, a "+ Chord" button shows above the caret, where chords go, and opens the chord input. It shows once the caret has stopped moving and the finger is lifted, so it doesn't flicker or get in the way while the caret is dragged. On a letter with chords it adds after them. Tried on Android; not yet on an iPhone. M2e later moved the button into the section toolbar, so it no longer floats at the caret.
+5. **M2e: Section operations (done).** The active section has a toolbar with "+ Chord", "move up" and "move down". With a mouse, it sits above the section; on a touch device, it is docked at the bottom of the visible area, above the keyboard. Dragging a section was the plan, but on a phone a section is often taller than the screen and hides the spots to drop it. The toolbar also replaced touch-add's floating "+ Chord", which collided with the move buttons. Pressing a move button again moves the section further.
+6. **M2f: Publish.** The editor page with the seed song replaces `/spike/editor`. First, the editor is tried on an iPhone: placing and dragging the caret, typing and autocorrect around chords, Backspace, tapping and dragging labels, and the docked section toolbar above the keyboard, also while scrolling and after the keyboard closes.
 7. **M2g: UI polish.** A design foundation: tokens for color, type and spacing, a few base components, and a glossary and voice for the UI text. Until then, pages stay plain, with colors, fonts and spacing in CSS custom properties so this step changes values, not structure.
 
 **Later, roughly in this order:**
@@ -84,6 +84,8 @@ M2 is built in small steps, each with its own OpenSpec change and pull request. 
 - Importing "chords over lyrics" text, the format most existing sheets use.
 - Transposing, capo, and a clean view for playing and printing.
 - Real sheet music (for example MusicXML).
+- Keyboard shortcuts, planned together: adding chords, adding to a pile, and moving sections.
+- Dragging sections, if moving them with buttons turns out to be too slow.
 
 ## Open questions
 

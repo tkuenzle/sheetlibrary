@@ -15,8 +15,8 @@
   --chord-editor-section-gap: the space between sections
   --chord-editor-touch-lift: how far a chord dragged by touch is lifted above
     the finger, so it and the spot where it lands can be seen
-  --chord-editor-add-offset: on touch, the gap between the lyrics and the
-    "+ Chord" button above the caret, or below it at the window's top
+  --chord-editor-toolbar-room: the room above the active section for its
+    toolbar with a mouse
 */
 
 .chord-editor {
@@ -60,21 +60,13 @@
   user-select: none;
   /* About 1.5 lines. */
   --chord-layer-lift: var(--chord-editor-touch-lift, 4.2em);
-  --chord-layer-add-offset: var(--chord-editor-add-offset, 0.5em);
 }
 
 /*
-  The touch lift and the button's offset are worked out on the layer, which
-  has the lyrics' size, so em in them means the same as in the other
-  properties.
+  The touch lift is worked out on the layer, which has the lyrics' size, so
+  em in it means the same as in the other properties.
 */
 @property --chord-layer-lift {
-  syntax: "<length>";
-  inherits: true;
-  initial-value: 0px;
-}
-
-@property --chord-layer-add-offset {
   syntax: "<length>";
   inherits: true;
   initial-value: 0px;
@@ -153,37 +145,91 @@
   cursor: pointer;
 }
 
-/*
-  On touch, the button that adds a chord at the caret. It floats over the
-  line's chords, tall enough to tap. Its top is at the top of the lyrics, and
-  it is moved up by its height, or its top is at their bottom when it is
-  below.
-*/
-.chord-add-button {
-  position: absolute;
-  min-height: 44px;
-  padding: 0 0.9em;
-  border: 1px solid var(--chord-editor-chord-color, currentColor);
-  border-radius: 22px;
-  background: Canvas;
-  color: var(--chord-editor-chord-color, currentColor);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
-  font: inherit;
-  font-size: 16px;
-  font-weight: 700;
-  white-space: nowrap;
-  pointer-events: auto;
-  touch-action: manipulation;
-  translate: 0 calc(-100% - var(--chord-layer-add-offset));
-}
-
-.chord-add-button.is-below {
-  translate: 0 var(--chord-layer-add-offset);
-}
-
 /* Where a dragged or added chord lands. */
 .chord-drop-caret {
   position: absolute;
   width: 2px;
   background: var(--chord-editor-chord-color, currentColor);
+}
+
+/*
+  The active section's toolbar. With a mouse, it sits at the right edge
+  above the section, which gets room for it. On a touch device, it is docked
+  at the bottom of the visible area, and the page gets room for it after all
+  its content, so the toolbar never hides the end of the page.
+*/
+.chord-editor .is-editing .section.has-toolbar {
+  padding-top: var(--chord-editor-toolbar-room, 48px);
+}
+
+.has-docked-section-toolbar body::after {
+  content: "";
+  display: block;
+  height: var(--section-toolbar-height);
+}
+
+.chord-editor.has-docked-toolbar .is-editing .section.has-toolbar {
+  padding-top: 0;
+}
+
+.section-toolbar {
+  position: absolute;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+}
+
+/*
+  Docked, it acts like the browser's own bars: the page scrolls under it,
+  including floating parts such as a chord input. It fades back in after
+  hiding while the visible area moved on iOS.
+*/
+.section-toolbar.is-docked {
+  position: fixed;
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  transition: opacity 150ms;
+  box-sizing: border-box;
+  padding: 4px 16px;
+  border-top: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  background: Canvas;
+}
+
+.section-toolbar.is-docked.is-moving {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+/* Out of the way while a chord is dragged, so it can land at the bottom. */
+.chord-editor:has(.chord-label.is-dragging) .section-toolbar.is-docked {
+  visibility: hidden;
+}
+
+.section-toolbar.is-docked .section-toolbar-button:first-child {
+  margin-right: auto;
+}
+
+.section-toolbar-button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: Canvas;
+  color: inherit;
+  font: inherit;
+  font-size: 18px;
+  touch-action: manipulation;
+}
+
+.section-toolbar-button[hidden] {
+  display: none;
+}
+
+.section-toolbar-button:disabled {
+  opacity: 0.3;
 }
