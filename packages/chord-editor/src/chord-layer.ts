@@ -15,7 +15,8 @@ export interface ChordLayerOptions {
   onChordClick?: (id: string) => void;
   // A chord's label starts being dragged, with the chord's id.
   onDragStart?: (id: string) => void;
-  // A click below the lyrics adds a chord to the letter right after `pos`.
+  // A click below the lyrics, or a tap on the "+ Chord" button, adds a chord
+  // to the letter right after `pos`.
   onAddChord?: (pos: number) => void;
 }
 
@@ -25,6 +26,9 @@ const dragThreshold = 6;
 // up to `scrollSpeed` pixels per frame at the very edge.
 const scrollZone = 48;
 const scrollSpeed = 16;
+// How long the caret must be still before the "+ Chord" button shows, in
+// milliseconds.
+const settleDelay = 150;
 
 export function chordLayer(options: ChordLayerOptions) {
   return new Plugin({
@@ -90,6 +94,15 @@ class ChordLayerView {
   private adding: number | null = null;
   // The letter a mouse press below the lyrics was on, until its click.
   private press: number | null = null;
+  // On touch, the "+ Chord" button at the caret. It shows after a tap, until
+  // a key, a mouse or the editor losing focus hides it.
+  private button = document.createElement("button");
+  private tapping = false;
+  // Whether a finger is down on the editor, and whether the caret has moved
+  // since the button last showed, with the timer that shows it.
+  private fingerDown = false;
+  private settling = false;
+  private settleTimer = 0;
   // Labels by chord id, reused across renders so a label stays the same
   // element while it is tapped or dragged.
   private labels = new Map<string, HTMLElement>();
@@ -110,6 +123,13 @@ class ChordLayerView {
     this.caret.className = "chord-drop-caret";
     this.plus.className = "chord-add";
     this.plus.textContent = "+";
+    this.button.type = "button";
+    this.button.className = "chord-add-button";
+    this.button.textContent = "+ Chord";
+    this.button.tabIndex = -1;
+    this.button.addEventListener("pointerdown", this.onButtonPress);
+    this.button.addEventListener("mousedown", this.onButtonPress);
+    this.button.addEventListener("click", this.onButtonClick);
     view.dom.insertAdjacentElement("afterend", this.layer);
     this.layer.addEventListener("pointerdown", this.onPointerDown);
     this.layer.addEventListener("pointermove", this.onPointerMove);
@@ -122,6 +142,15 @@ class ChordLayerView {
     view.dom.addEventListener("pointerdown", this.onAddPress, true);
     view.dom.addEventListener("mousedown", this.onAddMouseDown, true);
     view.dom.addEventListener("click", this.onAddClick, true);
+    view.dom.addEventListener("pointerdown", this.onTapPress, true);
+    view.dom.addEventListener("touchstart", this.onFingerDown, true);
+    view.dom.addEventListener("touchend", this.onFingerUp, true);
+    view.dom.addEventListener("touchcancel", this.onFingerUp, true);
+    view.dom.addEventListener("keydown", this.endTap, true);
+    view.dom.addEventListener("beforeinput", this.endTap, true);
+    view.dom.addEventListener("focusout", this.endTap);
+    window.visualViewport?.addEventListener("resize", this.placeButton);
+    window.visualViewport?.addEventListener("scroll", this.placeButton);
     this.observer.observe(view.dom);
   }
 
@@ -137,13 +166,30 @@ class ChordLayerView {
     } else if (!view.state.selection.eq(previous.selection)) {
       this.caretPastGap();
     }
+    if (
+      view.state.doc !== previous.doc ||
+      !view.state.selection.eq(previous.selection)
+    ) {
+      this.button.remove();
+      if (this.tapping) this.settle();
+    }
   }
 
   destroy() {
     this.endDrag();
     this.hideAdd();
+    this.endTap();
     this.observer.disconnect();
+    window.visualViewport?.removeEventListener("resize", this.placeButton);
+    window.visualViewport?.removeEventListener("scroll", this.placeButton);
     const { dom } = this.view;
+    dom.removeEventListener("pointerdown", this.onTapPress, true);
+    dom.removeEventListener("touchstart", this.onFingerDown, true);
+    dom.removeEventListener("touchend", this.onFingerUp, true);
+    dom.removeEventListener("touchcancel", this.onFingerUp, true);
+    dom.removeEventListener("keydown", this.endTap, true);
+    dom.removeEventListener("beforeinput", this.endTap, true);
+    dom.removeEventListener("focusout", this.endTap);
     dom.removeEventListener("pointermove", this.onHover);
     dom.removeEventListener("pointerleave", this.hideAdd);
     dom.removeEventListener("pointerdown", this.onAddPress, true);
@@ -165,6 +211,7 @@ class ChordLayerView {
     this.spaceOut(letters, space);
     this.place(letters, space);
     this.caretPastGap();
+    if (this.button.isConnected) this.placeButton();
   }
 
   // Both sides of a gap are the same position in the text, and typed text
@@ -406,6 +453,7 @@ class ChordLayerView {
       target: null,
     };
     this.hideAdd();
+    this.endTap();
     window.addEventListener("keydown", this.onKeyDown, true);
   };
 
@@ -654,6 +702,95 @@ class ChordLayerView {
     this.plus.remove();
     this.caret.remove();
     this.layer.parentElement?.classList.remove("is-adding");
+  };
+
+  // A finger can't hover, and a tap rarely hits the intended letter, so on
+  // touch the caret picks the letter and a button above it adds the chord.
+  // A tap starts with the press and lasts until a key, a mouse press or the
+  // editor losing focus. Caret moves during it come from the tap, or from
+  // dragging the caret, and show the button once the caret has settled.
+  private onTapPress = (event: PointerEvent) => {
+    if (event.pointerType === "touch") this.tapping = true;
+    else this.endTap();
+  };
+
+  private onFingerDown = () => {
+    this.fingerDown = true;
+  };
+
+  private onFingerUp = (event: TouchEvent) => {
+    this.fingerDown = event.touches.length > 0;
+    if (this.settling) this.settle();
+  };
+
+  // The browser moves the caret a moment after the tap, and keeps moving it
+  // while it is dragged, so the button waits until the caret has been still
+  // for a short while and no finger is down. Every move starts the wait again.
+  private settle() {
+    this.settling = true;
+    clearTimeout(this.settleTimer);
+    this.settleTimer = window.setTimeout(() => {
+      if (this.fingerDown) return;
+      this.settling = false;
+      this.showButton();
+    }, settleDelay);
+  }
+
+  private endTap = () => {
+    this.tapping = false;
+    this.settling = false;
+    clearTimeout(this.settleTimer);
+    this.button.remove();
+  };
+
+  // Shows the button at a caret in the active section, and hides it
+  // otherwise.
+  private showButton() {
+    const { selection } = this.view.state;
+    if (
+      !selection.empty ||
+      !this.view.hasFocus() ||
+      !this.inActiveSection(selection.head)
+    ) {
+      this.button.remove();
+      return;
+    }
+    this.layer.appendChild(this.button);
+    this.placeButton();
+  }
+
+  // Above the letter after the caret, where chords go, or below it when the
+  // window's top leaves no room above. The keyboard opens after the tap and
+  // may move the visible area, so this runs again when that changes.
+  private placeButton = () => {
+    if (!this.button.isConnected) return;
+    const button = this.button;
+    const origin = this.layer.getBoundingClientRect();
+    const text = this.letterBox(this.view.state.selection.head);
+    const width = button.offsetWidth;
+    const left = Math.min(
+      Math.max(0, text.left - origin.left - width / 2),
+      Math.max(0, origin.width - width),
+    );
+    button.style.left = `${String(left)}px`;
+    button.style.top = `${String(text.top - origin.top)}px`;
+    button.classList.remove("is-below");
+    const top = window.visualViewport?.offsetTop ?? 0;
+    if (button.getBoundingClientRect().top >= top) return;
+    button.style.top = `${String(text.bottom - origin.top)}px`;
+    button.classList.add("is-below");
+  };
+
+  // The press keeps the focus in the editor, so the keyboard stays open.
+  private onButtonPress = (event: Event) => {
+    event.preventDefault();
+  };
+
+  private onButtonClick = (event: MouseEvent) => {
+    event.preventDefault();
+    const pos = this.view.state.selection.head;
+    this.endTap();
+    this.options.onAddChord?.(pos);
   };
 
   private inActiveSection(pos: number) {

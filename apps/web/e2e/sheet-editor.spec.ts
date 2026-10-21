@@ -380,6 +380,7 @@ test.describe("adding chords by mouse", () => {
   test("places the caret on a click on the lyrics", async ({ page }) => {
     await clickChar(page, "before", "wretch");
     await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await expect(addButton(page)).toHaveCount(0);
     await page.keyboard.type("X");
     expect((await firstSection(page))[1]).toBe(
       "That saved a Xwretch like [D]me",
@@ -400,6 +401,200 @@ test.describe("tapping below the lyrics", () => {
     await page.keyboard.type("X");
     expect((await firstSection(page))[1]).toBe(
       "That saved a wXretch like [D]me",
+    );
+  });
+});
+
+test.describe("adding chords by touch", () => {
+  test.skip(({ hasTouch }) => !hasTouch, "Needs touch");
+
+  test("shows a button above the caret after a tap", async ({ page }) => {
+    await tapChar(page, "wretch", 1);
+    const button = await buttonBox(page);
+    const r = await charBox(page, "wretch", 1);
+    expect(Math.abs(button.x + button.width / 2 - r.left)).toBeLessThan(2);
+    expect(button.y + button.height).toBeLessThan(r.top);
+    // Its layout height: the measured box can be a fraction of a pixel less.
+    expect(
+      await addButton(page).evaluate(
+        (button: HTMLElement) => button.offsetHeight,
+      ),
+    ).toBeGreaterThanOrEqual(44);
+  });
+
+  test("shows the button in a section a tap makes active", async ({ page }) => {
+    await tapChar(page, "wretch", 1);
+    await tapChar(page, "taught", 1);
+    await expect(activeSection(page)).toContainText("Twas");
+    const button = await buttonBox(page);
+    const a = await charBox(page, "taught", 1);
+    expect(Math.abs(button.x + button.width / 2 - a.left)).toBeLessThan(2);
+  });
+
+  test("shows no button for a selection", async ({ page }) => {
+    await tapChar(page, "wretch", 1);
+    // A long press selects the word under the finger. The emulation does
+    // that only on some platforms, so the test selects the word itself while
+    // the finger is down.
+    const r = await charBox(page, "relieved", 2);
+    const cdp = await page.context().newCDPSession(page);
+    const touchPoints = [{ x: r.left + 2, y: r.y }];
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints,
+    });
+    await afterSelectionChange(page, () =>
+      setSelection(page, "relieved", 0, 8),
+    );
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchCancel",
+      touchPoints: [],
+    });
+    await nextLayout(page);
+    expect(await page.evaluate(() => String(getSelection()))).toBe("relieved");
+    await expect(addButton(page)).toHaveCount(0);
+  });
+
+  test("hides the button while typing, until the next tap", async ({
+    page,
+  }) => {
+    await tapChar(page, "wretch", 1);
+    await expect(addButton(page)).toBeVisible();
+    await page.keyboard.type("X");
+    await expect(addButton(page)).toHaveCount(0);
+    await tapChar(page, "like", 0);
+    await expect(addButton(page)).toBeVisible();
+  });
+
+  test("never shows the button at the caret before the tap", async ({
+    page,
+  }) => {
+    await tapChar(page, "wretch", 1);
+    await expect(addButton(page)).toBeVisible();
+    await page.keyboard.type("X");
+    // Records where the button shows, every frame.
+    await page.evaluate(() => {
+      const seen: number[] = [];
+      (window as unknown as Record<string, unknown>).buttonSeen = seen;
+      const record = () => {
+        const button = document.querySelector(".chord-add-button");
+        if (button) {
+          const box = button.getBoundingClientRect();
+          seen.push(box.left + box.width / 2);
+        }
+        requestAnimationFrame(record);
+      };
+      record();
+    });
+    await tapChar(page, "like", 0);
+    const button = await buttonBox(page);
+    const l = await charBox(page, "like", 0);
+    expect(Math.abs(button.x + button.width / 2 - l.left)).toBeLessThan(2);
+    const seen = await page.evaluate(
+      () => (window as unknown as Record<string, number[]>).buttonSeen ?? [],
+    );
+    expect(seen.length).toBeGreaterThan(0);
+    for (const x of seen) expect(Math.abs(x - l.left)).toBeLessThan(2);
+  });
+
+  test("waits for the finger to lift while the caret moves", async ({
+    page,
+  }) => {
+    await tapChar(page, "wretch", 1);
+    await expect(addButton(page)).toBeVisible();
+    // As when the caret is dragged: the finger stays down while it moves.
+    const r = await charBox(page, "wretch", 1);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: r.left + 1, y: r.y }],
+    });
+    for (const offset of [2, 3, 4]) {
+      await afterSelectionChange(page, () =>
+        setSelection(page, "wretch", offset, 0),
+      );
+    }
+    await page.waitForTimeout(300);
+    await expect(addButton(page)).toHaveCount(0);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchCancel",
+      touchPoints: [],
+    });
+    const button = await buttonBox(page);
+    const t = await charBox(page, "wretch", 4);
+    expect(Math.abs(button.x + button.width / 2 - t.left)).toBeLessThan(2);
+  });
+
+  test("adds a chord on a letter, in one undo step, keeping the caret", async ({
+    page,
+  }) => {
+    await tapChar(page, "wretch", 1);
+    await addButton(page).tap();
+    await expect(addButton(page)).toHaveCount(0);
+    await page.getByLabel("Chord").fill("Am");
+    await page.keyboard.press("Enter");
+    const r = await charBox(page, "wretch", 1);
+    const am = await box(label(page, "Am"));
+    expect(Math.abs(am.x - r.left)).toBeLessThan(2);
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(page.locator(".chord-label", { hasText: "Am" })).toHaveCount(
+      0,
+    );
+    await page.keyboard.type("X");
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a wXretch like [D]me",
+    );
+  });
+
+  test("shows the button below the caret at the window's top", async ({
+    page,
+  }) => {
+    // A short window, so the page can scroll.
+    await page.setViewportSize({ width: 412, height: 300 });
+    await tapChar(page, "wretch", 1);
+    await expect(addButton(page)).toBeVisible();
+    // Scrolls the line to the top, then taps another letter on it.
+    const top = (await charBox(page, "wretch", 1)).top;
+    await page.evaluate((y) => {
+      window.scrollBy(0, y);
+    }, top - 10);
+    await tapChar(page, "wretch", 3);
+    const button = await buttonBox(page);
+    const t = await charBox(page, "wretch", 3);
+    expect(button.y).toBeGreaterThan(t.bottom);
+    await addButton(page).tap();
+    await page.getByLabel("Chord").fill("Am");
+    await page.keyboard.press("Enter");
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a wre[Am]tch like [D]me",
+    );
+  });
+
+  test("takes the button's offset from the test page's address", async ({
+    page,
+  }) => {
+    const gap = async () => {
+      await tapChar(page, "wretch", 1);
+      const button = await buttonBox(page);
+      const r = await charBox(page, "wretch", 1);
+      return r.top - (button.y + button.height);
+    };
+    const fontSize = await page
+      .locator(".chord-layer")
+      .evaluate((layer) => parseFloat(getComputedStyle(layer).fontSize));
+    expect(await gap()).toBeCloseTo(0.5 * fontSize, 0);
+    await page.goto("/sheet-editor?add-offset=3em");
+    await expect(page.locator(".chord-label").first()).toBeVisible();
+    expect(await gap()).toBeCloseTo(3 * fontSize, 0);
+  });
+
+  test("adds a chord after the chords on a letter", async ({ page }) => {
+    await tapChar(page, "grace", 0);
+    await addButton(page).tap();
+    await page.getByLabel("Chord").fill("C");
+    await page.keyboard.press("Enter");
+    expect((await firstSection(page))[0]).toBe(
+      "[G]Amazing [G7][C]grace, how [C]sweet the [G]sound",
     );
   });
 });
@@ -942,6 +1137,58 @@ async function addBelow(
   await page.mouse.click(...(await below(page, needle, offset)));
   await page.getByLabel("Chord").fill(chord);
   await page.keyboard.press("Enter");
+}
+
+function addButton(page: Page) {
+  return page.locator(".chord-add-button");
+}
+
+// The "+ Chord" button's box, once it shows.
+async function buttonBox(page: Page) {
+  await expect(addButton(page)).toBeVisible();
+  return box(addButton(page));
+}
+
+// Taps just inside the left edge of the letter of `needle` at `offset`, so
+// the caret lands in front of it.
+async function tapChar(page: Page, needle: string, offset: number) {
+  const box = await charBox(page, needle, offset);
+  await afterSelectionChange(page, () =>
+    page.touchscreen.tap(box.left + 1, box.y),
+  );
+}
+
+// Sets the browser's own selection to `length` letters from the letter of
+// `needle` at `offset`, or puts the caret in front of it, as a long press or
+// dragging the caret does.
+async function setSelection(
+  page: Page,
+  needle: string,
+  offset: number,
+  length: number,
+) {
+  await page.evaluate(
+    ([needle, offset, length]) => {
+      for (const line of document.querySelectorAll(".ProseMirror .line")) {
+        const chars: [Text, number][] = [];
+        let text = "";
+        const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const textNode = node as Text;
+          for (let i = 0; i < textNode.length; i++) chars.push([textNode, i]);
+          text += textNode.data;
+        }
+        const found = text.indexOf(needle);
+        const first = chars[found + offset];
+        const last = chars[found + offset + Math.max(length, 1) - 1];
+        if (found < 0 || !first || !last) continue;
+        const [node, index] = length > 0 ? [last[0], last[1] + 1] : first;
+        getSelection()?.setBaseAndExtent(first[0], first[1], node, index);
+        return;
+      }
+    },
+    [needle, offset, length] as const,
+  );
 }
 
 async function clickLabel(page: Page, chord: string) {

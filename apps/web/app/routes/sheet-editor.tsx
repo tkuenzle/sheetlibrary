@@ -21,13 +21,16 @@ type Page =
   | { kind: "done"; sheet: ChordSheet };
 
 export default function SheetEditorPage() {
-  // `?lift=5em` sets how far a chord dragged by touch is lifted, to try
-  // values on a phone.
+  // `?lift=5em` sets how far a chord dragged by touch is lifted, and
+  // `?add-offset=2em` the gap between the lyrics and the "+ Chord" button,
+  // to try values on a phone.
   const [params] = useSearchParams();
   const lift = params.get("lift");
-  const style = lift
-    ? ({ "--chord-editor-touch-lift": lift } as CSSProperties)
-    : undefined;
+  const addOffset = params.get("add-offset");
+  const style = {
+    ...(lift && { "--chord-editor-touch-lift": lift }),
+    ...(addOffset && { "--chord-editor-add-offset": addOffset }),
+  } as CSSProperties;
   const editorRef = useRef<SheetEditorHandle>(null);
   // Each new editor gets a new key, so it loads its sheet.
   const [key, setKey] = useState(0);
