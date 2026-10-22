@@ -1,24 +1,19 @@
-.sheet-editor-page {
+.harness {
   max-width: 44rem;
   margin: var(--space-4) auto;
   padding: 0 var(--space-3);
 }
 
-.sheet-editor-page h1 {
+.harness h1 {
   font-size: 1.25rem;
 }
 
-.sheet-editor-page .hint {
-  color: var(--color-muted);
-  font-size: 0.9rem;
-}
-
-.sheet-editor-page button {
+.harness button {
   font: inherit;
   padding: var(--space-1) var(--space-2);
 }
 
-.sheet-editor-page pre {
+.harness pre {
   overflow-x: auto;
   font-size: 0.85rem;
 }

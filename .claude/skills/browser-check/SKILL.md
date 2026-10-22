@@ -15,24 +15,30 @@ General `playwright-cli` commands are in the `playwright-cli` skill. This one co
 just dev   # http://localhost:5173, run it in the background
 ```
 
-Pages: `/sheet-editor` (the sheet editor test page), `/spike/editor` (the old spike) and `/`.
+Pages: `/editor` (the public editor with the seed song) and `/`.
 
-The e2e tests run against the production build instead (`just build`, then `pnpm --filter web preview --port 4173`). Use that when a bug might only show in the build.
+The harness is the page the editor's e2e tests use. It is never deployed. It shows the same editor with a **Done** button that shows the stored sheet. Run it on its own dev server:
+
+```sh
+pnpm --filter web exec vite --config vite.harness.config.ts --port 5174   # http://localhost:5174, in the background
+```
+
+The e2e tests run against production builds instead: the app with `just build`, then `pnpm --filter web preview --port 4173`, and the harness with `pnpm --filter web exec vite build --config vite.harness.config.ts`, then the same with `preview --port 4174`. Use those when a bug might only show in the build.
 
 ## Open a browser
 
 Use the Playwright that comes with the web app. No global install is needed. Run it from the repo root:
 
 ```sh
-pnpm --filter web exec playwright cli open --browser=chromium http://localhost:5173/sheet-editor
-pnpm --filter web exec playwright cli open --browser=chromium --device="Pixel 7" http://localhost:5173/sheet-editor   # phone layout and touch
+pnpm --filter web exec playwright cli open --browser=chromium http://localhost:5173/editor
+pnpm --filter web exec playwright cli open --browser=chromium --device="Pixel 7" http://localhost:5173/editor   # phone layout and touch
 ```
 
 - `--browser=chromium` uses the Chromium that `playwright install chromium` set up for the e2e tests. Without it, the CLI looks for an installed Google Chrome.
 - Below, `pw` stands for `pnpm --filter web exec playwright cli`. It runs in `apps/web`, so give file paths as absolute paths.
 - Output goes to `apps/web/.playwright-cli/`, which is gitignored. Save screenshots in your scratchpad, not in the repo.
 - A 404 for `/favicon.ico` in the console is expected.
-- Close the browser (`pw close`) and stop the dev server when you're done.
+- Close the browser (`pw close`) and stop the dev servers when you're done.
 
 ## Load the editor helpers
 
@@ -86,7 +92,7 @@ pw --raw eval "() => editor.sheet().map((s) => s.lines.length)"
 
 Other keys: `pw press Escape` ends editing and cleans up the section, `pw press ControlOrMeta+z` undoes, `pw press Backspace` at the start of a section joins it with the one before.
 
-See the stored sheet: click **Done** and read the JSON.
+See the stored sheet, on the harness: click **Done** and read the JSON.
 
 ```sh
 pw click "getByRole('button', { name: 'Done' })"

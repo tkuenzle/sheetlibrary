@@ -2,6 +2,5 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
   index("routes/home.tsx"),
-  route("sheet-editor", "routes/sheet-editor.tsx"),
-  route("spike/editor", "routes/spike-editor.tsx"),
+  route("editor", "routes/editor.tsx"),
 ] satisfies RouteConfig;

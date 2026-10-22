@@ -11,7 +11,7 @@ export default function Home() {
       <h1>Sheet Library</h1>
       <p>A library for your sheet music. Coming soon.</p>
       <p>
-        <a href="/spike/editor">Try the chord editor prototype</a>
+        <a href="/editor">Try the chord editor</a>
       </p>
     </main>
   );

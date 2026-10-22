@@ -8,8 +8,8 @@ describe("home page", () => {
     expect(renderToString(<Home />)).toContain("<h1>Sheet Library</h1>");
   });
 
-  it("links to the chord editor prototype", () => {
-    expect(renderToString(<Home />)).toContain('href="/spike/editor"');
+  it("links to the chord editor", () => {
+    expect(renderToString(<Home />)).toContain('href="/editor"');
   });
 
   it("sets the page title", () => {
