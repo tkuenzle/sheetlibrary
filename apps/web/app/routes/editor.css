@@ -1,0 +1,14 @@
+.editor-page {
+  max-width: 44rem;
+  margin: var(--space-4) auto;
+  padding: 0 var(--space-3);
+}
+
+.editor-page h1 {
+  font-size: 1.25rem;
+}
+
+.editor-page .hint {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}

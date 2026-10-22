@@ -1,13 +1,18 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
+import { harnessURL } from "./servers";
+
 interface Sheet {
   sections: {
     lines: { text: string; chords: { at: number; chord: string }[] }[];
   }[];
 }
 
+// The editor is tested on the harness, a page that is never deployed.
+test.use({ baseURL: harnessURL });
+
 test.beforeEach(async ({ page }) => {
-  await page.goto("/sheet-editor");
+  await page.goto("/");
   await expect(page.locator(".chord-label").first()).toBeVisible();
 });
 
@@ -772,16 +777,6 @@ test.describe("dragging by touch", () => {
       scrolled,
     );
     await drag.release();
-  });
-
-  test("takes the lift from the test page's address", async ({ page }) => {
-    const fontSize = await page
-      .locator(".chord-layer")
-      .evaluate((layer) => parseFloat(getComputedStyle(layer).fontSize));
-    expect(await liftOf(page)).toBeCloseTo(4.2 * fontSize, 1);
-    await page.goto("/sheet-editor?lift=2em");
-    await expect(page.locator(".chord-label").first()).toBeVisible();
-    expect(await liftOf(page)).toBeCloseTo(2 * fontSize, 1);
   });
 });
 

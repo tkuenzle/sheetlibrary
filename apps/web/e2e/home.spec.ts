@@ -10,10 +10,9 @@ test("home page loads", async ({ page }) => {
   );
 });
 
-test("home page links to the chord editor prototype", async ({ page }) => {
+test("home page links to the chord editor", async ({ page }) => {
   await page.goto("/");
-  await page
-    .getByRole("link", { name: "Try the chord editor prototype" })
-    .click();
-  await expect(page).toHaveTitle("Editor spike | Sheet Library");
+  await page.getByRole("link", { name: "Try the chord editor" }).click();
+  await expect(page).toHaveURL("/editor");
+  await expect(page).toHaveTitle("Chord editor | Sheet Library");
 });
