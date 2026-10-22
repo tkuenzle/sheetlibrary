@@ -68,7 +68,7 @@ The tokens are in `apps/web/app/ui/tokens.css`. Each color is written as `light-
   - 20 px for notes and popovers
   - 28 px for the active section and the panel
   - fully round for buttons and toolbars
-- **Icons:** Material Symbols Rounded, weight 500, as inline SVGs from the pinned `@material-symbols/svg-500` package. Only the icons listed in `apps/web/app/ui/icons.ts` are bundled.
+- **Icons:** Material Symbols Rounded, weight 500, drawn for 24px, as inline SVGs committed in `apps/web/app/ui/icons/`. Only the icons listed in `icons.ts` are bundled. The npm packages only have icons drawn for 48px, which look too thin at 24px.
 
 ## Components
 

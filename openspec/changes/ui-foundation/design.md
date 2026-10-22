@@ -35,7 +35,7 @@ The chord layer places labels by measuring the lyrics. It places them again when
 
 **Labels placed again when fonts load.** The chord layer listens to `document.fonts` `loadingdone` and places its labels again. Rejected: `font-display: block`, which hides the text for up to 3 seconds and still doesn't promise the font arrives before the first layout. Also rejected: a fallback font with adjusted metrics, which only gets close.
 
-**Icons as inline SVG.** `@material-symbols/svg-500`, rounded, outlined, pinned. Weight 500 matches the canvas. An `Icon` component takes an icon name from a fixed list in `app/ui/icons.ts`, which imports each SVG with `?raw`, so only listed icons ship. Rejected: the Material Symbols font. It shows the ligature text ("arrow_upward") until it loads, and a subset needs its own build step.
+**Icons as inline SVG, committed.** Material Symbols Rounded, weight 500, drawn for 24px, as on the canvas. They are saved from Google's static icons into `app/ui/icons/`, so they change only with a commit. An `Icon` component takes an icon name from a fixed list in `app/ui/icons.ts`, which imports each SVG with `?raw`, so only listed icons ship. Rejected: the `@material-symbols/svg-*` npm packages, whose icons are drawn for 48px and look too thin at 24px. Also rejected: the Material Symbols font. It shows the ligature text ("arrow_upward") until it loads, and a subset needs its own build step.
 
 **The design page only in preview builds and dev.** `routes.ts` runs at build time and adds `/design` only when `CLOUDFLARE_ENV` is `preview` or the dev server runs. The production build doesn't contain the route at all. Rejected: a check in the loader, which would still ship the page to production. The page has a `noindex` robots tag.
 

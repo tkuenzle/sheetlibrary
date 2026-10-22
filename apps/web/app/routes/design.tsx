@@ -112,10 +112,14 @@ function Style({ theme, name }: { theme: string; name: string }) {
               disabled
             />
           </Toolbar>
+          <IconButton icon="help" label="How to edit" />
+        </div>
+      </div>
+
+      <div>
+        <h3>Docked toolbar, on touch</h3>
+        <div className="design-row">
           <Toolbar label="Section, docked">
-            <Button icon="add" size="small">
-              Chord
-            </Button>
             <IconButton
               icon="arrowUpward"
               label="Move section up"
@@ -127,7 +131,9 @@ function Style({ theme, name }: { theme: string; name: string }) {
               tooltipPlacement="top"
             />
           </Toolbar>
-          <IconButton icon="help" label="How to edit" />
+          <Button icon="add" size="large">
+            Chord
+          </Button>
         </div>
       </div>
 

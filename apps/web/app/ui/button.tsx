@@ -10,7 +10,8 @@ type ButtonProps = ComponentProps<"button"> & {
   // Filled for the main action, tonal for others next to it, text for the
   // least important ones, such as Cancel.
   variant?: "filled" | "tonal" | "text";
-  size?: "medium" | "small";
+  // Large for the main action beside a docked toolbar.
+  size?: "medium" | "small" | "large";
   // An icon before the text.
   icon?: IconName;
 };
@@ -30,7 +31,7 @@ export function Button({
       className={classNames(
         "button",
         `button-${variant}`,
-        size === "small" && "button-small",
+        size !== "medium" && `button-${size}`,
         className,
       )}
       {...props}
@@ -71,7 +72,7 @@ export function IconButton({
           "icon-button",
           `icon-button-${variant}`,
           variant === "filled" && "button-filled",
-          size === "large" && "button-large",
+          size === "large" && "icon-button-large",
           className,
         )}
         {...props}

@@ -7,7 +7,7 @@
 
 ## 2. Tokens and font
 
-- [x] 2.1 Add `@fontsource-variable/schibsted-grotesk` and `@material-symbols/svg-500` to `apps/web` at exact versions. Verify `pnpm install` succeeds and the lockfile pins both.
+- [x] 2.1 Add `@fontsource-variable/schibsted-grotesk` to `apps/web` at an exact version. Verify `pnpm install` succeeds and the lockfile pins it.
 - [x] 2.2 Write `app/ui/tokens.css`: the role tokens from the Foundation board (with `--focus` and `--shadow`), type sizes, spacing steps and corners. Lamplight applies under the system's dark mode unless `data-theme="light"` is set, and wherever `data-theme="lamplight"` is set. Verify every value against the board.
 - [x] 2.3 Load the font from the package and preload the latin file of the lyrics weight in `root.tsx`. Verify in the built app that the font file is served from the site's origin.
 - [x] 2.4 Remove the placeholder properties from `app.css`, set `--chord-editor-*` from the role tokens, and move the home page, the editor page and the chord input to role tokens. Verify with `rg -- '--color-|--space-[0-9]|--radius\b|Canvas|GrayText' apps/web/app` that nothing old is left, except the section toolbar's styles in the package.
@@ -20,7 +20,7 @@
 
 ## 4. Icons and base components
 
-- [x] 4.1 Add `app/ui/icons.ts` with the icons the mockups use, imported as SVG with `?raw`, and an `Icon` component. Verify a unit test renders one as an SVG and that the build only contains listed icons.
+- [x] 4.1 Add `app/ui/icons.ts` with the icons the mockups use, saved for 24px into `app/ui/icons/` and imported as SVG with `?raw`, and an `Icon` component. Verify a unit test renders one as an SVG and that the build only contains listed icons.
 - [x] 4.2 Add `Button` (filled, tonal, text), `IconButton`, `Toolbar`, `Popover` and `Note` in `app/ui/`, each with its own CSS on the role tokens only, and a transparent border or outline for forced colors. Verify unit tests: `IconButton` needs a label and uses it as its name, and `Toolbar` has the `toolbar` role.
 - [x] 4.3 Add `Tooltip` and use it in `IconButton`: it shows after a short delay on hover, right away on keyboard focus, hides on Escape, and never shows on touch. Verify with e2e tests on `/design` in dev for hover, focus and Escape.
 - [x] 4.4 Check the components in forced colors mode (Playwright `forcedColors: "active"`). Verify each one has a visible outline.
