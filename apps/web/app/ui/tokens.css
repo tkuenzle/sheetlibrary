@@ -6,7 +6,15 @@
 */
 :root {
   color-scheme: light dark;
+}
 
+/*
+  The colors are declared again on each element with data-theme. The build
+  rewrites light-dark() for older browsers with variables, which a token
+  resolves where it is declared, not where it is used.
+*/
+:root,
+[data-theme] {
   --page: light-dark(#ebf0eb, #101511);
   --surface: light-dark(#f6faf6, #171d19);
   --surface-active: light-dark(#ffffff, #222925);
@@ -28,7 +36,9 @@
   --on-tooltip: light-dark(#edf2ec, #2c322e);
   --focus: light-dark(#1f6b4f, #8ed3b1);
   --shadow: light-dark(rgb(23 29 26 / 16%), rgb(0 0 0 / 50%));
+}
 
+:root {
   --font: "Schibsted Grotesk Variable", system-ui, sans-serif;
   --font-size-title: 46px;
   --font-size-heading: 20px;

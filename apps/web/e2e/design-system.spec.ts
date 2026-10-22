@@ -54,3 +54,21 @@ test("/design is not in the production build", async ({ page }) => {
   const response = await page.goto("/design");
   expect(response?.status()).toBe(404);
 });
+
+// The production build rewrites light-dark() for older browsers, so this
+// checks the tokens as they ship, on an element inside the page.
+test("data-theme sets the style inside the page", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+  const background = (theme: string) =>
+    page.evaluate((theme) => {
+      const element = document.createElement("div");
+      element.dataset.theme = theme;
+      element.style.background = "var(--page)";
+      document.body.append(element);
+      return getComputedStyle(element).backgroundColor;
+    }, theme);
+  expect(await background("lamplight")).toBe("rgb(16, 21, 17)");
+  await page.emulateMedia({ colorScheme: "dark" });
+  expect(await background("light")).toBe("rgb(235, 240, 235)");
+});
