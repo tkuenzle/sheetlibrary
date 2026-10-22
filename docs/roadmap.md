@@ -74,7 +74,12 @@ M2 is built in small steps, each with its own OpenSpec change and pull request. 
    - **touch-add (done):** Adding chords on phones. The native caret, with its magnifier, picks the letter. After a tap, a "+ Chord" button shows above the caret, where chords go, and opens the chord input. It shows once the caret has stopped moving and the finger is lifted, so it doesn't flicker or get in the way while the caret is dragged. On a letter with chords it adds after them. Tried on Android, and in M2f in the iOS Simulator. M2e later moved the button into the section toolbar, so it no longer floats at the caret.
 5. **M2e: Section operations (done).** The active section has a toolbar with "+ Chord", "move up" and "move down". With a mouse, it sits above the section; on a touch device, it is docked at the bottom of the visible area, above the keyboard. Dragging a section was the plan, but on a phone a section is often taller than the screen and hides the spots to drop it. The toolbar also replaced touch-add's floating "+ Chord", which collided with the move buttons. Pressing a move button again moves the section further.
 6. **M2f: Publish (done).** The editor with the seed song is at `/editor`, linked from the home page. It says it is a prototype and nothing is saved; a reload starts over. The spike and the `/sheet-editor` test page are gone. The editor's e2e tests run on a harness page that is never deployed. The editor was tried in the iOS Simulator instead of on an iPhone, since none was at hand; a real iPhone is still untested.
-7. **M2g: UI polish.** A design foundation: tokens for color, type and spacing, a few base components, and a glossary and voice for the UI text. Until then, pages stay plain, with colors, fonts and spacing in CSS custom properties so this step changes values, not structure.
+7. **M2g: UI polish.** A facelift, not just new values: the layout, the toolbar and the buttons change too. The mockups are in a design canvas on claude.ai, which is the source of truth; see `docs/design-direction.md`. While M2g is built, copies of the mockups live in `docs/design/`. Each step refreshes them, and the last step deletes the folder. In five changes:
+   - **ui-direction:** The direction and the mockups, with no code. Workbench, styled after Material 3 Expressive: the section's tools beside the section, a side panel for help, role tokens with a light and a dark ("lamplight") style.
+   - **Tokens and base components:** The role tokens, fonts and icons, and the buttons, toolbar, popover and note built from them. Decides whether we host the fonts ourselves.
+   - **Editor facelift:** The editor in the new look: sections, chord labels, the toolbar beside the section and docked on touch, and the restyled chord input.
+   - **Page shell and home:** The top bar, the side panel and the home page.
+   - **UI text:** A glossary and voice for the UI text.
 
 **Later, roughly in this order:**
 
@@ -86,6 +91,8 @@ M2 is built in small steps, each with its own OpenSpec change and pull request. 
 - Real sheet music (for example MusicXML).
 - Keyboard shortcuts, planned together: adding chords, adding to a pile, and moving sections.
 - Dragging sections, if moving them with buttons turns out to be too slow.
+- A new UX for the chord input. M2g only restyles it.
+- A real logo. M2g uses the name in the chosen font as a placeholder.
 
 ## Open questions
 
