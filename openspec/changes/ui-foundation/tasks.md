@@ -38,7 +38,7 @@
 ## 7. Integration
 
 - [x] 7.1 Run `just check`. Verify it passes.
-- [ ] 7.2 After pushing, open `/design` on the pull request's preview link. Verify it shows both styles.
+- [x] 7.2 After pushing, open `/design` on the pull request's preview link. Verify it shows both styles.
 
 ## Workflow follow-up
 
