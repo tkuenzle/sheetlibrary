@@ -1,7 +1,7 @@
 .harness {
   max-width: 44rem;
-  margin: var(--space-4) auto;
-  padding: 0 var(--space-3);
+  margin: var(--space-xl) auto;
+  padding: 0 var(--space-l);
 }
 
 .harness h1 {
@@ -10,7 +10,7 @@
 
 .harness button {
   font: inherit;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-xs) var(--space-s);
 }
 
 .harness pre {

@@ -40,12 +40,16 @@ Components only use role tokens. A style is one set of values for them. Light is
 | `--quiet` / `--on-quiet`             | Keys, inactive badge                                   | `#DCE4DD` / `#3A443D` | `#2E3530` / `#C9D3CB` |
 | `--border`                           | Dividers                                               | `#DCE4DD`             | `#343B36`             |
 | `--tooltip` / `--on-tooltip`         | Tooltips                                               | `#2C322E` / `#EDF2EC` | `#DEE4DE` / `#2C322E` |
+| `--focus`                            | Focus ring                                             | `#1F6B4F`             | `#8ED3B1`             |
+| `--shadow`                           | Shadows of popovers and dragged chords                 | `rgb(23 29 26 / 16%)` | `rgb(0 0 0 / 50%)`    |
 
 All text and chord colors meet WCAG AA (4.5:1) on the backgrounds they are used on, dimmed sections included.
 
+The tokens are in `apps/web/app/ui/tokens.css`. Each color is written as `light-dark(light, lamplight)`. The page follows the system's dark mode, and `data-theme="light"` or `data-theme="lamplight"` fixes the style for an element and everything in it.
+
 ## Type, space and shape
 
-- **Font:** Schibsted Grotesk, from Google Fonts. Whether we host it ourselves is decided in the tokens step.
+- **Font:** Schibsted Grotesk, served from our own site with the pinned `@fontsource-variable/schibsted-grotesk` package. The font decides where chords sit over the lyrics, so it only changes with a commit. It also works offline and sends nothing to Google.
 - **Sizes** (desktop, phone in brackets):
 
   | Use     | Size    | Weight |
@@ -64,7 +68,13 @@ All text and chord colors meet WCAG AA (4.5:1) on the backgrounds they are used 
   - 20 px for notes and popovers
   - 28 px for the active section and the panel
   - fully round for buttons and toolbars
-- **Icons:** Material Symbols Rounded, loaded as a subset with only the icons we use.
+- **Icons:** Material Symbols Rounded, weight 500, as inline SVGs from the pinned `@material-symbols/svg-500` package. Only the icons listed in `apps/web/app/ui/icons.ts` are bundled.
+
+## Components
+
+The base components are React components in `apps/web/app/ui/`, each with its own CSS on the role tokens: `Button`, `IconButton`, `Tooltip`, `Toolbar`, `Popover` and `Note`. They keep an outline in forced colors mode. The `/design` page shows them in both styles. It exists only in pull request previews and the dev server.
+
+The `chord-editor` package keeps what is drawn on the lyrics (chord labels, the "+", the dash and the drop caret), styled through its `--chord-editor-*` properties. Buttons, icons and UI text belong to the app.
 
 ## What the mockups add
 

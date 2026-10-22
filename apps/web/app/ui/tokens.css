@@ -1,0 +1,71 @@
+/*
+  The role tokens (see docs/design-direction.md). Components only use these.
+  Each color is light-dark(light, lamplight). The page follows the system;
+  data-theme="light" or data-theme="lamplight" fixes the style for an element
+  and everything in it.
+*/
+:root {
+  color-scheme: light dark;
+
+  --page: light-dark(#ebf0eb, #101511);
+  --surface: light-dark(#f6faf6, #171d19);
+  --surface-active: light-dark(#ffffff, #222925);
+  --text: light-dark(#171d1a, #dee4de);
+  --text-muted: light-dark(#404943, #bfc9c1);
+  --text-dimmed: light-dark(#646e67, #78827b);
+  --chord: light-dark(#1f6b4f, #8ed3b1);
+  --chord-dimmed: light-dark(#477461, #5b8873);
+  --accent: light-dark(#1f6b4f, #8ed3b1);
+  --on-accent: light-dark(#ffffff, #00382a);
+  --accent-soft: light-dark(#c8e9d6, #1e4d3a);
+  --on-accent-soft: light-dark(#0a5138, #b4f0d0);
+  --info: light-dark(#d6e7dc, #2a3a30);
+  --on-info: light-dark(#24392d, #cfe6d7);
+  --quiet: light-dark(#dce4dd, #2e3530);
+  --on-quiet: light-dark(#3a443d, #c9d3cb);
+  --border: light-dark(#dce4dd, #343b36);
+  --tooltip: light-dark(#2c322e, #dee4de);
+  --on-tooltip: light-dark(#edf2ec, #2c322e);
+  --focus: light-dark(#1f6b4f, #8ed3b1);
+  --shadow: light-dark(rgb(23 29 26 / 16%), rgb(0 0 0 / 50%));
+
+  --font: "Schibsted Grotesk Variable", system-ui, sans-serif;
+  --font-size-title: 46px;
+  --font-size-heading: 20px;
+  --font-size-lyrics: 20px;
+  --font-size-chord: 15px;
+  --font-size-body: 15px;
+  --font-size-label: 15px;
+  --font-size-small: 13px;
+
+  --space-xs: 4px;
+  --space-s: 8px;
+  --space-m: 12px;
+  --space-l: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* Keys and chips; notes and popovers; sections and the panel; controls. */
+  --corner-small: 8px;
+  --corner-medium: 20px;
+  --corner-large: 28px;
+  --corner-full: 999px;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+[data-theme="lamplight"] {
+  color-scheme: dark;
+}
+
+@media (max-width: 600px) {
+  :root {
+    --font-size-title: 34px;
+    --font-size-lyrics: 18px;
+    --font-size-chord: 14px;
+    --font-size-label: 16px;
+  }
+}

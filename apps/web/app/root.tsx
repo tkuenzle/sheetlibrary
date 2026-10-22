@@ -1,6 +1,22 @@
+import "./app.css";
+
+import lyricsFont from "@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
-import "./app.css";
+// The font is served from our own origin (see docs/design-direction.md). The
+// latin file holds every weight, so preloading it covers the lyrics and the
+// chords, which the editor measures.
+export function links() {
+  return [
+    {
+      rel: "preload",
+      href: lyricsFont,
+      as: "font",
+      type: "font/woff2",
+      crossOrigin: "anonymous",
+    },
+  ];
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (

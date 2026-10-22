@@ -101,6 +101,11 @@ class ChordLayerView {
   private observer = new ResizeObserver(() => {
     this.render();
   });
+  // A font that loads after the labels were placed changes the widths of the
+  // letters, often without changing the editor's size.
+  private onFontsLoaded = () => {
+    this.render();
+  };
 
   constructor(
     private view: EditorView,
@@ -123,6 +128,7 @@ class ChordLayerView {
     view.dom.addEventListener("mousedown", this.onAddMouseDown, true);
     view.dom.addEventListener("click", this.onAddClick, true);
     this.observer.observe(view.dom);
+    document.fonts.addEventListener("loadingdone", this.onFontsLoaded);
   }
 
   // Runs after the editor has updated its DOM, before the browser paints, so
@@ -143,6 +149,7 @@ class ChordLayerView {
     this.endDrag();
     this.hideAdd();
     this.observer.disconnect();
+    document.fonts.removeEventListener("loadingdone", this.onFontsLoaded);
     const { dom } = this.view;
     dom.removeEventListener("pointermove", this.onHover);
     dom.removeEventListener("pointerleave", this.hideAdd);

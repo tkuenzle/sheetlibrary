@@ -25,6 +25,34 @@ test.describe("chords above their letters", () => {
     await expect.poll(() => overlappingChords(page)).toEqual([]);
   });
 
+  test("places the labels again when the font loads late", async ({ page }) => {
+    // Hold back the font until the labels are placed with the fallback.
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/*.woff2", async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.goto("/");
+    await expect(page.locator(".chord-label").first()).toBeVisible();
+    expect(
+      await page.evaluate(() =>
+        [...document.fonts].every((font) => font.status !== "loaded"),
+      ),
+    ).toBe(true);
+
+    release();
+    await page.evaluate(() => document.fonts.ready);
+    expect(
+      await page.evaluate(() =>
+        [...document.fonts].some((font) => font.status === "loaded"),
+      ),
+    ).toBe(true);
+    await expect.poll(() => misplacedChords(page)).toEqual([]);
+  });
+
   test("keeps chords above their letters when lines wrap", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 800 });
     await clickChar(page, "before", "Amazing");

@@ -1,0 +1,19 @@
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: var(--space-m) var(--space-l);
+  border-radius: var(--corner-medium);
+  background: var(--info);
+  color: var(--on-info);
+  font: 400 var(--font-size-body) / 1.45 var(--font);
+  outline: 1px solid transparent;
+}
+
+.note > .icon {
+  color: var(--accent);
+}
+
+.note > p {
+  margin: 0;
+}
