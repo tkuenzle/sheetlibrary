@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workbench, desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F1F2EE}
+a{color:#1F6B4F}a:hover{color:#144A36}
+.ln{display:flex;flex-wrap:wrap;align-items:flex-end}
+.w{display:inline-flex;flex-direction:column;white-space:pre;font-size:20px;line-height:1.45}
+.c{height:21px;font-weight:700;font-size:15px;line-height:21px;color:#1F6B4F}
+.dim .w{color:#8D939A}
+.dim .c{color:#8DB5A4}
+.sel{margin-left:-5px;padding:2px 5px;border-radius:5px;background:#1F6B4F;color:#FFFFFF}
+.add{position:relative}
+.add::before{content:"";position:absolute;left:-1px;top:5px;bottom:5px;width:2px;background:#1F6B4F}
+.plus{position:absolute;left:-8px;bottom:-14px;width:16px;height:16px;border-radius:8px;background:#1F6B4F;color:#FFFFFF;font-weight:700;font-size:13px;line-height:16px;text-align:center}
+.prop{outline:1px dashed #B0479A;outline-offset:3px}
+.tag{font-weight:500;font-size:11px;line-height:1;color:#9C3C88}
+kbd{display:inline-block;min-width:18px;padding:2px 6px;border:1px solid #D3D7DB;border-bottom-width:2px;border-radius:5px;background:#FFFFFF;font:600 12px/16px 'Schibsted Grotesk',system-ui,sans-serif;color:#3E454D;text-align:center}
+</style>
+</helmet>
+<div style="min-height: 960px; display: flex; flex-direction: column; background: #F1F2EE; color: #16191D; font-family: 'Schibsted Grotesk', system-ui, sans-serif">
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 0 20px; min-height: 56px; background: #FFFFFF; border-bottom: 1px solid #DDE0E3">
+    <a href="#" style="font-weight: 800; font-size: 18px; letter-spacing: -0.02em; color: #16191D; text-decoration: none">Sheet Library</a>
+    <span aria-hidden="true" style="color: #B3B8BE">/</span>
+    <span style="font-weight: 500; font-size: 15px; color: #3E454D">Amazing Grace</span>
+    <span style="margin-left: auto; padding: 4px 10px; border-radius: 999px; background: #F1F2EE; font-size: 13px; color: #4F565E">Prototype: nothing is saved</span>
+  </header>
+  <div style="flex: 1; display: flex; flex-wrap: wrap">
+    <main style="flex: 999 1 560px; min-width: 0; padding: 48px 32px 80px">
+      <div style="max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 16px">
+          <h1 style="margin: 0; font-weight: 700; font-size: 36px; letter-spacing: -0.02em; line-height: 1.1">Amazing Grace</h1>
+          <span class="prop" style="padding: 2px 8px; border-radius: 6px; background: #E4EFE9; font-weight: 600; font-size: 14px; color: #1F6B4F">Key G</span>
+          <span class="tag">proposal</span>
+        </div>
+        <section class="dim" style="display: grid; grid-template-columns: 32px minmax(0, 1fr); padding: 16px 20px 18px 8px">
+          <div style="padding-top: 25px; font-weight: 600; font-size: 14px; color: #8D939A">1</div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div class="ln"><span class="w"><span class="c">G</span>Amazing </span><span class="w"><span class="c">G7</span>grace, how </span><span class="w"><span class="c">C</span>sweet the </span><span class="w"><span class="c">G</span>sound</span></div>
+            <div class="ln"><span class="w"><span class="c"></span>That saved a wretch like </span><span class="w"><span class="c">D</span>me</span></div>
+            <div class="ln"><span class="w"><span class="c"></span>I </span><span class="w"><span class="c">G</span>once was </span><span class="w"><span class="c">G7</span>lost, but </span><span class="w"><span class="c">C</span>now am </span><span class="w"><span class="c">G</span>found</span></div>
+            <div class="ln"><span class="w"><span class="c"></span>Was </span><span class="w"><span class="c">Em</span>blind, but </span><span class="w"><span class="c">D</span>now I </span><span class="w"><span class="c">G</span>see</span></div>
+          </div>
+        </section>
+        <section style="display: grid; grid-template-columns: 32px minmax(0, 1fr); margin-top: -20px; padding: 16px 20px 22px 8px; border-radius: 10px; background: #FFFFFF; box-shadow: 0 0 0 1px #D3E3DA">
+          <div style="padding-top: 25px; font-weight: 700; font-size: 14px; color: #1F6B4F">2</div>
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <div class="ln"><span class="w"><span class="c"></span>'Twas </span><span class="w"><span class="c">G</span>grace that </span><span class="w"><span class="c"><span class="sel">G7</span></span>taught my </span><span class="w"><span class="c">Cmaj7</span>heart to </span><span class="w"><span class="c">G</span>fear</span></div>
+            <div class="ln"><span class="w"><span class="c"></span>And grace my fears re</span><span class="w"><span class="c">D</span>lieved</span></div>
+            <div class="ln"><span class="w"><span class="c"></span>How </span><span class="w"><span class="c">G</span><span>pre<span class="add"><span class="plus">+</span></span>cious </span></span><span class="w"><span class="c">G7</span>did that </span><span class="w"><span class="c">C</span>grace ap</span><span class="w"><span class="c">G</span>pear</span></div>
+            <div class="ln"><span class="w"><span class="c"></span>The </span><span class="w"><span class="c">Em</span>hour I </span><span class="w"><span class="c">D</span>first be</span><span class="w"><span class="c">G</span>lieved</span></div>
+          </div>
+        </section>
+      </div>
+    </main>
+    <aside style="flex: 1 1 300px; max-width: 340px; box-sizing: border-box; padding: 28px 24px; background: #FFFFFF; border-left: 1px solid #DDE0E3; display: flex; flex-direction: column; gap: 28px">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+          <h2 style="margin: 0; font-weight: 700; font-size: 17px">Section 2</h2>
+          <span style="font-size: 14px; color: #5D646C">of 2</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <button type="button" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 8px; background: #1F6B4F; color: #FFFFFF; font: 600 15px 'Schibsted Grotesk', system-ui, sans-serif; text-align: left">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            <span style="flex: 1">Add chord</span>
+            <span style="font-weight: 500; font-size: 13px; color: #CFE5DA">Ctrl K</span>
+          </button>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+            <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid #D3D7DB; border-radius: 8px; background: #FFFFFF; color: #16191D; font: 500 15px 'Schibsted Grotesk', system-ui, sans-serif">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+              Move up
+            </button>
+            <button type="button" disabled style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid #E6E8EA; border-radius: 8px; background: #FAFAF9; color: #A3A9AF; font: 500 15px 'Schibsted Grotesk', system-ui, sans-serif">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
+              Move down
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 24px; border-top: 1px solid #E6E8EA">
+        <h2 style="margin: 0; font-weight: 700; font-size: 15px">How to edit</h2>
+        <dl style="margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 12px; align-items: baseline; font-size: 14px; color: #3E454D">
+          <dt><kbd>Ctrl K</kbd></dt><dd style="margin: 0">Add a chord at the caret, or change it</dd>
+          <dt><kbd>Enter</kbd> <kbd>Enter</kbd></dt><dd style="margin: 0">Start a new section</dd>
+          <dt><kbd>Backspace</kbd></dt><dd style="margin: 0">At the start, join with the section above</dd>
+          <dt><kbd>Esc</kbd></dt><dd style="margin: 0">Stop editing</dd>
+        </dl>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #5D646C">Click a chord to change it, or drag it to move it.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

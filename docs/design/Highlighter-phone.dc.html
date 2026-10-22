@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Highlighter, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;1,400&amp;family=Familjen+Grotesk:wght@500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#1F3A6E}a:hover{color:#132548}
+.ln{display:flex;flex-wrap:wrap;align-items:flex-end}
+.w{display:inline-flex;flex-direction:column;white-space:pre;font-size:19px;line-height:1.4}
+.c{height:20px;font-family:'Familjen Grotesk',system-ui,sans-serif;font-weight:700;font-size:15px;line-height:20px;color:#1F3A6E}
+.dim .w{color:#97968F}
+.dim .c{color:#9AA6BF}
+.prop{outline:1px dashed #B0479A;outline-offset:3px}
+.tag{font:500 11px/1 'Familjen Grotesk',system-ui,sans-serif;color:#9C3C88}
+.tb{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:48px;min-height:44px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:#1F3A6E;font:600 16px 'Familjen Grotesk',system-ui,sans-serif}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #FFFFFF; color: #262626; font-family: 'Spectral', Georgia, serif">
+  <header style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 20px">
+    <a href="#" style="font: 700 17px 'Familjen Grotesk', system-ui, sans-serif; color: #262626; text-decoration: none">Sheet Library</a>
+    <a href="#" style="display: inline-flex; align-items: center; min-height: 44px; font: 500 15px 'Familjen Grotesk', system-ui, sans-serif">How to edit</a>
+  </header>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 20px 32px; text-align: center">
+    <h1 style="margin: 0; font-weight: 400; font-size: 38px; line-height: 1.05">Amazing Grace</h1>
+    <div style="display: flex; align-items: center; gap: 8px">
+      <span class="prop" style="font-style: italic; font-size: 16px; color: #5E5D57">in G</span>
+      <span class="tag">proposal</span>
+    </div>
+    <p style="margin: 2px 0 0; font: 500 13px 'Familjen Grotesk', system-ui, sans-serif; color: #66655F">Prototype: nothing is saved.</p>
+  </div>
+  <div class="dim" style="padding: 0 20px 28px; display: flex; flex-direction: column; gap: 4px">
+    <div class="ln"><span class="w"><span class="c">G</span>Amazing </span><span class="w"><span class="c">G7</span>grace, how </span><span class="w"><span class="c">C</span>sweet the </span><span class="w"><span class="c">G</span>sound</span></div>
+    <div class="ln"><span class="w"><span class="c"></span>That saved a wretch like </span><span class="w"><span class="c">D</span>me</span></div>
+    <div class="ln"><span class="w"><span class="c"></span>I </span><span class="w"><span class="c">G</span>once was </span><span class="w"><span class="c">G7</span>lost, but </span><span class="w"><span class="c">C</span>now am </span><span class="w"><span class="c">G</span>found</span></div>
+    <div class="ln"><span class="w"><span class="c"></span>Was </span><span class="w"><span class="c">Em</span>blind, but </span><span class="w"><span class="c">D</span>now I </span><span class="w"><span class="c">G</span>see</span></div>
+  </div>
+  <section style="padding: 18px 20px 22px; background: #FBEA9B; display: flex; flex-direction: column; gap: 8px">
+    <div class="ln"><span class="w"><span class="c"></span>'Twas </span><span class="w"><span class="c">G</span>grace that </span><span class="w"><span class="c">G7</span>taught my </span><span class="w"><span class="c">Cmaj7</span>heart to </span><span class="w"><span class="c">G</span>fear</span></div>
+    <div class="ln"><span class="w"><span class="c"></span>And grace my fears re</span><span class="w"><span class="c">D</span>lieved</span></div>
+    <div class="ln"><span class="w"><span class="c"></span>How </span><span class="w"><span class="c">G</span>precious </span><span class="w"><span class="c">G7</span>did that </span><span class="w"><span class="c">C</span>grace ap</span><span class="w"><span class="c">G</span>pear</span></div>
+    <div class="ln"><span class="w"><span class="c"></span>The </span><span class="w"><span class="c">Em</span>hour I </span><span class="w"><span class="c">D</span>first be</span><span class="w"><span class="c">G</span>lieved</span></div>
+  </section>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 2px; padding: 8px 10px 12px 16px; background: #FBEA9B; box-shadow: 0 -1px 0 #E8D37A">
+    <span class="prop" style="margin-right: auto; font: italic 400 17px 'Spectral', Georgia, serif; color: #262626">Verse 2</span>
+    <button type="button" class="tb" style="background: #1F3A6E; color: #FFFFFF; padding: 0 16px 0 12px; margin-right: 4px">
+      <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      Chord
+    </button>
+    <button type="button" class="tb" aria-label="Move section up">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+    </button>
+    <button type="button" class="tb" aria-label="Move section down" disabled style="color: #B7A65E">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
+    </button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

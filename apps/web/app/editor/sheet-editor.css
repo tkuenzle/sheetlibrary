@@ -6,12 +6,12 @@
   position: absolute;
   z-index: 1;
   display: flex;
-  gap: var(--space-1);
-  padding: var(--space-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border: 1px solid var(--border);
+  border-radius: var(--corner-small);
+  background: var(--surface-active);
+  box-shadow: 0 2px 8px var(--shadow);
 }
 
 /* 16px stops iOS from zooming in on focus. */

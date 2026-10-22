@@ -255,6 +255,13 @@ After a change, the labels and the pushed text SHALL be in place when the change
 - **WHEN** the user adds a chord on the space before a word
 - **THEN** the chord and the pushed word show in the same frame
 
+### Requirement: Labels in place after the font loads
+When a font loads after the editor is shown, the labels and the pushed text SHALL be placed again for the new font, so every chord stays over its letter.
+
+#### Scenario: Font arrives late
+- **WHEN** the editor is shown with a fallback font and the lyrics font then finishes loading
+- **THEN** every chord label sits over its letter in the new font
+
 ### Requirement: Lifting the label on touch
 When a chord is dragged with a finger, its label SHALL lift above the finger, far enough that the label and the drop caret under it are both above the finger. The label SHALL slide up when the drag starts. The chord SHALL land on the letter under the label, not under the finger. Dragging with a mouse or a pen SHALL NOT lift the label.
 

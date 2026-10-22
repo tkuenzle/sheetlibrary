@@ -21,8 +21,14 @@ test("shows the seed song with its chords", async ({ page }) => {
 });
 
 test("starts over after a reload", async ({ page }) => {
-  await firstLine(page).click();
-  await page.keyboard.press("End");
+  // A click past the end of the text puts the caret at the end of the line.
+  // End doesn't work on a phone when the docked toolbar is shown and the
+  // page scrolls.
+  const box = await firstLine(page).boundingBox();
+  if (!box) throw new Error("The first line is not shown");
+  await firstLine(page).click({
+    position: { x: box.width - 2, y: box.height / 2 },
+  });
   await page.keyboard.type(" again");
   await expect(firstLine(page)).toHaveText(
     "Amazing grace, how sweet the sound again",

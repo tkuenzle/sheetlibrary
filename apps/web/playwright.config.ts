@@ -1,11 +1,19 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { appPort, appURL, harnessPort, harnessURL } from "./e2e/servers";
+import {
+  appPort,
+  appURL,
+  devPort,
+  devURL,
+  harnessPort,
+  harnessURL,
+} from "./e2e/servers";
 
 // The page tests run against the production build, served by the Workers
 // runtime via `vite preview`. Build first (`just build`); `just check` does
 // this in the right order. The editor tests run against the harness
-// (harness/), which is built here and never deployed.
+// (harness/), which is built here and never deployed. The design page only
+// exists in previews and the dev server, so its tests run on the dev server.
 export default defineConfig({
   testDir: "e2e",
   forbidOnly: !!process.env.CI,
@@ -28,6 +36,11 @@ export default defineConfig({
     {
       command: `pnpm exec vite build --config vite.harness.config.ts && pnpm exec vite preview --config vite.harness.config.ts --port ${String(harnessPort)} --strictPort`,
       url: harnessURL,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: `pnpm dev --port ${String(devPort)} --strictPort`,
+      url: devURL,
       reuseExistingServer: !process.env.CI,
     },
   ],

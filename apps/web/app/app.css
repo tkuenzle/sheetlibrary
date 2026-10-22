@@ -1,19 +1,19 @@
-/* Values the UI polish (M2g) will replace with a real design system. */
+@import "@fontsource-variable/schibsted-grotesk";
+@import "./ui/tokens.css";
+
 :root {
-  color-scheme: light dark;
-  --font-body: system-ui, sans-serif;
-  --color-muted: GrayText;
-  --color-border: GrayText;
-  --color-surface: Canvas;
-  --color-chord: light-dark(#b4451f, #ff9b6b);
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 1rem;
-  --space-4: 1.5rem;
-  --radius: 6px;
-  --chord-editor-font: var(--font-body);
-  --chord-editor-chord-color: var(--color-chord);
-  font-family: var(--font-body);
+  --chord-editor-font: var(--font);
+  --chord-editor-chord-color: var(--chord);
+  font-family: var(--font);
+}
+
+body {
+  background: var(--page);
+  color: var(--text);
+}
+
+a {
+  color: var(--accent);
 }
 
 main {

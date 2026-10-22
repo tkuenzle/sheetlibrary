@@ -1,0 +1,100 @@
+.button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-s);
+  height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--corner-full);
+  font: 600 var(--font-size-label) / 1 var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+/* Hover and press darken or lighten the button with its own text color. */
+.button:hover:not(:disabled) {
+  background-image: linear-gradient(
+    color-mix(in srgb, currentColor 8%, transparent) 0 0
+  );
+}
+
+.button:active:not(:disabled) {
+  background-image: linear-gradient(
+    color-mix(in srgb, currentColor 12%, transparent) 0 0
+  );
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.button:not(.icon-button, .button-large):has(> .icon:first-child) {
+  padding-left: 16px;
+}
+
+.button-small {
+  height: 44px;
+  padding: 0 16px;
+}
+
+/* The main action of a docked toolbar, beside it. */
+.button-large {
+  height: 64px;
+  padding: 0 24px 0 18px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 3px 8px var(--shadow);
+}
+
+.button-large > .icon {
+  width: 26px;
+  height: 26px;
+}
+
+.button-filled {
+  background-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.button-tonal {
+  background-color: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.button-text {
+  padding: 0 16px;
+  background-color: transparent;
+  color: var(--accent);
+}
+
+.button-text.button-small {
+  padding: 0 12px;
+}
+
+/* Icon buttons: round, with only an icon. */
+.icon-button {
+  width: 48px;
+  padding: 0;
+}
+
+.icon-button-large {
+  width: 56px;
+  height: 56px;
+}
+
+.icon-button-standard {
+  background-color: transparent;
+  color: inherit;
+}
