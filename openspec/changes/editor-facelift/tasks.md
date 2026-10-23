@@ -39,7 +39,7 @@
 - [x] 7.1 Run `just check`. Verify it passes.
 - [ ] 7.2 Compare `/editor` with the editor boards in light and lamplight, on desktop, tablet and phone, with the `browser-check` skill, and try it in the iOS Simulator. Verify it matches the boards, except the parts that wait for the page shell, and note any deliberate difference.
 - [x] 7.3 In `docs/roadmap.md`, mark the editor facelift done with what it decided. Verify it matches `design.md`.
-- [ ] 7.4 After pushing, open `/editor` on the pull request's preview link. Verify the new toolbar and sections show.
+- [x] 7.4 After pushing, open `/editor` on the pull request's preview link. Verify the new toolbar and sections show.
 
 ## Workflow follow-up
 
