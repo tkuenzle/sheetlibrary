@@ -25,12 +25,6 @@
   margin-left: var(--toolbar-margin);
 }
 
-.sheet-editor .chord-editor[data-compact] {
-  --section-padding: 40px var(--space-l) var(--space-m);
-  --badge-left: var(--space-l);
-  --badge-size: 24px;
-}
-
 /*
   Sections keep the same padding when they become active, so the lyrics
   don't move sideways or down when the caret enters them.
@@ -38,10 +32,6 @@
 .sheet-editor .section {
   padding: var(--section-padding);
   border-radius: var(--corner-large);
-}
-
-.sheet-editor .chord-editor[data-compact] .section {
-  border-radius: 24px;
 }
 
 /* The active section is a sheet on the page. */
@@ -56,8 +46,9 @@
 }
 
 /*
-  The number badge: left of the lyrics, level with the first line, or above
-  them in a compact layout.
+  The number badge: left of the lyrics, level with the first line. A
+  tablet docks the toolbar but keeps the badge there; only a narrow window
+  puts it above the lyrics (see the end of this file).
 */
 .sheet-editor .section::before {
   top: calc(
@@ -85,9 +76,27 @@
   font-weight: 800;
 }
 
-.sheet-editor .chord-editor[data-compact] .section::before {
-  top: var(--space-m);
-  font-size: 12px;
+/*
+  In a narrow window, as on a phone, the badge sits above the lyrics, so
+  they get the full width. The width is the one where the toolbar docks
+  (`compact` in sheet-editor.tsx).
+*/
+@media (max-width: 640px) {
+  .sheet-editor {
+    --section-padding: 40px var(--space-l) var(--space-m);
+    --badge-left: var(--space-l);
+    --badge-size: 24px;
+  }
+
+  .sheet-editor .section {
+    border-radius: 24px;
+  }
+
+  .sheet-editor .section::before,
+  .sheet-editor .is-editing .section.is-active::before {
+    top: var(--space-m);
+    font-size: 12px;
+  }
 }
 
 /* Chord labels, the "+", the drop caret and the dash. */

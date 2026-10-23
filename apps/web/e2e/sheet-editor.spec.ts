@@ -850,6 +850,19 @@ test.describe("section numbers", () => {
       ]);
   });
 
+  test("sit above the lyrics on a phone and beside them on a tablet", async ({
+    page,
+  }, testInfo) => {
+    test.skip(!isPhone(testInfo), "touch only");
+    await tapChar(page, "Twas", 0);
+    expect(await badgePlace(page)).toBe("above");
+    await page.setViewportSize({ width: 834, height: 1112 });
+    await nextLayout(page);
+    // Still docked, as on a tablet.
+    await expect(toolbar(page)).toContainText("2 of 2");
+    expect(await badgePlace(page)).toBe("beside");
+  });
+
   test("don't take the caret", async ({ page }) => {
     await clickChar(page, "before", "Twas");
     await page.keyboard.press("Home");
@@ -1199,6 +1212,21 @@ async function sectionStarts(page: Page) {
   }
   await cdp.detach();
   return starts;
+}
+
+// Where the active section's badge sits: left of its lyrics, or above them.
+function badgePlace(page: Page) {
+  return activeSection(page).evaluate((section) => {
+    const style = getComputedStyle(section, "::before");
+    const box = section.getBoundingClientRect();
+    const left = box.left + parseFloat(style.left);
+    const top = box.top + parseFloat(style.top);
+    const line = section.querySelector(".line")?.getBoundingClientRect();
+    if (!line) return "no line";
+    if (left + parseFloat(style.width) <= line.left) return "beside";
+    if (top + parseFloat(style.height) <= line.top) return "above";
+    return "overlapping";
+  });
 }
 
 function activeSection(page: Page) {

@@ -54,11 +54,19 @@ With the toolbar beside the section, after a move, the page SHALL scroll so the 
 ## ADDED Requirements
 
 ### Requirement: Section numbers
-Each section SHALL show its number, counted from the top, in a round badge. The active section's badge SHALL stand out from the others. The badge SHALL sit left of the lyrics, or above them when the toolbar is docked. Screen readers SHALL read it as "Section" and the number. It SHALL NOT take the caret and SHALL NOT change where chords sit over their letters.
+Each section SHALL show its number, counted from the top, in a round badge. The active section's badge SHALL stand out from the others. The badge SHALL sit left of the lyrics, also on a tablet with the toolbar docked. Only in a narrow window, as on a phone, SHALL it sit above them. Screen readers SHALL read it as "Section" and the number. It SHALL NOT take the caret and SHALL NOT change where chords sit over their letters.
 
 #### Scenario: After a move
 - **WHEN** the second of three sections is moved up
 - **THEN** it shows "1", and the section it swapped with shows "2"
+
+#### Scenario: Tablet
+- **WHEN** the user edits a section on a tablet
+- **THEN** the toolbar is docked, and each badge sits left of its section's lyrics
+
+#### Scenario: Phone
+- **WHEN** the user edits a section on a phone
+- **THEN** each badge sits above its section's lyrics
 
 #### Scenario: Screen reader
 - **WHEN** a screen reader reads the second section

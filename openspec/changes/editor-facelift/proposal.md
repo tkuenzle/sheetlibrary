@@ -9,7 +9,7 @@ The tokens, font, icons and base components are in place (ui-foundation), but th
 - The section toolbar's buttons move to React in `apps/web`, built from `Toolbar`, `IconButton` and `Button`. The app renders the toolbar; `chord-editor` only places it, keeps focus in the editor, and tells the app which section is active and whether the toolbar is docked.
 - With a mouse, the toolbar is a vertical pill in the left margin, beside the active section: a large "Add chord" icon button, then "Move section up" and "Move section down". Its tooltips open to the right. In a section taller than the window, it follows the scroll and stays in view.
 - The toolbar is docked when the main pointer is a finger, and also when the window is too narrow for the margin. The app sets that rule. Docked, it shows "2 of 2" with the move buttons, and a separate "Chord" button with a "+" icon.
-- Each section shows its number in a round badge: left of the lyrics, or above them when docked. Screen readers read it as "Section 2".
+- Each section shows its number in a round badge: left of the lyrics, on a tablet too, or above them in a narrow window, as on a phone. Screen readers read it as "Section 2".
 - The active section is a sheet on the page. Other sections are dimmed with the `--text-dimmed` and `--chord-dimmed` colors instead of opacity.
 - The selected and the dragged chord label are pills. The "+" below the lyrics is a round dot.
 - The chord input is restyled with `Popover` and `Button`. Its behavior doesn't change. The package now tells the app where to place it, so the app no longer asks ProseMirror for coordinates.

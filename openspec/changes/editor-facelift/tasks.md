@@ -23,7 +23,7 @@
 
 ## 4. Section numbers
 
-- [ ] 4.1 Add the section counter to the package's CSS, with "Section 2" as its alternative text, and place and style the badges in the app, above the lyrics under `data-compact`. Verify e2e tests: after moving the second of three sections up it shows "1", the second section's accessible text starts with "Section 2", and the left arrow at a section's start goes to the section before, in WebKit too.
+- [ ] 4.1 Add the section counter to the package's CSS, with "Section 2" as its alternative text, and place and style the badges in the app: left of the lyrics, on a tablet too, and above them only in a narrow window. Verify e2e tests: a tablet shows the badge left of the lyrics and a phone above them, after moving the second of three sections up it shows "1", the second section's accessible text starts with "Section 2", and the left arrow at a section's start goes to the section before, in WebKit too.
 
 ## 5. Chord input
 
