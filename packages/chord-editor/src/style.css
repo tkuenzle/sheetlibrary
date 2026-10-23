@@ -1,22 +1,45 @@
 @import "prosemirror-view/style/prosemirror.css";
 
 /*
-  Layout the chord layer depends on. Put the editor's view inside an element
-  with the class "chord-editor". Set these custom properties to style it:
+  The layout the chord layer depends on, and the editor's behavior. Put the
+  editor's view inside an element with the class "chord-editor". Looks such
+  as colors, corners and shadows are left to the app, which styles the
+  hooks below. Without them, everything is drawn in the text color.
+
+  Custom properties for the layout:
 
   --chord-editor-font: the lyrics' font family
   --chord-editor-font-size: the lyrics' size; chords are 0.8 of it
   --chord-editor-line-height: room for the lyrics and the chords above them
   --chord-editor-active-line-height: the same in the active section, a bit
     more, so the "+" for adding a chord has room below the lyrics
-  --chord-editor-chord-color: the chords' color
-  --chord-editor-dash-color: the dash in a word split by chords
-  --chord-editor-dimmed-opacity: the opacity of sections that aren't active
   --chord-editor-section-gap: the space between sections
   --chord-editor-touch-lift: how far a chord dragged by touch is lifted above
     the finger, so it and the spot where it lands can be seen
-  --chord-editor-toolbar-room: the room above the active section for its
-    toolbar with a mouse
+
+  Hooks on the elements the editor draws:
+
+  .ProseMirror.is-editing      a section is active
+  .section.is-active           the active section
+  .section::before             the section's number badge
+  .chord-label                 a chord's label, in the layer over the text
+  .chord-label.is-selected     the chord open in the chord input
+  .chord-label.is-dragging     the label being dragged
+  .chord-label.is-lifted       a label dragged by touch, lifted
+  .chord-label.is-dimmed       a label of a section that isn't active
+  .chord-dash                  the dash in a word split by chords
+  .chord-dash.is-dimmed        the same, in a section that isn't active
+  .chord-add                   the "+" under a letter, below the lyrics
+  .chord-drop-caret            where a dragged or added chord lands
+
+  Hooks on the app's elements:
+
+  .chord-editor[data-compact]  the layout is compact (see the `compact`
+                               option), and the toolbar is docked
+  .chord-editor[data-adding]   the mouse is below the lyrics, on a spot
+                               where a click adds a chord
+  [data-section-toolbar]       the toolbar element the app passed in
+  [data-section-toolbar][data-docked]  docked at the bottom
 */
 
 .chord-editor {
@@ -28,6 +51,7 @@
 .chord-editor .ProseMirror {
   outline: none;
   padding: 0.5rem 0 1rem;
+  counter-reset: section;
 }
 
 .chord-editor .line {
@@ -41,15 +65,29 @@
   line-height: var(--chord-editor-active-line-height, 3.4em);
 }
 
-/* While editing, sections other than the active one are dimmed. */
-.chord-editor .is-editing .section:not(.is-active),
-.chord-label.is-dimmed,
-.chord-dash.is-dimmed {
-  opacity: var(--chord-editor-dimmed-opacity, 0.5);
-}
-
 .chord-editor .section + .section {
   margin-top: var(--chord-editor-section-gap, 1em);
+}
+
+/*
+  Each section shows its number in a badge. It is generated, so it can't
+  take the caret or be edited. Screen readers read it as "Section 2". The
+  app places it, and makes room for it with the section's padding: left of
+  the lyrics, or above them in a compact layout.
+*/
+.chord-editor .section {
+  position: relative;
+  padding-left: 2em;
+  counter-increment: section;
+}
+
+.chord-editor .section::before {
+  content: counter(section) / "Section " counter(section);
+  position: absolute;
+  top: 0;
+  left: 0;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* Chord labels sit in a layer over the editor, outside the editable text. */
@@ -72,9 +110,13 @@
   initial-value: 0px;
 }
 
+/*
+  A label's size decides where the lyrics make room for it, so the app
+  should draw backgrounds behind a label without changing its size, for
+  example with `::before`.
+*/
 .chord-label {
   position: absolute;
-  color: var(--chord-editor-chord-color, currentColor);
   font-size: 0.8em;
   font-weight: 700;
   line-height: 1;
@@ -100,16 +142,10 @@
   pointer-events: none;
 }
 
-.chord-label.is-selected {
-  outline: 2px solid var(--chord-editor-chord-color, currentColor);
-  outline-offset: 2px;
-}
-
 .chord-label.is-dragging {
   position: fixed;
   z-index: 1;
   cursor: grabbing;
-  opacity: 0.8;
 }
 
 /*
@@ -125,7 +161,7 @@
 .chord-dash {
   position: absolute;
   height: max(1px, 0.06em);
-  background: var(--chord-editor-dash-color, currentColor);
+  background: currentColor;
 }
 
 /*
@@ -135,13 +171,12 @@
 .chord-add {
   position: absolute;
   translate: -50% 0;
-  color: var(--chord-editor-chord-color, currentColor);
   font-size: 0.8em;
   font-weight: 700;
   line-height: 1;
 }
 
-.chord-editor.is-adding .ProseMirror {
+.chord-editor[data-adding] .ProseMirror {
   cursor: pointer;
 }
 
@@ -149,17 +184,22 @@
 .chord-drop-caret {
   position: absolute;
   width: 2px;
-  background: var(--chord-editor-chord-color, currentColor);
+  background: currentColor;
 }
 
 /*
-  The active section's toolbar. With a mouse, it sits at the right edge
-  above the section, which gets room for it. On a touch device, it is docked
-  at the bottom of the visible area, and the page gets room for it after all
-  its content, so the toolbar never hides the end of the page.
+  The active section's toolbar. Beside the section, it spans the section's
+  height. Docked, it is fixed at the bottom of the visible area, and the
+  page gets room for it after all its content, so the toolbar never hides
+  the end of the page.
 */
-.chord-editor .is-editing .section.has-toolbar {
-  padding-top: var(--chord-editor-toolbar-room, 48px);
+[data-section-toolbar] {
+  position: absolute;
+  z-index: 1;
+}
+
+[data-section-toolbar][hidden] {
+  display: none;
 }
 
 .has-docked-section-toolbar body::after {
@@ -168,24 +208,12 @@
   height: var(--section-toolbar-height);
 }
 
-.chord-editor.has-docked-toolbar .is-editing .section.has-toolbar {
-  padding-top: 0;
-}
-
-.section-toolbar {
-  position: absolute;
-  right: 0;
-  z-index: 1;
-  display: flex;
-  gap: 4px;
-}
-
 /*
   Docked, it acts like the browser's own bars: the page scrolls under it,
   including floating parts such as a chord input. It fades back in after
   hiding while the visible area moved on iOS.
 */
-.section-toolbar.is-docked {
+[data-section-toolbar][data-docked] {
   position: fixed;
   top: auto;
   right: 0;
@@ -193,43 +221,22 @@
   left: 0;
   z-index: 2;
   transition: opacity 150ms;
-  box-sizing: border-box;
-  padding: 4px 16px;
-  border-top: 1px solid color-mix(in srgb, currentColor 20%, transparent);
-  background: Canvas;
 }
 
-.section-toolbar.is-docked.is-moving {
+[data-section-toolbar][data-docked][data-moving] {
   opacity: 0;
   pointer-events: none;
   transition: none;
 }
 
 /* Out of the way while a chord is dragged, so it can land at the bottom. */
-.chord-editor:has(.chord-label.is-dragging) .section-toolbar.is-docked {
+:root:has(.chord-label.is-dragging) [data-section-toolbar][data-docked] {
   visibility: hidden;
 }
 
-.section-toolbar.is-docked .section-toolbar-button:first-child {
-  margin-right: auto;
-}
-
-.section-toolbar-button {
-  min-width: 44px;
-  min-height: 44px;
-  border: 1px solid currentColor;
-  border-radius: 8px;
-  background: Canvas;
-  color: inherit;
-  font: inherit;
-  font-size: 18px;
-  touch-action: manipulation;
-}
-
-.section-toolbar-button[hidden] {
-  display: none;
-}
-
-.section-toolbar-button:disabled {
-  opacity: 0.3;
+@media (prefers-reduced-motion: reduce) {
+  .chord-label.is-lifted,
+  [data-section-toolbar][data-docked] {
+    transition: none;
+  }
 }

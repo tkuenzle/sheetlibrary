@@ -1,0 +1,70 @@
+/*
+  The editor places the outer element (see SectionToolbar). Beside the
+  section, it fills the margin left of it and spans the section's height,
+  and the toolbar sticks to the top of the window inside it, so it stays in
+  view in a tall section. Docked, it is fixed at the bottom of the window.
+  Only the toolbar itself takes clicks, not the room around it.
+*/
+.section-toolbar {
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.section-toolbar:not([hidden], [data-docked]) {
+  left: 0;
+  width: var(--toolbar-margin);
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding-right: var(--space-l);
+}
+
+.section-toolbar-beside {
+  position: sticky;
+  top: var(--space-l);
+  pointer-events: auto;
+}
+
+.section-toolbar[data-docked] {
+  padding: 0 var(--space-l) var(--space-m);
+}
+
+/* Docked: a pill with the section's place and the moves, and "Chord". */
+.toolbar.section-toolbar-docked {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-m);
+  padding: 0;
+  background: none;
+  outline: none;
+}
+
+.section-toolbar-docked > * {
+  pointer-events: auto;
+}
+
+.section-toolbar-pill {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 64px;
+  box-sizing: border-box;
+  padding: 0 var(--space-s) 0 18px;
+  border-radius: var(--corner-full);
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+  box-shadow: 0 3px 8px var(--shadow);
+  outline: 1px solid transparent;
+}
+
+.section-toolbar-count {
+  margin-right: var(--space-s);
+  font: 700 15px / 1 var(--font);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .toolbar.section-toolbar-docked {
+    justify-content: space-between;
+  }
+}

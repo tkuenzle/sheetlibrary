@@ -7,15 +7,17 @@ import { EditorState, Plugin } from "prosemirror-state";
 import { activeSection, endEditing } from "./active-section";
 import { chordLayer, type ChordLayerOptions } from "./chord-layer";
 import { selectedChord } from "./chords";
+import { type Anchor, anchorAt } from "./letter";
 import { chordRescue } from "./rescue";
 import { chordMark, chordsOn, newChordId } from "./schema";
-import { sectionToolbar } from "./section-toolbar";
+import { sectionToolbar, type SectionToolbarOptions } from "./section-toolbar";
 import { joinWithPrevious, sectionBreaks, splitOnEmptyLine } from "./sections";
 
-export interface EditorOptions extends ChordLayerOptions {
-  // Ctrl+K or Cmd+K, with the position of the caret. The app opens the
-  // chord input there.
-  onChordShortcut?: (pos: number) => void;
+export interface EditorOptions
+  extends ChordLayerOptions, SectionToolbarOptions {
+  // Ctrl+K or Cmd+K, with the position of the caret and its letter. The app
+  // opens the chord input there.
+  onChordShortcut?: (pos: number, anchor: Anchor) => void;
   // Off in unit tests, which have no DOM.
   layer?: boolean;
 }
@@ -39,8 +41,9 @@ export function createEditorState(doc: Node, options: EditorOptions = {}) {
         Backspace: joinWithPrevious,
         Escape: endEditing,
         ...(onChordShortcut && {
-          "Mod-k": (state) => {
-            onChordShortcut(state.selection.head);
+          "Mod-k": (state, _dispatch, view) => {
+            const { head } = state.selection;
+            if (view) onChordShortcut(head, anchorAt(view, head));
             return true;
           },
         }),

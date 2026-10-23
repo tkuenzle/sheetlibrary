@@ -74,7 +74,9 @@ The tokens are in `apps/web/app/ui/tokens.css`. Each color is written as `light-
 
 The base components are React components in `apps/web/app/ui/`, each with its own CSS on the role tokens: `Button`, `IconButton`, `Tooltip`, `Toolbar`, `Popover` and `Note`. They keep an outline in forced colors mode. The `/design` page shows them in both styles. It exists only in pull request previews and the dev server.
 
-The `chord-editor` package keeps what is drawn on the lyrics (chord labels, the "+", the dash and the drop caret), styled through its `--chord-editor-*` properties. Buttons, icons and UI text belong to the app.
+The `chord-editor` package draws what sits on the lyrics: chord labels, the "+", the dash, the drop caret and the section numbers. It keeps the layout the chord layer measures, set through a few `--chord-editor-*` properties such as the font size and line heights. It leaves the looks to the app: colors, backgrounds, corners and shadows. The app styles the state classes and data attributes the package publishes, such as `.section.is-active` or `.chord-label.is-selected`. Its stylesheet lists them all. The app's editor styles are in `apps/web/app/editor/`.
+
+Buttons, icons and UI text belong to the app. The section toolbar is a React component in the app. The package only places it, beside the section or docked, and tells the app what it shows. Each DOM element has one owner, React or the package, never both.
 
 ## What the mockups add
 

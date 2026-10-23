@@ -2,8 +2,8 @@ import { type EditorState, Plugin } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
 import { getActiveSection } from "./active-section";
-import { getSelectedChord, moveChord } from "./chords";
-import { letterAt } from "./letter";
+import { findChord, getSelectedChord, moveChord } from "./chords";
+import { type Anchor, anchorAt, letterAt } from "./letter";
 import { type Chord, chordsOf, chordsOn } from "./schema";
 
 // Chord labels live in a layer on top of the editor, outside the editable
@@ -11,12 +11,12 @@ import { type Chord, chordsOf, chordsOn } from "./schema";
 // and the labels are real elements that can be tapped and dragged.
 
 export interface ChordLayerOptions {
-  // A click or tap on a chord's label, with the chord's id.
-  onChordClick?: (id: string) => void;
+  // A click or tap on a chord's label, with the chord's id and its letter.
+  onChordClick?: (id: string, anchor: Anchor) => void;
   // A chord's label starts being dragged, with the chord's id.
   onDragStart?: (id: string) => void;
   // A click below the lyrics adds a chord to the letter right after `pos`.
-  onAddChord?: (pos: number) => void;
+  onAddChord?: (pos: number, anchor: Anchor) => void;
 }
 
 // Moving the pointer this far turns a press on a label into a drag.
@@ -445,8 +445,12 @@ class ChordLayerView {
     const drag = this.drag;
     if (drag?.pointerId !== event.pointerId) return;
     this.endDrag();
-    if (!drag.moved) this.options.onChordClick?.(drag.id);
-    else if (drag.target) {
+    if (!drag.moved) {
+      const found = findChord(this.view.state.doc, drag.id);
+      if (found) {
+        this.options.onChordClick?.(drag.id, anchorAt(this.view, found.pos));
+      }
+    } else if (drag.target) {
       const { pos, index } = drag.target;
       moveChord(drag.id, pos, index)(this.view.state, this.view.dispatch);
     }
@@ -611,7 +615,7 @@ class ChordLayerView {
     event.preventDefault();
     event.stopPropagation();
     if (this.addSpot(event.clientX, event.clientY) !== pos) return;
-    this.options.onAddChord?.(pos);
+    this.options.onAddChord?.(pos, anchorAt(this.view, pos));
   };
 
   // The letter at a point below the lyrics of the active section: below the
@@ -652,7 +656,8 @@ class ChordLayerView {
     this.plus.style.left = `${String(text.left - origin.left)}px`;
     this.plus.style.top = `${String(text.bottom - origin.top)}px`;
     this.layer.appendChild(this.plus);
-    this.layer.parentElement?.classList.add("is-adding");
+    // A data attribute: the app renders this element and owns its classes.
+    if (this.layer.parentElement) this.layer.parentElement.dataset.adding = "";
   }
 
   private hideAdd = () => {
@@ -660,7 +665,8 @@ class ChordLayerView {
     this.adding = null;
     this.plus.remove();
     this.caret.remove();
-    this.layer.parentElement?.classList.remove("is-adding");
+    if (this.layer.parentElement)
+      delete this.layer.parentElement.dataset.adding;
   };
 
   private inActiveSection(pos: number) {
