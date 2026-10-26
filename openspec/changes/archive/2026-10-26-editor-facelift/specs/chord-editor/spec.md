@@ -8,7 +8,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Section toolbar
-The active section SHALL have a toolbar with "Add chord", "Move section up" and "Move section down" buttons, each at least 44px tall. Other sections SHALL NOT have one. When it is not docked, the toolbar SHALL sit in the margin left of the active section, at the height of its top. When that top is scrolled out of the window, the toolbar SHALL stay at the top of the window, but never past the section's bottom. With a mouse, each button SHALL show its name in a tooltip. Pressing a toolbar button SHALL NOT take focus from the editor.
+The active section SHALL have a toolbar with "Add chord", "Move section up" and "Move section down" buttons, each at least 44px tall. Other sections SHALL NOT have one. Not docked, it SHALL sit left of the active section, level with its top, and stay in the window while the section scrolls, but never below the section. With a mouse, each button SHALL show its name in a tooltip. Pressing a button SHALL NOT take focus from the editor.
 
 #### Scenario: Mouse
 - **WHEN** the user clicks into the second section on a wide desktop window and points at the first
