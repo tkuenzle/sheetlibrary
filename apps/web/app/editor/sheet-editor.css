@@ -77,11 +77,11 @@
 }
 
 /*
-  In a narrow window, as on a phone, the badge sits above the lyrics, so
-  they get the full width. The width is the one where the toolbar docks
-  (`compact` in sheet-editor.tsx).
+  In a phone-wide window, the badge sits above the lyrics, so they get the
+  full width. The same width as the phone sizes in tokens.css and the
+  spread-out docked toolbar in section-toolbar.css.
 */
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   .sheet-editor {
     --section-padding: 40px var(--space-l) var(--space-m);
     --badge-left: var(--space-l);

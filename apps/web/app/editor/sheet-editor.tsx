@@ -41,8 +41,8 @@ export interface SheetEditorHandle {
 
 // When the layout is compact: on a touch device, or in a window too narrow
 // for the section toolbar beside the section. The toolbar then docks at the
-// bottom. In the narrow window, the badges also move above the lyrics, with
-// the same width in sheet-editor.css.
+// bottom. Only in a phone-wide window do the badges also move above the
+// lyrics (see sheet-editor.css).
 const compact = "(pointer: coarse), (max-width: 640px)";
 
 type ChordInput = { left: number; top: number } & (

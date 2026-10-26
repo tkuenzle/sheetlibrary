@@ -63,6 +63,7 @@
   white-space: nowrap;
 }
 
+/* Phone-wide, as the badges above the lyrics in sheet-editor.css. */
 @media (max-width: 600px) {
   .toolbar.section-toolbar-docked {
     justify-content: space-between;

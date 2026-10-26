@@ -856,7 +856,8 @@ test.describe("section numbers", () => {
     test.skip(!isPhone(testInfo), "touch only");
     await tapChar(page, "Twas", 0);
     expect(await badgePlace(page)).toBe("above");
-    await page.setViewportSize({ width: 834, height: 1112 });
+    // Wider than a phone, so the docked toolbar is centered too.
+    await page.setViewportSize({ width: 620, height: 1112 });
     await nextLayout(page);
     // Still docked, as on a tablet.
     await expect(toolbar(page)).toContainText("2 of 2");
