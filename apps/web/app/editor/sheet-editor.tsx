@@ -166,7 +166,13 @@ export function SheetEditor({
     const view = new EditorView(mount, {
       state: createEditorState(docFromSheet(sheetRef.current), {
         toolbar: toolbarRef.current ?? undefined,
-        onSectionToolbar: setToolbar,
+        // Rendered right away: the editor places the toolbar right after
+        // this, and the old buttons must not show in the new place.
+        onSectionToolbar: (next) => {
+          flushSync(() => {
+            setToolbar(next);
+          });
+        },
         compact,
         onChordShortcut,
         onChordClick: editChord,

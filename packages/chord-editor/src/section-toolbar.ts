@@ -26,7 +26,10 @@ export interface SectionToolbarOptions {
   // `data-docked` and `data-moving` attributes. The app hides it while
   // there is no active section.
   toolbar?: HTMLElement;
-  // What the toolbar shows, or null when no section is active.
+  // What the toolbar shows, or null when no section is active. The editor
+  // places the toolbar right after this, in the same frame, so the app
+  // should render the change before it returns (with React, in
+  // `flushSync`). Otherwise the old content shows once in the new place.
   onSectionToolbar?: (state: SectionToolbarState | null) => void;
   // A media query for when the layout is compact: the toolbar docks, and the
   // editor's element gets `data-compact`. By default, when the main pointer

@@ -967,6 +967,39 @@ test.describe("the section toolbar", () => {
     await expect(toolbar(page)).toContainText("Move");
   });
 
+  test("docks and undocks without a frame in between", async ({ page }) => {
+    test.skip(await isTouch(page), "Needs a mouse");
+    await page.setViewportSize({ width: 700, height: 800 });
+    await clickChar(page, "before", "Twas");
+    // Each frame, whether the toolbar is docked and how it is laid out:
+    // the vertical one beside the section, or the wide one docked.
+    await page.evaluate(() => {
+      const frames: string[] = [];
+      Object.assign(window, { toolbarFrames: frames });
+      const log = () => {
+        const track = document.querySelector("[data-section-toolbar]");
+        const bar = track?.querySelector("[role=toolbar]");
+        if (track && bar) {
+          const { width, height } = bar.getBoundingClientRect();
+          const docked = track.hasAttribute("data-docked");
+          frames.push(
+            `${docked ? "docked" : "beside"} ${width > height ? "wide" : "tall"}`,
+          );
+        }
+        requestAnimationFrame(log);
+      };
+      requestAnimationFrame(log);
+    });
+    for (const width of [640, 700]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.waitForTimeout(150);
+    }
+    const frames = await page.evaluate(
+      () => (window as unknown as { toolbarFrames: string[] }).toolbarFrames,
+    );
+    expect(new Set(frames)).toEqual(new Set(["beside tall", "docked wide"]));
+  });
+
   test("labels the move buttons when docked", async ({ page }) => {
     test.skip(!(await isTouch(page)), "Needs touch");
     await tapChar(page, "Twas", 0);
