@@ -3,7 +3,6 @@
 
 :root {
   --chord-editor-font: var(--font);
-  --chord-editor-chord-color: var(--chord);
   font-family: var(--font);
 }
 

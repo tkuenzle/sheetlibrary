@@ -1,25 +1,183 @@
+/*
+  The editor's look, on the hooks the chord-editor package publishes (see
+  the top of its style.css). The package keeps the layout the chord layer
+  measures.
+*/
 .sheet-editor {
   position: relative;
+  /* The room left of the sections for their toolbar. */
+  --toolbar-margin: 112px;
+  /* Room in a section around its lyrics, and for its number. */
+  --section-padding: var(--space-l) 28px var(--space-l) 72px;
+  --badge-left: 20px;
+  --badge-size: 36px;
 }
 
+.sheet-editor .chord-editor {
+  --chord-editor-font-size: var(--font-size-lyrics);
+  --chord-editor-line-height: calc(2.8 * var(--font-size-lyrics));
+  --chord-editor-active-line-height: calc(3.3 * var(--font-size-lyrics));
+  --chord-editor-section-gap: var(--space-m);
+  color: var(--text);
+}
+
+.sheet-editor .chord-editor:not([data-compact]) {
+  margin-left: var(--toolbar-margin);
+}
+
+/*
+  Sections keep the same padding when they become active, so the lyrics
+  don't move sideways or down when the caret enters them.
+*/
+.sheet-editor .section {
+  padding: var(--section-padding);
+  border-radius: var(--corner-large);
+}
+
+/* The active section is a sheet on the page. */
+.sheet-editor .is-editing .section.is-active {
+  background: var(--surface-active);
+  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+  outline: 1px solid transparent;
+}
+
+.sheet-editor .is-editing .section:not(.is-active) {
+  color: var(--text-dimmed);
+}
+
+/*
+  The number badge: left of the lyrics, level with the first line. A
+  tablet docks the toolbar but keeps the badge there; only a narrow window
+  puts it above the lyrics (see the end of this file).
+*/
+.sheet-editor .section::before {
+  top: calc(
+    var(--space-l) + (var(--chord-editor-line-height) - var(--badge-size)) / 2
+  );
+  left: var(--badge-left);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--badge-size);
+  height: var(--badge-size);
+  border-radius: var(--corner-full);
+  background: var(--quiet);
+  color: var(--on-quiet);
+  font: 700 var(--font-size-label) / 1 var(--font);
+}
+
+.sheet-editor .is-editing .section.is-active::before {
+  top: calc(
+    var(--space-l) +
+      (var(--chord-editor-active-line-height) - var(--badge-size)) / 2
+  );
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 800;
+}
+
+/*
+  In a phone-wide window, the badge sits above the lyrics, so they get the
+  full width. The same width as the phone sizes in tokens.css and the
+  spread-out docked toolbar in section-toolbar.css.
+*/
+@media (max-width: 600px) {
+  .sheet-editor {
+    --section-padding: 40px var(--space-l) var(--space-m);
+    --badge-left: var(--space-l);
+    --badge-size: 24px;
+  }
+
+  .sheet-editor .section {
+    border-radius: 24px;
+  }
+
+  .sheet-editor .section::before,
+  .sheet-editor .is-editing .section.is-active::before {
+    top: var(--space-m);
+    font-size: 12px;
+  }
+}
+
+/* Chord labels, the "+", the drop caret and the dash. */
+.sheet-editor .chord-label {
+  color: var(--chord);
+}
+
+.sheet-editor .chord-label.is-dimmed {
+  color: var(--chord-dimmed);
+}
+
+.sheet-editor .chord-dash.is-dimmed {
+  color: var(--text-dimmed);
+}
+
+/*
+  The selected and the dragged label are pills. The pill is drawn behind the
+  label, so the label keeps the size the lyrics make room for.
+*/
+.sheet-editor .chord-label:is(.is-selected, .is-dragging) {
+  isolation: isolate;
+  color: var(--on-accent);
+}
+
+.sheet-editor .chord-label:is(.is-selected, .is-dragging)::before {
+  content: "";
+  position: absolute;
+  inset: -3px -6px;
+  z-index: -1;
+  border-radius: var(--corner-full);
+  background: var(--accent);
+}
+
+.sheet-editor .chord-label.is-dragging::before {
+  box-shadow: 0 6px 16px var(--shadow);
+}
+
+/* Shows as an outline in forced colors mode, where the pill is gone. */
+.sheet-editor .chord-label.is-selected {
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+}
+
+.sheet-editor .chord-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: var(--corner-full);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 700 15px / 1 var(--font);
+}
+
+.sheet-editor .chord-drop-caret {
+  border-radius: 1px;
+  color: var(--chord);
+}
+
+/* The chord input, below the chord's letter. */
 .chord-input {
   position: absolute;
   z-index: 1;
-  display: flex;
-  gap: var(--space-xs);
-  padding: var(--space-xs);
-  border: 1px solid var(--border);
-  border-radius: var(--corner-small);
-  background: var(--surface-active);
-  box-shadow: 0 2px 8px var(--shadow);
 }
 
 /* 16px stops iOS from zooming in on focus. */
-.chord-input input,
-.chord-input button {
-  font-size: 16px;
+.chord-input input {
+  width: 96px;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 var(--space-m);
+  border: 2px solid var(--accent);
+  border-radius: var(--space-m);
+  background: transparent;
+  color: var(--text);
+  font: 600 16px / 1 var(--font);
 }
 
-.chord-input input {
-  width: 6em;
+/* The input always has the focus while it shows; its border marks it. */
+.chord-input input:focus-visible {
+  outline: none;
 }

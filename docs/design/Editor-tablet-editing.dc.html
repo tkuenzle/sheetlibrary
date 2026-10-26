@@ -9,7 +9,7 @@
 <x-dc>
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..600,0..1,0&amp;icon_names=add,arrow_downward,arrow_upward,help,info&amp;display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..600,0..1,0&amp;icon_names=add,arrow_downward,arrow_upward,help,info,move_down,move_up&amp;display=block">
 <style>
 :root{--page:#EBF0EB;--surface-active:#FFFFFF;--text:#171D1A;--text-muted:#404943;--text-dimmed:#646E67;--chord:#1F6B4F;--chord-dimmed:#477461;--accent:#1F6B4F;--on-accent:#FFFFFF;--accent-soft:#C8E9D6;--on-accent-soft:#0A5138;--info:#D6E7DC;--on-info:#24392D;--quiet:#DCE4DD;--on-quiet:#3A443D;--shadow:rgba(23,29,26,0.16)}
 body{margin:0;background:var(--page)}
@@ -63,9 +63,9 @@ body{margin:0;background:var(--page)}
   </main>
   <div style="position: absolute; left: 50%; bottom: 24px; translate: -50% 0; display: flex; align-items: center; gap: 12px">
     <div style="display: flex; align-items: center; gap: 2px; height: 64px; box-sizing: border-box; padding: 0 8px 0 20px; border-radius: 32px; background: var(--accent-soft); box-shadow: 0 3px 8px var(--shadow)">
-      <span style="margin-right: 8px; font-weight: 700; font-size: 15px; color: var(--on-accent-soft); white-space: nowrap">Section 2 of 2</span>
-      <button type="button" aria-label="Move section up" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; color: var(--on-accent-soft)"><span class="ms" aria-hidden="true">arrow_upward</span></button>
-      <button type="button" aria-label="Move section down" disabled style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; color: var(--on-accent-soft); opacity: 0.38"><span class="ms" aria-hidden="true">arrow_downward</span></button>
+      <span style="margin-right: 8px; font-weight: 700; font-size: 15px; color: var(--on-accent-soft); white-space: nowrap">Move</span>
+      <button type="button" aria-label="Move section up" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; color: var(--on-accent-soft)"><span class="ms" aria-hidden="true">move_up</span></button>
+      <button type="button" aria-label="Move section down" disabled style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; color: var(--on-accent-soft); opacity: 0.38"><span class="ms" aria-hidden="true">move_down</span></button>
     </div>
     <button type="button" style="display: flex; align-items: center; gap: 8px; height: 64px; padding: 0 26px 0 20px; border: 0; border-radius: 32px; background: var(--accent); color: var(--on-accent); font: 700 16px 'Schibsted Grotesk', system-ui, sans-serif; box-shadow: 0 3px 8px var(--shadow)"><span class="ms" aria-hidden="true" style="font-size: 26px; font-variation-settings: 'FILL' 1, 'opsz' 24">add</span>Chord</button>
   </div>

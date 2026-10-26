@@ -2,6 +2,8 @@ import "chord-editor/style.css";
 import "./sheet-editor.css";
 
 import {
+  addChordAtCaret,
+  type Anchor,
   changeChord,
   chordsAt,
   createEditorState,
@@ -11,7 +13,9 @@ import {
   type HandBack,
   handBackSheet,
   insertChord,
+  moveActiveSection,
   removeChord,
+  type SectionToolbarState,
   selectChord,
 } from "chord-editor";
 import type { ChordSheet } from "chordsheet";
@@ -27,9 +31,19 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 
+import { Button } from "../ui/button";
+import { Popover } from "../ui/popover";
+import { SectionToolbar } from "./section-toolbar";
+
 export interface SheetEditorHandle {
   handBack(): HandBack;
 }
+
+// When the layout is compact: on a touch device, or in a window too narrow
+// for the section toolbar beside the section. The toolbar then docks at the
+// bottom. Only in a phone-wide window do the badges also move above the
+// lyrics (see sheet-editor.css).
+const compact = "(pointer: coarse), (max-width: 640px)";
 
 type ChordInput = { left: number; top: number } & (
   { kind: "new"; pos: number } | { kind: "edit"; id: string }
@@ -48,10 +62,12 @@ export function SheetEditor({
   const mountRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const chordInputRef = useRef<ChordInput | null>(null);
   const sheetRef = useRef(sheet);
   const [chordInput, setChordInput] = useState<ChordInput | null>(null);
+  const [toolbar, setToolbar] = useState<SectionToolbarState | null>(null);
 
   useImperativeHandle(ref, () => ({
     handBack: () => {
@@ -122,41 +138,48 @@ export function SheetEditor({
     const mount = mountRef.current;
     if (!mount) return;
 
-    function placeBelow(pos: number) {
-      const coords = view.coordsAtPos(pos);
+    // Below the letter the editor points to. Kept inside the editor's width
+    // once the form is drawn.
+    function placeBelow(anchor: Anchor) {
       const frame = frameRef.current?.getBoundingClientRect();
       if (!frame) return { left: 0, top: 0 };
-      // Kept inside the editor's width once the form is drawn.
       return {
-        left: Math.max(0, coords.left - frame.left),
-        top: coords.bottom - frame.top + 4,
+        left: Math.max(0, anchor.left - frame.left),
+        top: anchor.bottom - frame.top + 4,
       };
     }
 
-    function editChord(id: string) {
+    function editChord(id: string, anchor: Anchor) {
       const found = findChord(view.state.doc, id);
       if (!found) return;
-      openInput(
-        { kind: "edit", id, ...placeBelow(found.pos) },
-        found.chord.chord,
-      );
+      openInput({ kind: "edit", id, ...placeBelow(anchor) }, found.chord.chord);
     }
 
     // Ctrl+K or Cmd+K edits the first chord on the letter after the caret,
     // or adds one if it has none.
-    const onChordShortcut = (pos: number) => {
+    const onChordShortcut = (pos: number, anchor: Anchor) => {
       const [first] = chordsAt(view.state.doc, pos);
-      if (first) editChord(first.id);
-      else openInput({ kind: "new", pos, ...placeBelow(pos) }, "");
+      if (first) editChord(first.id, anchor);
+      else openInput({ kind: "new", pos, ...placeBelow(anchor) }, "");
     };
 
     const view = new EditorView(mount, {
       state: createEditorState(docFromSheet(sheetRef.current), {
+        toolbar: toolbarRef.current ?? undefined,
+        // Rendered right away: the editor places the toolbar right after
+        // this, and the old buttons must not show in the new place.
+        onSectionToolbar: (next) => {
+          flushSync(() => {
+            setToolbar(next);
+          });
+        },
+        compact,
         onChordShortcut,
         onChordClick: editChord,
-        // A click below the lyrics adds a chord to the letter above it.
-        onAddChord: (pos) => {
-          openInput({ kind: "new", pos, ...placeBelow(pos) }, "");
+        // A click below the lyrics adds a chord to the letter above it, and
+        // so does "Add chord" in the toolbar, at the caret.
+        onAddChord: (pos, anchor) => {
+          openInput({ kind: "new", pos, ...placeBelow(anchor) }, "");
         },
         // Dragging a chord cancels the chord input.
         onDragStart: () => {
@@ -193,6 +216,16 @@ export function SheetEditor({
   return (
     <div className="sheet-editor" ref={frameRef}>
       <div className="chord-editor" ref={mountRef} data-testid="editor" />
+      <SectionToolbar
+        ref={toolbarRef}
+        state={toolbar}
+        onAddChord={() => {
+          if (viewRef.current) addChordAtCaret(viewRef.current);
+        }}
+        onMove={(direction) => {
+          if (viewRef.current) moveActiveSection(viewRef.current, direction);
+        }}
+      />
       {chordInput && (
         <form
           ref={formRef}
@@ -203,26 +236,30 @@ export function SheetEditor({
             commitInput();
           }}
         >
-          <input
-            ref={inputRef}
-            aria-label="Chord"
-            autoCapitalize="off"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") closeInput();
-            }}
-          />
-          <button type="submit">OK</button>
-          {chordInput.kind === "edit" && (
-            <button type="button" onClick={deleteChord}>
-              Delete
-            </button>
-          )}
-          <button type="button" onClick={closeInput}>
-            Cancel
-          </button>
+          <Popover>
+            <input
+              ref={inputRef}
+              aria-label="Chord"
+              autoCapitalize="off"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") closeInput();
+              }}
+            />
+            <Button type="submit" size="small">
+              OK
+            </Button>
+            {chordInput.kind === "edit" && (
+              <Button variant="text" size="small" onClick={deleteChord}>
+                Delete
+              </Button>
+            )}
+            <Button variant="text" size="small" onClick={closeInput}>
+              Cancel
+            </Button>
+          </Popover>
         </form>
       )}
     </div>

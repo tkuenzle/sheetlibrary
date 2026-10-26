@@ -281,8 +281,8 @@ test.describe("adding and editing chords", () => {
   test("edits the chord at the caret with the keyboard", async ({ page }) => {
     await clickChar(page, "before", "me");
     await page.keyboard.press("ControlOrMeta+k");
-    await expect(page.getByLabel("Chord")).toHaveValue("D");
-    await page.getByLabel("Chord").fill("D7");
+    await expect(chordInput(page)).toHaveValue("D");
+    await chordInput(page).fill("D7");
     await page.keyboard.press("Enter");
     expect((await firstSection(page))[1]).toBe(
       "That saved a wretch like [D7]me",
@@ -292,9 +292,9 @@ test.describe("adding and editing chords", () => {
   test("closes the chord input with Escape", async ({ page }) => {
     await clickChar(page, "before", "wretch");
     await page.keyboard.press("ControlOrMeta+k");
-    await expect(page.getByLabel("Chord")).toBeFocused();
+    await expect(chordInput(page)).toBeFocused();
     await page.keyboard.press("Escape");
-    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await expect(chordInput(page)).toHaveCount(0);
     await page.keyboard.type("x");
     expect((await firstSection(page))[1]).toBe(
       "That saved a xwretch like [D]me",
@@ -306,7 +306,7 @@ test.describe("adding and editing chords", () => {
   }) => {
     await clickChar(page, "before", "Amazing");
     await clickLabel(page, "G7");
-    await page.getByLabel("Chord").fill("C");
+    await chordInput(page).fill("C");
     await page.getByRole("button", { name: "OK" }).click();
     await clickLabel(page, "D");
     await page.getByRole("button", { name: "Delete" }).click();
@@ -322,7 +322,7 @@ test.describe("adding and editing chords", () => {
     for (const button of ["Cancel", "OK"]) {
       await clickLabel(page, "G7");
       await page.getByRole("button", { name: button }).click();
-      await expect(page.getByLabel("Chord")).toHaveCount(0);
+      await expect(chordInput(page)).toHaveCount(0);
       await expect(activeSection(page)).toContainText("Amazing grace");
       await expect(page.locator(".chord-label.is-dimmed")).toHaveCount(12);
     }
@@ -353,9 +353,9 @@ test.describe("adding and editing chords", () => {
       page.mouse.click(box.x + box.width / 2, box.y + box.height / 2),
     );
     await expect(activeSection(page)).toContainText("'Twas grace");
-    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await expect(chordInput(page)).toHaveCount(0);
     await clickLabel(page, "Cmaj7");
-    await expect(page.getByLabel("Chord")).toHaveValue("Cmaj7");
+    await expect(chordInput(page)).toHaveValue("Cmaj7");
   });
 });
 
@@ -417,7 +417,7 @@ test.describe("adding chords by mouse", () => {
     await clickChar(page, "before", "Amazing");
     const e = await charBox(page, "me", 1);
     await page.mouse.click(e.right + 20, e.bottom + 6);
-    await page.getByLabel("Chord").fill("A");
+    await chordInput(page).fill("A");
     await page.keyboard.press("Enter");
     expect((await firstSection(page))[1]).toBe(
       "That saved a wretch like [D]me[A]",
@@ -426,7 +426,7 @@ test.describe("adding chords by mouse", () => {
 
   test("places the caret on a click on the lyrics", async ({ page }) => {
     await clickChar(page, "before", "wretch");
-    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await expect(chordInput(page)).toHaveCount(0);
     await page.keyboard.type("X");
     expect((await firstSection(page))[1]).toBe(
       "That saved a Xwretch like [D]me",
@@ -443,7 +443,7 @@ test.describe("tapping below the lyrics", () => {
       page.touchscreen.tap(r.left + 1, r.bottom + 6),
     );
     await expect(page.locator(".chord-add")).toHaveCount(0);
-    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await expect(chordInput(page)).toHaveCount(0);
     await page.keyboard.type("X");
     expect((await firstSection(page))[1]).toBe(
       "That saved a wXretch like [D]me",
@@ -544,7 +544,7 @@ test.describe("finishing a section", () => {
     await clickChar(page, "after", "sound", 4);
     await page.keyboard.press("Enter");
     await page.keyboard.press("ControlOrMeta+k");
-    await expect(page.getByLabel("Chord")).toBeFocused();
+    await expect(chordInput(page)).toBeFocused();
     await expect(activeSection(page)).toContainText("Amazing grace");
     await expect(linesOf(page, 0)).toHaveCount(5);
     await page.keyboard.press("Escape");
@@ -636,11 +636,11 @@ test.describe("dragging chords", () => {
     await clickChar(page, "before", "Amazing");
     // The input opens below its chord, so use one below the dragged chord.
     await clickLabel(page, "Em");
-    await page.getByLabel("Chord").fill("Am");
+    await chordInput(page).fill("Am");
     const target = await charBox(page, "wretch", 0);
     const drag = await startDrag(page, label(page, "D"), isPhone(testInfo));
     await drag.moveLabelTo(target.left, target.top - drag.height);
-    await expect(page.getByLabel("Chord")).toHaveCount(0);
+    await expect(chordInput(page)).toHaveCount(0);
     await drag.release();
     const [lines = []] = await handBack(page);
     expect(lines[1]).toBe("That saved a [D]wretch like me");
@@ -747,6 +747,27 @@ test.describe("dragging by touch", () => {
     await drag.release();
   });
 
+  test("lifts the label at once with reduced motion", async ({
+    page,
+  }, testInfo) => {
+    test.skip(!isPhone(testInfo), "touch only");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await clickChar(page, "before", "Amazing");
+    const chord = label(page, "D");
+    const before = await box(chord);
+    const drag = await startDrag(page, chord, true);
+    expect(
+      await chord.evaluate(
+        (label) => getComputedStyle(label).transitionDuration,
+      ),
+    ).toBe("0s");
+    expect((await box(chord)).y).toBeCloseTo(
+      before.y - (await liftOf(page)),
+      0,
+    );
+    await drag.release();
+  });
+
   test("drops on the letter under the label, not under the finger", async ({
     page,
   }, testInfo) => {
@@ -808,8 +829,76 @@ test.describe("dragging by touch", () => {
   });
 });
 
+test.describe("section numbers", () => {
+  test("follow the order of the sections", async ({ page }) => {
+    await splitAfterMe(page);
+    await expect
+      .poll(() => sectionStarts(page))
+      .toEqual([
+        "Section 1 Amazing grace, how sweet the sound",
+        "Section 2 I once was lost, but now am found",
+        "Section 3 'Twas grace that taught my heart to fear",
+      ]);
+    await place(page, "Was", 0);
+    await press(page, moveButton(page, "up"));
+    await expect
+      .poll(() => sectionStarts(page))
+      .toEqual([
+        "Section 1 I once was lost, but now am found",
+        "Section 2 Amazing grace, how sweet the sound",
+        "Section 3 'Twas grace that taught my heart to fear",
+      ]);
+  });
+
+  test("sit above the lyrics on a phone and beside them on a tablet", async ({
+    page,
+  }, testInfo) => {
+    test.skip(!isPhone(testInfo), "touch only");
+    await tapChar(page, "Twas", 0);
+    expect(await badgePlace(page)).toBe("above");
+    // Wider than a phone, so the docked toolbar is centered too.
+    await page.setViewportSize({ width: 620, height: 1112 });
+    await nextLayout(page);
+    // Still docked, as on a tablet.
+    await expect(toolbar(page)).toContainText("Move");
+    expect(await badgePlace(page)).toBe("beside");
+  });
+
+  test("don't take the caret", async ({ page }) => {
+    await clickChar(page, "before", "Twas");
+    await page.keyboard.press("Home");
+    await afterSelectionChange(page, () => page.keyboard.press("ArrowLeft"));
+    await expect(activeSection(page)).toContainText("Amazing");
+    await page.keyboard.type("X");
+    expect((await firstSection(page))[3]).toBe(
+      "Was [Em]blind, but [D]now I [G]seeX",
+    );
+  });
+});
+
+test.describe("forced colors", () => {
+  test.use({ forcedColors: "active" });
+
+  test("keeps an outline on the selected chord only", async ({ page }) => {
+    await place(page, "Amazing", 0);
+    await press(page, label(page, "G7"));
+    await expect(chordInput(page)).toBeFocused();
+    const outlines = await page
+      .locator(".chord-label")
+      .evaluateAll((labels) =>
+        labels.map((label) => [
+          label.textContent,
+          getComputedStyle(label).outlineStyle,
+        ]),
+      );
+    expect(outlines.filter(([, style]) => style !== "none")).toEqual([
+      ["G7", "solid"],
+    ]);
+  });
+});
+
 test.describe("the section toolbar", () => {
-  test("shows above the active section only, with a mouse", async ({
+  test("shows beside the active section only, with a mouse", async ({
     page,
   }) => {
     test.skip(await isTouch(page), "Needs a mouse");
@@ -817,10 +906,11 @@ test.describe("the section toolbar", () => {
     await clickChar(page, "before", "Twas");
     const section = await box(activeSection(page));
     const bar = await box(toolbar(page));
-    const firstLine = await box(activeSection(page).locator(".line").first());
-    expect(bar.y).toBeGreaterThanOrEqual(section.y - 1);
-    expect(bar.y + bar.height).toBeLessThanOrEqual(firstLine.y + 1);
-    expect(bar.height).toBeGreaterThanOrEqual(44);
+    expect(bar.x + bar.width).toBeLessThanOrEqual(section.x);
+    expect(Math.abs(bar.y - section.y)).toBeLessThan(1);
+    for (const button of await toolbar(page).getByRole("button").all()) {
+      expect((await box(button)).height).toBeGreaterThanOrEqual(44);
+    }
     await expect(addChordButton(page)).toBeVisible();
     await expect(moveButton(page, "up")).toBeEnabled();
     await expect(moveButton(page, "down")).toBeDisabled();
@@ -830,18 +920,108 @@ test.describe("the section toolbar", () => {
     expect((await box(toolbar(page))).y).toBe(bar.y);
   });
 
+  test("shows its button's name in a tooltip, with a mouse", async ({
+    page,
+  }) => {
+    test.skip(await isTouch(page), "Needs a mouse");
+    await clickChar(page, "before", "Twas");
+    await addChordButton(page).hover();
+    const tooltip = page.locator(".tooltip", { hasText: "Add chord" });
+    await expect(tooltip).toBeVisible();
+    const bar = await box(toolbar(page));
+    expect((await box(tooltip)).x).toBeGreaterThanOrEqual(bar.x + bar.width);
+  });
+
+  test("stays in view while a tall section scrolls, with a mouse", async ({
+    page,
+  }) => {
+    test.skip(await isTouch(page), "Needs a mouse");
+    await clickChar(page, "before", "Twas");
+    await page.setViewportSize({ width: 1000, height: 260 });
+    const section = activeSection(page);
+    // Scrolls the section's last line to the bottom of the window.
+    await page.evaluate(() => {
+      const lines = document.querySelectorAll(".section.is-active .line");
+      lines[lines.length - 1]?.scrollIntoView({ block: "end" });
+    });
+    await nextLayout(page);
+    const bar = await box(toolbar(page));
+    const around = await box(section);
+    expect(around.y).toBeLessThan(0);
+    expect(bar.y).toBeGreaterThanOrEqual(0);
+    expect(bar.y + bar.height).toBeLessThanOrEqual(260);
+    expect(bar.y + bar.height).toBeLessThanOrEqual(
+      around.y + around.height + 1,
+    );
+    expect(bar.x + bar.width).toBeLessThanOrEqual(around.x);
+  });
+
+  test("is docked in a narrow window, with a mouse", async ({ page }) => {
+    test.skip(await isTouch(page), "Needs a mouse");
+    await page.setViewportSize({ width: 600, height: 800 });
+    await clickChar(page, "before", "Twas");
+    const bar = await box(toolbar(page));
+    const gap = 800 - (bar.y + bar.height);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThan(20);
+    await expect(toolbar(page)).toContainText("Move");
+  });
+
+  test("docks and undocks without a frame in between", async ({ page }) => {
+    test.skip(await isTouch(page), "Needs a mouse");
+    await page.setViewportSize({ width: 700, height: 800 });
+    await clickChar(page, "before", "Twas");
+    // Each frame, whether the toolbar is docked and how it is laid out:
+    // the vertical one beside the section, or the wide one docked.
+    await page.evaluate(() => {
+      const frames: string[] = [];
+      Object.assign(window, { toolbarFrames: frames });
+      const log = () => {
+        const track = document.querySelector("[data-section-toolbar]");
+        const bar = track?.querySelector("[role=toolbar]");
+        if (track && bar) {
+          const { width, height } = bar.getBoundingClientRect();
+          const docked = track.hasAttribute("data-docked");
+          frames.push(
+            `${docked ? "docked" : "beside"} ${width > height ? "wide" : "tall"}`,
+          );
+        }
+        requestAnimationFrame(log);
+      };
+      requestAnimationFrame(log);
+    });
+    for (const width of [640, 700]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.waitForTimeout(150);
+    }
+    const frames = await page.evaluate(
+      () => (window as unknown as { toolbarFrames: string[] }).toolbarFrames,
+    );
+    expect(new Set(frames)).toEqual(new Set(["beside tall", "docked wide"]));
+  });
+
+  test("labels the move buttons when docked", async ({ page }) => {
+    test.skip(!(await isTouch(page)), "Needs touch");
+    await tapChar(page, "Twas", 0);
+    await expect(toolbar(page)).toContainText("Move");
+    await expect(toolbar(page)).not.toContainText("of 2");
+    await expect(
+      page.getByRole("toolbar", { name: "Section 2 of 2" }),
+    ).toBeVisible();
+  });
+
   test("is docked at the bottom of the window on touch", async ({ page }) => {
     test.skip(!(await isTouch(page)), "Needs touch");
     await tapChar(page, "Twas", 0);
     const height = page.viewportSize()?.height ?? 0;
     const atBottom = async () => {
       const bar = await box(toolbar(page));
-      expect(Math.abs(bar.y + bar.height - height)).toBeLessThan(1);
+      const gap = height - (bar.y + bar.height);
+      expect(gap).toBeGreaterThanOrEqual(0);
+      expect(gap).toBeLessThan(20);
     };
     await atBottom();
-    expect(
-      await addChordButton(page).evaluate((b: HTMLElement) => b.offsetHeight),
-    ).toBe(44);
+    expect((await box(addChordButton(page))).height).toBeGreaterThanOrEqual(44);
     await page.evaluate(() => {
       window.scrollBy(0, 80);
     });
@@ -888,8 +1068,13 @@ test.describe("the section toolbar", () => {
       input.y - (bar.y + 4),
     );
     await nextLayout(page);
-    const x = input.x + input.width / 2;
-    const y = (await box(toolbar(page))).y + 20;
+    // A point on a button of the toolbar, above the chord input.
+    const button = await box(addChordButton(page));
+    const x = Math.max(input.x, button.x) + 4;
+    expect(x).toBeLessThan(
+      Math.min(input.x + input.width, button.x + button.width),
+    );
+    const y = button.y + 20;
     expect(
       await page.evaluate(
         ([x, y]) =>
@@ -983,7 +1168,7 @@ test.describe("the section toolbar", () => {
   }) => {
     await place(page, "wretch", 1);
     await press(page, addChordButton(page));
-    await page.getByLabel("Chord").fill("Am");
+    await chordInput(page).fill("Am");
     await page.keyboard.press("Enter");
     const r = await charBox(page, "wretch", 1);
     const am = await box(label(page, "Am"));
@@ -1001,7 +1186,7 @@ test.describe("the section toolbar", () => {
   test("adds a chord after the chords on a letter", async ({ page }) => {
     await place(page, "grace", 0);
     await press(page, addChordButton(page));
-    await page.getByLabel("Chord").fill("C");
+    await chordInput(page).fill("C");
     await page.keyboard.press("Enter");
     expect((await firstSection(page))[0]).toBe(
       "[G]Amazing [G7][C]grace, how [C]sweet the [G]sound",
@@ -1015,13 +1200,67 @@ test.describe("the section toolbar", () => {
       page.keyboard.press("Shift+ArrowRight"),
     );
     await press(page, addChordButton(page));
-    await page.getByLabel("Chord").fill("Am");
+    await chordInput(page).fill("Am");
     await page.keyboard.press("Enter");
     expect((await firstSection(page))[1]).toBe(
       "That saved a wr[Am]etch like [D]me",
     );
   });
 });
+
+// What a screen reader reads first in each section, its number, followed by
+// the section's first line.
+async function sectionStarts(page: Page) {
+  interface AXNode {
+    nodeId: string;
+    backendDOMNodeId?: number;
+    childIds?: string[];
+    name?: { value: string };
+  }
+  const cdp = await page.context().newCDPSession(page);
+  const { root } = await cdp.send("DOM.getDocument", { depth: 0 });
+  const { nodeIds } = await cdp.send("DOM.querySelectorAll", {
+    nodeId: root.nodeId,
+    selector: ".section",
+  });
+  const starts = [];
+  for (const nodeId of nodeIds) {
+    const { node } = await cdp.send("DOM.describeNode", { nodeId });
+    const { nodes } = (await cdp.send("Accessibility.getPartialAXTree", {
+      nodeId,
+      fetchRelatives: true,
+    })) as { nodes: AXNode[] };
+    const section = nodes.find(
+      (ax) => ax.backendDOMNodeId === node.backendNodeId,
+    );
+    const first = nodes.find((ax) => ax.nodeId === section?.childIds?.[0]);
+    const { object } = await cdp.send("DOM.resolveNode", { nodeId });
+    const { result } = await cdp.send("Runtime.callFunctionOn", {
+      objectId: object.objectId,
+      functionDeclaration:
+        "function () { return this.querySelector('.line').textContent; }",
+      returnByValue: true,
+    });
+    starts.push(`${first?.name?.value ?? ""} ${String(result.value)}`);
+  }
+  await cdp.detach();
+  return starts;
+}
+
+// Where the active section's badge sits: left of its lyrics, or above them.
+function badgePlace(page: Page) {
+  return activeSection(page).evaluate((section) => {
+    const style = getComputedStyle(section, "::before");
+    const box = section.getBoundingClientRect();
+    const left = box.left + parseFloat(style.left);
+    const top = box.top + parseFloat(style.top);
+    const line = section.querySelector(".line")?.getBoundingClientRect();
+    if (!line) return "no line";
+    if (left + parseFloat(style.width) <= line.left) return "beside";
+    if (top + parseFloat(style.height) <= line.top) return "above";
+    return "overlapping";
+  });
+}
 
 function activeSection(page: Page) {
   return page.locator(".section.is-active");
@@ -1032,7 +1271,12 @@ function toolbar(page: Page) {
 }
 
 function addChordButton(page: Page) {
-  return toolbar(page).getByRole("button", { name: "+ Chord" });
+  return toolbar(page).getByRole("button", { name: "Add chord" });
+}
+
+// The chord input's text field. "Add chord" buttons also match "Chord".
+function chordInput(page: Page) {
+  return page.getByLabel("Chord", { exact: true });
 }
 
 function moveButton(page: Page, direction: "up" | "down") {
@@ -1042,7 +1286,7 @@ function moveButton(page: Page, direction: "up" | "down") {
 }
 
 // Whether the page's main pointer is a finger, as on the phone project. The
-// toolbar uses the same rule.
+// toolbar docks then, and also in a narrow window.
 function isTouch(page: Page) {
   return page.evaluate(() => matchMedia("(pointer: coarse)").matches);
 }
@@ -1229,7 +1473,7 @@ async function addChord(
 ) {
   await clickChar(page, "before", needle, offset);
   await page.keyboard.press("ControlOrMeta+k");
-  await page.getByLabel("Chord").fill(chord);
+  await chordInput(page).fill(chord);
   await page.keyboard.press("Enter");
 }
 
@@ -1252,7 +1496,7 @@ async function addBelow(
   chord: string,
 ) {
   await page.mouse.click(...(await below(page, needle, offset)));
-  await page.getByLabel("Chord").fill(chord);
+  await chordInput(page).fill(chord);
   await page.keyboard.press("Enter");
 }
 

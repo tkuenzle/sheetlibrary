@@ -9,7 +9,7 @@
 <x-dc>
 <helmet>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..600,0..1,0&amp;icon_names=add,arrow_downward,arrow_upward,help,info&amp;display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..600,0..1,0&amp;icon_names=add,arrow_downward,arrow_upward,help,info,move_down,move_up&amp;display=block">
 <style>
 :root{--page:#EBF0EB;--surface:#F6FAF6;--surface-active:#FFFFFF;--text:#171D1A;--text-muted:#404943;--text-dimmed:#646E67;--chord:#1F6B4F;--chord-dimmed:#477461;--accent:#1F6B4F;--on-accent:#FFFFFF;--accent-soft:#C8E9D6;--on-accent-soft:#0A5138;--info:#D6E7DC;--on-info:#24392D;--quiet:#DCE4DD;--on-quiet:#3A443D;--tooltip:#2C322E;--on-tooltip:#EDF2EC;--border:#DCE4DD;--shadow:rgba(23,29,26,0.16)}
 .lamp{--page:#101511;--surface:#171D19;--surface-active:#222925;--text:#DEE4DE;--text-muted:#BFC9C1;--text-dimmed:#78827B;--chord:#8ED3B1;--chord-dimmed:#5B8873;--accent:#8ED3B1;--on-accent:#00382A;--accent-soft:#1E4D3A;--on-accent-soft:#B4F0D0;--info:#2A3A30;--on-info:#CFE6D7;--quiet:#2E3530;--on-quiet:#C9D3CB;--tooltip:#DEE4DE;--on-tooltip:#2C322E;--border:#343B36;--shadow:rgba(0,0,0,0.5)}
@@ -59,8 +59,8 @@ a{color:var(--accent)}
         <div style="display: flex; justify-content: flex-end; align-items: flex-start; padding: 0 16px 0 0">
           <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border-radius: 999px; background: var(--accent-soft)">
             <button type="button" aria-label="Add chord" style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border: 0; border-radius: 28px; background: var(--accent); color: var(--on-accent)"><span class="ms" aria-hidden="true" style="font-size: 28px; font-variation-settings: 'FILL' 1, 'opsz' 28">add</span></button>
-            <button type="button" aria-label="Move section up" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; color: var(--on-accent-soft)"><span class="ms" aria-hidden="true">arrow_upward</span></button>
-            <button type="button" aria-label="Move section down" disabled style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; color: var(--on-accent-soft); opacity: 0.38"><span class="ms" aria-hidden="true">arrow_downward</span></button>
+            <button type="button" aria-label="Move section up" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; color: var(--on-accent-soft)"><span class="ms" aria-hidden="true">move_up</span></button>
+            <button type="button" aria-label="Move section down" disabled style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 0; border-radius: 24px; background: transparent; color: var(--on-accent-soft); opacity: 0.38"><span class="ms" aria-hidden="true">move_down</span></button>
           </div>
         </div>
         <section style="display: grid; grid-template-columns: 52px minmax(0, 1fr); padding: 24px 28px 30px 20px; border-radius: 28px; background: var(--surface-active)">

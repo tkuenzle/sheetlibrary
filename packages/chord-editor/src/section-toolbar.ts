@@ -1,23 +1,45 @@
 import { type EditorState, Plugin } from "prosemirror-state";
-import { Decoration, DecorationSet, type EditorView } from "prosemirror-view";
+import type { EditorView } from "prosemirror-view";
 
 import { getActiveSection } from "./active-section";
+import { type Anchor, anchorAt } from "./letter";
 import { moveSection } from "./sections";
 
 // The active section's actions in one toolbar: adding a chord at the caret
-// and moving the section. Other sections get none. With a mouse, it sits
-// above the section. On a touch device, it is docked at the bottom of the
-// visible area, above the keyboard when it is open.
+// and moving the section. The app draws the toolbar and its buttons; the
+// editor places it and says what it shows. Beside the section, the element
+// spans the section's height, so the app can keep its buttons in view with
+// `position: sticky`. In a compact layout, as on a touch device, it is
+// docked at the bottom of the visible area, above the keyboard when it is
+// open.
 
-export interface SectionToolbarOptions {
-  // "+ Chord", with the position of the caret. The app opens the chord
-  // input there.
-  onAddChord?: (pos: number) => void;
+export interface SectionToolbarState {
+  // The active section's index, counted from 0, and the number of sections.
+  index: number;
+  count: number;
+  docked: boolean;
 }
 
-// Whether the main pointer is a finger. It doesn't change with each tap, so
-// the toolbar doesn't jump between its two places.
-const touch = "(pointer: coarse)";
+export interface SectionToolbarOptions {
+  // The app's element for the toolbar. The editor writes only its inline
+  // `top`, `bottom` and `height`, and its `data-section-toolbar`,
+  // `data-docked` and `data-moving` attributes. The app hides it while
+  // there is no active section.
+  toolbar?: HTMLElement;
+  // What the toolbar shows, or null when no section is active. The editor
+  // places the toolbar right after this, in the same frame, so the app
+  // should render the change before it returns (with React, in
+  // `flushSync`). Otherwise the old content shows once in the new place.
+  onSectionToolbar?: (state: SectionToolbarState | null) => void;
+  // A media query for when the layout is compact: the toolbar docks, and the
+  // editor's element gets `data-compact`. By default, when the main pointer
+  // is a finger. It doesn't change with each tap, so the toolbar doesn't jump
+  // between its two places.
+  compact?: string;
+  // "Add chord", with the position of the caret and its letter. The app
+  // opens the chord input there.
+  onAddChord?: (pos: number, anchor: Anchor) => void;
+}
 
 // Room kept between the caret's line and the docked toolbar.
 const caretMargin = 8;
@@ -25,31 +47,28 @@ const caretMargin = 8;
 // shows again, in milliseconds.
 const settleDelay = 150;
 
+const toolbars = new WeakMap<EditorView, SectionToolbar>();
+
+// "Add chord" in the app's toolbar: opens the chord input at the caret.
+export function addChordAtCaret(view: EditorView) {
+  toolbars.get(view)?.addChord();
+}
+
+// "Move section up" or "Move section down" in the app's toolbar.
+export function moveActiveSection(view: EditorView, direction: -1 | 1) {
+  toolbars.get(view)?.move(direction);
+}
+
 export function sectionToolbar(options: SectionToolbarOptions = {}) {
   return new Plugin({
-    props: {
-      // Makes room above the active section for the toolbar, with a mouse.
-      decorations: (state) => {
-        const pos = getActiveSection(state);
-        const section = pos === null ? null : state.doc.nodeAt(pos);
-        if (pos === null || !section) return null;
-        return DecorationSet.create(state.doc, [
-          Decoration.node(pos, pos + section.nodeSize, {
-            class: "has-toolbar",
-          }),
-        ]);
-      },
-    },
     view: (view) => new SectionToolbar(view, options),
   });
 }
 
 class SectionToolbar {
-  private bar = document.createElement("div");
-  private add = button("+ Chord");
-  private up = button("↑", "Move section up");
-  private down = button("↓", "Move section down");
-  private media = window.matchMedia(touch);
+  private bar: HTMLElement | null;
+  private media: MediaQueryList;
+  private shown: SectionToolbarState | null = null;
   private settleTimer = 0;
   // Whether a finger is on the screen. While it is, the page may be held
   // past its end, about to bounce back.
@@ -59,28 +78,33 @@ class SectionToolbar {
   private observer = new ResizeObserver(() => {
     this.place();
   });
+  // And when the app shows the toolbar or changes what it holds, which it
+  // does after the editor told it to. Not by watching the toolbar's size:
+  // placing it sets its height.
+  private changes = new MutationObserver(() => {
+    this.place();
+  });
 
   constructor(
     private view: EditorView,
     private options: SectionToolbarOptions,
   ) {
-    this.bar.className = "section-toolbar";
-    this.bar.setAttribute("role", "toolbar");
-    this.bar.setAttribute("aria-label", "Section");
-    for (const element of [this.add, this.up, this.down]) {
-      this.bar.appendChild(element);
+    this.bar = options.toolbar ?? null;
+    this.media = window.matchMedia(options.compact ?? "(pointer: coarse)");
+    toolbars.set(view, this);
+    if (this.bar) {
+      this.bar.dataset.sectionToolbar = "";
       // Keeps the editor's focus, so the section stays active and the
       // keyboard stays open on phones.
-      element.addEventListener("pointerdown", keepFocus);
-      element.addEventListener("mousedown", keepFocus);
+      this.bar.addEventListener("pointerdown", keepFocus);
+      this.bar.addEventListener("mousedown", keepFocus);
+      this.changes.observe(this.bar, {
+        attributeFilter: ["hidden"],
+        childList: true,
+        subtree: true,
+      });
     }
-    this.add.addEventListener("click", this.onAdd);
-    this.up.addEventListener("click", () => {
-      this.move(-1);
-    });
-    this.down.addEventListener("click", () => {
-      this.move(1);
-    });
+    this.markCompact();
     this.media.addEventListener("change", this.onViewportChange);
     window.visualViewport?.addEventListener("resize", this.onViewportChange);
     window.visualViewport?.addEventListener("scroll", this.onViewportMove);
@@ -99,15 +123,11 @@ class SectionToolbar {
       this.hide();
       return;
     }
-    const index = state.doc.resolve(pos).index(0);
-    const single = state.doc.childCount < 2;
-    this.up.hidden = single;
-    this.down.hidden = single;
-    this.up.disabled = index === 0;
-    this.down.disabled = index === state.doc.childCount - 1;
-    if (!this.bar.isConnected) {
-      view.dom.insertAdjacentElement("afterend", this.bar);
-    }
+    this.show({
+      index: state.doc.resolve(pos).index(0),
+      count: state.doc.childCount,
+      docked: this.docked,
+    });
     this.place();
     if (
       previous &&
@@ -118,7 +138,9 @@ class SectionToolbar {
   }
 
   destroy() {
+    toolbars.delete(this.view);
     this.observer.disconnect();
+    this.changes.disconnect();
     this.media.removeEventListener("change", this.onViewportChange);
     window.visualViewport?.removeEventListener("resize", this.onViewportChange);
     window.visualViewport?.removeEventListener("scroll", this.onViewportMove);
@@ -126,18 +148,55 @@ class SectionToolbar {
     window.removeEventListener("touchstart", this.onFingerDown);
     window.removeEventListener("touchend", this.onFingerUp);
     window.removeEventListener("touchcancel", this.onFingerUp);
+    this.bar?.removeEventListener("pointerdown", keepFocus);
+    this.bar?.removeEventListener("mousedown", keepFocus);
     clearTimeout(this.settleTimer);
     this.hide();
+    delete this.view.dom.parentElement?.dataset.compact;
+  }
+
+  addChord() {
+    const { head } = this.view.state.selection;
+    this.options.onAddChord?.(head, anchorAt(this.view, head));
+  }
+
+  move(direction: -1 | 1) {
+    const before = this.bar?.getBoundingClientRect().top ?? 0;
+    if (!moveSection(direction)(this.view.state, this.view.dispatch)) return;
+    // Docked, the toolbar stays put and the update keeps the caret in view.
+    // Beside the section, it moved with it: scroll by as much, so it stays
+    // under the pointer and can be pressed again.
+    if (!this.docked && this.bar) {
+      window.scrollBy(0, this.bar.getBoundingClientRect().top - before);
+    }
   }
 
   private get docked() {
     return this.media.matches;
   }
 
+  // Tells the app what to show, when it changed.
+  private show(next: SectionToolbarState | null) {
+    if (sameState(this.shown, next)) return;
+    this.shown = next;
+    this.options.onSectionToolbar?.(next);
+  }
+
   private hide() {
-    this.bar.remove();
-    this.view.dom.parentElement?.classList.remove("has-docked-toolbar");
+    this.show(null);
+    this.bar?.style.removeProperty("top");
+    this.bar?.style.removeProperty("bottom");
+    this.bar?.style.removeProperty("height");
     this.makeRoomBelow(false);
+  }
+
+  // The editor's element gets `data-compact`, so the app's styles can follow
+  // the same rule as the toolbar.
+  private markCompact() {
+    const frame = this.view.dom.parentElement;
+    if (!frame) return;
+    if (this.docked) frame.dataset.compact = "";
+    else delete frame.dataset.compact;
   }
 
   // Docked, the toolbar covers the bottom of the window, so the page gets
@@ -146,7 +205,7 @@ class SectionToolbar {
   private makeRoomBelow(room: boolean) {
     const root = document.documentElement;
     root.classList.toggle("has-docked-section-toolbar", room);
-    if (room) {
+    if (room && this.bar) {
       root.style.setProperty(
         "--section-toolbar-height",
         `${String(this.bar.offsetHeight)}px`,
@@ -154,36 +213,41 @@ class SectionToolbar {
     } else root.style.removeProperty("--section-toolbar-height");
   }
 
-  // Above the active section, at its right edge, or docked at the bottom of
-  // the visible area. The keyboard changes the visible area, so this runs
-  // again when it does.
+  // Beside the active section, as high as it, or docked at the bottom of the
+  // visible area. The keyboard changes the visible area, so this runs again
+  // when it does. The app shows the toolbar after the editor tells it to, so
+  // until then there is nothing to place.
   private place = () => {
-    if (!this.bar.isConnected) return;
-    const frame = this.view.dom.parentElement;
-    frame?.classList.toggle("has-docked-toolbar", this.docked);
-    this.bar.classList.toggle("is-docked", this.docked);
-    this.makeRoomBelow(this.docked);
-    if (this.docked) {
+    const bar = this.bar;
+    if (!bar || this.shown === null || !isShown(bar)) return;
+    const docked = this.docked;
+    setFlag(bar, "docked", docked);
+    this.makeRoomBelow(docked);
+    if (docked) {
       // The browser keeps the toolbar at the bottom of the page's viewport
       // itself, so it doesn't lag while scrolling. On Android, the page
       // shrinks for the keyboard (see `interactive-widget` in the viewport
       // meta tag). On iOS it doesn't, so the toolbar is lifted by the part
       // of the page the keyboard covers.
-      this.bar.style.top = "";
+      setStyle(bar, "top", "");
+      setStyle(bar, "height", "");
       const keyboard = coveredByKeyboard();
-      this.bar.style.bottom = keyboard > 0 ? `${String(keyboard)}px` : "";
+      setStyle(bar, "bottom", keyboard > 0 ? `${String(keyboard)}px` : "");
       return;
     }
-    this.bar.style.bottom = "";
+    setStyle(bar, "bottom", "");
     const pos = getActiveSection(this.view.state);
     const section = pos === null ? null : this.view.nodeDOM(pos);
-    if (!(section instanceof HTMLElement) || !frame) return;
-    const top =
-      section.getBoundingClientRect().top - frame.getBoundingClientRect().top;
-    this.bar.style.top = `${String(top)}px`;
+    if (!(section instanceof HTMLElement)) return;
+    const box = section.getBoundingClientRect();
+    const origin = (bar.offsetParent ?? document.body).getBoundingClientRect();
+    setStyle(bar, "top", `${String(box.top - origin.top)}px`);
+    setStyle(bar, "height", `${String(box.height)}px`);
   };
 
   private onViewportChange = () => {
+    this.markCompact();
+    this.update(this.view, null);
     this.onViewportMove();
     this.keepCaretInView();
   };
@@ -194,10 +258,12 @@ class SectionToolbar {
   // until it is placed again. So it hides while the page or the visible
   // area moves, and shows again once both are still and no finger is down.
   private onViewportMove = () => {
-    const lifted = this.bar.style.bottom !== "";
+    const bar = this.bar;
+    if (!bar) return;
+    const lifted = bar.style.bottom !== "";
     this.place();
-    if (!this.docked || !(lifted || this.bar.style.bottom !== "")) return;
-    this.bar.classList.add("is-moving");
+    if (!this.docked || !(lifted || bar.style.bottom !== "")) return;
+    setFlag(bar, "moving", true);
     this.settle();
   };
 
@@ -206,7 +272,7 @@ class SectionToolbar {
     this.settleTimer = window.setTimeout(() => {
       if (this.fingerDown) return;
       this.place();
-      this.bar.classList.remove("is-moving");
+      if (this.bar) setFlag(this.bar, "moving", false);
     }, settleDelay);
   }
 
@@ -216,48 +282,52 @@ class SectionToolbar {
 
   private onFingerUp = (event: TouchEvent) => {
     this.fingerDown = event.touches.length > 0;
-    if (this.bar.classList.contains("is-moving")) this.settle();
+    if (this.bar?.dataset.moving !== undefined) this.settle();
   };
 
   // Docked, the toolbar covers the bottom of the visible area. Scrolls the
   // caret's line into the part above it, when it is hidden.
   private keepCaretInView() {
-    if (!this.docked || !this.bar.isConnected || !this.view.hasFocus()) {
+    const bar = this.bar;
+    if (!this.docked || !bar || !isShown(bar) || !this.view.hasFocus()) {
       return;
     }
     const caret = this.view.coordsAtPos(this.view.state.selection.head);
     const top = window.visualViewport?.offsetTop ?? 0;
-    const bottom = this.bar.getBoundingClientRect().top - caretMargin;
+    const bottom = bar.getBoundingClientRect().top - caretMargin;
     if (caret.bottom > bottom) window.scrollBy(0, caret.bottom - bottom);
     else if (caret.top < top + caretMargin) {
       window.scrollBy(0, caret.top - top - caretMargin);
     }
   }
-
-  private onAdd = () => {
-    this.options.onAddChord?.(this.view.state.selection.head);
-  };
-
-  private move(direction: -1 | 1) {
-    const before = this.bar.getBoundingClientRect().top;
-    if (!moveSection(direction)(this.view.state, this.view.dispatch)) return;
-    // Docked, the toolbar stays put and the update keeps the caret in view.
-    // Above the section, it moved with it: scroll by as much, so it stays
-    // under the pointer and can be pressed again.
-    if (!this.docked) {
-      window.scrollBy(0, this.bar.getBoundingClientRect().top - before);
-    }
-  }
 }
 
-function button(text: string, name?: string) {
-  const element = document.createElement("button");
-  element.type = "button";
-  element.className = "section-toolbar-button";
-  element.textContent = text;
-  element.tabIndex = -1;
-  if (name) element.setAttribute("aria-label", name);
-  return element;
+// Writes an inline style only when it changes, so placing the toolbar again
+// doesn't make the browser lay out the page again for nothing.
+function setStyle(
+  element: HTMLElement,
+  name: "top" | "bottom" | "height",
+  value: string,
+) {
+  if (element.style[name] !== value) element.style[name] = value;
+}
+
+function setFlag(element: HTMLElement, name: "docked" | "moving", on: boolean) {
+  element.toggleAttribute(`data-${name}`, on);
+}
+
+function sameState(
+  a: SectionToolbarState | null,
+  b: SectionToolbarState | null,
+) {
+  if (!a || !b) return a === b;
+  return a.index === b.index && a.count === b.count && a.docked === b.docked;
+}
+
+// Whether the app shows the toolbar. Docked, it is fixed, so it has no
+// offset parent.
+function isShown(element: HTMLElement) {
+  return element.getClientRects().length > 0;
 }
 
 // How much of the bottom of the page's viewport is hidden, by the keyboard
