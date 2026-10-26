@@ -860,7 +860,7 @@ test.describe("section numbers", () => {
     await page.setViewportSize({ width: 620, height: 1112 });
     await nextLayout(page);
     // Still docked, as on a tablet.
-    await expect(toolbar(page)).toContainText("2 of 2");
+    await expect(toolbar(page)).toContainText("Move");
     expect(await badgePlace(page)).toBe("beside");
   });
 
@@ -964,18 +964,17 @@ test.describe("the section toolbar", () => {
     const gap = 800 - (bar.y + bar.height);
     expect(gap).toBeGreaterThanOrEqual(0);
     expect(gap).toBeLessThan(20);
-    await expect(toolbar(page)).toContainText("2 of 2");
+    await expect(toolbar(page)).toContainText("Move");
   });
 
-  test("shows the section's place when docked", async ({ page }) => {
+  test("labels the move buttons when docked", async ({ page }) => {
     test.skip(!(await isTouch(page)), "Needs touch");
     await tapChar(page, "Twas", 0);
-    await expect(toolbar(page)).toContainText("2 of 2");
+    await expect(toolbar(page)).toContainText("Move");
+    await expect(toolbar(page)).not.toContainText("of 2");
     await expect(
       page.getByRole("toolbar", { name: "Section 2 of 2" }),
     ).toBeVisible();
-    await tapChar(page, "Amazing", 0);
-    await expect(toolbar(page)).toContainText("1 of 2");
   });
 
   test("is docked at the bottom of the window on touch", async ({ page }) => {

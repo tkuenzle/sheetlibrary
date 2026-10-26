@@ -29,7 +29,7 @@
   padding: 0 var(--space-l) var(--space-m);
 }
 
-/* Docked: a pill with the section's place and the moves, and "Chord". */
+/* Docked: a pill with "Move" and the move buttons, and "Chord". */
 .toolbar.section-toolbar-docked {
   display: flex;
   justify-content: center;
@@ -57,7 +57,7 @@
   outline: 1px solid transparent;
 }
 
-.section-toolbar-count {
+.section-toolbar-label {
   margin-right: var(--space-s);
   font: 700 15px / 1 var(--font);
   white-space: nowrap;

@@ -101,12 +101,12 @@ function Style({ theme, name }: { theme: string; name: string }) {
               tooltipPlacement="right"
             />
             <IconButton
-              icon="arrowUpward"
+              icon="moveUp"
               label="Move section up"
               tooltipPlacement="right"
             />
             <IconButton
-              icon="arrowDownward"
+              icon="moveDown"
               label="Move section down"
               tooltipPlacement="right"
               disabled
@@ -121,12 +121,12 @@ function Style({ theme, name }: { theme: string; name: string }) {
         <div className="design-row">
           <Toolbar label="Section, docked">
             <IconButton
-              icon="arrowUpward"
+              icon="moveUp"
               label="Move section up"
               tooltipPlacement="top"
             />
             <IconButton
-              icon="arrowDownward"
+              icon="moveDown"
               label="Move section down"
               tooltipPlacement="top"
             />

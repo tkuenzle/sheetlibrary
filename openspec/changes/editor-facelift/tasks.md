@@ -13,7 +13,8 @@
 - [x] 2.2 In the app, pass `(pointer: coarse), (max-width: …)` with the width where the left margin no longer fits, and reserve the margin when not compact. Verify an e2e test: with a mouse in a narrow window the toolbar is docked.
 - [x] 2.3 Style the toolbar beside the section as a vertical pill with the large "Add chord" button and tooltips to the right. Verify e2e tests: the toolbar is left of the active section, and resting on its first button shows "Add chord".
 - [x] 2.4 Keep the toolbar in the window while a tall active section scrolls, never past the section's bottom. Verify an e2e test in a short window: scrolled to the section's last line, the toolbar is in view and next to the section; "Pressing move again" still passes.
-- [x] 2.5 Style the docked toolbar as in the mockups: a pill with "2 of 2" and the move buttons, and a "Chord" button named "Add chord". Verify an e2e test on the phone project reads "2 of 2" in the second of two sections.
+- [x] 2.5 Style the docked toolbar as in the mockups: a pill with "Move" and the move buttons, and a "Chord" button named "Add chord". Verify an e2e test on the phone project finds "Move" in the docked toolbar.
+- [x] 2.6 Use the `move_up` and `move_down` icons for the move buttons, beside the section and docked, and on the `/design` page. Verify a unit test renders the move buttons with them.
 
 ## 3. Looks move to the app
 

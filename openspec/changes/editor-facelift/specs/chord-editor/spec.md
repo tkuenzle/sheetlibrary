@@ -23,11 +23,11 @@ The active section SHALL have a toolbar with "Add chord", "Move section up" and 
 - **THEN** the toolbar is in the window, next to the section
 
 ### Requirement: Docked toolbar
-On a device whose main pointer is a finger, or in a window too narrow for the margin beside the section, the section toolbar SHALL be docked at the bottom of the visible area, above the keyboard when it is open. It SHALL NOT cover the caret. Docked, it SHALL show the active section's number and the number of sections, as in "2 of 2".
+On a device whose main pointer is a finger, or in a window too narrow for the margin beside the section, the section toolbar SHALL be docked at the bottom of the visible area, above the keyboard when it is open. It SHALL NOT cover the caret. Docked, its move buttons SHALL sit next to the word "Move", so they don't read as a way to step through the sections.
 
 #### Scenario: Touch
 - **WHEN** the user taps a letter in the second of two sections on a phone
-- **THEN** the toolbar shows "2 of 2" at the bottom of the visible area, and the caret's line is above it
+- **THEN** the toolbar shows "Move" and the move buttons at the bottom of the visible area, and the caret's line is above it
 
 #### Scenario: Narrow window
 - **WHEN** the user clicks into a section with a mouse in a window too narrow for the margin

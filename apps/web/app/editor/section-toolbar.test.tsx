@@ -1,6 +1,7 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { iconPaths } from "../ui/icons";
 import { SectionToolbar } from "./section-toolbar";
 
 function nothing() {
@@ -33,12 +34,31 @@ describe("SectionToolbar", () => {
     const html = render({ index: 0, count: 1, docked: false });
     expect(button(html, "Add chord")).toBeDefined();
     expect(button(html, "Move section up")).toBeUndefined();
+    expect(render({ index: 0, count: 1, docked: true })).not.toContain("Move");
   });
 
-  it("shows the section's place when docked", () => {
+  it("uses the move icons, not plain arrows", () => {
+    for (const docked of [false, true]) {
+      const html = render({ index: 1, count: 3, docked });
+      expect(html).toMatch(
+        new RegExp(
+          `aria-label="Move section up"[^>]*><svg[^>]*><path d="${iconPaths.moveUp}"`,
+        ),
+      );
+      expect(html).toMatch(
+        new RegExp(
+          `aria-label="Move section down"[^>]*><svg[^>]*><path d="${iconPaths.moveDown}"`,
+        ),
+      );
+    }
+  });
+
+  it("labels the move buttons when docked", () => {
     const html = render({ index: 1, count: 2, docked: true });
     expect(html).toContain('aria-label="Section 2 of 2"');
-    expect(html).toContain("2<!-- --> of <!-- -->2");
+    expect(html).toMatch(/>Move<\/span>/);
+    // The section's place is only in the toolbar's name, not shown.
+    expect(html).not.toMatch(/>[^<]*\bof\b/);
     expect(html).toMatch(/aria-label="Add chord"[^>]*>.*?Chord<\/button>/);
     expect(button(html, "Move section down")).toContain("disabled");
   });

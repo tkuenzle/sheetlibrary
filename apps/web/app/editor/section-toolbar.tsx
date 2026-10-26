@@ -30,7 +30,7 @@ export function SectionToolbar({
   const moves = state && state.count > 1 && (
     <>
       <IconButton
-        icon="arrowUpward"
+        icon="moveUp"
         label="Move section up"
         tooltipPlacement={tooltip}
         tabIndex={-1}
@@ -40,7 +40,7 @@ export function SectionToolbar({
         }}
       />
       <IconButton
-        icon="arrowDownward"
+        icon="moveDown"
         label="Move section down"
         tooltipPlacement={tooltip}
         tabIndex={-1}
@@ -56,14 +56,16 @@ export function SectionToolbar({
     <div ref={ref} className="section-toolbar" hidden={!state}>
       {docked ? (
         <Toolbar label={label} className="section-toolbar-docked">
-          <div className="section-toolbar-pill">
-            {state && (
-              <span className="section-toolbar-count" aria-hidden="true">
-                {state.index + 1} of {state.count}
+          {moves && (
+            <div className="section-toolbar-pill">
+              {/* Says what the buttons do, so they don't read as a way to
+                  step through the sections. Their names say it already. */}
+              <span className="section-toolbar-label" aria-hidden="true">
+                Move
               </span>
-            )}
-            {moves}
-          </div>
+              {moves}
+            </div>
+          )}
           <Button
             icon="add"
             size="large"
