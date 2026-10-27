@@ -2,4 +2,3 @@ pnpm-lock.yaml
 openspec/
 .claude/
 **/.terraform/
-docs/design/

@@ -1,6 +1,6 @@
 # Design direction
 
-The look of Sheet Library, chosen in M2g's first step. The mockups are in a design canvas on claude.ai: <https://claude.ai/artifact/DcmNjZGDmLtgu7mwb8jyi5>. The canvas is the source of truth. This page sums up what was decided and why.
+The look of Sheet Library, chosen in M2g's first step. The mockups are in a design canvas on claude.ai: <https://claude.ai/artifact/DcmNjZGDmLtgu7mwb8jyi5>. The canvas is the source of truth for layout and looks. For words, `docs/ui-text.md` wins, and the canvas's text is not kept up to date. This page sums up what was decided and why.
 
 ## The direction: Workbench
 
@@ -79,7 +79,7 @@ The parts of a page are in `apps/web/app/shell/`: `TopBar` and `SidePanel`. Wher
 
 The `chord-editor` package draws what sits on the lyrics: chord labels, the "+", the dash, the drop caret and the section numbers. It keeps the layout the chord layer measures, set through a few `--chord-editor-*` properties such as the font size and line heights. It leaves the looks to the app: colors, backgrounds, corners and shadows. The app styles the state classes and data attributes the package publishes, such as `.section.is-active` or `.chord-label.is-selected`. Its stylesheet lists them all. The app's editor styles are in `apps/web/app/editor/`.
 
-Buttons, icons and UI text belong to the app. The section toolbar is a React component in the app. The package only places it, beside the section or docked, and tells the app what it shows. Each DOM element has one owner, React or the package, never both.
+Buttons, icons and UI text belong to the app; the text follows `docs/ui-text.md`. The section toolbar is a React component in the app. The package only places it, beside the section or docked, and tells the app what it shows. Each DOM element has one owner, React or the package, never both.
 
 ## Widths
 
@@ -98,7 +98,3 @@ The mockups redesign today's features. Two additions need sheet metadata, which 
 The chord input is only restyled. Its UX gets its own change later.
 
 The library list and play view are rough sketches of later screens. They only check that the foundation works beyond the editor.
-
-## Mockup files in the repo
-
-While M2g is built, copies of the canvas's `.dc.html` files live in `docs/design/`. Each M2g step refreshes them when it starts, and the last step deletes the folder. The canvas wins whenever the two differ.

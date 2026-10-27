@@ -17,6 +17,12 @@
   --chord-editor-touch-lift: how far a chord dragged by touch is lifted above
     the finger, so it and the spot where it lands can be seen
 
+  The package holds no UI text. The app passes in the words it needs:
+
+  --chord-editor-section-name: the word screen readers read before a
+    section's number, with its space, such as "Section ". Without it they
+    read only the number.
+
   Hooks on the elements the editor draws:
 
   .ProseMirror.is-editing      a section is active
@@ -71,8 +77,9 @@
 
 /*
   Each section shows its number in a badge. It is generated, so it can't
-  take the caret or be edited. Screen readers read it as "Section 2". The
-  app places it, and makes room for it with the section's padding: left of
+  take the caret or be edited. Screen readers read it as the app's
+  --chord-editor-section-name and the number, such as "Section 2". The app
+  places it, and makes room for it with the section's padding: left of
   the lyrics, or above them in a compact layout.
 */
 .chord-editor .section {
@@ -82,12 +89,25 @@
 }
 
 .chord-editor .section::before {
-  content: counter(section) / "Section " counter(section);
+  content: counter(section);
   position: absolute;
   top: 0;
   left: 0;
   user-select: none;
   pointer-events: none;
+}
+
+/*
+  Firefox can't put a counter in the alternative text and would drop the
+  whole declaration, badge and all, so it only gets the number. A second
+  declaration wouldn't do: one with var() is only dropped after it has
+  replaced the first.
+*/
+@supports (content: "a" / counter(a)) {
+  .chord-editor .section::before {
+    content: counter(section) / var(--chord-editor-section-name, "")
+      counter(section);
+  }
 }
 
 /* Chord labels sit in a layer over the editor, outside the editable text. */

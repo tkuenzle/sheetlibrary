@@ -47,7 +47,7 @@ Already in place, see `openspec/specs/`:
 
 ```
 M0 walking skeleton  ->  M1 editor spike  ->  M2 published editor  ->  later
-       done                    done
+       done                    done                  done
 ```
 
 **M0: Walking skeleton (done).** The full path from a pull request to sheetlibrary.com, with checks, previews and infrastructure in code.
@@ -59,7 +59,7 @@ M0 walking skeleton  ->  M1 editor spike  ->  M2 published editor  ->  later
 - The "chords stick to the lyrics" rule, including undo.
 - Placing chords by mouse, keyboard and touch.
 
-**M2: Published editor.** The chord sheet model and the real editor. Published as a static page with an editable public-domain seed song. No backend and no saving.
+**M2: Published editor (done).** The chord sheet model and the real editor. Published as a static page with an editable public-domain seed song. No backend and no saving.
 
 M2 is built in small steps, each with its own OpenSpec change and pull request. The editor was built without checking it on an iPhone; it was tried on Android. In M2f it was tried in the iOS Simulator, but still not on a real iPhone.
 
@@ -74,12 +74,12 @@ M2 is built in small steps, each with its own OpenSpec change and pull request. 
    - **touch-add (done):** Adding chords on phones. The native caret, with its magnifier, picks the letter. After a tap, a "+ Chord" button shows above the caret, where chords go, and opens the chord input. It shows once the caret has stopped moving and the finger is lifted, so it doesn't flicker or get in the way while the caret is dragged. On a letter with chords it adds after them. Tried on Android, and in M2f in the iOS Simulator. M2e later moved the button into the section toolbar, so it no longer floats at the caret.
 5. **M2e: Section operations (done).** The active section has a toolbar with "+ Chord", "move up" and "move down". With a mouse, it sits above the section; on a touch device, it is docked at the bottom of the visible area, above the keyboard. Dragging a section was the plan, but on a phone a section is often taller than the screen and hides the spots to drop it. The toolbar also replaced touch-add's floating "+ Chord", which collided with the move buttons. Pressing a move button again moves the section further.
 6. **M2f: Publish (done).** The editor with the seed song is at `/editor`, linked from the home page. It says it is a prototype and nothing is saved; a reload starts over. The spike and the `/sheet-editor` test page are gone. The editor's e2e tests run on a harness page that is never deployed. The editor was tried in the iOS Simulator instead of on an iPhone, since none was at hand; a real iPhone is still untested.
-7. **M2g: UI polish.** A facelift, not just new values: the layout, the toolbar and the buttons change too. The mockups are in a design canvas on claude.ai, which is the source of truth; see `docs/design-direction.md`. While M2g is built, copies of the mockups live in `docs/design/`. Each step refreshes them, and the last step deletes the folder. In five changes:
+7. **M2g: UI polish (done).** A facelift, not just new values: the layout, the toolbar and the buttons change too. The mockups are in a design canvas on claude.ai, the source for layout and looks; see `docs/design-direction.md`. The words are in `docs/ui-text.md`. In five changes:
    - **ui-direction (done):** The direction and the mockups, with no code. Workbench, styled after Material 3 Expressive: the section's tools beside the section, a side panel for help, role tokens with a light and a dark ("lamplight") style.
    - **ui-foundation (done):** The role tokens, the font and the icons, and the base components built from them: button, icon button, tooltip, toolbar, popover and note. They are React components with plain CSS, so the app's design system stays out of the `chord-editor` package. The font is served from our own site: it decides where chords sit, so it only changes with a commit, and it works offline. Icons are inline SVGs, only the ones we use. A `/design` page shows the components in both styles, only in previews and the dev server. The existing pages took on the tokens and the font, but not the new layout. The chord layer now places its labels again when the font loads.
    - **editor-facelift (done):** The editor in the new look. The active section is a sheet on the page, the others are dimmed by color, and each section has a numbered badge, read as "Section 2". The selected and the dragged chord are pills. The section toolbar is a React component in the app, beside the section, and it follows the scroll in a tall section. On touch, or in a window too narrow for it, it is docked at the bottom. Its move buttons use "move" icons, and docked they sit next to the word "Move": plain arrows next to a "2 of 2" read as stepping through the sections. The `chord-editor` package only places the toolbar, and tells the app what it shows and where to open the chord input. It keeps the layout it measures and publishes state classes and data attributes. The app styles them with the role tokens. Reduced motion and forced colors are supported. Tried in Chromium on desktop, tablet and phone sizes; Safari is still untested.
    - **page-shell (done):** The top bar, the side panel and the home page. The top bar has the site's name, linking home, and the song's title. In a window at least 1024px wide, the side panel with the prototype notice and the help sits beside the editor and stays in view; in a narrower one, a help button opens it as a modal sheet, and the notice moves above the song. The help shows touch or mouse use, after the main pointer. Leaving the editor with edits asks first, with the browser's own prompt. All layout rules use one set of widths: phone up to 640px, middle up to 1023px, wide from 1024px. The home page's sample sheet is static markup for now.
-   - **UI text:** A glossary and voice for the UI text.
+   - **ui-text (done):** A voice and a glossary for the UI text, in `docs/ui-text.md`. The voice is plain and short, without "we", "please" or "you can". The UI says sheet, cursor and edit, and the chord input has Done, Remove and Cancel. For words, the doc wins over the canvas, whose text is no longer kept up to date, and the mockup copies in the repo are gone. The section badge's word moved from `chord-editor` to the app. The badge now shows in Firefox too, where it had been missing since editor-facelift; Firefox reads it as only the number. WebKit is still untested.
 
 **Later, roughly in this order:**
 

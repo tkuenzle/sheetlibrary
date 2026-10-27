@@ -141,9 +141,9 @@ function Style({ theme, name }: { theme: string; name: string }) {
       <div>
         <h3>Popover</h3>
         <Popover>
-          <Button size="small">OK</Button>
+          <Button size="small">Done</Button>
           <Button variant="text" size="small">
-            Delete
+            Remove
           </Button>
           <Button variant="text" size="small">
             Cancel

@@ -8,6 +8,8 @@ describe("home page", () => {
     const html = renderToString(<Home />);
     expect(html).toContain("<h1>A library for your sheet music</h1>");
     expect(html).toContain("Coming soon.");
+    // The voice in docs/ui-text.md.
+    expect(html).not.toContain("you can");
   });
 
   it("has the top bar", () => {

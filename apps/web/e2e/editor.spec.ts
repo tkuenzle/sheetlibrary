@@ -213,6 +213,24 @@ test.describe("the help", () => {
     await expect(help.getByText("⌘ K", { exact: true })).toBeVisible();
   });
 
+  // The words follow docs/ui-text.md.
+  test("uses the glossary's words", async ({ page }, testInfo) => {
+    let help = helpPanel(page);
+    if (isPhone(testInfo)) {
+      await helpButton(page).click();
+      help = helpSheet(page);
+    }
+    const pointer = isPhone(testInfo) ? "Tap" : "Click";
+    await expect(
+      help.getByText("Add a chord at the cursor, or edit it"),
+    ).toBeVisible();
+    await expect(
+      help.getByText(`${pointer} a chord to edit it, drag it to move it`),
+    ).toBeVisible();
+    const text = await help.innerText();
+    expect(text).not.toMatch(/caret|change/i);
+  });
+
   test("doesn't stop editing", async ({ page }, testInfo) => {
     const line = page.locator(".ProseMirror .line").nth(4);
     if (isPhone(testInfo)) {
