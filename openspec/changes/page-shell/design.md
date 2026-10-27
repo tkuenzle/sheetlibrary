@@ -37,7 +37,7 @@ The routes are `/`, `/editor` and, in previews only, `/design`. `root.tsx` rende
 
 **"Edited" means the song differs from the seed.** `SheetEditor` takes an `onEditedChange` callback. On each change to the document, it compares the document with the one it loaded and reports when the answer changes. Undoing back to the seed song doesn't warn.
 
-**The sheet slides in from the right.** `min(360px, 100vw - 56px)` wide, full height, `--corner-large` on its left corners, `--surface` background. The backdrop uses a new `--scrim` role token: 32% of the text color in light, 50% black in lamplight, checked in the browser. With reduced motion, it appears without sliding.
+**The sheet slides in from the right, and out again.** `min(360px, 100vw - 56px)` wide, full height, `--corner-large` on its left corners, `--surface` background. The backdrop uses a new `--scrim` role token: 32% of the text color in light, 50% black in lamplight, checked in the browser. It slides out the same way before it closes: a dialog leaves the page at once when it closes, so Escape, the close button and a click on the backdrop first mark it as closing, and it closes when its animations are done. Escape is caught on keydown for this. When the window grows wide, it closes at once. With reduced motion, it appears and goes without sliding.
 
 **The home sample is static markup.** Each word with a chord is an inline-flex column with the chord above, as on the boards, using the same lyrics and chord sizes as the editor. It only uses lines with one chord per spot and no chord on a space, where this layout and the chord layer agree. Issue #23 replaces it with a read-only view from `chord-editor`.
 

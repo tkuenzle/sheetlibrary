@@ -16,6 +16,7 @@
 - [x] 3.2 Add `SidePanel` in `app/shell/`: an `<aside>` from 1024px, and below it a "How to edit" button for the top bar that opens the content in a modal `<dialog>` sheet from the right, closed by Escape, its close button, a click on the backdrop, or the window growing past 1023px. It slides in, except with reduced motion. Verify e2e tests: at 1280px the panel is beside the editor with no help button; at 900px the button opens the sheet, Escape closes it, and focus is back on the button.
 - [x] 3.3 Give the sheet and the aside an outline in forced colors, as the base components have. Verify an e2e test with `forcedColors: "active"` finds an outline on the open sheet.
 - [x] 3.4 Keep the aside in view while the page scrolls, at most as tall as the window. Verify an e2e test at 1280px in a short window: scrolled to the end, the panel is in view.
+- [x] 3.5 Slide the sheet out before it closes, by Escape, its close button or a click beside it, except with reduced motion. Verify e2e tests: with animations slowed down, the sheet is still shown while closing after Escape; with reduced motion, it closes at once.
 
 ## 4. Editor page
 

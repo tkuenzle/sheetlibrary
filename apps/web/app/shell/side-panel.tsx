@@ -34,7 +34,8 @@ export function SidePanel({
 
 // The button that opens the side panel as a modal sheet from the right, for
 // the top bar. Only shown below the wide width. The sheet's content is only
-// rendered while it is open.
+// rendered while it is open. It slides in, and slides out before it closes,
+// since a dialog leaves the page at once when it closes.
 export function SidePanelButton({
   icon,
   title,
@@ -45,6 +46,7 @@ export function SidePanelButton({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -62,6 +64,28 @@ export function SidePanelButton({
     };
   }, [open]);
 
+  // Closes once the slide out is done. With reduced motion there is no
+  // animation to wait for, so it closes at once.
+  useEffect(() => {
+    const sheet = dialog.current;
+    if (!closing || !sheet) return;
+    let cancelled = false;
+    void Promise.allSettled(
+      sheet
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.finished),
+    ).then(() => {
+      if (!cancelled) sheet.close();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [closing]);
+
+  const slideOut = () => {
+    setClosing(true);
+  };
+
   return (
     // Opening the help doesn't stop editing (see SheetEditor).
     <div className="side-panel-button" data-keeps-editing>
@@ -77,13 +101,21 @@ export function SidePanelButton({
         ref={dialog}
         className="side-panel-sheet"
         aria-labelledby={titleId}
+        data-closing={closing || undefined}
         onClose={() => {
           setOpen(false);
+          setClosing(false);
+        }}
+        // Escape slides the sheet out too, instead of closing it at once.
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          slideOut();
         }}
         // The content fills the sheet, so a click on the sheet itself was
         // on the backdrop.
         onClick={(event) => {
-          if (event.target === event.currentTarget) event.currentTarget.close();
+          if (event.target === event.currentTarget) slideOut();
         }}
       >
         {open && (
@@ -94,7 +126,7 @@ export function SidePanelButton({
                 icon="close"
                 label="Close"
                 tooltipPlacement="left"
-                onClick={() => dialog.current?.close()}
+                onClick={slideOut}
               />
             </div>
             {children}

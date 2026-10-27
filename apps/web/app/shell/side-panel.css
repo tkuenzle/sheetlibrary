@@ -79,6 +79,15 @@
   animation: side-panel-fade 200ms ease-out;
 }
 
+/* Sliding out before the sheet closes (see SidePanelButton). */
+.side-panel-sheet[data-closing] {
+  animation: side-panel-out 150ms ease-in forwards;
+}
+
+.side-panel-sheet[data-closing]::backdrop {
+  animation: side-panel-fade-out 150ms ease-in forwards;
+}
+
 @keyframes side-panel-in {
   from {
     translate: 100% 0;
@@ -91,9 +100,23 @@
   }
 }
 
+@keyframes side-panel-out {
+  to {
+    translate: 100% 0;
+  }
+}
+
+@keyframes side-panel-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .side-panel-sheet[open],
-  .side-panel-sheet[open]::backdrop {
+  .side-panel-sheet[open]::backdrop,
+  .side-panel-sheet[data-closing],
+  .side-panel-sheet[data-closing]::backdrop {
     animation: none;
   }
 }

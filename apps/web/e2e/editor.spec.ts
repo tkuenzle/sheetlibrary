@@ -161,6 +161,32 @@ test.describe("the help", () => {
     await expect(helpSheet(page)).toBeHidden();
   });
 
+  test("slides out before it closes", async ({ page }, testInfo) => {
+    if (!isPhone(testInfo)) {
+      await page.setViewportSize({ width: 900, height: 800 });
+    }
+    await slowAnimations(page);
+    await helpButton(page).click();
+    await expect(helpSheet(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(helpSheet(page)).toHaveAttribute("data-closing");
+    await expect(helpSheet(page)).toBeVisible();
+    await expect(helpSheet(page)).toBeHidden();
+  });
+
+  test("closes at once with reduced motion", async ({ page }, testInfo) => {
+    if (!isPhone(testInfo)) {
+      await page.setViewportSize({ width: 900, height: 800 });
+    }
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await slowAnimations(page);
+    await helpButton(page).click();
+    await expect(helpSheet(page)).toBeVisible();
+    await helpSheet(page).getByRole("button", { name: "Close" }).click();
+    // A slide out would take 1.5 seconds at a tenth of the speed.
+    await expect(helpSheet(page)).toBeHidden({ timeout: 500 });
+  });
+
   test("moves beside the editor when the window gets wide", async ({
     page,
   }, testInfo) => {
@@ -255,6 +281,13 @@ async function typeAtEnd(page: Page, text: string) {
 
 function homeLink(page: Page) {
   return page.getByRole("banner").getByRole("link", { name: "Sheet Library" });
+}
+
+// Plays CSS animations at a tenth of their speed, so a test can see them.
+async function slowAnimations(page: Page) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Animation.enable");
+  await cdp.send("Animation.setPlaybackRate", { playbackRate: 0.1 });
 }
 
 function isPhone(testInfo: { project: { name: string } }) {
