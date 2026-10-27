@@ -8,7 +8,7 @@ Sheet Library is a web app for keeping your sheets in one place:
 - **Editing**: write and edit sheets right in the app.
 - **Collections and sets**: group sheets into collections, and put together ordered sets, e.g. for a gig or rehearsal.
 
-Status: early development. See the [roadmap](docs/roadmap.md) for where it's heading.
+Status: early development. The [milestones](https://github.com/tkuenzle/sheetlibrary/milestones) show where it's heading.
 
 ## Development
 
