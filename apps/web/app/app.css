@@ -7,16 +7,11 @@
 }
 
 body {
+  margin: 0;
   background: var(--page);
   color: var(--text);
 }
 
 a {
   color: var(--accent);
-}
-
-main {
-  max-width: 40rem;
-  margin: 20vh auto 0;
-  padding: 0 1rem;
 }

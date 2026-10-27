@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 // The public editor page. The editor itself is tested on the harness
 // (sheet-editor.spec.ts).
@@ -13,7 +13,7 @@ function firstLine(page: Page) {
 }
 
 test("shows the seed song with its chords", async ({ page }) => {
-  await expect(page).toHaveTitle("Chord editor | Sheet Library");
+  await expect(page).toHaveTitle("Amazing Grace | Sheet Library");
   await expect(firstLine(page)).toHaveText(
     "Amazing grace, how sweet the sound",
   );
@@ -21,28 +21,86 @@ test("shows the seed song with its chords", async ({ page }) => {
 });
 
 test("starts over after a reload", async ({ page }) => {
-  // A click past the end of the text puts the caret at the end of the line.
-  // End doesn't work on a phone when the docked toolbar is shown and the
-  // page scrolls.
-  const box = await firstLine(page).boundingBox();
-  if (!box) throw new Error("The first line is not shown");
-  await firstLine(page).click({
-    position: { x: box.width - 2, y: box.height / 2 },
-  });
-  await page.keyboard.type(" again");
+  await typeAtEnd(page, " again");
   await expect(firstLine(page)).toHaveText(
     "Amazing grace, how sweet the sound again",
   );
+  // Leaving with edits asks first.
+  page.once("dialog", (dialog) => void dialog.accept());
   await page.reload();
   await expect(firstLine(page)).toHaveText(
     "Amazing grace, how sweet the sound",
   );
 });
 
-test("says it is a prototype and nothing is saved", async ({ page }) => {
-  await expect(page.getByText("This is a prototype.")).toContainText(
-    "Nothing is saved",
+test.describe("leaving", () => {
+  test("asks first after an edit", async ({ page }) => {
+    await typeAtEnd(page, " again");
+    // The prompt blocks the page, so it is answered as it comes: stay.
+    const dialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+      dialogs.push(dialog.type());
+      void dialog.dismiss();
+    });
+    await homeLink(page).click();
+    await expect.poll(() => dialogs).toEqual(["beforeunload"]);
+    await expect(page).toHaveURL("/editor");
+    await expect(firstLine(page)).toHaveText(
+      "Amazing grace, how sweet the sound again",
+    );
+  });
+
+  test("doesn't ask after undoing the edits", async ({ page }) => {
+    const dialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+      dialogs.push(dialog.type());
+      void dialog.accept();
+    });
+    await typeAtEnd(page, " again");
+    for (let i = 0; i < 10; i++) {
+      if (
+        (await firstLine(page).textContent()) ===
+        "Amazing grace, how sweet the sound"
+      ) {
+        break;
+      }
+      await page.keyboard.press("ControlOrMeta+z");
+    }
+    await expect(firstLine(page)).toHaveText(
+      "Amazing grace, how sweet the sound",
+    );
+    await homeLink(page).click();
+    await expect(page).toHaveURL("/");
+    expect(dialogs).toEqual([]);
+  });
+});
+
+test("says it is a prototype and nothing is saved", async ({
+  page,
+}, testInfo) => {
+  // In the side panel in a wide window, above the song on a phone.
+  const note = isPhone(testInfo)
+    ? page.getByRole("main").getByText("Prototype: nothing is saved.")
+    : helpPanel(page).getByText("This is a prototype.");
+  await expect(note).toBeVisible();
+  await expect(note).toContainText(/nothing is saved/i);
+});
+
+test("shows the song's title", async ({ page }, testInfo) => {
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Amazing Grace",
   );
+  // A phone's top bar only has room for the site's name.
+  if (!isPhone(testInfo)) {
+    await expect(
+      page.getByRole("banner").getByText("Amazing Grace"),
+    ).toBeVisible();
+  }
+});
+
+test("goes home from the top bar", async ({ page }) => {
+  await homeLink(page).click();
+  await expect(page).toHaveURL("/");
 });
 
 test("asks search engines not to index it", async ({ page }) => {
@@ -51,3 +109,172 @@ test("asks search engines not to index it", async ({ page }) => {
     "noindex",
   );
 });
+
+test.describe("the help", () => {
+  test("is beside the editor in a wide window", async ({ page }, testInfo) => {
+    test.skip(isPhone(testInfo), "Needs a wide window");
+    await expect(helpPanel(page)).toBeVisible();
+    await expect(helpButton(page)).toBeHidden();
+    const main = await box(page.getByRole("main"));
+    expect((await box(helpPanel(page))).x).toBeGreaterThanOrEqual(
+      main.x + main.width,
+    );
+  });
+
+  test("stays in view while the page scrolls", async ({ page }, testInfo) => {
+    test.skip(isPhone(testInfo), "Needs a wide window");
+    await page.setViewportSize({ width: 1280, height: 500 });
+    await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(0);
+    await expect(helpPanel(page)).toBeInViewport({ ratio: 1 });
+  });
+
+  test("opens from the top bar in a narrower window", async ({
+    page,
+  }, testInfo) => {
+    if (!isPhone(testInfo))
+      await page.setViewportSize({ width: 900, height: 800 });
+    await expect(helpPanel(page)).toBeHidden();
+    await helpButton(page).click();
+    await expect(helpSheet(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(helpSheet(page)).toBeHidden();
+    await expect(helpButton(page)).toBeFocused();
+  });
+
+  test("closes with its button or a click beside it", async ({
+    page,
+  }, testInfo) => {
+    if (!isPhone(testInfo))
+      await page.setViewportSize({ width: 900, height: 800 });
+    await helpButton(page).click();
+    await helpSheet(page).getByRole("button", { name: "Close" }).click();
+    await expect(helpSheet(page)).toBeHidden();
+    await helpButton(page).click();
+    await expect(helpSheet(page)).toBeVisible();
+    // The strip of the page left of the sheet.
+    await page.mouse.click(10, 400);
+    await expect(helpSheet(page)).toBeHidden();
+  });
+
+  test("moves beside the editor when the window gets wide", async ({
+    page,
+  }, testInfo) => {
+    test.skip(isPhone(testInfo), "Needs a mouse");
+    await page.setViewportSize({ width: 900, height: 800 });
+    await helpButton(page).click();
+    await expect(helpSheet(page)).toBeVisible();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(helpSheet(page)).toBeHidden();
+    await expect(helpPanel(page)).toBeVisible();
+  });
+
+  test("matches the main pointer", async ({ page }, testInfo) => {
+    let help = helpPanel(page);
+    if (isPhone(testInfo)) {
+      await helpButton(page).click();
+      help = helpSheet(page);
+    }
+    const touch = help.getByRole("heading", { name: "With touch" });
+    const mouse = help.getByRole("heading", { name: "With a mouse" });
+    await expect(isPhone(testInfo) ? touch : mouse).toBeVisible();
+    await expect(isPhone(testInfo) ? mouse : touch).toBeHidden();
+    await expect(help.getByText("Ctrl K", { exact: true })).toBeVisible();
+    await expect(help.getByText("⌘ K", { exact: true })).toBeVisible();
+  });
+
+  test("doesn't stop editing", async ({ page }, testInfo) => {
+    const line = page.locator(".ProseMirror .line").nth(4);
+    if (isPhone(testInfo)) {
+      await line.tap();
+    } else {
+      await page.setViewportSize({ width: 900, height: 800 });
+      await line.click();
+    }
+    await expect(page.locator(".section.is-active")).toHaveCount(1);
+    await helpButton(page).click();
+    await expect(helpSheet(page)).toBeVisible();
+    await helpSheet(page).getByRole("button", { name: "Close" }).click();
+    await expect(helpSheet(page)).toBeHidden();
+    await expect(page.locator(".section.is-active")).toContainText(
+      "'Twas grace that taught my heart to fear",
+    );
+  });
+
+  test("leaves room for the section toolbar at 1024px", async ({
+    page,
+  }, testInfo) => {
+    test.skip(isPhone(testInfo), "Needs a mouse");
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await page.locator(".ProseMirror .line").nth(4).click();
+    const toolbar = page.getByRole("toolbar", { name: "Section" });
+    await expect(toolbar).toBeVisible();
+    await expect(page.locator("[data-section-toolbar]")).not.toHaveAttribute(
+      "data-docked",
+    );
+    const bar = await box(toolbar);
+    expect(bar.x + bar.width).toBeLessThanOrEqual(
+      (await box(page.locator(".section.is-active"))).x,
+    );
+    const main = await box(page.getByRole("main"));
+    expect((await box(helpPanel(page))).x).toBeGreaterThanOrEqual(
+      main.x + main.width,
+    );
+  });
+
+  test.describe("in forced colors", () => {
+    test.use({ forcedColors: "active" });
+
+    test("keeps an outline on the sheet", async ({ page }, testInfo) => {
+      if (!isPhone(testInfo))
+        await page.setViewportSize({ width: 900, height: 800 });
+      await helpButton(page).click();
+      await expect(helpSheet(page)).toBeVisible();
+      expect(
+        await helpSheet(page).evaluate(
+          (sheet) => getComputedStyle(sheet).outlineStyle,
+        ),
+      ).toBe("solid");
+    });
+  });
+});
+
+// A click past the end of the text puts the caret at the end of the line.
+// End doesn't work on a phone when the docked toolbar is shown and the page
+// scrolls.
+async function typeAtEnd(page: Page, text: string) {
+  const line = firstLine(page);
+  const { width, height } = await box(line);
+  await line.click({ position: { x: width - 2, y: height / 2 } });
+  await page.keyboard.type(text);
+}
+
+function homeLink(page: Page) {
+  return page.getByRole("banner").getByRole("link", { name: "Sheet Library" });
+}
+
+function isPhone(testInfo: { project: { name: string } }) {
+  return testInfo.project.name === "phone";
+}
+
+function helpPanel(page: Page) {
+  return page.getByRole("complementary", { name: "How to edit" });
+}
+
+function helpButton(page: Page) {
+  return page.getByRole("banner").getByRole("button", { name: "How to edit" });
+}
+
+function helpSheet(page: Page) {
+  return page.getByRole("dialog", { name: "How to edit" });
+}
+
+async function box(locator: Locator) {
+  const found = await locator.boundingBox();
+  if (!found) throw new Error("Not shown");
+  return found;
+}

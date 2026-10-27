@@ -1,3 +1,9 @@
+import "../ui/button.css";
+import "./home.css";
+
+import { SampleSheet } from "../home/sample-sheet";
+import { TopBar } from "../shell/top-bar";
+
 export function meta() {
   return [
     { title: "Sheet Library" },
@@ -7,12 +13,23 @@ export function meta() {
 
 export default function Home() {
   return (
-    <main>
-      <h1>Sheet Library</h1>
-      <p>A library for your sheet music. Coming soon.</p>
-      <p>
-        <a href="/editor">Try the chord editor</a>
-      </p>
-    </main>
+    <>
+      <TopBar />
+      <main className="home">
+        <div className="home-intro">
+          <h1>A library for your sheet music</h1>
+          <p>
+            Coming soon. Until then, you can try the chord editor: place chords
+            above the lyrics and move them by hand.
+          </p>
+          <a className="button button-filled home-link" href="/editor">
+            Try the chord editor
+          </a>
+        </div>
+        <div className="home-sample">
+          <SampleSheet />
+        </div>
+      </main>
+    </>
   );
 }

@@ -36,6 +36,7 @@ const colors = [
   "tooltip",
   "on-tooltip",
   "focus",
+  "scrim",
 ];
 
 const type = [

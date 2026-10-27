@@ -4,12 +4,20 @@ import { describe, expect, it } from "vitest";
 import Home, { meta } from "./home";
 
 describe("home page", () => {
-  it("shows the app name", () => {
-    expect(renderToString(<Home />)).toContain("<h1>Sheet Library</h1>");
+  it("says what the site is and that it's coming soon", () => {
+    const html = renderToString(<Home />);
+    expect(html).toContain("<h1>A library for your sheet music</h1>");
+    expect(html).toContain("Coming soon.");
+  });
+
+  it("has the top bar", () => {
+    expect(renderToString(<Home />)).toContain('<header class="top-bar">');
   });
 
   it("links to the chord editor", () => {
-    expect(renderToString(<Home />)).toContain('href="/editor"');
+    expect(renderToString(<Home />)).toMatch(
+      /<a class="[^"]*" href="\/editor">Try the chord editor<\/a>/,
+    );
   });
 
   it("sets the page title", () => {

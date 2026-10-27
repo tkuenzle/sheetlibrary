@@ -4,5 +4,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["app/**/*.test.{ts,tsx}"],
+    // Vitest empties CSS imports. Raw ones keep their text, so
+    // breakpoints.test.ts can read the stylesheets.
+    css: { include: [/\.css\?raw$/] },
   },
 });

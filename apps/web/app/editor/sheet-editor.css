@@ -77,11 +77,10 @@
 }
 
 /*
-  In a phone-wide window, the badge sits above the lyrics, so they get the
-  full width. The same width as the phone sizes in tokens.css and the
-  spread-out docked toolbar in section-toolbar.css.
+  In a phone-wide window (see app/breakpoints.ts), the badge sits above the
+  lyrics, so they get the full width.
 */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .sheet-editor {
     --section-padding: 40px var(--space-l) var(--space-m);
     --badge-left: var(--space-l);

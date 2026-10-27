@@ -36,6 +36,7 @@
   --on-tooltip: light-dark(#edf2ec, #2c322e);
   --focus: light-dark(#1f6b4f, #8ed3b1);
   --shadow: light-dark(rgb(23 29 26 / 16%), rgb(0 0 0 / 50%));
+  --scrim: light-dark(rgb(23 29 26 / 32%), rgb(0 0 0 / 50%));
 }
 
 :root {
@@ -71,7 +72,8 @@
   color-scheme: dark;
 }
 
-@media (max-width: 600px) {
+/* Phone-wide. The widths are listed in app/breakpoints.ts. */
+@media (max-width: 640px) {
   :root {
     --font-size-title: 34px;
     --font-size-lyrics: 18px;

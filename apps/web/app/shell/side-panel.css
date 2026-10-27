@@ -1,0 +1,113 @@
+/*
+  Beside the page's content from the wide width, or behind a button in the
+  top bar below it. The widths are listed in app/breakpoints.ts.
+*/
+/*
+  It stays in view while the page scrolls, like the section toolbar on the
+  other side, and scrolls on its own if the window is shorter than it.
+*/
+.side-panel {
+  position: sticky;
+  top: var(--space-l);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  width: 300px;
+  max-height: calc(100dvh - 2 * var(--space-l));
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: var(--space-xl);
+  border-radius: var(--corner-large);
+  background: var(--surface);
+  color: var(--text);
+  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+  outline: 1px solid transparent;
+}
+
+@media (max-width: 1023px) {
+  .side-panel {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .side-panel-button {
+    display: none;
+  }
+}
+
+.side-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.side-panel-content h2 {
+  margin: 0;
+  font: 700 var(--font-size-heading) / 1.2 var(--font);
+  letter-spacing: -0.01em;
+}
+
+/* The sheet: full height, from the right, a strip of the page left visible. */
+.side-panel-sheet {
+  inset: 0 0 0 auto;
+  width: min(360px, 100vw - 56px);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--corner-large) 0 0 var(--corner-large);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 24px var(--shadow);
+  outline: 1px solid transparent;
+}
+
+.side-panel-sheet[open] {
+  animation: side-panel-in 200ms ease-out;
+}
+
+.side-panel-sheet::backdrop {
+  background: var(--scrim);
+}
+
+.side-panel-sheet[open]::backdrop {
+  animation: side-panel-fade 200ms ease-out;
+}
+
+@keyframes side-panel-in {
+  from {
+    translate: 100% 0;
+  }
+}
+
+@keyframes side-panel-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-panel-sheet[open],
+  .side-panel-sheet[open]::backdrop {
+    animation: none;
+  }
+}
+
+.side-panel-sheet > .side-panel-content {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: var(--space-s) var(--space-xl) var(--space-xl);
+}
+
+.side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  margin-right: calc(-1 * var(--space-m));
+}

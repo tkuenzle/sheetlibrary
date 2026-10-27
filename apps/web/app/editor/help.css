@@ -1,0 +1,84 @@
+.help-intro {
+  margin: 0;
+}
+
+.help-intro,
+.help-group {
+  color: var(--text-muted);
+  font: 400 var(--font-size-body) / 1.45 var(--font);
+}
+
+.help-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* A line between groups: the keys follow touch, the mouse follows the keys. */
+.help-mouse.help-group {
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+@media (pointer: coarse) {
+  .help-keys {
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+}
+
+.help-group h3 {
+  margin: 0;
+  color: var(--text);
+  font: 700 var(--font-size-body) / 1.3 var(--font);
+}
+
+.help-group ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.help-group strong {
+  color: var(--text);
+}
+
+.help-group dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-m) 14px;
+  margin: 0;
+}
+
+.help-group dd {
+  margin: 0;
+}
+
+.help-group kbd {
+  display: inline-block;
+  padding: 3px var(--space-s);
+  border-radius: var(--corner-small);
+  background: var(--quiet);
+  color: var(--on-quiet);
+  font: 600 var(--font-size-small) / 18px var(--font);
+  white-space: nowrap;
+}
+
+/*
+  Only the help for the main pointer shows (see help.tsx). Last, so it wins
+  over the display rules above.
+*/
+@media (pointer: coarse) {
+  .help-mouse {
+    display: none;
+  }
+}
+
+@media not (pointer: coarse) {
+  .help-touch {
+    display: none;
+  }
+}

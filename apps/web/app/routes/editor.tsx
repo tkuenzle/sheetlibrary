@@ -1,32 +1,75 @@
 import "./editor.css";
 
+import { useEffect, useState } from "react";
+
+import { EditorHelp } from "../editor/help";
 import { SheetEditor } from "../editor/sheet-editor";
 import { seedSong } from "../editor/seed-song";
+import { SidePanel, SidePanelButton } from "../shell/side-panel";
+import { TopBar } from "../shell/top-bar";
+import { Note } from "../ui/note";
 
 // The public editor (M2f). See openspec/specs/editor-page.
 
+// The seed song's title. Sheets have no metadata yet.
+const title = "Amazing Grace";
+
 export function meta() {
   return [
-    { title: "Chord editor | Sheet Library" },
+    { title: `${title} | Sheet Library` },
     { name: "robots", content: "noindex" },
   ];
 }
 
-export default function EditorPage() {
+function PrototypeNote() {
   return (
-    <main className="editor-page">
-      <h1>Chord editor</h1>
-      <p>
-        This is a prototype. Nothing is saved: reloading the page starts over.
-      </p>
-      <p className="hint">
-        Click a section to edit it. Its toolbar adds a chord at the caret and
-        moves the section up or down. Enter on an empty line starts a new
-        section, Backspace at its start joins it with the one before, and Escape
-        stops editing. Ctrl+K or Cmd+K adds a chord at the caret, or changes the
-        one there. Click a chord to change or delete it, or drag it to move it.
-      </p>
-      <SheetEditor sheet={seedSong} />
-    </main>
+    <Note>
+      <span className="prototype-long">
+        This is a prototype. Nothing is saved, and reloading starts over.
+      </span>
+      <span className="prototype-short">Prototype: nothing is saved.</span>
+    </Note>
+  );
+}
+
+export default function EditorPage() {
+  const [edited, setEdited] = useState(false);
+
+  // Nothing is saved, so leaving with edits asks first, with the browser's
+  // own prompt. The top bar's links load the next page in full, so the
+  // prompt covers them too.
+  useEffect(() => {
+    if (!edited) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [edited]);
+
+  return (
+    <>
+      <TopBar title={title}>
+        <SidePanelButton icon="help" title="How to edit">
+          <EditorHelp />
+        </SidePanelButton>
+      </TopBar>
+      <div className="editor-layout">
+        <main className="editor-page">
+          <div className="editor-intro">
+            <h1>{title}</h1>
+            <div className="editor-note">
+              <PrototypeNote />
+            </div>
+          </div>
+          <SheetEditor sheet={seedSong} onEditedChange={setEdited} />
+        </main>
+        <SidePanel title="How to edit" before={<PrototypeNote />}>
+          <EditorHelp />
+        </SidePanel>
+      </div>
+    </>
   );
 }
