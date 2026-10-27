@@ -1,0 +1,78 @@
+/* The hero, centered in the window below the top bar. */
+.home {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - 64px);
+  gap: 56px 72px;
+  box-sizing: border-box;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-3xl) var(--space-xl) 96px;
+}
+
+.home-intro {
+  display: flex;
+  flex: 1 1 380px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xl);
+  max-width: 480px;
+}
+
+.home-intro h1 {
+  margin: 0;
+  font: 800 clamp(44px, 8vw, 64px) / 1 var(--font);
+  letter-spacing: -0.04em;
+}
+
+.home-intro p {
+  margin: 0;
+  color: var(--text-muted);
+  font: 400 19px / 1.5 var(--font);
+}
+
+/* Bigger than a normal button; .button may come later in the bundle. */
+.button.home-link {
+  height: 56px;
+  padding: 0 28px;
+  font-size: 17px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-sample {
+  flex: 1 1 420px;
+  max-width: 520px;
+}
+
+/* Phone-wide (see app/breakpoints.ts): one column. */
+@media (max-width: 640px) {
+  .home {
+    flex-direction: column;
+    align-content: normal;
+    align-items: stretch;
+    min-height: 0;
+    gap: 40px;
+    padding: 40px 20px;
+  }
+
+  .home-intro {
+    flex: none;
+    gap: 20px;
+  }
+
+  .home-intro h1 {
+    font-size: 46px;
+  }
+
+  .home-intro p {
+    font-size: 17px;
+  }
+
+  .home-sample {
+    flex: none;
+  }
+}

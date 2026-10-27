@@ -31,6 +31,7 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 
+import { phone } from "../breakpoints";
 import { Button } from "../ui/button";
 import { Popover } from "../ui/popover";
 import { SectionToolbar } from "./section-toolbar";
@@ -39,11 +40,11 @@ export interface SheetEditorHandle {
   handBack(): HandBack;
 }
 
-// When the layout is compact: on a touch device, or in a window too narrow
-// for the section toolbar beside the section. The toolbar then docks at the
-// bottom. Only in a phone-wide window do the badges also move above the
-// lyrics (see sheet-editor.css).
-const compact = "(pointer: coarse), (max-width: 640px)";
+// When the layout is compact: on a touch device, or in a phone-wide window,
+// too narrow for the section toolbar beside the section. The toolbar then
+// docks at the bottom. Only the phone width also moves the badges above the
+// lyrics (see sheet-editor.css); a tablet keeps them beside.
+const compact = `(pointer: coarse), ${phone}`;
 
 type ChordInput = { left: number; top: number } & (
   { kind: "new"; pos: number } | { kind: "edit"; id: string }
@@ -53,9 +54,12 @@ type ChordInput = { left: number; top: number } & (
 // the editor is created; give the component a new key to load another one.
 export function SheetEditor({
   sheet,
+  onEditedChange,
   ref,
 }: {
   sheet: ChordSheet;
+  // Called when the sheet starts or stops differing from the one loaded.
+  onEditedChange?: (edited: boolean) => void;
   ref?: Ref<SheetEditorHandle>;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
@@ -66,8 +70,13 @@ export function SheetEditor({
   const viewRef = useRef<EditorView | null>(null);
   const chordInputRef = useRef<ChordInput | null>(null);
   const sheetRef = useRef(sheet);
+  const onEditedChangeRef = useRef(onEditedChange);
   const [chordInput, setChordInput] = useState<ChordInput | null>(null);
   const [toolbar, setToolbar] = useState<SectionToolbarState | null>(null);
+
+  useEffect(() => {
+    onEditedChangeRef.current = onEditedChange;
+  });
 
   useImperativeHandle(ref, () => ({
     handBack: () => {
@@ -163,8 +172,10 @@ export function SheetEditor({
       else openInput({ kind: "new", pos, ...placeBelow(anchor) }, "");
     };
 
+    const loaded = docFromSheet(sheetRef.current);
+    let edited = false;
     const view = new EditorView(mount, {
-      state: createEditorState(docFromSheet(sheetRef.current), {
+      state: createEditorState(loaded, {
         toolbar: toolbarRef.current ?? undefined,
         // Rendered right away: the editor places the toolbar right after
         // this, and the old buttons must not show in the new place.
@@ -186,6 +197,16 @@ export function SheetEditor({
           if (chordInputRef.current) closeInput();
         },
       }),
+      dispatchTransaction: (tr) => {
+        const state = view.state.apply(tr);
+        view.updateState(state);
+        if (!tr.docChanged) return;
+        // Undoing back to the loaded sheet counts as not edited.
+        const now = !state.doc.eq(loaded);
+        if (now === edited) return;
+        edited = now;
+        onEditedChangeRef.current?.(now);
+      },
     });
     viewRef.current = view;
 
@@ -194,9 +215,20 @@ export function SheetEditor({
     // can shrink the sheet and move a button away from under the pointer.
     // The event's path is checked, not its target: the chord input's buttons
     // close it, so they are gone from the page by the time the click gets here.
+    // Controls marked data-keeps-editing, such as the help, keep editing.
     function onClick(event: MouseEvent) {
       const frame = frameRef.current;
-      if (frame && event.composedPath().includes(frame)) return;
+      const path = event.composedPath();
+      if (frame && path.includes(frame)) return;
+      if (
+        path.some(
+          (target) =>
+            target instanceof Element &&
+            target.hasAttribute("data-keeps-editing"),
+        )
+      ) {
+        return;
+      }
       if (chordInputRef.current) {
         showInput(null);
         run(selectChord(null));

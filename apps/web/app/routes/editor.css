@@ -1,14 +1,87 @@
+/*
+  The editor and, from the wide width, the side panel beside it. The widths
+  are listed in app/breakpoints.ts.
+*/
+.editor-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-l);
+  padding: 0 var(--space-l) var(--space-l);
+}
+
 .editor-page {
-  max-width: 50rem;
-  margin: var(--space-xl) auto;
-  padding: 0 var(--space-l);
+  flex: 1;
+  min-width: 0;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-2xl) 0 80px;
 }
 
-.editor-page h1 {
-  font-size: 1.25rem;
+.editor-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 28px;
 }
 
-.editor-page .hint {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+.editor-intro h1 {
+  margin: 0;
+  padding: 0 var(--space-s);
+  font: 800 var(--font-size-title) / 1.05 var(--font);
+  letter-spacing: -0.035em;
+}
+
+/*
+  With the section toolbar beside the sections (see sheet-editor.tsx), the
+  title and the note line up with the sections, right of the toolbar's
+  margin in sheet-editor.css.
+*/
+@media not ((pointer: coarse) or (max-width: 640px)) {
+  .editor-intro {
+    margin-left: 112px;
+  }
+
+  .editor-intro h1 {
+    padding: 0 28px;
+  }
+}
+
+@media (pointer: coarse) {
+  .editor-page {
+    max-width: 680px;
+  }
+}
+
+/* The note is in the side panel when the panel is beside the editor. */
+@media (min-width: 1024px) {
+  .editor-note {
+    display: none;
+  }
+}
+
+.prototype-short {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .editor-layout {
+    padding: 0 var(--space-m);
+  }
+
+  .editor-page {
+    padding: var(--space-m) 0 40px;
+  }
+
+  .editor-intro {
+    gap: var(--space-l);
+    margin-bottom: 20px;
+  }
+
+  .editor-note .prototype-long {
+    display: none;
+  }
+
+  .editor-note .prototype-short {
+    display: inline;
+  }
 }

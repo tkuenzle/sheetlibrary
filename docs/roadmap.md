@@ -78,7 +78,7 @@ M2 is built in small steps, each with its own OpenSpec change and pull request. 
    - **ui-direction (done):** The direction and the mockups, with no code. Workbench, styled after Material 3 Expressive: the section's tools beside the section, a side panel for help, role tokens with a light and a dark ("lamplight") style.
    - **ui-foundation (done):** The role tokens, the font and the icons, and the base components built from them: button, icon button, tooltip, toolbar, popover and note. They are React components with plain CSS, so the app's design system stays out of the `chord-editor` package. The font is served from our own site: it decides where chords sit, so it only changes with a commit, and it works offline. Icons are inline SVGs, only the ones we use. A `/design` page shows the components in both styles, only in previews and the dev server. The existing pages took on the tokens and the font, but not the new layout. The chord layer now places its labels again when the font loads.
    - **editor-facelift (done):** The editor in the new look. The active section is a sheet on the page, the others are dimmed by color, and each section has a numbered badge, read as "Section 2". The selected and the dragged chord are pills. The section toolbar is a React component in the app, beside the section, and it follows the scroll in a tall section. On touch, or in a window too narrow for it, it is docked at the bottom. Its move buttons use "move" icons, and docked they sit next to the word "Move": plain arrows next to a "2 of 2" read as stepping through the sections. The `chord-editor` package only places the toolbar, and tells the app what it shows and where to open the chord input. It keeps the layout it measures and publishes state classes and data attributes. The app styles them with the role tokens. Reduced motion and forced colors are supported. Tried in Chromium on desktop, tablet and phone sizes; Safari is still untested.
-   - **Page shell and home:** The top bar, the side panel and the home page.
+   - **page-shell (done):** The top bar, the side panel and the home page. The top bar has the site's name, linking home, and the song's title. In a window at least 1024px wide, the side panel with the prototype notice and the help sits beside the editor and stays in view; in a narrower one, a help button opens it as a modal sheet, and the notice moves above the song. The help shows touch or mouse use, after the main pointer. Leaving the editor with edits asks first, with the browser's own prompt. All layout rules use one set of widths: phone up to 640px, middle up to 1023px, wide from 1024px. The home page's sample sheet is static markup for now.
    - **UI text:** A glossary and voice for the UI text.
 
 **Later, roughly in this order:**
@@ -93,6 +93,7 @@ M2 is built in small steps, each with its own OpenSpec change and pull request. 
 - Dragging sections, if moving them with buttons turns out to be too slow.
 - A new UX for the chord input. M2g only restyles it.
 - A real logo. M2g uses the name in the chosen font as a placeholder.
+- A read-only sheet view in `chord-editor`, for the home page's sample sheet and later for library previews and the play view, so they can't drift from the editor's layout ([#23](https://github.com/tkuenzle/sheetlibrary/issues/23)).
 
 ## Open questions
 

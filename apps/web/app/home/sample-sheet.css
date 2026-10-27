@@ -1,0 +1,72 @@
+.sample-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  padding: var(--space-2xl) 36px 36px;
+  border-radius: var(--corner-large);
+  background: var(--surface-active);
+  color: var(--text);
+  rotate: -2deg;
+  outline: 1px solid transparent;
+}
+
+.sample-sheet-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  margin-bottom: var(--space-xs);
+  font: 700 17px / 1.2 var(--font);
+}
+
+.sample-sheet-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--corner-full);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 800 var(--font-size-label) / 1 var(--font);
+}
+
+.sample-sheet-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+/* Each piece of lyrics with its chord above, as wide as the wider of both. */
+.sample-sheet-piece {
+  display: inline-flex;
+  flex-direction: column;
+  font: 400 var(--font-size-lyrics) / 1.45 var(--font);
+  white-space: pre;
+}
+
+.sample-sheet-chord {
+  min-height: 1.4em;
+  color: var(--chord);
+  font: 700 var(--font-size-chord) / 1.4 var(--font);
+}
+
+@media (max-width: 640px) {
+  .sample-sheet {
+    gap: 10px;
+    margin: 0 6px;
+    padding: 22px 22px 26px;
+    border-radius: 24px;
+  }
+
+  .sample-sheet-title {
+    gap: 10px;
+    font-size: 15px;
+  }
+
+  .sample-sheet-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+}

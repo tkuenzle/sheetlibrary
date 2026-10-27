@@ -63,8 +63,8 @@
   white-space: nowrap;
 }
 
-/* Phone-wide, as the badges above the lyrics in sheet-editor.css. */
-@media (max-width: 600px) {
+/* Phone-wide (see app/breakpoints.ts): spread to the window's edges. */
+@media (max-width: 640px) {
   .toolbar.section-toolbar-docked {
     justify-content: space-between;
   }

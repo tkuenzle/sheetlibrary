@@ -9,7 +9,7 @@ An app with a top bar and a side panel, for practicing at home.
 - **The active section is a white sheet** on a tinted page. Other sections stay on the page, dimmed.
 - **Each section has a number in a round badge.** On wider screens it sits left of the lyrics. On a phone it sits above them, so the lyrics get the full width.
 - **The section's tools sit next to the section.** With a mouse, a floating toolbar in the left margin holds "Add chord", "Move up" and "Move down". On a touch device, they are docked at the bottom, above the keyboard.
-- **The side panel** holds what isn't tied to the active section: the prototype notice and how to edit. On a phone or tablet, a help button in the top bar opens it.
+- **The side panel** holds what isn't tied to the active section: the prototype notice and how to edit. In a window at least 1024px wide, it sits beside the editor. In a narrower one, a help button in the top bar opens it as a modal sheet from the right, and the prototype notice moves above the song. The help shows touch or mouse use, after the main pointer.
 - **The style follows Material 3 Expressive:** tonal colors, large rounded corners, fully round buttons, and a floating toolbar with one emphasized button.
 
 Three other directions were tried and dropped. Their boards are on the canvas's "Directions" page.
@@ -42,6 +42,7 @@ Components only use role tokens. A style is one set of values for them. Light is
 | `--tooltip` / `--on-tooltip`         | Tooltips                                               | `#2C322E` / `#EDF2EC` | `#DEE4DE` / `#2C322E` |
 | `--focus`                            | Focus ring                                             | `#1F6B4F`             | `#8ED3B1`             |
 | `--shadow`                           | Shadows of popovers and dragged chords                 | `rgb(23 29 26 / 16%)` | `rgb(0 0 0 / 50%)`    |
+| `--scrim`                            | The page behind the help sheet                         | `rgb(23 29 26 / 32%)` | `rgb(0 0 0 / 50%)`    |
 
 All text and chord colors meet WCAG AA (4.5:1) on the backgrounds they are used on, dimmed sections included.
 
@@ -74,9 +75,21 @@ The tokens are in `apps/web/app/ui/tokens.css`. Each color is written as `light-
 
 The base components are React components in `apps/web/app/ui/`, each with its own CSS on the role tokens: `Button`, `IconButton`, `Tooltip`, `Toolbar`, `Popover` and `Note`. They keep an outline in forced colors mode. The `/design` page shows them in both styles. It exists only in pull request previews and the dev server.
 
+The parts of a page are in `apps/web/app/shell/`: `TopBar` and `SidePanel`. Where the side panel sits is decided by CSS, so the server renders the right layout and nothing jumps when the scripts load.
+
 The `chord-editor` package draws what sits on the lyrics: chord labels, the "+", the dash, the drop caret and the section numbers. It keeps the layout the chord layer measures, set through a few `--chord-editor-*` properties such as the font size and line heights. It leaves the looks to the app: colors, backgrounds, corners and shadows. The app styles the state classes and data attributes the package publishes, such as `.section.is-active` or `.chord-label.is-selected`. Its stylesheet lists them all. The app's editor styles are in `apps/web/app/editor/`.
 
 Buttons, icons and UI text belong to the app. The section toolbar is a React component in the app. The package only places it, beside the section or docked, and tells the app what it shows. Each DOM element has one owner, React or the package, never both.
+
+## Widths
+
+Every layout rule uses the same three widths, listed in `apps/web/app/breakpoints.ts`:
+
+- **Phone, up to 640px:** smaller type, the badges above the lyrics, the section toolbar docked, and only the site's name in the top bar. At 640px, the margin beside the sections gets too narrow for the toolbar.
+- **Middle, up to 1023px:** the side panel is behind the help button.
+- **Wide, from 1024px:** the side panel sits beside the editor.
+
+CSS can't use variables in `@media`, so the stylesheets write the same widths. A unit test fails on any other width. On a touch device, the toolbar is docked at any width.
 
 ## What the mockups add
 
