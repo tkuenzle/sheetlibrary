@@ -37,7 +37,7 @@
 - [x] 6.1 Run `just check`. Verify it passes.
 - [x] 6.2 Compare `/` and `/editor` with the boards in light and lamplight at 1280px, 900px, 834px (tablet), 620px and phone size, with the `browser-check` skill. Pick the lamplight `--scrim` there. Verify they match the boards, and note any deliberate difference.
 - [x] 6.3 In `docs/design-direction.md`, describe the panel's two forms, the three widths and `--scrim`. In `docs/roadmap.md`, mark the page shell done with what it decided, and add a "Later" line for the read-only sheet view, linking issue #23. Verify both match `design.md`.
-- [ ] 6.4 After pushing, open `/` and `/editor` on the pull request's preview link. Verify the top bar, the panel and the new home page show.
+- [x] 6.4 After pushing, open `/` and `/editor` on the pull request's preview link. Verify the top bar, the panel and the new home page show.
 
 ## Workflow follow-up
 
