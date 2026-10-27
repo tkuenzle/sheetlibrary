@@ -21,7 +21,7 @@
 - [x] 4.1 Delete `docs/design/` and its `.prettierignore` entry, and drop the folder's mentions from `docs/design-direction.md` and `docs/roadmap.md`. Verify `git grep "docs/design/"` finds nothing outside the archive.
 - [x] 4.2 In `docs/roadmap.md`, mark the UI text step and M2g done, with what the step decided. Verify it matches `design.md`.
 - [x] 4.3 Run `just check`. Verify it passes.
-- [ ] 4.4 After pushing, open `/` and `/editor` on the pull request's preview link. Verify the new help, the chord input's buttons and the home text show.
+- [x] 4.4 After pushing, open `/` and `/editor` on the pull request's preview link. Verify the new help, the chord input's buttons and the home text show.
 
 ## Workflow follow-up
 
