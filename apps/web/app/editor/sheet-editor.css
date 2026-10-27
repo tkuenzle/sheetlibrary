@@ -18,6 +18,8 @@
   --chord-editor-line-height: calc(2.8 * var(--font-size-lyrics));
   --chord-editor-active-line-height: calc(3.3 * var(--font-size-lyrics));
   --chord-editor-section-gap: var(--space-m);
+  /* What screen readers read before a section's number. */
+  --chord-editor-section-name: "Section ";
   color: var(--text);
 }
 

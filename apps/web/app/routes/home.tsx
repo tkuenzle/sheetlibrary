@@ -19,8 +19,8 @@ export default function Home() {
         <div className="home-intro">
           <h1>A library for your sheet music</h1>
           <p>
-            Coming soon. Until then, you can try the chord editor: place chords
-            above the lyrics and move them by hand.
+            Coming soon. Until then, try the chord editor: place chords above
+            the lyrics and move them by hand.
           </p>
           <a className="button button-filled home-link" href="/editor">
             Try the chord editor

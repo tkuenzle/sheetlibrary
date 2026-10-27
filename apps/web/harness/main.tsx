@@ -12,8 +12,8 @@ import {
 import { seedSong } from "../app/editor/seed-song";
 
 // The page the editor's Playwright tests run against (e2e/sheet-editor.spec.ts).
-// It is built on its own (vite.harness.config.ts) and never deployed. Done
-// shows the sheet the editor hands back, so the tests can check it.
+// It is built on its own (vite.harness.config.ts) and never deployed. Hand
+// back shows the sheet the editor hands back, so the tests can check it.
 
 type Page =
   | { kind: "editing"; sheet: ChordSheet; problems: Problem[] }
@@ -57,7 +57,7 @@ function Harness() {
             </ul>
           )}
           <button type="button" onClick={done}>
-            Done
+            Hand back
           </button>
         </>
       ) : (

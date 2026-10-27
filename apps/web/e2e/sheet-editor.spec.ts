@@ -175,7 +175,7 @@ test.describe("piles and chords on spaces", () => {
   }) => {
     await addChord(page, "That", 4, "Am");
     await clickLabel(page, "Am");
-    await page.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("button", { name: "Remove" }).click();
     await expect(label(page, "Am")).toHaveCount(0);
     // Undo, and read the layout before the browser gets to a new frame.
     const layout = await page.locator(".ProseMirror").evaluate((editor) => {
@@ -307,9 +307,9 @@ test.describe("adding and editing chords", () => {
     await clickChar(page, "before", "Amazing");
     await clickLabel(page, "G7");
     await chordInput(page).fill("C");
-    await page.getByRole("button", { name: "OK" }).click();
+    await page.getByRole("button", { name: "Done" }).click();
     await clickLabel(page, "D");
-    await page.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("button", { name: "Remove" }).click();
     const [lines = []] = await handBack(page);
     expect(lines[0]).toBe("[G]Amazing [C]grace, how [C]sweet the [G]sound");
     expect(lines[1]).toBe("That saved a wretch like me");
@@ -319,13 +319,25 @@ test.describe("adding and editing chords", () => {
     page,
   }) => {
     await clickChar(page, "before", "Amazing");
-    for (const button of ["Cancel", "OK"]) {
+    for (const button of ["Cancel", "Done"]) {
       await clickLabel(page, "G7");
       await page.getByRole("button", { name: button }).click();
       await expect(chordInput(page)).toHaveCount(0);
       await expect(activeSection(page)).toContainText("Amazing grace");
       await expect(page.locator(".chord-label.is-dimmed")).toHaveCount(12);
     }
+  });
+
+  test("offers Remove only for a chord that is there", async ({ page }) => {
+    await clickChar(page, "before", "Amazing", 2);
+    await page.keyboard.press("ControlOrMeta+k");
+    await expect(chordInput(page)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Remove" })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await clickLabel(page, "G7");
+    await expect(page.getByRole("button", { name: "Remove" })).toBeVisible();
   });
 
   test("keeps the chord input inside the window", async ({ page }) => {
@@ -848,6 +860,16 @@ test.describe("section numbers", () => {
         "Section 2 Amazing grace, how sweet the sound",
         "Section 3 'Twas grace that taught my heart to fear",
       ]);
+  });
+
+  // The word comes from the app; the package holds no UI text.
+  test("read only the number without the app's word", async ({ page }) => {
+    await page.locator(".chord-editor").evaluate((editor: HTMLElement) => {
+      editor.style.setProperty("--chord-editor-section-name", "initial");
+    });
+    expect((await sectionStarts(page))[0]).toBe(
+      "1 Amazing grace, how sweet the sound",
+    );
   });
 
   test("sit above the lyrics on a phone and beside them on a tablet", async ({
@@ -1440,10 +1462,10 @@ function caretBox(page: Page) {
   });
 }
 
-// Clicks Done and returns the handed-back sheet's sections as lists of
+// Clicks Hand back and returns the handed-back sheet's sections as lists of
 // lines, with chords in brackets before their letter.
 async function handBack(page: Page) {
-  await page.getByRole("button", { name: "Done" }).click();
+  await page.getByRole("button", { name: "Hand back" }).click();
   const json = await page.getByTestId("sheet").textContent();
   const sheet = JSON.parse(json ?? "") as Sheet;
   return sheet.sections.map((section) =>

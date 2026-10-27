@@ -281,11 +281,11 @@ export function SheetEditor({
               }}
             />
             <Button type="submit" size="small">
-              OK
+              Done
             </Button>
             {chordInput.kind === "edit" && (
               <Button variant="text" size="small" onClick={deleteChord}>
-                Delete
+                Remove
               </Button>
             )}
             <Button variant="text" size="small" onClick={closeInput}>
