@@ -34,7 +34,8 @@
   font: 400 19px / 1.5 var(--font);
 }
 
-.home-link {
+/* Bigger than a normal button; .button may come later in the bundle. */
+.button.home-link {
   height: 56px;
   padding: 0 28px;
   font-size: 17px;

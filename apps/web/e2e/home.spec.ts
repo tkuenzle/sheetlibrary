@@ -16,7 +16,10 @@ test("home page loads", async ({ page }) => {
 
 test("home page links to the chord editor", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Try the chord editor" }).click();
+  const link = page.getByRole("link", { name: "Try the chord editor" });
+  // Bigger than a normal button, also when the build orders the CSS.
+  expect((await link.boundingBox())?.height).toBe(56);
+  await link.click();
   await expect(page).toHaveURL("/editor");
   await expect(page).toHaveTitle("Amazing Grace | Sheet Library");
 });
