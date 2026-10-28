@@ -1,0 +1,72 @@
+/*
+  The label field lies over the active section's label, at its left edge,
+  with the suggestions below it.
+*/
+.section-label-field {
+  position: absolute;
+  z-index: 1;
+}
+
+/*
+  The field looks like the label's pill, outlined. 16px stops iOS from
+  zooming in on focus.
+*/
+.section-label-field input {
+  field-sizing: content;
+  min-width: 5ch;
+  box-sizing: border-box;
+  padding: 0 var(--space-m);
+  border: 0;
+  border-radius: var(--corner-full);
+  background: var(--surface-active);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  color: var(--text);
+  font: 700 16px / 1 var(--font);
+  outline: 1px solid transparent;
+}
+
+/* The field always has the focus while it shows; its outline marks it. */
+.section-label-field input:focus-visible {
+  outline: 1px solid transparent;
+}
+
+.section-label-suggestions {
+  position: absolute;
+  top: calc(100% + var(--space-s));
+  left: 0;
+  width: max-content;
+  min-width: 200px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: var(--corner-medium);
+  background: var(--surface-active);
+  box-shadow:
+    0 4px 16px var(--shadow),
+    0 0 0 1px var(--border);
+  outline: 1px solid transparent;
+}
+
+.section-label-suggestions[hidden] {
+  display: none;
+}
+
+.section-label-suggestions li {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-m);
+  border-radius: var(--corner-small);
+  color: var(--text);
+  font: 600 var(--font-size-label) / 1.2 var(--font);
+  cursor: pointer;
+}
+
+.section-label-suggestions li:hover,
+.section-label-suggestions li[aria-selected="true"] {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}

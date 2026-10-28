@@ -10,9 +10,14 @@ export interface ChordSheet {
   sections: Section[];
 }
 
-// A group of lines, such as a verse. An object, so a kind or label can be
-// added later.
+// The longest label a section can have, in UTF-16 code units.
+export const LABEL_MAX = 40;
+
+// A group of lines, such as a verse.
 export interface Section {
+  // A name such as "Chorus" or "Verse 2": free text, never parsed. Left out
+  // when the section has none. One line, not empty, at most LABEL_MAX long.
+  label?: string;
   lines: Line[];
 }
 

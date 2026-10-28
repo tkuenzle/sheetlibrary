@@ -19,7 +19,7 @@ All text is in sentence case.
 | Use     | Not          | For                                                                                                |
 | ------- | ------------ | -------------------------------------------------------------------------------------------------- |
 | sheet   | song         | What the library holds. "Sheet music" is fine for the kind of thing, as on the home page.          |
-| section | verse, block | A group of lines. No "verse" or "chorus" until sections have labels.                               |
+| section | verse, block | A group of lines. Its label names the part, such as "Verse 1" or "Chorus".                         |
 | lyrics  | words, text  | The text under the chords.                                                                         |
 | letter  | character    | One spot in the lyrics, where a chord sits.                                                        |
 | cursor  | caret        | Where typing happens.                                                                              |
@@ -31,5 +31,5 @@ All text is in sentence case.
 ## Names that stay
 
 - **Section toolbar:** "Add chord", "Move section up" and "Move section down". Docked, the move buttons sit next to "Move", and the add button shows "Chord", but its name is still "Add chord". The toolbar is named "Section 2 of 3".
-- **Section badge:** read as "Section 2".
-- **Keys:** as printed on the key, with a space between keys pressed together: "Ctrl K", "⌘ K", "Enter", "Backspace", "Esc". Help names both "Ctrl K" and "⌘ K" instead of guessing the platform.
+- **Section label:** the active section without one shows "Add label". The label's field is named "Label", and suggests "Intro", "Verse", "Pre-chorus", "Chorus", "Bridge", "Solo" and "Outro".
+- **Keys:** as printed on the key, with a space between keys pressed together: "Ctrl K", "⌘ K", "Ctrl Shift L", "⌘ ⇧ L", "Enter", "Backspace", "Esc". Help names both "Ctrl K" and "⌘ K", and both "Ctrl Shift L" and "⌘ ⇧ L", instead of guessing the platform.

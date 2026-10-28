@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { checkSheet } from "./check";
-import { line, section, sheet } from "./test-helpers";
+import { labeled, line, section, sheet } from "./test-helpers";
 
 function messages(content: unknown): string[] {
   return checkSheet(content).map((problem) => problem.message);
@@ -110,6 +110,33 @@ describe("Checking a sheet", () => {
       "Line text has a line break",
       "Chord text has a line break",
     ]);
+  });
+
+  it("allows a labeled section", () => {
+    expect(checkSheet(sheet(labeled("Chorus", line("Amazing grace"))))).toEqual(
+      [],
+    );
+  });
+
+  it("rejects a label that isn't text", () => {
+    const content = sheet({ label: 2, lines: [line("a")] } as never);
+    expect(checkSheet(content)).toEqual([
+      { message: "Section label is not text", section: 0 },
+    ]);
+  });
+
+  it("rejects labels that are empty, too long or have a line break", () => {
+    const content = sheet(
+      labeled("   ", line("a")),
+      labeled("a".repeat(41), line("b")),
+      labeled("Verse\n1", line("c")),
+    );
+    expect(checkSheet(content)).toEqual([
+      { message: "Section label is empty", section: 0 },
+      { message: "Section label is longer than 40 characters", section: 1 },
+      { message: "Section label has a line break", section: 2 },
+    ]);
+    expect(checkSheet(sheet(labeled("a".repeat(40), line("b"))))).toEqual([]);
   });
 
   it("rejects a section without lines", () => {

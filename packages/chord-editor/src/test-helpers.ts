@@ -8,12 +8,20 @@ import {
 } from "prosemirror-state";
 
 import { createEditorState } from "./editor";
-import { chordMark, chordsOn, forEachLine, newChordId, schema } from "./schema";
+import {
+  chordMark,
+  chordsOn,
+  forEachLine,
+  labelOf,
+  newChordId,
+  schema,
+} from "./schema";
 
 // Tests write a sheet as lines of text with chords in brackets before their
 // letter, for example "[G]Amazing grace". A blank line starts a new section,
-// and "~" stands for an empty line inside a section. Chords after the last
-// letter sit on a trailing space, as in the editor.
+// and "~" stands for an empty line inside a section. A section's first line
+// "# Chorus" is its label. Chords after the last letter sit on a trailing
+// space, as in the editor.
 
 export function song(text: string) {
   return createEditorState(docFromNotation(text), { layer: false });
@@ -22,7 +30,8 @@ export function song(text: string) {
 export function notation(state: EditorState) {
   const sections: string[] = [];
   state.doc.forEach((section) => {
-    const lines: string[] = [];
+    const label = labelOf(section);
+    const lines: string[] = label === null ? [] : [`# ${label}`];
     section.forEach((line) => {
       let text = "";
       line.forEach((child) => {
@@ -41,14 +50,16 @@ export function notation(state: EditorState) {
 function docFromNotation(text: string): Node {
   return schema.nodes.doc.create(
     null,
-    text
-      .split("\n\n")
-      .map((section) =>
-        schema.nodes.section.create(
-          null,
-          section.split("\n").map(lineFromNotation),
-        ),
-      ),
+    text.split("\n\n").map((section) => {
+      const lines = section.split("\n");
+      const label = lines[0]?.startsWith("# ")
+        ? (lines.shift()?.slice(2) ?? null)
+        : null;
+      return schema.nodes.section.create(
+        { label },
+        lines.map(lineFromNotation),
+      );
+    }),
   );
 }
 

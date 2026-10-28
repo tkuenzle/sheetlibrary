@@ -33,6 +33,10 @@ export function EditorHelp() {
           </dt>
           <dd>Add a chord at the cursor, or edit it</dd>
           <dt>
+            <kbd>Ctrl Shift L</kbd> or <kbd>⌘ ⇧ L</kbd>
+          </dt>
+          <dd>Edit the section's label</dd>
+          <dt>
             <kbd>Enter</kbd> <kbd>Enter</kbd>
           </dt>
           <dd>Start a new section</dd>

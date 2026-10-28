@@ -4,6 +4,7 @@ import { harnessURL } from "./servers";
 
 interface Sheet {
   sections: {
+    label?: string;
     lines: { text: string; chords: { at: number; chord: string }[] }[];
   }[];
 }
@@ -841,49 +842,68 @@ test.describe("dragging by touch", () => {
   });
 });
 
-test.describe("section numbers", () => {
-  test("follow the order of the sections", async ({ page }) => {
+test.describe("section labels", () => {
+  test("sit above the lyrics, inside the section", async ({ page }) => {
+    await expect(page.locator(".section-label")).toHaveText([
+      "Verse 1",
+      "Verse 2",
+    ]);
+    for (const section of await page.locator(".section").all()) {
+      const outer = await box(section);
+      const label = await box(section.locator(".section-label"));
+      const line = await box(section.locator(".line").first());
+      expect(label.y + label.height).toBeLessThanOrEqual(line.y);
+      expect(label.y).toBeGreaterThanOrEqual(outer.y);
+      expect(label.x).toBeGreaterThanOrEqual(outer.x);
+    }
+  });
+
+  test("keep the lyrics in place when a section becomes active", async ({
+    page,
+  }) => {
     await splitAfterMe(page);
-    await expect
-      .poll(() => sectionStarts(page))
-      .toEqual([
-        "Section 1 Amazing grace, how sweet the sound",
-        "Section 2 I once was lost, but now am found",
-        "Section 3 'Twas grace that taught my heart to fear",
-      ]);
-    await place(page, "Was", 0);
-    await press(page, moveButton(page, "up"));
-    await expect
-      .poll(() => sectionStarts(page))
-      .toEqual([
-        "Section 1 I once was lost, but now am found",
-        "Section 2 Amazing grace, how sweet the sound",
-        "Section 3 'Twas grace that taught my heart to fear",
-      ]);
+    await place(page, "Amazing", 0);
+    const offset = () =>
+      page
+        .locator(".section")
+        .nth(1)
+        .evaluate(
+          (section) =>
+            (section.querySelector(".line")?.getBoundingClientRect().top ?? 0) -
+            section.getBoundingClientRect().top,
+        );
+    const before = await offset();
+    await place(page, "once", 0);
+    await expect(activeSection(page)).toContainText("once");
+    expect(await offset()).toBe(before);
+  });
+
+  test("show Add label only in the active section", async ({ page }) => {
+    // The new section after the split has no label and is active.
+    await splitAfterMe(page);
+    expect(await labelRows(page)).toEqual(["Verse 1", "", "Verse 2"]);
+    await expect(addLabel(page)).toHaveAccessibleName("Add label");
+    await expect(
+      page.locator(".section").nth(1).locator(".section-label-add"),
+    ).toHaveCount(1);
+    await place(page, "Amazing", 0);
+    await expect(page.locator(".section-label-add")).toHaveCount(0);
   });
 
   // The word comes from the app; the package holds no UI text.
-  test("read only the number without the app's word", async ({ page }) => {
+  test("show no Add label text without the app's word", async ({ page }) => {
+    await splitAfterMe(page);
     await page.locator(".chord-editor").evaluate((editor: HTMLElement) => {
-      editor.style.setProperty("--chord-editor-section-name", "initial");
+      editor.style.setProperty("--chord-editor-add-label", "initial");
     });
-    expect((await sectionStarts(page))[0]).toBe(
-      "1 Amazing grace, how sweet the sound",
-    );
+    await expect(addLabel(page)).toHaveAccessibleName("");
   });
 
-  test("sit above the lyrics on a phone and beside them on a tablet", async ({
-    page,
-  }, testInfo) => {
-    test.skip(!isPhone(testInfo), "touch only");
-    await tapChar(page, "Twas", 0);
-    expect(await badgePlace(page)).toBe("above");
-    // Wider than a phone, so the docked toolbar is centered too.
-    await page.setViewportSize({ width: 700, height: 1112 });
-    await nextLayout(page);
-    // Still docked, as on a tablet.
-    await expect(toolbar(page)).toContainText("Move");
-    expect(await badgePlace(page)).toBe("beside");
+  test("are read before the lyrics", async ({ page }) => {
+    await expect(page.locator(".section").first()).toMatchAriaSnapshot(`
+      - text: Verse 1
+      - paragraph: /Amazing grace/
+    `);
   });
 
   test("don't take the caret", async ({ page }) => {
@@ -895,6 +915,115 @@ test.describe("section numbers", () => {
     expect((await firstSection(page))[3]).toBe(
       "Was [Em]blind, but [D]now I [G]seeX",
     );
+  });
+
+  test("are edited in place, in one undo step", async ({ page }) => {
+    await place(page, "Twas", 0);
+    await openLabel(page, 1);
+    await expect(labelField(page)).toHaveValue("Verse 2");
+    await labelField(page).fill("Chorus");
+    await page.keyboard.press("Enter");
+    await expect(labelField(page)).toHaveCount(0);
+    expect(await labelRows(page)).toEqual(["Verse 1", "Chorus"]);
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await labelRows(page)).toEqual(["Verse 1", "Verse 2"]);
+  });
+
+  test("keep their text on Escape", async ({ page }) => {
+    await place(page, "Twas", 0);
+    await openLabel(page, 1);
+    await labelField(page).fill("Chorus");
+    await page.keyboard.press("Escape");
+    await expect(labelField(page)).toHaveCount(0);
+    expect(await labelRows(page)).toEqual(["Verse 1", "Verse 2"]);
+    await expect(activeSection(page)).toContainText("Twas");
+  });
+
+  test("are kept on a click elsewhere", async ({ page }) => {
+    await place(page, "Twas", 0);
+    await openLabel(page, 1);
+    await labelField(page).fill("Chorus");
+    await place(page, "relieved", 0);
+    await expect(labelField(page)).toHaveCount(0);
+    expect(await labelRows(page)).toEqual(["Verse 1", "Chorus"]);
+  });
+
+  test("are removed when the field is emptied", async ({ page }) => {
+    await place(page, "Twas", 0);
+    await openLabel(page, 1);
+    await labelField(page).fill("");
+    await page.keyboard.press("Enter");
+    await expect(addLabel(page)).toBeVisible();
+    expect(await handedBackLabels(page)).toEqual(["Verse 1", null]);
+  });
+
+  test("are cleaned up and take at most 40 characters", async ({ page }) => {
+    await place(page, "Twas", 0);
+    await openLabel(page, 1);
+    await labelField(page).fill("  Chorus   two  ");
+    await page.keyboard.press("Enter");
+    expect(await labelRows(page)).toEqual(["Verse 1", "Chorus two"]);
+    await openLabel(page, 1);
+    await labelField(page).pressSequentially("x".repeat(45));
+    await expect(labelField(page)).toHaveValue("x".repeat(40));
+  });
+
+  test("of another section only make it active", async ({ page }) => {
+    await place(page, "Amazing", 0);
+    await press(page, page.locator(".section-label").nth(1));
+    await expect(activeSection(page)).toContainText("Twas");
+    await expect(labelField(page)).toHaveCount(0);
+  });
+
+  test("open with Ctrl+Shift+L and give the caret back", async ({ page }) => {
+    await place(page, "blind", 0);
+    await page.keyboard.press("ControlOrMeta+Shift+l");
+    await expect(labelField(page)).toBeFocused();
+    await labelField(page).fill("Chorus");
+    await page.keyboard.press("Enter");
+    expect(await labelRows(page)).toEqual(["Chorus", "Verse 2"]);
+    await page.keyboard.type("X");
+    expect((await firstSection(page))[3]).toBe(
+      "Was X[Em]blind, but [D]now I [G]see",
+    );
+  });
+
+  test("suggest parts, narrowed by what is typed", async ({ page }) => {
+    await place(page, "Twas", 0);
+    await openLabel(page, 1);
+    await expect(suggestions(page)).toHaveText([
+      "Intro",
+      "Verse",
+      "Pre-chorus",
+      "Chorus",
+      "Bridge",
+      "Solo",
+      "Outro",
+    ]);
+    await labelField(page).fill("ch");
+    await expect(suggestions(page)).toHaveText(["Pre-chorus", "Chorus"]);
+  });
+
+  test("are set by picking a suggestion", async ({ page }) => {
+    await place(page, "Twas", 0);
+    await openLabel(page, 1);
+    await press(page, suggestions(page).filter({ hasText: /^Chorus$/ }));
+    await expect(labelField(page)).toHaveCount(0);
+    expect(await labelRows(page)).toEqual(["Verse 1", "Chorus"]);
+    await openLabel(page, 1);
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    expect(await labelRows(page)).toEqual(["Verse 1", "Verse"]);
+  });
+
+  test("of the section before are kept when joining", async ({ page }) => {
+    await place(page, "'Twas", 0);
+    await page.keyboard.press("Backspace");
+    await expect(page.locator(".section")).toHaveCount(1);
+    expect(await labelRows(page)).toEqual(["Verse 1"]);
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await labelRows(page)).toEqual(["Verse 1", "Verse 2"]);
   });
 });
 
@@ -1230,58 +1359,39 @@ test.describe("the section toolbar", () => {
   });
 });
 
-// What a screen reader reads first in each section, its number, followed by
-// the section's first line.
-async function sectionStarts(page: Page) {
-  interface AXNode {
-    nodeId: string;
-    backendDOMNodeId?: number;
-    childIds?: string[];
-    name?: { value: string };
-  }
-  const cdp = await page.context().newCDPSession(page);
-  const { root } = await cdp.send("DOM.getDocument", { depth: 0 });
-  const { nodeIds } = await cdp.send("DOM.querySelectorAll", {
-    nodeId: root.nodeId,
-    selector: ".section",
-  });
-  const starts = [];
-  for (const nodeId of nodeIds) {
-    const { node } = await cdp.send("DOM.describeNode", { nodeId });
-    const { nodes } = (await cdp.send("Accessibility.getPartialAXTree", {
-      nodeId,
-      fetchRelatives: true,
-    })) as { nodes: AXNode[] };
-    const section = nodes.find(
-      (ax) => ax.backendDOMNodeId === node.backendNodeId,
-    );
-    const first = nodes.find((ax) => ax.nodeId === section?.childIds?.[0]);
-    const { object } = await cdp.send("DOM.resolveNode", { nodeId });
-    const { result } = await cdp.send("Runtime.callFunctionOn", {
-      objectId: object.objectId,
-      functionDeclaration:
-        "function () { return this.querySelector('.line').textContent; }",
-      returnByValue: true,
-    });
-    starts.push(`${first?.name?.value ?? ""} ${String(result.value)}`);
-  }
-  await cdp.detach();
-  return starts;
+// The text of each section's label row: its label, or "" without one.
+function labelRows(page: Page) {
+  return page.locator(".section-label-row").allTextContents();
 }
 
-// Where the active section's badge sits: left of its lyrics, or above them.
-function badgePlace(page: Page) {
-  return activeSection(page).evaluate((section) => {
-    const style = getComputedStyle(section, "::before");
-    const box = section.getBoundingClientRect();
-    const left = box.left + parseFloat(style.left);
-    const top = box.top + parseFloat(style.top);
-    const line = section.querySelector(".line")?.getBoundingClientRect();
-    if (!line) return "no line";
-    if (left + parseFloat(style.width) <= line.left) return "beside";
-    if (top + parseFloat(style.height) <= line.top) return "above";
-    return "overlapping";
-  });
+function addLabel(page: Page) {
+  return activeSection(page).locator(".section-label-add");
+}
+
+function labelField(page: Page) {
+  return page.getByRole("combobox", { name: "Label" });
+}
+
+function suggestions(page: Page) {
+  return page.getByRole("listbox", { name: "Suggestions" }).getByRole("option");
+}
+
+// Opens the label field of the section at `index`, which must be active, by
+// a click or tap on its label or "Add label".
+async function openLabel(page: Page, index: number) {
+  await press(
+    page,
+    page.locator(".section").nth(index).locator(".section-label-row > *"),
+  );
+  await expect(labelField(page)).toBeFocused();
+}
+
+// The labels of the handed-back sheet's sections, null where there is none.
+async function handedBackLabels(page: Page) {
+  await page.getByRole("button", { name: "Hand back" }).click();
+  const json = await page.getByTestId("sheet").textContent();
+  const sheet = JSON.parse(json ?? "") as Sheet;
+  return sheet.sections.map((section) => section.label ?? null);
 }
 
 function activeSection(page: Page) {

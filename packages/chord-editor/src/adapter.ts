@@ -10,7 +10,14 @@ import {
 } from "chordsheet";
 import type { Node } from "prosemirror-model";
 
-import { type Chord, chordMark, chordsOn, newChordId, schema } from "./schema";
+import {
+  type Chord,
+  chordMark,
+  chordsOn,
+  labelOf,
+  newChordId,
+  schema,
+} from "./schema";
 
 // Converts between a stored sheet (`chordsheet`) and the editor. The editor
 // puts chords after the last letter on a trailing space and gives every
@@ -30,7 +37,10 @@ export function emptySection(): Node {
 }
 
 function sectionToEditor(section: Section): Node {
-  return schema.nodes.section.create(null, section.lines.map(lineToEditor));
+  return schema.nodes.section.create(
+    { label: section.label ?? null },
+    section.lines.map(lineToEditor),
+  );
 }
 
 function lineToEditor(line: Line): Node {
@@ -72,7 +82,10 @@ function sectionFromEditor(node: Node): Section | undefined {
   node.forEach((line) => {
     lines.push(normalize(lineFromEditor(line)));
   });
-  return cleanUpSection({ lines });
+  const label = labelOf(node);
+  return cleanUpSection(
+    label === null ? { lines } : { label: label.normalize("NFC"), lines },
+  );
 }
 
 // A line's text and chords exactly as the editor holds them, including a

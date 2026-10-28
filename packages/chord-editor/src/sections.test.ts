@@ -8,6 +8,7 @@ import { TextSelection } from "prosemirror-state";
 import {
   joinWithPrevious,
   moveSection,
+  setSectionLabel,
   sliceFromText,
   splitOnEmptyLine,
 } from "./sections";
@@ -49,6 +50,12 @@ describe("enter on an empty line", () => {
     expect(caret(next)).toEqual(["", 0]);
   });
 
+  it("leaves the new section without a label", () => {
+    const state = editing("# Verse 1\none\ntwo\nthree", "two", 3);
+    const next = enter(enter(state));
+    expect(notation(next)).toBe("# Verse 1\none\ntwo\n\nthree");
+  });
+
   it("is undone in one step", () => {
     const state = editing("one\ntwo\nthree", "two", 3);
     const split = enter(enter(state));
@@ -68,6 +75,20 @@ describe("backspace at the start of a section", () => {
     expect(joinWithPrevious(editing("one\n\ntwo", "one"))).toBe(false);
     expect(joinWithPrevious(editing("one\n\ntwo\nmore", "more"))).toBe(false);
     expect(joinWithPrevious(editing("one\n\ntwo", "two", 1))).toBe(false);
+  });
+
+  it("keeps the label of the section before", () => {
+    const state = editing("# Verse 1\none\n\n# Chorus\ntwo", "two");
+    const joined = exec(state, joinWithPrevious);
+    expect(notation(joined)).toBe("# Verse 1\none\ntwo");
+    expect(notation(exec(joined, undo))).toBe(
+      "# Verse 1\none\n\n# Chorus\ntwo",
+    );
+  });
+
+  it("keeps no label when the section before has none", () => {
+    const state = editing("one\n\n# Chorus\ntwo", "two");
+    expect(notation(exec(state, joinWithPrevious))).toBe("one\ntwo");
   });
 
   it("is undone by splitting the sections again", () => {
@@ -147,5 +168,53 @@ describe("moving a section", () => {
     expect(notation(undone)).toBe(notation(once));
     expect(caret(undone)).toEqual(["three", 0]);
     expect(getActiveSection(undone)).toBe(undone.selection.$head.before(1));
+  });
+});
+
+describe("setting a section's label", () => {
+  // The position right before the section with `needle`.
+  function sectionWith(state: ReturnType<typeof song>, needle: string) {
+    return state.doc.resolve(at(state, needle)).before(1);
+  }
+
+  it("sets, changes and clears a label", () => {
+    const state = song("one\n\ntwo");
+    const set = exec(
+      state,
+      setSectionLabel(sectionWith(state, "two"), "Chorus"),
+    );
+    expect(notation(set)).toBe("one\n\n# Chorus\ntwo");
+    const changed = exec(
+      set,
+      setSectionLabel(sectionWith(set, "two"), "Bridge"),
+    );
+    expect(notation(changed)).toBe("one\n\n# Bridge\ntwo");
+    const cleared = exec(
+      changed,
+      setSectionLabel(sectionWith(changed, "two"), null),
+    );
+    expect(notation(cleared)).toBe("one\n\ntwo");
+  });
+
+  it("cleans up the label, and an empty one clears it", () => {
+    const state = song("# Chorus\none");
+    const spaced = exec(state, setSectionLabel(0, "  Verse   1 "));
+    expect(notation(spaced)).toBe("# Verse 1\none");
+    expect(notation(exec(spaced, setSectionLabel(0, "   ")))).toBe("one");
+  });
+
+  it("normalizes the label to NFC", () => {
+    const next = exec(song("one"), setSectionLabel(0, "Cafe\u0301"));
+    expect(notation(next)).toBe("# Caf\u00e9\none");
+  });
+
+  it("is one undo step", () => {
+    const state = song("# Verse 2\none");
+    const next = exec(state, setSectionLabel(0, "Chorus"));
+    expect(notation(exec(next, undo))).toBe("# Verse 2\none");
+  });
+
+  it("does nothing when the label stays the same", () => {
+    expect(setSectionLabel(0, " Chorus ")(song("# Chorus\none"))).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import { FORMAT, VERSION } from "./sheet";
+import { FORMAT, LABEL_MAX, VERSION } from "./sheet";
 
 // A broken rule and where it is: indexes into sections, their lines and the
 // lines' chords. Problems with the whole sheet have no location.
@@ -35,12 +35,30 @@ export function checkSheet(content: unknown): Problem[] {
     if (section.lines.length === 0) {
       problems.push({ message: "Section has no lines", section: s });
     }
+    if (section.label !== undefined) {
+      for (const message of checkLabel(section.label)) {
+        problems.push({ message, section: s });
+      }
+    }
     (section.lines as unknown[]).forEach((line, l) => {
       for (const problem of checkLine(line)) {
         problems.push({ ...problem, section: s, line: l });
       }
     });
   });
+  return problems;
+}
+
+function checkLabel(label: unknown): string[] {
+  if (typeof label !== "string") return ["Section label is not text"];
+  const problems: string[] = [];
+  if (hasLineBreak(label)) problems.push("Section label has a line break");
+  if (isBlank(label)) problems.push("Section label is empty");
+  if (label.length > LABEL_MAX) {
+    problems.push(
+      `Section label is longer than ${String(LABEL_MAX)} characters`,
+    );
+  }
   return problems;
 }
 

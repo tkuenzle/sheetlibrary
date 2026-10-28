@@ -14,20 +14,23 @@
   --chord-editor-active-line-height: the same in the active section, a bit
     more, so the "+" for adding a chord has room below the lyrics
   --chord-editor-section-gap: the space between sections
+  --chord-editor-label-height: the height of the row above each section's
+    lyrics that holds its label, the same with or without one
   --chord-editor-touch-lift: how far a chord dragged by touch is lifted above
     the finger, so it and the spot where it lands can be seen
 
   The package holds no UI text. The app passes in the words it needs:
 
-  --chord-editor-section-name: the word screen readers read before a
-    section's number, with its space, such as "Section ". Without it they
-    read only the number.
+  --chord-editor-add-label: the text of the button that adds a label to
+    the active section, such as "Add label". Without it the button is empty.
 
   Hooks on the elements the editor draws:
 
   .ProseMirror.is-editing      a section is active
   .section.is-active           the active section
-  .section::before             the section's number badge
+  .section-label-row           the row above a section's lyrics
+  .section-label               a section's label, in that row
+  .section-label-add           the active section's "Add label" button
   .chord-label                 a chord's label, in the layer over the text
   .chord-label.is-selected     the chord open in the chord input
   .chord-label.is-dragging     the label being dragged
@@ -57,7 +60,6 @@
 .chord-editor .ProseMirror {
   outline: none;
   padding: 0.5rem 0 1rem;
-  counter-reset: section;
 }
 
 .chord-editor .line {
@@ -76,38 +78,39 @@
 }
 
 /*
-  Each section shows its number in a badge. It is generated, so it can't
-  take the caret or be edited. Screen readers read it as the app's
-  --chord-editor-section-name and the number, such as "Section 2". The app
-  places it, and makes room for it with the section's padding: left of
-  the lyrics, or above them in a compact layout.
+  Each section's label sits in a row above its lyrics. The row isn't part
+  of the editable text, so it can't take the caret, and it keeps its height
+  without a label, so the lyrics don't move when "Add label" shows.
 */
 .chord-editor .section {
   position: relative;
-  padding-left: 2em;
-  counter-increment: section;
 }
 
-.chord-editor .section::before {
-  content: counter(section);
-  position: absolute;
-  top: 0;
-  left: 0;
+.chord-editor .section-label-row {
+  display: flex;
+  align-items: center;
+  height: var(--chord-editor-label-height, 2em);
   user-select: none;
-  pointer-events: none;
 }
 
-/*
-  Firefox can't put a counter in the alternative text and would drop the
-  whole declaration, badge and all, so it only gets the number. A second
-  declaration wouldn't do: one with var() is only dropped after it has
-  replaced the first.
-*/
-@supports (content: "a" / counter(a)) {
-  .chord-editor .section::before {
-    content: counter(section) / var(--chord-editor-section-name, "")
-      counter(section);
-  }
+.chord-editor .section-label {
+  overflow: hidden;
+  min-width: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chord-editor .section-label-add {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.chord-editor .section-label-add::after {
+  content: var(--chord-editor-add-label, "");
 }
 
 /* Chord labels sit in a layer over the editor, outside the editable text. */

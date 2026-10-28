@@ -49,7 +49,12 @@ export function activeSection() {
         const section = pos === null ? null : state.doc.nodeAt(pos);
         if (pos === null || !section) return null;
         return DecorationSet.create(state.doc, [
-          Decoration.node(pos, pos + section.nodeSize, { class: "is-active" }),
+          Decoration.node(
+            pos,
+            pos + section.nodeSize,
+            { class: "is-active" },
+            { activeSection: true },
+          ),
         ]);
       },
       handleDOMEvents: {

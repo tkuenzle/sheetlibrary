@@ -7,10 +7,11 @@
   position: relative;
   /* The room left of the sections for their toolbar. */
   --toolbar-margin: 112px;
-  /* Room in a section around its lyrics, and for its number. */
-  --section-padding: var(--space-l) 28px var(--space-l) 72px;
-  --badge-left: 20px;
-  --badge-size: 36px;
+  /* Room in a section around its label and lyrics. */
+  --section-padding: var(--space-m) 28px var(--space-l);
+  --label-height: 32px;
+  /* The label's pill reaches this far left of the lyrics. */
+  --label-inset: 12px;
 }
 
 .sheet-editor .chord-editor {
@@ -18,8 +19,8 @@
   --chord-editor-line-height: calc(2.8 * var(--font-size-lyrics));
   --chord-editor-active-line-height: calc(3.3 * var(--font-size-lyrics));
   --chord-editor-section-gap: var(--space-m);
-  /* What screen readers read before a section's number. */
-  --chord-editor-section-name: "Section ";
+  --chord-editor-label-height: var(--label-height);
+  --chord-editor-add-label: "Add label";
   color: var(--text);
 }
 
@@ -48,55 +49,63 @@
 }
 
 /*
-  The number badge: left of the lyrics, level with the first line. A
-  tablet docks the toolbar but keeps the badge there; only a narrow window
-  puts it above the lyrics (see the end of this file).
+  The section's label, above its lyrics. Its text lines up with the lyrics;
+  in the active section it is a pill, whose padding reaches into the
+  section's padding.
 */
-.sheet-editor .section::before {
-  top: calc(
-    var(--space-l) + (var(--chord-editor-line-height) - var(--badge-size)) / 2
-  );
-  left: var(--badge-left);
-  display: flex;
+.sheet-editor .section-label,
+.sheet-editor .section-label-add {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: var(--badge-size);
-  height: var(--badge-size);
+  gap: 6px;
+  height: var(--label-height);
+  margin-left: calc(-1 * var(--label-inset));
+  padding: 0 var(--label-inset);
   border-radius: var(--corner-full);
-  background: var(--quiet);
-  color: var(--on-quiet);
+  color: var(--text-muted);
   font: 700 var(--font-size-label) / 1 var(--font);
 }
 
-.sheet-editor .is-editing .section.is-active::before {
-  top: calc(
-    var(--space-l) +
-      (var(--chord-editor-active-line-height) - var(--badge-size)) / 2
-  );
-  background: var(--accent);
-  color: var(--on-accent);
-  font-weight: 800;
+.sheet-editor .is-editing .section:not(.is-active) .section-label {
+  color: var(--text-dimmed);
 }
 
-/*
-  In a phone-wide window (see app/breakpoints.ts), the badge sits above the
-  lyrics, so they get the full width.
-*/
+.sheet-editor .is-editing .section.is-active .section-label {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+  cursor: pointer;
+  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+  outline: 1px solid transparent;
+}
+
+.sheet-editor .section-label-add {
+  padding-left: var(--space-s);
+  color: var(--accent);
+}
+
+.sheet-editor .section-label-add::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  mask: url("../ui/icons/add.svg") center / contain no-repeat;
+}
+
+/* The label field lies over the label while it is open. */
+.sheet-editor[data-editing-label] .section.is-active .section-label-row > * {
+  visibility: hidden;
+}
+
+/* In a phone-wide window (see app/breakpoints.ts), the sections are tighter. */
 @media (max-width: 640px) {
   .sheet-editor {
-    --section-padding: 40px var(--space-l) var(--space-m);
-    --badge-left: var(--space-l);
-    --badge-size: 24px;
+    --section-padding: var(--space-s) var(--space-l) var(--space-m);
+    --label-height: 28px;
+    --label-inset: 10px;
   }
 
   .sheet-editor .section {
     border-radius: 24px;
-  }
-
-  .sheet-editor .section::before,
-  .sheet-editor .is-editing .section.is-active::before {
-    top: var(--space-m);
-    font-size: 12px;
   }
 }
 

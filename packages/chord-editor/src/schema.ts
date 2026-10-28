@@ -20,6 +20,9 @@ export const schema = new Schema({
   nodes: {
     doc: { content: "section+" },
     section: {
+      // Null when the section has no label. The section's node view draws
+      // it; it isn't part of the editable text or the clipboard.
+      attrs: { label: { default: null } },
       content: "line+",
       parseDOM: [{ tag: "section" }],
       toDOM: () => ["section", { class: "section" }, 0],
@@ -54,6 +57,11 @@ export const schema = new Schema({
     },
   },
 });
+
+// The section's label, or null when it has none.
+export function labelOf(section: Node): string | null {
+  return (section.attrs as { label: string | null }).label;
+}
 
 export function chordsOf(mark: Mark): Chord[] {
   return (mark.attrs as { chords: Chord[] }).chords;

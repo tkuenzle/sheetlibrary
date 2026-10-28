@@ -2,11 +2,23 @@ import { isBlank } from "./check";
 import type { Line, Section } from "./sheet";
 
 // Cleans up a section after editing: drops spaces from each line, then
-// drops empty lines. Returns undefined when no line is left, meaning the
-// section is removed.
+// drops empty lines, and cleans up the label. Returns undefined when no line
+// is left, meaning the section is removed.
 export function cleanUpSection(section: Section): Section | undefined {
   const lines = section.lines.map(dropSpaces).filter((line) => !isEmpty(line));
-  return lines.length > 0 ? { ...section, lines } : undefined;
+  if (lines.length === 0) return undefined;
+  const cleaned: Section = { ...section, lines };
+  const label = cleanUpLabel(section.label);
+  if (label === undefined) delete cleaned.label;
+  else cleaned.label = label;
+  return cleaned;
+}
+
+// Drops spaces at both ends of a label and makes each run of spaces inside
+// it one space. Returns undefined when nothing is left, meaning no label.
+export function cleanUpLabel(label: string | undefined): string | undefined {
+  const cleaned = label?.replace(/\s+/g, " ").trim();
+  return cleaned === "" ? undefined : cleaned;
 }
 
 // The positions of the spaces that clean-up drops from a line, in order:
