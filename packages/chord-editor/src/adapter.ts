@@ -17,6 +17,7 @@ import {
   labelOf,
   newChordId,
   schema,
+  symbolOf,
 } from "./schema";
 
 // Converts between a stored sheet (`chordsheet`) and the editor. The editor
@@ -45,8 +46,8 @@ function sectionToEditor(section: Section): Node {
 
 function lineToEditor(line: Line): Node {
   const piles = new Map<number, Chord[]>();
-  for (const { at, chord } of line.chords) {
-    piles.set(at, [...(piles.get(at) ?? []), { id: newChordId(), chord }]);
+  for (const { at, ...chord } of line.chords) {
+    piles.set(at, [...(piles.get(at) ?? []), { id: newChordId(), ...chord }]);
   }
   const text = piles.has(line.text.length) ? `${line.text} ` : line.text;
   const content: Node[] = [];
@@ -94,8 +95,8 @@ export function editorLine(node: Node): Line {
   let text = "";
   const chords: Line["chords"] = [];
   node.forEach((child) => {
-    for (const { chord } of chordsOn(child)) {
-      chords.push({ at: text.length, chord });
+    for (const chord of chordsOn(child)) {
+      chords.push({ at: text.length, ...symbolOf(chord) });
     }
     text += child.text ?? "";
   });
@@ -125,9 +126,9 @@ function normalize(line: Line): Line {
     start = at;
   }
   text += line.text.slice(start).normalize("NFC");
-  const chords = line.chords.map(({ at, chord }) => ({
-    at: moved.get(at) ?? at,
-    chord,
+  const chords = line.chords.map((chord) => ({
+    ...chord,
+    at: moved.get(chord.at) ?? chord.at,
   }));
   return { text, chords };
 }

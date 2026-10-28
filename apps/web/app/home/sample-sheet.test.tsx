@@ -17,12 +17,18 @@ describe("SampleSheet", () => {
     expect(
       pieces({
         text: "That saved a wretch like me",
-        chords: [{ at: 25, chord: "D" }],
+        chords: [{ at: 25, root: "D" }],
       }),
     ).toEqual([
       { chord: "", text: "That saved a wretch like " },
       { chord: "D", text: "me" },
     ]);
+  });
+
+  it("writes each chord in its canonical form", () => {
+    expect(
+      pieces({ text: "Amazing", chords: [{ at: 0, root: "G", suffix: "7" }] }),
+    ).toEqual([{ chord: "G7", text: "Amazing" }]);
   });
 
   it("is hidden from screen readers", () => {

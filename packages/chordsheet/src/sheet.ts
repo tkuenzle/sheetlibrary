@@ -1,3 +1,5 @@
+import type { ChordSymbol } from "./chord-symbol";
+
 // The stored content of a chord sheet, version 1. Metadata such as the title
 // belongs to the sheet around it and is not part of this model.
 
@@ -29,10 +31,10 @@ export interface Line {
   chords: Chord[];
 }
 
-export interface Chord {
+// A chord in its canonical form, such as { root: "Bb", suffix: "m7" }. The
+// text the user typed is not kept.
+export interface Chord extends ChordSymbol {
   // An index into the line's text in UTF-16 code units, like a JS string
   // index. 0 is before the first letter, `text.length` after the last.
   at: number;
-  // The text the user typed, for example "Bb" or "A#". Never parsed.
-  chord: string;
 }

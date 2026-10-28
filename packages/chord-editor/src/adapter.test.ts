@@ -7,6 +7,7 @@ import { createEditorState } from "./editor";
 import { chordsOn } from "./schema";
 import {
   at,
+  chord,
   edit,
   exec,
   idOf,
@@ -25,7 +26,13 @@ function section(...lines: Line[]): Section {
 
 // A line with chords given as [at, chord] pairs.
 function line(text: string, ...chords: [number, string][]): Line {
-  return { text, chords: chords.map(([at, chord]) => ({ at, chord })) };
+  return {
+    text,
+    chords: chords.map(([position, name]) => ({
+      at: position,
+      ...chord(name),
+    })),
+  };
 }
 
 function load(stored: Section | ChordSheet) {
@@ -96,6 +103,19 @@ describe("editing a sheet", () => {
     expect(handBack(load(stored))).toEqual({ ok: true, sheet: stored });
   });
 
+  it("hands back a chord's suffix and bass as they were", () => {
+    const stored = sheet(
+      section(line("Amazing grace", [0, "Bbm7/F"], [8, "D/F#"], [8, "Gsus4"])),
+    );
+    const handed = handBack(load(stored));
+    expect(handed).toEqual({ ok: true, sheet: stored });
+    expect(handed.ok && handed.sheet.sections[0]?.lines[0]?.chords).toEqual([
+      { at: 0, root: "Bb", suffix: "m7", bass: "F" },
+      { at: 8, root: "D", bass: "F#" },
+      { at: 8, root: "G", suffix: "sus4" },
+    ]);
+  });
+
   it("hands back labels as they were", () => {
     const stored = sheet(
       { label: "Chorus", lines: [line("Amazing grace", [0, "G"])] },
@@ -108,7 +128,7 @@ describe("editing a sheet", () => {
 
   it("hands back a chord added after the last letter without the space", () => {
     const state = load(section(line("like me")));
-    const next = exec(state, insertChord(at(state, "me", 2), "D"));
+    const next = exec(state, insertChord(at(state, "me", 2), chord("D")));
     expect(handBack(next)).toEqual(
       handedBack(section(line("like me", [7, "D"]))),
     );
@@ -181,7 +201,7 @@ describe("handing back a sheet", () => {
 
   it("reports problems the clean-up can't fix", () => {
     const state = load(section(line("Amazing grace")));
-    const next = exec(state, insertChord(at(state, "grace"), ""));
+    const next = exec(state, insertChord(at(state, "grace"), { root: "H" }));
     const result = handBack(next);
     expect(result.ok).toBe(false);
   });

@@ -60,9 +60,9 @@ function dropSpaces(line: Line): Line {
       .filter((_, at) => !gone.has(at))
       .join(""),
     // A chord moves left by the number of spaces dropped before it.
-    chords: line.chords.map(({ at, chord }) => ({
-      at: at - dropped.filter((d) => d < at).length,
-      chord,
+    chords: line.chords.map((chord) => ({
+      ...chord,
+      at: chord.at - dropped.filter((d) => d < chord.at).length,
     })),
   };
 }

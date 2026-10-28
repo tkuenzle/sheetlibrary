@@ -2,19 +2,27 @@ import { redo, undo } from "prosemirror-history";
 import { describe, expect, it } from "vitest";
 
 import { insertChord, moveChord } from "./chords";
-import { at, exec, idOf, notation, song, withCaret } from "./test-helpers";
+import {
+  at,
+  chord,
+  exec,
+  idOf,
+  notation,
+  song,
+  withCaret,
+} from "./test-helpers";
 
 describe("adding a chord", () => {
   it("puts it after the chords on a letter", () => {
     const state = song("[G]grace");
-    const next = exec(state, insertChord(at(state, "grace"), "C"));
+    const next = exec(state, insertChord(at(state, "grace"), chord("C")));
     expect(notation(next)).toBe("[G][C]grace");
   });
 
   it("keeps the caret before the space it adds at the end of a line", () => {
     const state = song("Amazing grace");
     const end = at(state, "grace", 5);
-    const next = exec(withCaret(state, end), insertChord(end, "D"));
+    const next = exec(withCaret(state, end), insertChord(end, chord("D")));
     expect(notation(next)).toBe("Amazing grace[D] ");
     expect(next.selection.head).toBe(end);
   });
