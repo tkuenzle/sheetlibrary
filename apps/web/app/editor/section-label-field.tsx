@@ -1,7 +1,7 @@
 import "./section-label-field.css";
 
 import { LABEL_MAX } from "chordsheet";
-import { type Ref, useId, useRef, useState } from "react";
+import { type Ref, useEffect, useId, useRef, useState } from "react";
 
 // Offered below the field, in this order.
 export const labelSuggestions = [
@@ -52,8 +52,15 @@ export function SectionLabelField({
   // Closing moves the focus, and the blur must not keep a second time.
   const closed = useRef(false);
   const listId = useId();
+  const listRef = useRef<HTMLUListElement>(null);
   const shown = suggestionsFor(typed ? text : "");
   const chosenSuggestion = shown[chosen];
+
+  // A suggestion chosen with the arrow keys scrolls into view, where the
+  // list scrolls.
+  useEffect(() => {
+    listRef.current?.children[chosen]?.scrollIntoView({ block: "nearest" });
+  }, [chosen]);
 
   function keep(label: string) {
     if (closed.current) return;
@@ -113,6 +120,7 @@ export function SectionLabelField({
         }}
       />
       <ul
+        ref={listRef}
         id={listId}
         role="listbox"
         aria-label="Suggestions"

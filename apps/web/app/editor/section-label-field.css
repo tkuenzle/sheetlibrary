@@ -50,11 +50,25 @@
   outline: 1px solid transparent;
 }
 
+/*
+  On a phone or a touch device, where the keyboard leaves little room, the
+  list shows about four and a half suggestions and scrolls on its own. The
+  half one shows that there are more.
+*/
+@media (max-width: 640px), (pointer: coarse) {
+  .section-label-suggestions {
+    max-height: calc(4.5 * (44px + 2px) + 6px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 .section-label-suggestions[hidden] {
   display: none;
 }
 
 .section-label-suggestions li {
+  flex: none;
   display: flex;
   align-items: center;
   min-height: 44px;
