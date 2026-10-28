@@ -8,7 +8,10 @@ describe("seed song", () => {
     expect(checkSheet(seedSong)).toEqual([]);
   });
 
-  it("has two sections", () => {
-    expect(seedSong.sections).toHaveLength(2);
+  it("has two sections, labeled", () => {
+    expect(seedSong.sections.map((section) => section.label)).toEqual([
+      "Verse 1",
+      "Verse 2",
+    ]);
   });
 });

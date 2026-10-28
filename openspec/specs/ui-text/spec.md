@@ -23,5 +23,5 @@ The UI text SHALL use the glossary's words: "sheet", not "song"; "cursor", not "
 The `chord-editor` package SHALL hold no UI text. Any word it shows or has read out SHALL come from the app.
 
 #### Scenario: Package without the app's words
-- **WHEN** the package is used without the app setting the badge's word
-- **THEN** a screen reader reads only the section's number
+- **WHEN** the package is used without the app setting its words for labels
+- **THEN** an active section without a label shows no "Add label" text

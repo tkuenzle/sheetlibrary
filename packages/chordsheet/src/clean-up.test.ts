@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { cleanUpSection } from "./clean-up";
-import { line, section } from "./test-helpers";
+import { labeled, line, section } from "./test-helpers";
 
 describe("Cleaning up a section", () => {
   it("drops empty lines", () => {
@@ -69,5 +69,24 @@ describe("Cleaning up a section", () => {
 
   it("removes a section with only empty lines", () => {
     expect(cleanUpSection(section(line(""), line(" ")))).toBeUndefined();
+  });
+});
+
+describe("Cleaning up a label", () => {
+  it("trims a label and collapses its spaces", () => {
+    expect(cleanUpSection(labeled("  Verse   1 ", line("a")))).toEqual(
+      labeled("Verse 1", line("a")),
+    );
+  });
+
+  it("removes a label of only spaces", () => {
+    expect(cleanUpSection(labeled("   ", line("a")))).toEqual(
+      section(line("a")),
+    );
+  });
+
+  it("keeps a clean label", () => {
+    const chorus = labeled("Chorus", line("a"));
+    expect(cleanUpSection(chorus)).toEqual(chorus);
   });
 });

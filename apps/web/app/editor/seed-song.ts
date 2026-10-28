@@ -6,6 +6,7 @@ export const seedSong: ChordSheet = {
   version: 1,
   sections: [
     {
+      label: "Verse 1",
       lines: [
         {
           text: "Amazing grace, how sweet the sound",
@@ -40,6 +41,7 @@ export const seedSong: ChordSheet = {
       ],
     },
     {
+      label: "Verse 2",
       lines: [
         {
           text: "'Twas grace that taught my heart to fear",

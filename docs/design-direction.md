@@ -7,7 +7,7 @@ The look of Sheet Library, chosen in M2g's first step. The mockups are in a desi
 An app with a top bar and a side panel, for practicing at home.
 
 - **The active section is a white sheet** on a tinted page. Other sections stay on the page, dimmed.
-- **Each section has a number in a round badge.** On wider screens it sits left of the lyrics. On a phone it sits above them, so the lyrics get the full width.
+- **Each section's label sits above its lyrics**, inside the section, at every width, such as "Chorus". The active section's label is a pill; click it to edit it in place. The active section without a label shows "Add label". The row is there without a label too, so the lyrics don't move. The mockups are on the canvas's "Section labels" page.
 - **The section's tools sit next to the section.** With a mouse, a floating toolbar in the left margin holds "Add chord", "Move up" and "Move down". On a touch device, they are docked at the bottom, above the keyboard.
 - **The side panel** holds what isn't tied to the active section: the prototype notice and how to edit. In a window at least 1024px wide, it sits beside the editor. In a narrower one, a help button in the top bar opens it as a modal sheet from the right, and the prototype notice moves above the song. The help shows touch or mouse use, after the main pointer.
 - **The style follows Material 3 Expressive:** tonal colors, large rounded corners, fully round buttons, and a floating toolbar with one emphasized button.
@@ -24,25 +24,25 @@ The keeper idea from Margin is the tools beside the section.
 
 Components only use role tokens. A style is one set of values for them. Light is the default; lamplight is the dark style. A later style, for example one for the stage, is a new set of values.
 
-| Role                                 | Used for                                               | Light                 | Lamplight             |
-| ------------------------------------ | ------------------------------------------------------ | --------------------- | --------------------- |
-| `--page`                             | Page background, dimmed sections                       | `#EBF0EB`             | `#101511`             |
-| `--surface`                          | Side panel                                             | `#F6FAF6`             | `#171D19`             |
-| `--surface-active`                   | The active section, popovers                           | `#FFFFFF`             | `#222925`             |
-| `--text`                             | Lyrics, headings                                       | `#171D1A`             | `#DEE4DE`             |
-| `--text-muted`                       | Help text, breadcrumb                                  | `#404943`             | `#BFC9C1`             |
-| `--text-dimmed`                      | Lyrics of sections that aren't active                  | `#646E67`             | `#78827B`             |
-| `--chord`                            | Chord labels, "+" and drop caret                       | `#1F6B4F`             | `#8ED3B1`             |
-| `--chord-dimmed`                     | Chords of sections that aren't active                  | `#477461`             | `#5B8873`             |
-| `--accent` / `--on-accent`           | Main buttons, selected chord, active badge, focus ring | `#1F6B4F` / `#FFFFFF` | `#8ED3B1` / `#00382A` |
-| `--accent-soft` / `--on-accent-soft` | Section toolbar, key chip                              | `#C8E9D6` / `#0A5138` | `#1E4D3A` / `#B4F0D0` |
-| `--info` / `--on-info`               | Notes such as the prototype notice                     | `#D6E7DC` / `#24392D` | `#2A3A30` / `#CFE6D7` |
-| `--quiet` / `--on-quiet`             | Keys, inactive badge                                   | `#DCE4DD` / `#3A443D` | `#2E3530` / `#C9D3CB` |
-| `--border`                           | Dividers                                               | `#DCE4DD`             | `#343B36`             |
-| `--tooltip` / `--on-tooltip`         | Tooltips                                               | `#2C322E` / `#EDF2EC` | `#DEE4DE` / `#2C322E` |
-| `--focus`                            | Focus ring                                             | `#1F6B4F`             | `#8ED3B1`             |
-| `--shadow`                           | Shadows of popovers and dragged chords                 | `rgb(23 29 26 / 16%)` | `rgb(0 0 0 / 50%)`    |
-| `--scrim`                            | The page behind the help sheet                         | `rgb(23 29 26 / 32%)` | `rgb(0 0 0 / 50%)`    |
+| Role                                 | Used for                                              | Light                 | Lamplight             |
+| ------------------------------------ | ----------------------------------------------------- | --------------------- | --------------------- |
+| `--page`                             | Page background, dimmed sections                      | `#EBF0EB`             | `#101511`             |
+| `--surface`                          | Side panel                                            | `#F6FAF6`             | `#171D19`             |
+| `--surface-active`                   | The active section, popovers                          | `#FFFFFF`             | `#222925`             |
+| `--text`                             | Lyrics, headings                                      | `#171D1A`             | `#DEE4DE`             |
+| `--text-muted`                       | Help text, breadcrumb                                 | `#404943`             | `#BFC9C1`             |
+| `--text-dimmed`                      | Lyrics of sections that aren't active                 | `#646E67`             | `#78827B`             |
+| `--chord`                            | Chord labels, "+" and drop caret                      | `#1F6B4F`             | `#8ED3B1`             |
+| `--chord-dimmed`                     | Chords of sections that aren't active                 | `#477461`             | `#5B8873`             |
+| `--accent` / `--on-accent`           | Main buttons, selected chord, label field, focus ring | `#1F6B4F` / `#FFFFFF` | `#8ED3B1` / `#00382A` |
+| `--accent-soft` / `--on-accent-soft` | Section toolbar, key chip                             | `#C8E9D6` / `#0A5138` | `#1E4D3A` / `#B4F0D0` |
+| `--info` / `--on-info`               | Notes such as the prototype notice                    | `#D6E7DC` / `#24392D` | `#2A3A30` / `#CFE6D7` |
+| `--quiet` / `--on-quiet`             | Keys                                                  | `#DCE4DD` / `#3A443D` | `#2E3530` / `#C9D3CB` |
+| `--border`                           | Dividers                                              | `#DCE4DD`             | `#343B36`             |
+| `--tooltip` / `--on-tooltip`         | Tooltips                                              | `#2C322E` / `#EDF2EC` | `#DEE4DE` / `#2C322E` |
+| `--focus`                            | Focus ring                                            | `#1F6B4F`             | `#8ED3B1`             |
+| `--shadow`                           | Shadows of popovers and dragged chords                | `rgb(23 29 26 / 16%)` | `rgb(0 0 0 / 50%)`    |
+| `--scrim`                            | The page behind the help sheet                        | `rgb(23 29 26 / 32%)` | `rgb(0 0 0 / 50%)`    |
 
 All text and chord colors meet WCAG AA (4.5:1) on the backgrounds they are used on, dimmed sections included.
 
@@ -77,7 +77,7 @@ The base components are React components in `apps/web/app/ui/`, each with its ow
 
 The parts of a page are in `apps/web/app/shell/`: `TopBar` and `SidePanel`. Where the side panel sits is decided by CSS, so the server renders the right layout and nothing jumps when the scripts load.
 
-The `chord-editor` package draws what sits on the lyrics: chord labels, the "+", the dash, the drop caret and the section numbers. It keeps the layout the chord layer measures, set through a few `--chord-editor-*` properties such as the font size and line heights. It leaves the looks to the app: colors, backgrounds, corners and shadows. The app styles the state classes and data attributes the package publishes, such as `.section.is-active` or `.chord-label.is-selected`. Its stylesheet lists them all. The app's editor styles are in `apps/web/app/editor/`.
+The `chord-editor` package draws what sits on the lyrics: chord labels, the "+", the dash, the drop caret and the row that holds each section's label. The app edits the label in its own field, laid over the label. It keeps the layout the chord layer measures, set through a few `--chord-editor-*` properties such as the font size and line heights. It leaves the looks to the app: colors, backgrounds, corners and shadows. The app styles the state classes and data attributes the package publishes, such as `.section.is-active` or `.chord-label.is-selected`. Its stylesheet lists them all. The app's editor styles are in `apps/web/app/editor/`.
 
 Buttons, icons and UI text belong to the app; the text follows `docs/ui-text.md`. The section toolbar is a React component in the app. The package only places it, beside the section or docked, and tells the app what it shows. Each DOM element has one owner, React or the package, never both.
 
@@ -85,7 +85,7 @@ Buttons, icons and UI text belong to the app; the text follows `docs/ui-text.md`
 
 Every layout rule uses the same three widths, listed in `apps/web/app/breakpoints.ts`:
 
-- **Phone, up to 640px:** smaller type, the badges above the lyrics, the section toolbar docked, and only the site's name in the top bar. At 640px, the margin beside the sections gets too narrow for the toolbar.
+- **Phone, up to 640px:** smaller type, the section toolbar docked, and only the site's name in the top bar. At 640px, the margin beside the sections gets too narrow for the toolbar.
 - **Middle, up to 1023px:** the side panel is behind the help button.
 - **Wide, from 1024px:** the side panel sits beside the editor.
 
@@ -93,7 +93,7 @@ CSS can't use variables in `@media`, so the stylesheets write the same widths. A
 
 ## What the mockups add
 
-The mockups redesign today's features. Two additions need sheet metadata, which doesn't exist yet: the song title and the key in the header. The key is marked on the boards as a proposal. Section numbers in round badges are new too, but they come from the order of the sections and need no new data.
+The mockups redesign today's features. Two additions need sheet metadata, which doesn't exist yet: the song title and the key in the header. The key is marked on the boards as a proposal. The boards still show section numbers in round badges; section labels replaced them later.
 
 The chord input is only restyled. Its UX gets its own change later.
 

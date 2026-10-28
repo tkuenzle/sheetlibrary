@@ -18,6 +18,10 @@ test("shows the seed song with its chords", async ({ page }) => {
     "Amazing grace, how sweet the sound",
   );
   await expect(page.locator(".chord-label")).toHaveCount(24);
+  await expect(page.locator(".section-label")).toHaveText([
+    "Verse 1",
+    "Verse 2",
+  ]);
 });
 
 test("starts over after a reload", async ({ page }) => {
@@ -211,6 +215,8 @@ test.describe("the help", () => {
     await expect(isPhone(testInfo) ? mouse : touch).toBeHidden();
     await expect(help.getByText("Ctrl K", { exact: true })).toBeVisible();
     await expect(help.getByText("⌘ K", { exact: true })).toBeVisible();
+    await expect(help.getByText("Ctrl Shift L", { exact: true })).toBeVisible();
+    await expect(help.getByText("⌘ ⇧ L", { exact: true })).toBeVisible();
   });
 
   // The words follow docs/ui-text.md.

@@ -5,5 +5,6 @@ export * from "./chords";
 export * from "./editor";
 export type { Anchor } from "./letter";
 export * from "./schema";
+export * from "./section-labels";
 export * from "./section-toolbar";
 export * from "./sections";

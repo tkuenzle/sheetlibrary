@@ -13,10 +13,13 @@ import {
   type HandBack,
   handBackSheet,
   insertChord,
+  type LabelBox,
+  labelOf,
   moveActiveSection,
   removeChord,
   type SectionToolbarState,
   selectChord,
+  setSectionLabel,
 } from "chord-editor";
 import type { ChordSheet } from "chordsheet";
 import type { Command } from "prosemirror-state";
@@ -34,6 +37,7 @@ import { flushSync } from "react-dom";
 import { phone } from "../breakpoints";
 import { Button } from "../ui/button";
 import { Popover } from "../ui/popover";
+import { SectionLabelField } from "./section-label-field";
 import { SectionToolbar } from "./section-toolbar";
 
 export interface SheetEditorHandle {
@@ -42,13 +46,21 @@ export interface SheetEditorHandle {
 
 // When the layout is compact: on a touch device, or in a phone-wide window,
 // too narrow for the section toolbar beside the section. The toolbar then
-// docks at the bottom. Only the phone width also moves the badges above the
-// lyrics (see sheet-editor.css); a tablet keeps them beside.
+// docks at the bottom.
 const compact = `(pointer: coarse), ${phone}`;
 
 type ChordInput = { left: number; top: number } & (
   { kind: "new"; pos: number } | { kind: "edit"; id: string }
 );
+
+// The label field of the section at `pos`, over its label.
+interface LabelField {
+  pos: number;
+  left: number;
+  top: number;
+  height: number;
+  initial: string;
+}
 
 // Edits a sheet, one active section at a time. The sheet is read once, when
 // the editor is created; give the component a new key to load another one.
@@ -67,12 +79,15 @@ export function SheetEditor({
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const labelInputRef = useRef<HTMLInputElement>(null);
+  const labelFieldRef = useRef<LabelField | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const chordInputRef = useRef<ChordInput | null>(null);
   const sheetRef = useRef(sheet);
   const onEditedChangeRef = useRef(onEditedChange);
   const [chordInput, setChordInput] = useState<ChordInput | null>(null);
   const [toolbar, setToolbar] = useState<SectionToolbarState | null>(null);
+  const [labelField, setLabelField] = useState<LabelField | null>(null);
 
   useEffect(() => {
     onEditedChangeRef.current = onEditedChange;
@@ -101,6 +116,7 @@ export function SheetEditor({
   }
 
   function openInput(next: ChordInput, value: string) {
+    keepLabel();
     showInput(next);
     run(selectChord(next.kind === "edit" ? next.id : null));
     const input = inputRef.current;
@@ -124,6 +140,38 @@ export function SheetEditor({
       run(chord ? changeChord(current.id, chord) : removeChord(current.id));
     }
     closeInput();
+  }
+
+  function showLabelField(next: LabelField | null) {
+    labelFieldRef.current = next;
+    // Rendered right away, so focusing the field still counts as part of
+    // the tap, and iOS opens the keyboard.
+    flushSync(() => {
+      setLabelField(next);
+    });
+  }
+
+  function openLabelField(next: LabelField) {
+    if (chordInputRef.current) closeInput();
+    showLabelField(next);
+    labelInputRef.current?.focus();
+    labelInputRef.current?.select();
+  }
+
+  // Closes the label field, keeping `label` if given, and gives the focus
+  // back to the editor, where the caret still is.
+  function closeLabelField(label?: string) {
+    const current = labelFieldRef.current;
+    if (!current) return;
+    showLabelField(null);
+    if (label !== undefined) run(setSectionLabel(current.pos, label));
+    viewRef.current?.focus();
+  }
+
+  // Keeps what the label field holds, as a click elsewhere does.
+  function keepLabel() {
+    const input = labelInputRef.current;
+    if (labelFieldRef.current && input) closeLabelField(input.value);
   }
 
   function deleteChord() {
@@ -172,6 +220,20 @@ export function SheetEditor({
       else openInput({ kind: "new", pos, ...placeBelow(anchor) }, "");
     };
 
+    // Over the label or "Add label" the editor points to.
+    function onLabelClick(pos: number, box: LabelBox) {
+      const frame = frameRef.current?.getBoundingClientRect();
+      const section = view.state.doc.nodeAt(pos);
+      if (!frame || !section) return;
+      openLabelField({
+        pos,
+        left: box.left - frame.left,
+        top: box.top - frame.top,
+        height: box.height,
+        initial: labelOf(section) ?? "",
+      });
+    }
+
     const loaded = docFromSheet(sheetRef.current);
     let edited = false;
     const view = new EditorView(mount, {
@@ -187,6 +249,7 @@ export function SheetEditor({
         compact,
         onChordShortcut,
         onChordClick: editChord,
+        onLabelClick,
         // A click below the lyrics adds a chord to the letter above it, and
         // so does "Add chord" in the toolbar, at the caret.
         onAddChord: (pos, anchor) => {
@@ -233,6 +296,7 @@ export function SheetEditor({
         showInput(null);
         run(selectChord(null));
       }
+      // The field kept its text when it lost the focus to this click.
       endEditing(view.state, view.dispatch, view);
     }
     document.addEventListener("click", onClick);
@@ -246,7 +310,11 @@ export function SheetEditor({
   }, []);
 
   return (
-    <div className="sheet-editor" ref={frameRef}>
+    <div
+      className="sheet-editor"
+      ref={frameRef}
+      data-editing-label={labelField ? "" : undefined}
+    >
       <div className="chord-editor" ref={mountRef} data-testid="editor" />
       <SectionToolbar
         ref={toolbarRef}
@@ -258,6 +326,19 @@ export function SheetEditor({
           if (viewRef.current) moveActiveSection(viewRef.current, direction);
         }}
       />
+      {labelField && (
+        <SectionLabelField
+          ref={labelInputRef}
+          left={labelField.left}
+          top={labelField.top}
+          height={labelField.height}
+          initial={labelField.initial}
+          onKeep={closeLabelField}
+          onCancel={() => {
+            closeLabelField();
+          }}
+        />
+      )}
       {chordInput && (
         <form
           ref={formRef}

@@ -1,9 +1,10 @@
+import { cleanUpLabel } from "chordsheet";
 import { Fragment, type Node, Slice } from "prosemirror-model";
 import { closeHistory } from "prosemirror-history";
 import { type Command, Plugin, TextSelection } from "prosemirror-state";
 
 import { getActiveSection } from "./active-section";
-import { isEmptyLine, schema } from "./schema";
+import { isEmptyLine, labelOf, schema } from "./schema";
 
 // A blank line is a section break, whether it is typed or pasted.
 
@@ -20,7 +21,8 @@ export const splitOnEmptyLine: Command = (state, dispatch) => {
     const start = $head.before(2);
     const last = $head.index(1) === $head.node(1).childCount - 1;
     if (!last) tr.delete(start, $head.after(2));
-    tr.split(start, 1);
+    // The new section starts without a label.
+    tr.split(start, 1, [{ type: schema.nodes.section }]);
     // Past the end of the old section, the start of the new one and its
     // first line.
     tr.setSelection(TextSelection.create(tr.doc, start + 3));
@@ -30,7 +32,9 @@ export const splitOnEmptyLine: Command = (state, dispatch) => {
 };
 
 // Backspace at the start of a section joins it with the section before. Its
-// lines are added after that section's lines; no lines are merged.
+// lines are added after that section's lines; no lines are merged. The
+// joined section keeps the label of the section before, even when it has
+// none.
 export const joinWithPrevious: Command = (state, dispatch) => {
   const { selection } = state;
   const { $head } = selection;
@@ -103,6 +107,22 @@ export function moveSection(direction: -1 | 1): Command {
       // Each move is its own undo step, even when pressed in quick succession.
       dispatch(closeHistory(tr));
     }
+    return true;
+  };
+}
+
+// Sets the label of the section at `pos`, in NFC and cleaned up as the chord
+// sheet model does, or clears it when null or nothing is left. One undo
+// step; nothing happens when the label stays the same.
+export function setSectionLabel(pos: number, label: string | null): Command {
+  return (state, dispatch) => {
+    const section = state.doc.nodeAt(pos);
+    if (section?.type !== schema.nodes.section) return false;
+    const cleaned = cleanUpLabel(label?.normalize("NFC")) ?? null;
+    if (cleaned === labelOf(section)) return false;
+    dispatch?.(
+      closeHistory(state.tr.setNodeMarkup(pos, undefined, { label: cleaned })),
+    );
     return true;
   };
 }

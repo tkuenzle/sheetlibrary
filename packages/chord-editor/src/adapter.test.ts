@@ -96,6 +96,16 @@ describe("editing a sheet", () => {
     expect(handBack(load(stored))).toEqual({ ok: true, sheet: stored });
   });
 
+  it("hands back labels as they were", () => {
+    const stored = sheet(
+      { label: "Chorus", lines: [line("Amazing grace", [0, "G"])] },
+      section(line("like me", [7, "D"])),
+    );
+    const state = load(stored);
+    expect(notation(state)).toBe("# Chorus\n[G]Amazing grace\n\nlike me[D] ");
+    expect(handBack(state)).toEqual({ ok: true, sheet: stored });
+  });
+
   it("hands back a chord added after the last letter without the space", () => {
     const state = load(section(line("like me")));
     const next = exec(state, insertChord(at(state, "me", 2), "D"));

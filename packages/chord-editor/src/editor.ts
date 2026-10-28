@@ -10,11 +10,16 @@ import { selectedChord } from "./chords";
 import { type Anchor, anchorAt } from "./letter";
 import { chordRescue } from "./rescue";
 import { chordMark, chordsOn, newChordId } from "./schema";
+import {
+  editActiveLabel,
+  sectionLabels,
+  type SectionLabelOptions,
+} from "./section-labels";
 import { sectionToolbar, type SectionToolbarOptions } from "./section-toolbar";
 import { joinWithPrevious, sectionBreaks, splitOnEmptyLine } from "./sections";
 
 export interface EditorOptions
-  extends ChordLayerOptions, SectionToolbarOptions {
+  extends ChordLayerOptions, SectionToolbarOptions, SectionLabelOptions {
   // Ctrl+K or Cmd+K, with the position of the caret and its letter. The app
   // opens the chord input there.
   onChordShortcut?: (pos: number, anchor: Anchor) => void;
@@ -40,6 +45,9 @@ export function createEditorState(doc: Node, options: EditorOptions = {}) {
         Enter: splitOnEmptyLine,
         Backspace: joinWithPrevious,
         Escape: endEditing,
+        // Ctrl+Shift+L or Cmd+Shift+L opens the active section's label field.
+        "Shift-Mod-l": (_state, _dispatch, view) =>
+          view ? editActiveLabel(view, options) : false,
         ...(onChordShortcut && {
           "Mod-k": (state, _dispatch, view) => {
             const { head } = state.selection;
@@ -51,7 +59,11 @@ export function createEditorState(doc: Node, options: EditorOptions = {}) {
       keymap(baseKeymap),
       ...(options.layer === false
         ? []
-        : [chordLayer(options), sectionToolbar(options)]),
+        : [
+            chordLayer(options),
+            sectionToolbar(options),
+            sectionLabels(options),
+          ]),
     ],
   });
 }
