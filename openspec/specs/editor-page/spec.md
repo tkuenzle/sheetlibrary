@@ -7,11 +7,11 @@ The public page where visitors try the chord editor on a seed song, without an a
 ## Requirements
 
 ### Requirement: Editor with the seed song
-The page at `/editor` SHALL show the chord editor with the seed song "Amazing Grace" loaded.
+The page at `/editor` SHALL show the chord editor with the seed song "Amazing Grace" loaded. Its sections SHALL be labeled "Verse 1" and "Verse 2".
 
 #### Scenario: Opening the editor
 - **WHEN** a visitor opens `/editor`
-- **THEN** the page shows "Amazing Grace" with its chords, ready to edit
+- **THEN** the page shows "Amazing Grace" with its chords, ready to edit, and its sections are labeled "Verse 1" and "Verse 2"
 
 ### Requirement: Nothing is saved
 The page SHALL NOT save edits. A reload SHALL show the seed song as it was.
@@ -75,7 +75,7 @@ In a narrower window, the top bar SHALL have a "How to edit" button that opens t
 - **THEN** the help closes, focus is on "How to edit", and the section is still active
 
 ### Requirement: Help for the device
-The help SHALL match the main pointer. With a finger, it SHALL show how to edit by touch, then the keys. With a mouse, it SHALL show the keys, then how to edit with a mouse. The keys SHALL name both Ctrl K and ⌘ K for adding or changing a chord.
+The help SHALL match the main pointer. With a finger, it SHALL show how to edit by touch, then the keys. With a mouse, it SHALL show the keys, then how to edit with a mouse. The keys SHALL name both Ctrl K and ⌘ K for adding or changing a chord, and both Ctrl Shift L and ⌘ ⇧ L for editing the section's label.
 
 #### Scenario: Help on a phone
 - **WHEN** a visitor opens the help on a phone
@@ -83,7 +83,7 @@ The help SHALL match the main pointer. With a finger, it SHALL show how to edit 
 
 #### Scenario: Help with a mouse
 - **WHEN** a visitor reads the help with a mouse
-- **THEN** it shows the keys, including "Ctrl K" and "⌘ K", and "With a mouse", and no "With touch"
+- **THEN** it shows the keys, including "Ctrl K" and "⌘ K", "Ctrl Shift L" and "⌘ ⇧ L", and "With a mouse", and no "With touch"
 
 ### Requirement: Warning before leaving with edits
 When the song differs from the seed song, leaving the page SHALL first ask the visitor to confirm, with the browser's own prompt. This SHALL cover the top bar's link, a reload, closing the tab and going back. When the song is the seed song, leaving SHALL NOT ask.
