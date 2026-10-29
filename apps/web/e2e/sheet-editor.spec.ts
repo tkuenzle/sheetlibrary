@@ -368,8 +368,16 @@ test.describe("adding and editing chords", () => {
     await expect(chordInput(page)).toHaveAccessibleDescription(
       "Type a chord, such as Am or G7.",
     );
+    // Pressing Done keeps the focus in the field, so a phone's keyboard
+    // doesn't close and open again.
+    await chordInput(page).evaluate((input) => {
+      input.addEventListener("blur", () => {
+        input.dataset.blurred = "";
+      });
+    });
     await page.getByRole("button", { name: "Done" }).click();
     await expect(note).toBeVisible();
+    await expect(chordInput(page)).not.toHaveAttribute("data-blurred");
 
     // The note goes when the text changes.
     await page.keyboard.type("x");

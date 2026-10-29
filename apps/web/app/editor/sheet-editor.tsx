@@ -364,7 +364,14 @@ export function SheetEditor({
             commitInput();
           }}
         >
-          <Popover>
+          <Popover
+            // Keeps the focus in the field when a button is pressed. On a
+            // phone, the field losing it would close the keyboard, and the
+            // page would jump when Done shows the note and focuses it again.
+            onMouseDown={(event) => {
+              if (event.target !== inputRef.current) event.preventDefault();
+            }}
+          >
             <input
               ref={inputRef}
               aria-label="Chord"
