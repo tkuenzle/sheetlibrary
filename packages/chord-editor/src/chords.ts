@@ -1,3 +1,4 @@
+import type { ChordSymbol } from "chordsheet";
 import type { Node } from "prosemirror-model";
 import {
   type Command,
@@ -53,22 +54,25 @@ export function findChord(doc: Node, id: string) {
 
 // Adds a chord to the letter right after `pos`, after any chords on it.
 // The caret stays where it was.
-export function insertChord(pos: number, chord: string): Command {
+export function insertChord(pos: number, chord: ChordSymbol): Command {
   return (state, dispatch) => {
     const tr = state.tr;
     const chords = chordsAt(state.doc, pos);
-    setChords(tr, pos, [...chords, { id: newChordId(), chord }]);
+    setChords(tr, pos, [...chords, { id: newChordId(), ...chord }]);
     keepSelection(tr, state);
     dispatch?.(tr);
     return true;
   };
 }
 
-export function changeChord(id: string, chord: string): Command {
+// Replaces a chord's parts, so a suffix or bass it no longer has goes.
+export function changeChord(id: string, chord: ChordSymbol): Command {
   return (state, dispatch) => {
     const found = findChord(state.doc, id);
     if (!found) return false;
-    const chords = found.chords.map((c) => (c.id === id ? { ...c, chord } : c));
+    const chords = found.chords.map((c) =>
+      c.id === id ? { id, ...chord } : c,
+    );
     const tr = state.tr;
     setChords(tr, found.pos, chords);
     dispatch?.(tr);

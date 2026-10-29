@@ -21,7 +21,7 @@ import {
   selectChord,
   setSectionLabel,
 } from "chord-editor";
-import type { ChordSheet } from "chordsheet";
+import { type ChordSheet, readChord, writeChord } from "chordsheet";
 import type { Command } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import {
@@ -36,6 +36,7 @@ import { flushSync } from "react-dom";
 
 import { phone } from "../breakpoints";
 import { Button } from "../ui/button";
+import { Note } from "../ui/note";
 import { Popover } from "../ui/popover";
 import { SectionLabelField } from "./section-label-field";
 import { SectionToolbar } from "./section-toolbar";
@@ -86,6 +87,9 @@ export function SheetEditor({
   const sheetRef = useRef(sheet);
   const onEditedChangeRef = useRef(onEditedChange);
   const [chordInput, setChordInput] = useState<ChordInput | null>(null);
+  // Done was pressed on text that isn't a chord. Cleared when the text
+  // changes.
+  const [notChord, setNotChord] = useState(false);
   const [toolbar, setToolbar] = useState<SectionToolbarState | null>(null);
   const [labelField, setLabelField] = useState<LabelField | null>(null);
 
@@ -108,6 +112,7 @@ export function SheetEditor({
 
   function showInput(next: ChordInput | null) {
     chordInputRef.current = next;
+    setNotChord(false);
     // Render the input right away, so focusing it still counts as part of
     // the tap. Otherwise iOS doesn't open the keyboard.
     flushSync(() => {
@@ -134,7 +139,14 @@ export function SheetEditor({
 
   function commitInput() {
     const current = chordInputRef.current;
-    const chord = inputRef.current?.value.trim() ?? "";
+    const text = inputRef.current?.value.trim() ?? "";
+    // Empty text adds nothing, and removes a chord being edited.
+    const chord = text ? readChord(text) : null;
+    if (text && !chord) {
+      setNotChord(true);
+      inputRef.current?.focus();
+      return;
+    }
     if (current?.kind === "new" && chord) run(insertChord(current.pos, chord));
     if (current?.kind === "edit") {
       run(chord ? changeChord(current.id, chord) : removeChord(current.id));
@@ -209,7 +221,10 @@ export function SheetEditor({
     function editChord(id: string, anchor: Anchor) {
       const found = findChord(view.state.doc, id);
       if (!found) return;
-      openInput({ kind: "edit", id, ...placeBelow(anchor) }, found.chord.chord);
+      openInput(
+        { kind: "edit", id, ...placeBelow(anchor) },
+        writeChord(found.chord),
+      );
     }
 
     // Ctrl+K or Cmd+K edits the first chord on the letter after the caret,
@@ -349,16 +364,28 @@ export function SheetEditor({
             commitInput();
           }}
         >
-          <Popover>
+          <Popover
+            // Keeps the focus in the field when a button is pressed. On a
+            // phone, the field losing it would close the keyboard, and the
+            // page would jump when Done shows the note and focuses it again.
+            onMouseDown={(event) => {
+              if (event.target !== inputRef.current) event.preventDefault();
+            }}
+          >
             <input
               ref={inputRef}
               aria-label="Chord"
+              aria-invalid={notChord || undefined}
+              aria-describedby={notChord ? "chord-input-note" : undefined}
               autoCapitalize="off"
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
               onKeyDown={(event) => {
                 if (event.key === "Escape") closeInput();
+              }}
+              onChange={() => {
+                setNotChord(false);
               }}
             />
             <Button type="submit" size="small">
@@ -373,6 +400,9 @@ export function SheetEditor({
               Cancel
             </Button>
           </Popover>
+          {notChord && (
+            <Note id="chord-input-note">Type a chord, such as Am or G7.</Note>
+          )}
         </form>
       )}
     </div>

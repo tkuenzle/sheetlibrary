@@ -5,7 +5,10 @@ import { harnessURL } from "./servers";
 interface Sheet {
   sections: {
     label?: string;
-    lines: { text: string; chords: { at: number; chord: string }[] }[];
+    lines: {
+      text: string;
+      chords: { at: number; root: string; suffix?: string; bass?: string }[];
+    }[];
   }[];
 }
 
@@ -117,8 +120,8 @@ test.describe("piles and chords on spaces", () => {
 
   test("keeps a gap with a dash at least 0.6em wide", async ({ page }) => {
     // Retyping "my" puts both chords on the new "m", in order.
-    await addChord(page, "my heart", 0, "I");
-    await addChord(page, "my heart", 1, "V");
+    await addChord(page, "my heart", 0, "A");
+    await addChord(page, "my heart", 1, "E");
     await selectText(page, "my");
     await page.keyboard.type("my");
     const m = await charBox(page, "my heart", 0);
@@ -129,7 +132,7 @@ test.describe("piles and chords on spaces", () => {
     expect(y.left - m.right).toBeGreaterThanOrEqual(fontSize * 0.6 - 0.1);
     await expect(page.locator(".chord-dash")).toHaveCount(1);
     expect((await handBack(page))[1]?.[0]).toBe(
-      "'Twas [G]grace that [G7]taught [I][V]my [Cmaj7]heart to [G]fear",
+      "'Twas [G]grace that [G7]taught [A][E]my [Cmaj7]heart to [G]fear",
     );
   });
 
@@ -339,6 +342,53 @@ test.describe("adding and editing chords", () => {
     await page.keyboard.press("Escape");
     await clickLabel(page, "G7");
     await expect(page.getByRole("button", { name: "Remove" })).toBeVisible();
+  });
+
+  test("shows a chord in its canonical form", async ({ page }) => {
+    await addChord(page, "That", 4, "Bb-7");
+    await expect(page.locator(".chord-label", { hasText: "Bbm7" })).toHaveCount(
+      1,
+    );
+    await clickLabel(page, "Bbm7");
+    await expect(chordInput(page)).toHaveValue("Bbm7");
+    await page.getByRole("button", { name: "Cancel" }).click();
+    expect((await firstSection(page))[1]).toBe(
+      "That[Bbm7] saved a wretch like [D]me",
+    );
+  });
+
+  test("keeps the input open with a note for text that isn't a chord", async ({
+    page,
+  }) => {
+    const note = page.getByText("Type a chord, such as Am or G7.");
+    await addChord(page, "That", 4, "N.C.");
+    await expect(chordInput(page)).toBeFocused();
+    await expect(note).toBeVisible();
+    await expect(chordInput(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(chordInput(page)).toHaveAccessibleDescription(
+      "Type a chord, such as Am or G7.",
+    );
+    // Pressing Done keeps the focus in the field, so a phone's keyboard
+    // doesn't close and open again.
+    await chordInput(page).evaluate((input) => {
+      input.addEventListener("blur", () => {
+        input.dataset.blurred = "";
+      });
+    });
+    await page.getByRole("button", { name: "Done" }).click();
+    await expect(note).toBeVisible();
+    await expect(chordInput(page)).not.toHaveAttribute("data-blurred");
+
+    // The note goes when the text changes.
+    await page.keyboard.type("x");
+    await expect(note).toHaveCount(0);
+    await expect(chordInput(page)).not.toHaveAttribute("aria-invalid");
+
+    await page.keyboard.press("Enter");
+    await expect(note).toBeVisible();
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(chordInput(page)).toHaveCount(0);
+    await expect(page.locator(".chord-label")).toHaveCount(24);
   });
 
   test("keeps the chord input inside the window", async ({ page }) => {
@@ -1582,7 +1632,8 @@ async function handBack(page: Page) {
     section.lines.map(({ text, chords }) => {
       let result = "";
       let start = 0;
-      for (const { at, chord } of chords) {
+      for (const { at, root, suffix = "", bass } of chords) {
+        const chord = `${root}${suffix}${bass ? `/${bass}` : ""}`;
         result += `${text.slice(start, at)}[${chord}]`;
         start = at;
       }

@@ -97,18 +97,52 @@ describe("Checking a sheet", () => {
   it("reports every problem with where it is", () => {
     const content = sheet(
       section(line("Amazing grace", [0, "G"])),
-      section(line("How sweet", [4, ""]), line("")),
+      section({ text: "How sweet", chords: [{ at: 4, root: "H" }] }, line("")),
     );
     expect(checkSheet(content)).toEqual([
-      { message: "Chord text is empty", section: 1, line: 0, chord: 0 },
+      { message: "Chord root is not a note", section: 1, line: 0, chord: 0 },
       { message: "Line has no chords and no text", section: 1, line: 1 },
     ]);
   });
 
-  it("rejects line breaks in line and chord text", () => {
-    expect(messages(sheet(section(line("a\nb", [0, "G\nC"]))))).toEqual([
+  it("rejects a suffix that isn't in canonical form", () => {
+    for (const suffix of ["min7", "", "6/9", "(b9)", "m7 "]) {
+      expect(
+        messages(
+          sheet(section({ text: "a", chords: [{ at: 0, root: "C", suffix }] })),
+        ),
+      ).toEqual(["Chord suffix is not in canonical form"]);
+    }
+  });
+
+  it("rejects a bass on the root, and a bass that isn't a note", () => {
+    expect(
+      messages(
+        sheet(
+          section({
+            text: "a",
+            chords: [
+              { at: 0, root: "C", bass: "C" },
+              { at: 0, root: "C", bass: "c" },
+            ],
+          }),
+        ),
+      ),
+    ).toEqual([
+      "Chord bass is the same as its root",
+      "Chord bass is not a note",
+    ]);
+  });
+
+  it("rejects a chord without a root", () => {
+    expect(
+      messages(sheet(section({ text: "a", chords: [{ at: 0 }] } as never))),
+    ).toEqual(["Chord root is not a note"]);
+  });
+
+  it("rejects line breaks in line text", () => {
+    expect(messages(sheet(section(line("a\nb", [0, "G"]))))).toEqual([
       "Line text has a line break",
-      "Chord text has a line break",
     ]);
   });
 

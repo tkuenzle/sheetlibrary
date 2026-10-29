@@ -7,11 +7,11 @@ Defines how the content of a chord sheet is stored: sections of lines with chord
 ## Requirements
 
 ### Requirement: Sheet content
-A chord sheet's content SHALL be JSON with a format name (`chordsheet`), a version number and a list of sections. A section SHALL hold one or more lines, and MAY have a label, which SHALL be text. A line SHALL hold its text and its chords. Each chord SHALL hold its position in the text and its chord text.
+A chord sheet's content SHALL be JSON with a format name (`chordsheet`), a version number and a list of sections. A section SHALL hold one or more lines, and MAY have a label, which SHALL be text. A line SHALL hold its text and its chords. Each chord SHALL hold its position in the text and its root, and its suffix and bass if it has them.
 
 #### Scenario: One line
 - **WHEN** the line "That saved a wretch like [D]me" is stored
-- **THEN** its text is "That saved a wretch like me" and it has one chord, "D" at position 25
+- **THEN** its text is "That saved a wretch like me" and it has one chord, with the root "D" at position 25 and no suffix or bass
 
 #### Scenario: Labeled section
 - **WHEN** a section labeled "Chorus" is stored
@@ -28,12 +28,16 @@ Content SHALL carry the version of the model it was written with. Content with a
 - **WHEN** content with version 99 is checked
 - **THEN** it is rejected as an unknown version
 
-### Requirement: Chords are text
-Chord text SHALL be stored exactly as the user typed it and SHALL NOT be parsed.
+### Requirement: Chords are stored as parts
+A chord SHALL be stored as a root, an optional suffix and an optional bass, in the canonical form of the chord symbols. The text the user typed SHALL NOT be stored. The spelling of the root and the bass SHALL be kept.
 
-#### Scenario: Spelling and annotations are kept
-- **WHEN** a sheet holds the chords "A#", "Bb" and "*N.C."
-- **THEN** they are stored and read back unchanged
+#### Scenario: Stored as parts
+- **WHEN** the chord "Bb-7/F" is entered
+- **THEN** it is stored with the root "Bb", the suffix "m7" and the bass "F"
+
+#### Scenario: Spelling is kept
+- **WHEN** a sheet holds the chords "A#" and "Bb"
+- **THEN** they are stored and read back with their own spelling
 
 ### Requirement: Chord positions
 A chord's position SHALL be an index into its line's text, counted in UTF-16 code units, from 0 up to and including the text's length. The length means "after the last letter". A position SHALL NOT fall inside a surrogate pair.
@@ -61,15 +65,19 @@ A line SHALL have at least one chord or one character that isn't a space. Lines 
 - **THEN** the line is invalid
 
 ### Requirement: Checking a sheet
-The model SHALL check content against its rules and report each problem it finds. Besides the rules above, line text and chord text SHALL NOT contain line breaks, and chord text SHALL NOT be empty. A section's label SHALL NOT contain line breaks, SHALL NOT be empty or only spaces, and SHALL be at most 40 characters long.
+The model SHALL check content against its rules and report each problem it finds. Besides the rules above, line text SHALL NOT contain line breaks, and a chord's root, suffix and bass SHALL be in canonical form. A chord's bass SHALL NOT be the same as its root. A section's label SHALL NOT contain line breaks, SHALL NOT be empty or only spaces, and SHALL be at most 40 characters long.
 
 #### Scenario: Valid sheet
 - **WHEN** a sheet that follows every rule is checked
 - **THEN** no problems are reported
 
 #### Scenario: Several problems
-- **WHEN** a sheet has an empty line and a chord with empty text
+- **WHEN** a sheet has an empty line and a chord with the root "H"
 - **THEN** both problems are reported, each with where it is
+
+#### Scenario: Suffix not canonical
+- **WHEN** a sheet has a chord with the suffix "min7", and a chord with the root "C" and the bass "C"
+- **THEN** a problem is reported for each of them
 
 #### Scenario: Label problems
 - **WHEN** a sheet has a section labeled with only spaces and a section with a label of 41 characters

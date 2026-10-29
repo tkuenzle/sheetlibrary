@@ -1,3 +1,4 @@
+import { isNote, readChord } from "./chord-symbol";
 import { FORMAT, LABEL_MAX, VERSION } from "./sheet";
 
 // A broken rule and where it is: indexes into sections, their lines and the
@@ -81,20 +82,13 @@ function checkLine(line: unknown): LineProblem[] {
   }
   let previous = 0;
   chords.forEach((chord, c) => {
-    if (
-      !isRecord(chord) ||
-      typeof chord.at !== "number" ||
-      typeof chord.chord !== "string"
-    ) {
-      problems.push({ message: "Chord has no position or no text", chord: c });
+    if (!isRecord(chord) || typeof chord.at !== "number") {
+      problems.push({ message: "Chord has no position", chord: c });
       return;
     }
     const { at } = chord;
-    if (chord.chord === "") {
-      problems.push({ message: "Chord text is empty", chord: c });
-    }
-    if (hasLineBreak(chord.chord)) {
-      problems.push({ message: "Chord text has a line break", chord: c });
+    for (const message of checkChord(chord)) {
+      problems.push({ message, chord: c });
     }
     if (!Number.isInteger(at) || at < 0 || at > text.length) {
       problems.push({
@@ -112,6 +106,34 @@ function checkLine(line: unknown): LineProblem[] {
     previous = at;
   });
   return problems;
+}
+
+// A chord's parts must be in the canonical form that `readChord` gives.
+function checkChord(chord: Record<string, unknown>): string[] {
+  const { root, suffix, bass } = chord;
+  const problems: string[] = [];
+  if (typeof root !== "string" || !isNote(root)) {
+    problems.push("Chord root is not a note");
+  }
+  if (suffix !== undefined && !isCanonicalSuffix(suffix)) {
+    problems.push("Chord suffix is not in canonical form");
+  }
+  if (bass !== undefined) {
+    if (typeof bass !== "string" || !isNote(bass)) {
+      problems.push("Chord bass is not a note");
+    } else if (bass === root) {
+      problems.push("Chord bass is the same as its root");
+    }
+  }
+  return problems;
+}
+
+// Reading the suffix after any root gives it back unchanged. An empty suffix
+// is left out instead.
+function isCanonicalSuffix(suffix: unknown): boolean {
+  return (
+    typeof suffix === "string" && readChord(`C${suffix}`)?.suffix === suffix
+  );
 }
 
 // A line without chords must have a character that isn't a space.

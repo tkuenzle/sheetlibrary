@@ -1,3 +1,4 @@
+import { type ChordSymbol, readChord, writeChord } from "chordsheet";
 import type { Node } from "prosemirror-model";
 import { closeHistory } from "prosemirror-history";
 import {
@@ -9,6 +10,7 @@ import {
 
 import { createEditorState } from "./editor";
 import {
+  type Chord,
   chordMark,
   chordsOn,
   forEachLine,
@@ -16,6 +18,14 @@ import {
   newChordId,
   schema,
 } from "./schema";
+
+// Reads chord text, and throws when it isn't a chord, so a typo in a test
+// fails loudly.
+export function chord(text: string): ChordSymbol {
+  const symbol = readChord(text);
+  if (!symbol) throw new Error(`Not a chord: ${text}`);
+  return symbol;
+}
 
 // Tests write a sheet as lines of text with chords in brackets before their
 // letter, for example "[G]Amazing grace". A blank line starts a new section,
@@ -36,7 +46,7 @@ export function notation(state: EditorState) {
       let text = "";
       line.forEach((child) => {
         text += chordsOn(child)
-          .map((chord) => `[${chord.chord}]`)
+          .map((chord) => `[${writeChord(chord)}]`)
           .join("");
         text += child.text ?? "";
       });
@@ -66,11 +76,11 @@ function docFromNotation(text: string): Node {
 function lineFromNotation(line: string): Node {
   if (line === "~") return schema.nodes.line.create();
   const content: Node[] = [];
-  let chords: { id: string; chord: string }[] = [];
+  let chords: Chord[] = [];
   const parts = line.split(/\[([^\]]*)\]/);
   for (const [index, part] of parts.entries()) {
     if (index % 2 === 1) {
-      chords.push({ id: newChordId(), chord: part });
+      chords.push({ id: newChordId(), ...chord(part) });
       continue;
     }
     const last = index === parts.length - 1;
@@ -139,7 +149,7 @@ export function type(state: EditorState, text: string) {
 export function idOf(state: EditorState, chord: string) {
   let id: string | undefined;
   state.doc.descendants((node) => {
-    id ??= chordsOn(node).find((c) => c.chord === chord)?.id;
+    id ??= chordsOn(node).find((c) => writeChord(c) === chord)?.id;
   });
   if (!id) throw new Error(`chord ${chord} not found`);
   return id;

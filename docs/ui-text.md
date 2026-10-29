@@ -31,5 +31,6 @@ All text is in sentence case.
 ## Names that stay
 
 - **Section toolbar:** "Add chord", "Move section up" and "Move section down". Docked, the move buttons sit next to "Move", and the add button shows "Chord", but its name is still "Add chord". The toolbar is named "Section 2 of 3".
+- **Chord input:** the field is named "Chord". When Done is pressed on text that isn't a chord, the note under it says "Type a chord, such as Am or G7." It says what to do, not that something went wrong.
 - **Section label:** the active section without one shows "Add label". The label's field is named "Label", and suggests "Intro", "Verse", "Pre-chorus", "Chorus", "Bridge", "Solo" and "Outro".
 - **Keys:** as printed on the key, with a space between keys pressed together: "Ctrl K", "⌘ K", "Ctrl Shift L", "⌘ ⇧ L", "Enter", "Backspace", "Esc". Help names both "Ctrl K" and "⌘ K", and both "Ctrl Shift L" and "⌘ ⇧ L", instead of guessing the platform.

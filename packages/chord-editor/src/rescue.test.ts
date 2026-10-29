@@ -1,3 +1,4 @@
+import { writeChord } from "chordsheet";
 import { redo, undo } from "prosemirror-history";
 import { describe, expect, it } from "vitest";
 
@@ -5,6 +6,7 @@ import { changeChord, insertChord, removeChord } from "./chords";
 import { chordsOn } from "./schema";
 import {
   at,
+  chord,
   edit,
   exec,
   idOf,
@@ -19,7 +21,7 @@ describe("chords as marks", () => {
     const state = song("[G7][C]grace");
     const first = state.doc.nodeAt(at(state, "grace"));
     expect(first?.text).toBe("g");
-    expect(chordsOn(first).map((c) => c.chord)).toEqual(["G7", "C"]);
+    expect(chordsOn(first).map(writeChord)).toEqual(["G7", "C"]);
   });
 
   it("keeps chords off typed text next to them", () => {
@@ -57,13 +59,13 @@ describe("chords are rescued", () => {
 
   it("can be changed", () => {
     const state = song("Am[D]azing");
-    const next = exec(state, changeChord(idOf(state, "D"), "D7"));
+    const next = exec(state, changeChord(idOf(state, "D"), chord("D7")));
     expect(notation(next)).toBe("Am[D7]azing");
   });
 
   it("joins the chords already on a letter when added", () => {
     const state = song("[G]Amazing");
-    const next = exec(state, insertChord(at(state, "A"), "D"));
+    const next = exec(state, insertChord(at(state, "A"), chord("D")));
     expect(notation(next)).toBe("[G][D]Amazing");
   });
 });
@@ -71,7 +73,7 @@ describe("chords are rescued", () => {
 describe("chords at the end of a line", () => {
   it("sit on a trailing space when added there", () => {
     const state = song("like me");
-    const next = exec(state, insertChord(at(state, "me", 2), "D"));
+    const next = exec(state, insertChord(at(state, "me", 2), chord("D")));
     expect(notation(next)).toBe("like me[D] ");
   });
 
@@ -218,7 +220,7 @@ describe("undo restores chords", () => {
 
   it("removes an added chord on undo, and adds it again on redo", () => {
     const state = song("Amazing grace");
-    const added = exec(state, insertChord(at(state, "grace"), "C"));
+    const added = exec(state, insertChord(at(state, "grace"), chord("C")));
     const undone = exec(added, undo);
     expect(notation(undone)).toBe("Amazing grace");
     expect(notation(exec(undone, redo))).toBe("Amazing [C]grace");
