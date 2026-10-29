@@ -293,6 +293,127 @@ test.describe("the help", () => {
   });
 });
 
+test.describe("the key", () => {
+  // The first chords, as shown.
+  async function chords(page: Page, count = 4) {
+    return (await page.locator(".chord-label").allTextContents()).slice(
+      0,
+      count,
+    );
+  }
+
+  function keyButton(page: Page) {
+    return page.getByRole("button", { name: /^Key / });
+  }
+
+  function panel(page: Page) {
+    return page.getByRole("dialog", { name: "Transpose to" });
+  }
+
+  test("sits beside the title", async ({ page }) => {
+    await expect(keyButton(page)).toHaveText("Key G");
+    const title = await box(page.getByRole("heading", { level: 1 }));
+    const key = await box(keyButton(page));
+    expect(key.y).toBeLessThan(title.y + title.height);
+    expect(key.y + key.height).toBeGreaterThan(title.y);
+  });
+
+  test("moves the chords to a picked key, and stays open", async ({ page }) => {
+    await keyButton(page).click();
+    await expect(panel(page)).toBeVisible();
+    await expect(panel(page)).toContainText(
+      "The original key, G, is guessed from the chords.",
+    );
+    await panel(page).getByRole("button", { name: "A", exact: true }).click();
+    expect(await chords(page)).toEqual(["A", "A7", "D", "A"]);
+    await expect(keyButton(page)).toHaveText("Key A");
+    await expect(panel(page)).toBeVisible();
+  });
+
+  test("steps by a semitone, spelled in the new key", async ({ page }) => {
+    await keyButton(page).click();
+    const up = panel(page).getByRole("button", { name: "Up a semitone" });
+    await up.click();
+    await up.click();
+    await expect(keyButton(page)).toHaveText("Key A");
+    await up.click();
+    await expect(keyButton(page)).toHaveText("Key Bb");
+    expect(await chords(page)).toEqual(["Bb", "Bb7", "Eb", "Bb"]);
+  });
+
+  test("undoes in the panel with Ctrl Z", async ({ page }) => {
+    await keyButton(page).click();
+    await panel(page).getByRole("button", { name: "A", exact: true }).click();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(keyButton(page)).toHaveText("Key G");
+    expect(await chords(page)).toEqual(["G", "G7", "C", "G"]);
+    await expect(panel(page)).toBeVisible();
+  });
+
+  test("goes back to the original key, also after reopening", async ({
+    page,
+  }) => {
+    await keyButton(page).click();
+    const back = panel(page).getByRole("button", { name: "Back to G" });
+    await expect(back).toBeDisabled();
+    const up = panel(page).getByRole("button", { name: "Up a semitone" });
+    for (let i = 0; i < 3; i++) await up.click();
+    await expect(keyButton(page)).toHaveText("Key Bb");
+    await expect(panel(page)).toContainText(
+      "The original key, G, is guessed from the chords.",
+    );
+    await page.keyboard.press("Escape");
+    await keyButton(page).click();
+    await back.click();
+    await expect(keyButton(page)).toHaveText("Key G");
+    expect(await chords(page)).toEqual(["G", "G7", "C", "G"]);
+    await expect(back).toBeDisabled();
+  });
+
+  test("slides out on a phone before it closes", async ({ page }, testInfo) => {
+    test.skip(!isPhone(testInfo), "The panel is a sheet only on a phone");
+    await keyButton(page).click();
+    await expect(panel(page)).toBeVisible();
+    await slowAnimations(page);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toHaveAttribute("data-closing", "");
+    await expect(panel(page)).toBeHidden();
+  });
+
+  test("closes with Escape and gives the focus back", async ({ page }) => {
+    await keyButton(page).click();
+    await expect(panel(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    await expect(keyButton(page)).toBeFocused();
+  });
+
+  test("is gone without chords", async ({ page }) => {
+    // Ctrl A selects the active section. Each section is emptied in turn.
+    // Each step waits for the page, since the editor reads the selection a
+    // moment after a key.
+    const lines = page.locator(".ProseMirror .line");
+    await firstLine(page).click();
+    await expect(page.locator(".section-toolbar")).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await expect(lines).toHaveCount(5);
+    // Leaving the empty section removes it.
+    await page.keyboard.press("ArrowDown");
+    await expect(lines).toHaveCount(4);
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await expect(page.locator(".chord-label")).toHaveCount(0);
+    await expect(keyButton(page)).toHaveCount(0);
+    await page.keyboard.type("Grace");
+    await page.keyboard.press("Home");
+    await page.keyboard.press("ControlOrMeta+k");
+    await page.keyboard.type("C");
+    await page.keyboard.press("Enter");
+    await expect(keyButton(page)).toHaveText("Key C");
+  });
+});
+
 // A click past the end of the text puts the caret at the end of the line.
 // End doesn't work on a phone when the docked toolbar is shown and the page
 // scrolls.

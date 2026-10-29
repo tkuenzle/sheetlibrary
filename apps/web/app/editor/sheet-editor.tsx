@@ -5,7 +5,9 @@ import {
   addChordAtCaret,
   type Anchor,
   changeChord,
+  type Chord,
   chordsAt,
+  chordsIn,
   createEditorState,
   docFromSheet,
   endEditing,
@@ -16,12 +18,20 @@ import {
   type LabelBox,
   labelOf,
   moveActiveSection,
+  redo,
   removeChord,
   type SectionToolbarState,
   selectChord,
   setSectionLabel,
+  transposeChords,
+  undo,
 } from "chord-editor";
-import { type ChordSheet, readChord, writeChord } from "chordsheet";
+import {
+  type ChordSheet,
+  type ChordSymbol,
+  readChord,
+  writeChord,
+} from "chordsheet";
 import type { Command } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import {
@@ -43,6 +53,10 @@ import { SectionToolbar } from "./section-toolbar";
 
 export interface SheetEditorHandle {
   handBack(): HandBack;
+  // Moves every chord with `move`, in one step to undo.
+  transpose(move: (chord: ChordSymbol) => ChordSymbol): void;
+  undo(): void;
+  redo(): void;
 }
 
 // When the layout is compact: on a touch device, or in a phone-wide window,
@@ -68,11 +82,15 @@ interface LabelField {
 export function SheetEditor({
   sheet,
   onEditedChange,
+  onChordsChange,
   ref,
 }: {
   sheet: ChordSheet;
   // Called when the sheet starts or stops differing from the one loaded.
   onEditedChange?: (edited: boolean) => void;
+  // Called with every chord in order, once the editor is ready and then
+  // whenever a chord changes.
+  onChordsChange?: (chords: Chord[]) => void;
   ref?: Ref<SheetEditorHandle>;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
@@ -86,6 +104,7 @@ export function SheetEditor({
   const chordInputRef = useRef<ChordInput | null>(null);
   const sheetRef = useRef(sheet);
   const onEditedChangeRef = useRef(onEditedChange);
+  const onChordsChangeRef = useRef(onChordsChange);
   const [chordInput, setChordInput] = useState<ChordInput | null>(null);
   // Done was pressed on text that isn't a chord. Cleared when the text
   // changes.
@@ -95,6 +114,7 @@ export function SheetEditor({
 
   useEffect(() => {
     onEditedChangeRef.current = onEditedChange;
+    onChordsChangeRef.current = onChordsChange;
   });
 
   useImperativeHandle(ref, () => ({
@@ -102,6 +122,15 @@ export function SheetEditor({
       const view = viewRef.current;
       if (!view) throw new Error("The editor is not ready");
       return handBackSheet(view.state.doc);
+    },
+    transpose: (move) => {
+      run(transposeChords(move));
+    },
+    undo: () => {
+      run(undo);
+    },
+    redo: () => {
+      run(redo);
     },
   }));
 
@@ -251,6 +280,15 @@ export function SheetEditor({
 
     const loaded = docFromSheet(sheetRef.current);
     let edited = false;
+    // The chords as last reported, to report only when they change.
+    let reported = "";
+    function reportChords(doc: typeof loaded) {
+      const chords = chordsIn(doc);
+      const now = JSON.stringify(chords);
+      if (now === reported) return;
+      reported = now;
+      onChordsChangeRef.current?.(chords);
+    }
     const view = new EditorView(mount, {
       state: createEditorState(loaded, {
         toolbar: toolbarRef.current ?? undefined,
@@ -279,6 +317,7 @@ export function SheetEditor({
         const state = view.state.apply(tr);
         view.updateState(state);
         if (!tr.docChanged) return;
+        reportChords(state.doc);
         // Undoing back to the loaded sheet counts as not edited.
         const now = !state.doc.eq(loaded);
         if (now === edited) return;
@@ -287,6 +326,7 @@ export function SheetEditor({
       },
     });
     viewRef.current = view;
+    reportChords(view.state.doc);
 
     // A click outside the sheet ends editing. The chord input and the chord
     // labels are inside it. It waits for the click, not the press: clean-up

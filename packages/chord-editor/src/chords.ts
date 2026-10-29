@@ -9,7 +9,14 @@ import {
   type Transaction,
 } from "prosemirror-state";
 
-import { type Chord, chordMark, chordsOn, newChordId, schema } from "./schema";
+import {
+  type Chord,
+  chordMark,
+  chordsOn,
+  newChordId,
+  schema,
+  symbolOf,
+} from "./schema";
 
 const deletedMeta = "chordsDeleted";
 
@@ -92,6 +99,55 @@ export function removeChord(id: string): Command {
     );
     allowChordDeletion(tr, [id]);
     dispatch?.(tr.setMeta(selectedKey, { id: null }));
+    return true;
+  };
+}
+
+// Every chord in the document, in order.
+export function chordsIn(doc: Node): Chord[] {
+  const chords: Chord[] = [];
+  doc.descendants((node) => {
+    chords.push(...chordsOn(node));
+    return true;
+  });
+  return chords;
+}
+
+// Replaces every chord in the document with what `change` makes of it, in
+// one step to undo. Ids stay, and so does the caret.
+function replaceChords(
+  state: EditorState,
+  change: (chord: Chord) => ChordSymbol,
+): Transaction | null {
+  const tr = state.tr;
+  state.doc.descendants((node, pos) => {
+    const chords = chordsOn(node);
+    if (chords.length === 0) return true;
+    const next = chords.map((chord) => ({
+      id: chord.id,
+      ...symbolOf(change(chord)),
+    }));
+    if (next.some((chord, i) => !sameChord(chord, chords[i]))) {
+      setChords(tr, pos, next);
+    }
+    return true;
+  });
+  if (!tr.docChanged) return null;
+  keepSelection(tr, state);
+  return tr;
+}
+
+function sameChord(a: Chord, b: Chord | undefined): boolean {
+  return !!b && a.root === b.root && a.suffix === b.suffix && a.bass === b.bass;
+}
+
+// Moves every chord with `move`, such as to another key.
+export function transposeChords(
+  move: (chord: ChordSymbol) => ChordSymbol,
+): Command {
+  return (state, dispatch) => {
+    const tr = replaceChords(state, (chord) => move(symbolOf(chord)));
+    if (tr) dispatch?.(tr);
     return true;
   };
 }

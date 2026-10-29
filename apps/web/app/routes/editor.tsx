@@ -1,9 +1,11 @@
 import "./editor.css";
 
-import { useEffect, useState } from "react";
+import { guessKey, type Key, stepKey, transposeChord } from "chordsheet";
+import { useEffect, useRef, useState } from "react";
 
 import { EditorHelp } from "../editor/help";
-import { SheetEditor } from "../editor/sheet-editor";
+import { KeyButton } from "../editor/key-button";
+import { SheetEditor, type SheetEditorHandle } from "../editor/sheet-editor";
 import { seedSong } from "../editor/seed-song";
 import { SidePanel, SidePanelButton } from "../shell/side-panel";
 import { TopBar } from "../shell/top-bar";
@@ -34,6 +36,22 @@ function PrototypeNote() {
 
 export default function EditorPage() {
   const [edited, setEdited] = useState(false);
+  const editor = useRef<SheetEditorHandle>(null);
+  // The key is guessed from the chords. Until the editor reports them, it is
+  // guessed from the seed song, so the server renders the button too.
+  const [key, setKey] = useState(() =>
+    guessKey(
+      seedSong.sections.flatMap((s) => s.lines.flatMap((l) => l.chords)),
+    ),
+  );
+  // The key the sheet was loaded in, or the first one guessed. "Back" goes
+  // there. Sheets don't store a key yet (#58).
+  const [original, setOriginal] = useState(key);
+
+  function moveTo(to: Key) {
+    if (!key) return;
+    editor.current?.transpose((c) => transposeChord(c, key, to));
+  }
 
   // Nothing is saved, so leaving with edits asks first, with the browser's
   // own prompt. The top bar's links load the next page in full, so the
@@ -59,12 +77,42 @@ export default function EditorPage() {
       <div className="editor-layout">
         <main className="editor-page">
           <div className="editor-intro">
-            <h1>{title}</h1>
+            <div className="editor-title">
+              <h1>{title}</h1>
+              {key && original && (
+                <KeyButton
+                  current={key}
+                  original={original}
+                  onPick={moveTo}
+                  onStep={(step) => {
+                    moveTo(stepKey(key, step));
+                  }}
+                  onBack={() => {
+                    moveTo(original);
+                  }}
+                  onUndo={() => {
+                    editor.current?.undo();
+                  }}
+                  onRedo={() => {
+                    editor.current?.redo();
+                  }}
+                />
+              )}
+            </div>
             <div className="editor-note">
               <PrototypeNote />
             </div>
           </div>
-          <SheetEditor sheet={seedSong} onEditedChange={setEdited} />
+          <SheetEditor
+            ref={editor}
+            sheet={seedSong}
+            onEditedChange={setEdited}
+            onChordsChange={(chords) => {
+              const guess = guessKey(chords);
+              setKey(guess);
+              setOriginal((first) => first ?? guess);
+            }}
+          />
         </main>
         <SidePanel title="How to edit" before={<PrototypeNote />}>
           <EditorHelp />

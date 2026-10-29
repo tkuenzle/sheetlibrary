@@ -1,7 +1,9 @@
 import { redo, undo } from "prosemirror-history";
 import { describe, expect, it } from "vitest";
 
-import { insertChord, moveChord } from "./chords";
+import { transposeChord } from "chordsheet";
+
+import { chordsIn, insertChord, moveChord, transposeChords } from "./chords";
 import {
   at,
   chord,
@@ -82,5 +84,36 @@ describe("moving a chord", () => {
     const undone = exec(moved, undo);
     expect(notation(undone)).toBe("[G]Amazing grace");
     expect(notation(exec(undone, redo))).toBe("Amazing [G]grace");
+  });
+});
+
+describe("transposing", () => {
+  const toA = transposeChords((c) =>
+    transposeChord(
+      c,
+      { tonic: "G", minor: false },
+      { tonic: "A", minor: false },
+    ),
+  );
+
+  it("moves every chord and keeps the ids and the caret", () => {
+    const state = withCaret(song("[G]Amazing [C]grace\n\n[D/F#]me"), 3);
+    const ids = chordsIn(state.doc).map((c) => c.id);
+    const next = exec(state, toA);
+    expect(notation(next)).toBe("[A]Amazing [D]grace\n\n[E/G#]me");
+    expect(chordsIn(next.doc).map((c) => c.id)).toEqual(ids);
+    expect(next.selection.head).toBe(3);
+  });
+
+  it("is undone in one step", () => {
+    const state = song("[G]Amazing [C]grace\n\n[D]me");
+    expect(notation(exec(exec(state, toA), undo))).toBe(
+      "[G]Amazing [C]grace\n\n[D]me",
+    );
+  });
+
+  it("changes nothing in a sheet without chords", () => {
+    const state = song("Amazing grace");
+    expect(exec(state, toA).doc.eq(state.doc)).toBe(true);
   });
 });

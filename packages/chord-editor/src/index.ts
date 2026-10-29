@@ -3,6 +3,8 @@ export * from "./adapter";
 export * from "./chord-layer";
 export * from "./chords";
 export * from "./editor";
+// Undo and redo, for controls outside the editor.
+export { redo, undo } from "prosemirror-history";
 export type { Anchor } from "./letter";
 export * from "./schema";
 export * from "./section-labels";

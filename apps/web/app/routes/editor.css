@@ -24,9 +24,16 @@
   margin-bottom: 28px;
 }
 
+.editor-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-m) var(--space-l);
+  padding: 0 var(--space-s);
+}
+
 .editor-intro h1 {
   margin: 0;
-  padding: 0 var(--space-s);
   font: 800 var(--font-size-title) / 1.05 var(--font);
   letter-spacing: -0.035em;
 }
@@ -41,7 +48,7 @@
     margin-left: 112px;
   }
 
-  .editor-intro h1 {
+  .editor-title {
     padding: 0 28px;
   }
 }
