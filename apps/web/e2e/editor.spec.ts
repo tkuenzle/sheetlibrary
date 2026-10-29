@@ -414,6 +414,91 @@ test.describe("the key", () => {
   });
 });
 
+test.describe("the import", () => {
+  const verse = ["[Verse 1]", "C     G", "Hello world"].join("\n");
+
+  function importButton(page: Page) {
+    return page.getByRole("button", { name: "Import from Ultimate Guitar" });
+  }
+
+  function dialog(page: Page) {
+    return page.getByRole("dialog", { name: "Import from Ultimate Guitar" });
+  }
+
+  async function importText(page: Page, text: string) {
+    await importButton(page).click();
+    await dialog(page).getByLabel("Chords and lyrics").fill(text);
+    await dialog(page)
+      .getByRole("button", { name: "Import", exact: true })
+      .click();
+  }
+
+  test("closes with Escape, without a change", async ({ page }) => {
+    await importButton(page).click();
+    const field = dialog(page).getByLabel("Chords and lyrics");
+    await expect(field).toBeFocused();
+    await field.fill(verse);
+    await page.keyboard.press("Escape");
+    await expect(dialog(page)).toBeHidden();
+    await expect(importButton(page)).toBeFocused();
+    await expect(firstLine(page)).toHaveText(
+      "Amazing grace, how sweet the sound",
+    );
+  });
+
+  test("closes with Cancel or a click outside", async ({ page }) => {
+    await importButton(page).click();
+    await dialog(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog(page)).toBeHidden();
+    await importButton(page).click();
+    await expect(dialog(page)).toBeVisible();
+    // The backdrop, below the dialog.
+    const viewport = page.viewportSize() ?? { width: 0, height: 0 };
+    await page.mouse.click(viewport.width / 2, viewport.height - 4);
+    await expect(dialog(page)).toBeHidden();
+  });
+
+  test("replaces the sheet", async ({ page }) => {
+    await expect(
+      dialog(page).getByRole("button", { name: "Import", exact: true }),
+    ).toHaveCount(0);
+    await importButton(page).click();
+    await expect(
+      dialog(page).getByRole("button", { name: "Import", exact: true }),
+    ).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await importText(page, verse);
+    await expect(dialog(page)).toBeHidden();
+    await expect(page.locator(".section-label")).toHaveText(["Verse 1"]);
+    await expect(page.locator(".ProseMirror .line")).toHaveText([
+      "Hello world",
+    ]);
+    await expect(page.locator(".chord-label")).toHaveText(["C", "G"]);
+    await expect(page.locator(".ProseMirror span.chorded")).toHaveText([
+      "H",
+      "w",
+    ]);
+    await expect(page.getByRole("button", { name: /^Key / })).toHaveText(
+      "Key C",
+    );
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Amazing Grace",
+    );
+  });
+
+  test("asks before leaving after an import", async ({ page }) => {
+    await importText(page, verse);
+    const dialogs: string[] = [];
+    page.on("dialog", (prompt) => {
+      dialogs.push(prompt.type());
+      void prompt.dismiss();
+    });
+    await homeLink(page).click();
+    await expect.poll(() => dialogs).toEqual(["beforeunload"]);
+    await expect(page).toHaveURL("/editor");
+  });
+});
+
 // A click past the end of the text puts the caret at the end of the line.
 // End doesn't work on a phone when the docked toolbar is shown and the page
 // scrolls.

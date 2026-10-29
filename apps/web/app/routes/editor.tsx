@@ -1,9 +1,16 @@
 import "./editor.css";
 
-import { guessKey, type Key, stepKey, transposeChord } from "chordsheet";
+import {
+  type ChordSheet,
+  guessKey,
+  type Key,
+  stepKey,
+  transposeChord,
+} from "chordsheet";
 import { useEffect, useRef, useState } from "react";
 
 import { EditorHelp } from "../editor/help";
+import { ImportButton } from "../editor/import-button";
 import { KeyButton } from "../editor/key-button";
 import { SheetEditor, type SheetEditorHandle } from "../editor/sheet-editor";
 import { seedSong } from "../editor/seed-song";
@@ -34,30 +41,45 @@ function PrototypeNote() {
   );
 }
 
+function chordsOf(sheet: ChordSheet) {
+  return sheet.sections.flatMap((s) => s.lines.flatMap((l) => l.chords));
+}
+
 export default function EditorPage() {
+  // The sheet the editor loads, and how many imports came before it. The
+  // count is the editor's key, so an import loads the new sheet in a new
+  // editor, with a fresh undo history.
+  const [loaded, setLoaded] = useState({ sheet: seedSong, imports: 0 });
   const [edited, setEdited] = useState(false);
   const editor = useRef<SheetEditorHandle>(null);
   // The key is guessed from the chords. Until the editor reports them, it is
-  // guessed from the seed song, so the server renders the button too.
-  const [key, setKey] = useState(() =>
-    guessKey(
-      seedSong.sections.flatMap((s) => s.lines.flatMap((l) => l.chords)),
-    ),
-  );
+  // guessed from the loaded sheet, so the server renders the button too.
+  const [key, setKey] = useState(() => guessKey(chordsOf(seedSong)));
   // The key the sheet was loaded in, or the first one guessed. "Back" goes
   // there. Sheets don't store a key yet (#58).
   const [original, setOriginal] = useState(key);
+
+  function load(sheet: ChordSheet) {
+    const guess = guessKey(chordsOf(sheet));
+    setLoaded(({ imports }) => ({ sheet, imports: imports + 1 }));
+    setEdited(false);
+    setKey(guess);
+    setOriginal(guess);
+  }
+
+  // An imported sheet differs from the seed song, even before it is edited.
+  const differs = edited || loaded.imports > 0;
 
   function moveTo(to: Key) {
     if (!key) return;
     editor.current?.transpose((c) => transposeChord(c, key, to));
   }
 
-  // Nothing is saved, so leaving with edits asks first, with the browser's
+  // Nothing is saved, so leaving with edits or an import asks first, with the browser's
   // own prompt. The top bar's links load the next page in full, so the
   // prompt covers them too.
   useEffect(() => {
-    if (!edited) return;
+    if (!differs) return;
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
@@ -65,11 +87,12 @@ export default function EditorPage() {
     return () => {
       window.removeEventListener("beforeunload", onBeforeUnload);
     };
-  }, [edited]);
+  }, [differs]);
 
   return (
     <>
       <TopBar title={title}>
+        <ImportButton onImport={load} />
         <SidePanelButton icon="help" title="How to edit">
           <EditorHelp />
         </SidePanelButton>
@@ -104,8 +127,9 @@ export default function EditorPage() {
             </div>
           </div>
           <SheetEditor
+            key={loaded.imports}
             ref={editor}
-            sheet={seedSong}
+            sheet={loaded.sheet}
             onEditedChange={setEdited}
             onChordsChange={(chords) => {
               const guess = guessKey(chords);
