@@ -20,6 +20,12 @@
 - [x] 3.4 Add e2e tests in `apps/web/e2e/editor.spec.ts` for the spec's scenarios (seed song in G, no chords, picking A, stepping, Ctrl Z in the panel, "Back to G") and verify with `just e2e`
 - [x] 3.5 Add the key button's name, "Transpose to", "G is guessed from the chords.", the step names and "Back to G" to `docs/ui-text.md`, and verify with `just fmt-check`
 
+## 4. Review feedback
+
+- [x] 4.1 Slide the phone sheet out before it closes, and verify with an e2e test on the phone project
+- [x] 4.2 Center "One semitone" between the steps; the label's rule also matched the tooltip wrappers. Verify in the browser
+- [x] 4.3 Name the original key in the panel and make "Back" move to it, always shown and disabled in it; drop `setChordsById`. Verify with the component tests and the e2e test for "Back" after reopening
+
 ## Workflow follow-up
 
 - Comment on #46 that the key is guessed until #58.

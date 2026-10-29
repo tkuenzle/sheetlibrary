@@ -3,13 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { transposeChord } from "chordsheet";
 
-import {
-  chordsIn,
-  insertChord,
-  moveChord,
-  setChordsById,
-  transposeChords,
-} from "./chords";
+import { chordsIn, insertChord, moveChord, transposeChords } from "./chords";
 import {
   at,
   chord,
@@ -121,21 +115,5 @@ describe("transposing", () => {
   it("changes nothing in a sheet without chords", () => {
     const state = song("Amazing grace");
     expect(exec(state, toA).doc.eq(state.doc)).toBe(true);
-  });
-});
-
-describe("setting chords by id", () => {
-  it("gives chords their parts back and skips ids that are gone", () => {
-    const state = song("[G]Amazing [C]grace");
-    const before = chordsIn(state.doc);
-    const moved = exec(
-      state,
-      transposeChords((c) => ({ ...c, root: "A" })),
-    );
-    const next = exec(
-      moved,
-      setChordsById([...before.slice(0, 1), { id: "gone", root: "B" }]),
-    );
-    expect(notation(next)).toBe("[G]Amazing [A]grace");
   });
 });

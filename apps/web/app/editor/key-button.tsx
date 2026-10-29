@@ -25,10 +25,10 @@ function sameKey(a: Key, b: Key): boolean {
 // The sheet's key beside its title. It opens a panel with the keys to move
 // to and steps of a semitone: under the button, or a bottom sheet on a
 // phone. The panel stays open after a pick, and offers to go back to the
-// key it opened in.
+// sheet's original key.
 export function KeyButton({
   current,
-  onOpen,
+  original,
   onPick,
   onStep,
   onBack,
@@ -36,29 +36,37 @@ export function KeyButton({
   onRedo,
 }: {
   current: Key;
-  // Called when the panel opens, so "Back" can return to the sheet as it
-  // was then.
-  onOpen: () => void;
+  // The key the sheet was in when it was loaded.
+  original: Key;
   onPick: (key: Key) => void;
   onStep: (step: 1 | -1) => void;
   onBack: () => void;
   onUndo: () => void;
   onRedo: () => void;
 }) {
-  const [openedIn, setOpenedIn] = useState<Key | null>(null);
+  const [open, setOpen] = useState(false);
   const wrapper = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  const open = openedIn !== null;
 
-  function show() {
-    onOpen();
-    setOpenedIn(current);
-  }
-
+  // As a sheet, the panel slides out before it closes, since a dialog leaves
+  // the page at once when it closes. With reduced motion there is no
+  // animation to wait for, so it closes at once.
   function close() {
-    dialog.current?.close();
+    const panel = dialog.current;
+    if (!panel?.open || panel.hasAttribute("data-closing")) return;
+    if (!panel.matches(":modal")) {
+      panel.close();
+      return;
+    }
+    panel.setAttribute("data-closing", "");
+    void Promise.allSettled(
+      panel.getAnimations({ subtree: true }).map((a) => a.finished),
+    ).then(() => {
+      panel.removeAttribute("data-closing");
+      panel.close();
+    });
   }
 
   useEffect(() => {
@@ -117,7 +125,7 @@ export function KeyButton({
         aria-label={`Key ${spokenKey(current)}`}
         onClick={() => {
           if (open) close();
-          else show();
+          else setOpen(true);
         }}
       >
         Key {keyName(current)}
@@ -128,7 +136,7 @@ export function KeyButton({
         className="key-panel"
         aria-labelledby={titleId}
         onClose={() => {
-          setOpenedIn(null);
+          setOpen(false);
           button.current?.focus();
         }}
         onKeyDown={(event) => {
@@ -146,10 +154,10 @@ export function KeyButton({
           if (event.target === event.currentTarget) close();
         }}
       >
-        {openedIn && (
+        {open && (
           <KeyPanel
             current={current}
-            openedIn={openedIn}
+            original={original}
             titleId={titleId}
             onPick={onPick}
             onStep={onStep}
@@ -170,19 +178,19 @@ export function KeyButton({
   );
 }
 
-// What the panel holds: the keys to move to, the steps, and "Back" once the
-// key has changed.
+// What the panel holds: the keys to move to, the steps, and "Back" to the
+// original key. "Back" is always there, so nothing moves when the key
+// changes.
 export function KeyPanel({
   current,
-  openedIn,
+  original,
   titleId,
   onPick,
   onStep,
   onBack,
 }: {
   current: Key;
-  // The key the panel opened in.
-  openedIn: Key;
+  original: Key;
   titleId: string;
   onPick: (key: Key) => void;
   onStep: (step: 1 | -1) => void;
@@ -202,7 +210,9 @@ export function KeyPanel({
     <div className="key-panel-content">
       <div className="key-panel-header">
         <h2 id={titleId}>Transpose to</h2>
-        <p>{keyName(current)} is guessed from the chords.</p>
+        <p>
+          The original key, {keyName(original)}, is guessed from the chords.
+        </p>
       </div>
       <div className="key-panel-keys">
         {cells.map((cell) => {
@@ -243,7 +253,7 @@ export function KeyPanel({
             onStep(-1);
           }}
         />
-        <span>One semitone</span>
+        <span className="key-panel-step-label">One semitone</span>
         <IconButton
           icon="add"
           label="Up a semitone"
@@ -253,11 +263,14 @@ export function KeyPanel({
           }}
         />
       </div>
-      {!sameKey(current, openedIn) && (
-        <Button variant="text" className="key-panel-back" onClick={onBack}>
-          Back to {keyName(openedIn)}
-        </Button>
-      )}
+      <Button
+        variant="text"
+        className="key-panel-back"
+        disabled={sameKey(current, original)}
+        onClick={onBack}
+      >
+        Back to {keyName(original)}
+      </Button>
     </div>
   );
 }

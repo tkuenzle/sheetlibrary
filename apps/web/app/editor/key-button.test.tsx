@@ -11,11 +11,11 @@ function nothing() {
 const major = (tonic: string): Key => ({ tonic, minor: false });
 const minor = (tonic: string): Key => ({ tonic, minor: true });
 
-function panel(current: Key, openedIn: Key = current) {
+function panel(current: Key, original: Key = current) {
   return renderToString(
     <KeyPanel
       current={current}
-      openedIn={openedIn}
+      original={original}
       titleId="title"
       onPick={nothing}
       onStep={nothing}
@@ -42,7 +42,7 @@ describe("KeyButton", () => {
     const html = renderToString(
       <KeyButton
         current={major("G")}
-        onOpen={nothing}
+        original={major("G")}
         onPick={nothing}
         onStep={nothing}
         onBack={nothing}
@@ -78,7 +78,9 @@ describe("KeyPanel", () => {
     ]);
     expect(html).toContain('aria-label="F sharp or G flat"');
     expect(pressed(html)).toEqual(["G"]);
-    expect(html).toContain("G<!-- --> is guessed from the chords.");
+    expect(html).toContain(
+      "The original key, <!-- -->G<!-- -->, is guessed from the chords.",
+    );
   });
 
   it("lists the minor keys for a minor sheet", () => {
@@ -106,9 +108,17 @@ describe("KeyPanel", () => {
     expect(pressed(panel(major("Gb")))).toEqual(["Gb"]);
   });
 
-  it("offers to go back once the key has changed", () => {
-    expect(panel(major("G"))).not.toContain("Back to");
-    expect(panel(major("A"), major("G"))).toContain("Back to <!-- -->G");
+  it("names the original key, not the current one", () => {
+    expect(panel(major("A"), major("G"))).toContain(
+      "The original key, <!-- -->G<!-- -->, is guessed",
+    );
+  });
+
+  it("always shows the way back, disabled in the original key", () => {
+    const back = (html: string) =>
+      /<button[^>]*>Back to <!-- -->G<\/button>/.exec(html)?.[0];
+    expect(back(panel(major("G")))).toContain("disabled");
+    expect(back(panel(major("A"), major("G")))).not.toContain("disabled");
   });
 
   it("has steps of a semitone", () => {

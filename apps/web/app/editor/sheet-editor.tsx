@@ -22,7 +22,6 @@ import {
   removeChord,
   type SectionToolbarState,
   selectChord,
-  setChordsById,
   setSectionLabel,
   transposeChords,
   undo,
@@ -56,8 +55,6 @@ export interface SheetEditorHandle {
   handBack(): HandBack;
   // Moves every chord with `move`, in one step to undo.
   transpose(move: (chord: ChordSymbol) => ChordSymbol): void;
-  // Gives chords their parts back by id, in one step to undo.
-  restoreChords(chords: Chord[]): void;
   undo(): void;
   redo(): void;
 }
@@ -128,9 +125,6 @@ export function SheetEditor({
     },
     transpose: (move) => {
       run(transposeChords(move));
-    },
-    restoreChords: (chords) => {
-      run(setChordsById(chords));
     },
     undo: () => {
       run(undo);

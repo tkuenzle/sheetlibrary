@@ -114,20 +114,19 @@ export function chordsIn(doc: Node): Chord[] {
 }
 
 // Replaces every chord in the document with what `change` makes of it, in
-// one step to undo. Ids stay, and so does the caret. A chord `change` leaves
-// out of the result keeps its parts.
+// one step to undo. Ids stay, and so does the caret.
 function replaceChords(
   state: EditorState,
-  change: (chord: Chord) => ChordSymbol | undefined,
+  change: (chord: Chord) => ChordSymbol,
 ): Transaction | null {
   const tr = state.tr;
   state.doc.descendants((node, pos) => {
     const chords = chordsOn(node);
     if (chords.length === 0) return true;
-    const next = chords.map((chord) => {
-      const symbol = change(chord);
-      return symbol ? { id: chord.id, ...symbolOf(symbol) } : chord;
-    });
+    const next = chords.map((chord) => ({
+      id: chord.id,
+      ...symbolOf(change(chord)),
+    }));
     if (next.some((chord, i) => !sameChord(chord, chords[i]))) {
       setChords(tr, pos, next);
     }
@@ -148,17 +147,6 @@ export function transposeChords(
 ): Command {
   return (state, dispatch) => {
     const tr = replaceChords(state, (chord) => move(symbolOf(chord)));
-    if (tr) dispatch?.(tr);
-    return true;
-  };
-}
-
-// Gives the chords with these ids their parts back. Ids that are gone are
-// skipped.
-export function setChordsById(chords: Chord[]): Command {
-  const byId = new Map(chords.map((chord) => [chord.id, chord]));
-  return (state, dispatch) => {
-    const tr = replaceChords(state, (chord) => byId.get(chord.id));
     if (tr) dispatch?.(tr);
     return true;
   };

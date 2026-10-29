@@ -321,7 +321,9 @@ test.describe("the key", () => {
   test("moves the chords to a picked key, and stays open", async ({ page }) => {
     await keyButton(page).click();
     await expect(panel(page)).toBeVisible();
-    await expect(panel(page)).toContainText("G is guessed from the chords.");
+    await expect(panel(page)).toContainText(
+      "The original key, G, is guessed from the chords.",
+    );
     await panel(page).getByRole("button", { name: "A", exact: true }).click();
     expect(await chords(page)).toEqual(["A", "A7", "D", "A"]);
     await expect(keyButton(page)).toHaveText("Key A");
@@ -348,16 +350,34 @@ test.describe("the key", () => {
     await expect(panel(page)).toBeVisible();
   });
 
-  test("goes back to the key it opened in", async ({ page }) => {
+  test("goes back to the original key, also after reopening", async ({
+    page,
+  }) => {
     await keyButton(page).click();
+    const back = panel(page).getByRole("button", { name: "Back to G" });
+    await expect(back).toBeDisabled();
     const up = panel(page).getByRole("button", { name: "Up a semitone" });
     for (let i = 0; i < 3; i++) await up.click();
-    await panel(page).getByRole("button", { name: "Back to G" }).click();
+    await expect(keyButton(page)).toHaveText("Key Bb");
+    await expect(panel(page)).toContainText(
+      "The original key, G, is guessed from the chords.",
+    );
+    await page.keyboard.press("Escape");
+    await keyButton(page).click();
+    await back.click();
     await expect(keyButton(page)).toHaveText("Key G");
     expect(await chords(page)).toEqual(["G", "G7", "C", "G"]);
-    await expect(
-      panel(page).getByRole("button", { name: "Back to G" }),
-    ).toHaveCount(0);
+    await expect(back).toBeDisabled();
+  });
+
+  test("slides out on a phone before it closes", async ({ page }, testInfo) => {
+    test.skip(!isPhone(testInfo), "The panel is a sheet only on a phone");
+    await keyButton(page).click();
+    await expect(panel(page)).toBeVisible();
+    await slowAnimations(page);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toHaveAttribute("data-closing", "");
+    await expect(panel(page)).toBeHidden();
   });
 
   test("closes with Escape and gives the focus back", async ({ page }) => {

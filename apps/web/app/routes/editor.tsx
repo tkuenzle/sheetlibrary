@@ -1,7 +1,6 @@
 import "./editor.css";
 
-import type { Chord } from "chord-editor";
-import { guessKey, stepKey, transposeChord } from "chordsheet";
+import { guessKey, type Key, stepKey, transposeChord } from "chordsheet";
 import { useEffect, useRef, useState } from "react";
 
 import { EditorHelp } from "../editor/help";
@@ -45,9 +44,14 @@ export default function EditorPage() {
       seedSong.sections.flatMap((s) => s.lines.flatMap((l) => l.chords)),
     ),
   );
-  const chords = useRef<Chord[]>([]);
-  // The chords when the key panel opened, for "Back".
-  const before = useRef<Chord[]>([]);
+  // The key the sheet was loaded in, or the first one guessed. "Back" goes
+  // there. Sheets don't store a key yet (#58).
+  const [original, setOriginal] = useState(key);
+
+  function moveTo(to: Key) {
+    if (!key) return;
+    editor.current?.transpose((c) => transposeChord(c, key, to));
+  }
 
   // Nothing is saved, so leaving with edits asks first, with the browser's
   // own prompt. The top bar's links load the next page in full, so the
@@ -75,25 +79,16 @@ export default function EditorPage() {
           <div className="editor-intro">
             <div className="editor-title">
               <h1>{title}</h1>
-              {key && (
+              {key && original && (
                 <KeyButton
                   current={key}
-                  onOpen={() => {
-                    before.current = chords.current;
-                  }}
-                  onPick={(to) => {
-                    editor.current?.transpose((c) =>
-                      transposeChord(c, key, to),
-                    );
-                  }}
+                  original={original}
+                  onPick={moveTo}
                   onStep={(step) => {
-                    const to = stepKey(key, step);
-                    editor.current?.transpose((c) =>
-                      transposeChord(c, key, to),
-                    );
+                    moveTo(stepKey(key, step));
                   }}
                   onBack={() => {
-                    editor.current?.restoreChords(before.current);
+                    moveTo(original);
                   }}
                   onUndo={() => {
                     editor.current?.undo();
@@ -112,9 +107,10 @@ export default function EditorPage() {
             ref={editor}
             sheet={seedSong}
             onEditedChange={setEdited}
-            onChordsChange={(next) => {
-              chords.current = next;
-              setKey(guessKey(next));
+            onChordsChange={(chords) => {
+              const guess = guessKey(chords);
+              setKey(guess);
+              setOriginal((first) => first ?? guess);
             }}
           />
         </main>

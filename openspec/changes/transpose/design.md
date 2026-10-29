@@ -24,16 +24,17 @@ A chord is `{ at, root, suffix?, bass? }` in `chordsheet` and `{ id, root, suffi
 
 **The editor takes a function, not a key.** `chord-editor` gets `transposeChords(move)`, a command that replaces every chord in the document with `move(chord)`, keeping ids, in one transaction, with the selection kept. The package knows no music theory, and the command is one undo step. `chordsIn(doc)` lists the chords in order for the guess.
 
-**The route holds the key.** `SheetEditor` reports the chords through a new `onChordsChange`, called when the document changes, and its handle gets `transpose(move)`. The route guesses the key and renders the key button beside the heading. It is marked `data-keeps-editing`, so opening it keeps the active section.
+**The route holds the key.** `SheetEditor` reports the chords through a new `onChordsChange`, called when the document changes, and its handle gets `transpose(move)`. The route guesses the key and renders the key button beside the heading. It also keeps the original key: the one guessed when the sheet was loaded, or the first one guessed after that. #58 replaces it with the stored key. It is marked `data-keeps-editing`, so opening it keeps the active section.
 
 **One `<dialog>` for the panel.** It opens with `show()` under the button on wider windows, and with `showModal()` as a bottom sheet on a phone, like the side panel's sheet. Escape or a click outside closes it, and focus goes back to the button. The cells are buttons; the current key has `aria-pressed`. The split cell is a group of two buttons. The panel keeps focus after a pick and stays open.
 
 **Undo reaches the editor from the panel.** The panel catches Mod-z, Shift-Mod-z and Mod-y and runs the editor's `undo` and `redo` through the handle. Focus stays in the panel.
 
-**"Back to G" restores, it doesn't transpose back.** When the panel opens, the route keeps the chords by id. "Back" sets them again in one transaction through a second command, `setChordsById(chords)`. Moving back by the opposite interval could spell a chord outside the key differently than it was, and "Back" promises the sheet as it was. Chords can't be edited while the panel has focus, so the ids still match; a chord that is gone is skipped.
+**"Back to G" transposes to the original key.** It moves the chords from the current key to the original one, like any pick. A chord added after transposing moves back with the others, which restoring a snapshot by id would miss. A move and the move back cancel out, except where a double accidental fell back to the plain note. The button is always there and disabled in the original key, so the panel keeps its size.
 
 ## Risks / Trade-offs
 
 - [The guess is wrong for a sheet that starts and ends away from its key] → The spelling is usually the same either way, and a wrong guess only shows on the button. #58 lets the user set the key.
 - [A sheet that changes key is spelled in one key] → Its other section may get odd spellings, such as A# where Bb fits. #58 adds keys per section.
 - [Chord spelling outside the key surprises someone] → The rule is the same for every chord. Test it with sheets from Ultimate Guitar.
+- [Chord edits change the guess without a transpose] → "Back" then moves the sheet to the original guess, even if the chords now say another key. #58 stores the key, so it no longer depends on the guess.
