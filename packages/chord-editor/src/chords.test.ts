@@ -1,7 +1,15 @@
 import { redo, undo } from "prosemirror-history";
 import { describe, expect, it } from "vitest";
 
-import { insertChord, moveChord } from "./chords";
+import { transposeChord } from "chordsheet";
+
+import {
+  chordsIn,
+  insertChord,
+  moveChord,
+  setChordsById,
+  transposeChords,
+} from "./chords";
 import {
   at,
   chord,
@@ -82,5 +90,52 @@ describe("moving a chord", () => {
     const undone = exec(moved, undo);
     expect(notation(undone)).toBe("[G]Amazing grace");
     expect(notation(exec(undone, redo))).toBe("Amazing [G]grace");
+  });
+});
+
+describe("transposing", () => {
+  const toA = transposeChords((c) =>
+    transposeChord(
+      c,
+      { tonic: "G", minor: false },
+      { tonic: "A", minor: false },
+    ),
+  );
+
+  it("moves every chord and keeps the ids and the caret", () => {
+    const state = withCaret(song("[G]Amazing [C]grace\n\n[D/F#]me"), 3);
+    const ids = chordsIn(state.doc).map((c) => c.id);
+    const next = exec(state, toA);
+    expect(notation(next)).toBe("[A]Amazing [D]grace\n\n[E/G#]me");
+    expect(chordsIn(next.doc).map((c) => c.id)).toEqual(ids);
+    expect(next.selection.head).toBe(3);
+  });
+
+  it("is undone in one step", () => {
+    const state = song("[G]Amazing [C]grace\n\n[D]me");
+    expect(notation(exec(exec(state, toA), undo))).toBe(
+      "[G]Amazing [C]grace\n\n[D]me",
+    );
+  });
+
+  it("changes nothing in a sheet without chords", () => {
+    const state = song("Amazing grace");
+    expect(exec(state, toA).doc.eq(state.doc)).toBe(true);
+  });
+});
+
+describe("setting chords by id", () => {
+  it("gives chords their parts back and skips ids that are gone", () => {
+    const state = song("[G]Amazing [C]grace");
+    const before = chordsIn(state.doc);
+    const moved = exec(
+      state,
+      transposeChords((c) => ({ ...c, root: "A" })),
+    );
+    const next = exec(
+      moved,
+      setChordsById([...before.slice(0, 1), { id: "gone", root: "B" }]),
+    );
+    expect(notation(next)).toBe("[G]Amazing [A]grace");
   });
 });

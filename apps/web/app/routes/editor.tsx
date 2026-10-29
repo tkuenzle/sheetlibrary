@@ -1,9 +1,12 @@
 import "./editor.css";
 
-import { useEffect, useState } from "react";
+import type { Chord } from "chord-editor";
+import { guessKey, stepKey, transposeChord } from "chordsheet";
+import { useEffect, useRef, useState } from "react";
 
 import { EditorHelp } from "../editor/help";
-import { SheetEditor } from "../editor/sheet-editor";
+import { KeyButton } from "../editor/key-button";
+import { SheetEditor, type SheetEditorHandle } from "../editor/sheet-editor";
 import { seedSong } from "../editor/seed-song";
 import { SidePanel, SidePanelButton } from "../shell/side-panel";
 import { TopBar } from "../shell/top-bar";
@@ -34,6 +37,17 @@ function PrototypeNote() {
 
 export default function EditorPage() {
   const [edited, setEdited] = useState(false);
+  const editor = useRef<SheetEditorHandle>(null);
+  // The key is guessed from the chords. Until the editor reports them, it is
+  // guessed from the seed song, so the server renders the button too.
+  const [key, setKey] = useState(() =>
+    guessKey(
+      seedSong.sections.flatMap((s) => s.lines.flatMap((l) => l.chords)),
+    ),
+  );
+  const chords = useRef<Chord[]>([]);
+  // The chords when the key panel opened, for "Back".
+  const before = useRef<Chord[]>([]);
 
   // Nothing is saved, so leaving with edits asks first, with the browser's
   // own prompt. The top bar's links load the next page in full, so the
@@ -59,12 +73,50 @@ export default function EditorPage() {
       <div className="editor-layout">
         <main className="editor-page">
           <div className="editor-intro">
-            <h1>{title}</h1>
+            <div className="editor-title">
+              <h1>{title}</h1>
+              {key && (
+                <KeyButton
+                  current={key}
+                  onOpen={() => {
+                    before.current = chords.current;
+                  }}
+                  onPick={(to) => {
+                    editor.current?.transpose((c) =>
+                      transposeChord(c, key, to),
+                    );
+                  }}
+                  onStep={(step) => {
+                    const to = stepKey(key, step);
+                    editor.current?.transpose((c) =>
+                      transposeChord(c, key, to),
+                    );
+                  }}
+                  onBack={() => {
+                    editor.current?.restoreChords(before.current);
+                  }}
+                  onUndo={() => {
+                    editor.current?.undo();
+                  }}
+                  onRedo={() => {
+                    editor.current?.redo();
+                  }}
+                />
+              )}
+            </div>
             <div className="editor-note">
               <PrototypeNote />
             </div>
           </div>
-          <SheetEditor sheet={seedSong} onEditedChange={setEdited} />
+          <SheetEditor
+            ref={editor}
+            sheet={seedSong}
+            onEditedChange={setEdited}
+            onChordsChange={(next) => {
+              chords.current = next;
+              setKey(guessKey(next));
+            }}
+          />
         </main>
         <SidePanel title="How to edit" before={<PrototypeNote />}>
           <EditorHelp />

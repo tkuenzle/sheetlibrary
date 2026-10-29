@@ -1,9 +1,11 @@
 import add from "./icons/add.svg?raw";
 import close from "./icons/close.svg?raw";
+import expandMore from "./icons/expand_more.svg?raw";
 import help from "./icons/help.svg?raw";
 import info from "./icons/info.svg?raw";
 import moveDown from "./icons/move_down.svg?raw";
 import moveUp from "./icons/move_up.svg?raw";
+import remove from "./icons/remove.svg?raw";
 
 // The icons the UI uses: Material Symbols Rounded, weight 500, drawn for 24px
 // (Apache License 2.0). Only the icons listed here are bundled. To add one,
@@ -11,7 +13,16 @@ import moveUp from "./icons/move_up.svg?raw";
 // https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/<name>/wght500/24px.svg
 // The npm packages only have icons drawn for 48px, which look too thin at
 // 24px.
-const sources = { add, close, help, info, moveDown, moveUp };
+const sources = {
+  add,
+  close,
+  expandMore,
+  help,
+  info,
+  moveDown,
+  moveUp,
+  remove,
+};
 
 export type IconName = keyof typeof sources;
 

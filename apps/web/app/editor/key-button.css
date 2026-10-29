@@ -1,0 +1,208 @@
+/*
+  The key beside the sheet's title, and its panel: under the button, or a
+  bottom sheet on a phone. The widths are listed in app/breakpoints.ts.
+*/
+.key-button {
+  position: relative;
+  flex: none;
+}
+
+.key-button-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  padding: 0 10px 0 16px;
+  border: 0;
+  border-radius: var(--corner-full);
+  background: var(--quiet);
+  color: var(--on-quiet);
+  font: 700 var(--font-size-label) / 1 var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.key-button-toggle[aria-expanded="true"] {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.key-button-toggle[aria-expanded="true"] > .icon {
+  rotate: 180deg;
+}
+
+.key-button-toggle:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/*
+  Under the button, over the sheet. The content fills the panel, so a click
+  on the panel itself was on the backdrop (see KeyButton).
+*/
+.key-panel {
+  z-index: 10;
+  inset: calc(100% + var(--space-s)) auto auto 0;
+  width: 340px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--corner-medium);
+  background: var(--surface-active);
+  color: var(--text);
+  box-shadow:
+    0 4px 16px var(--shadow),
+    0 0 0 1px var(--border);
+  outline: 1px solid transparent;
+}
+
+.key-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: var(--space-xl);
+}
+
+.key-panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.key-panel-header h2 {
+  margin: 0;
+  font: 700 var(--font-size-label) / 1.3 var(--font);
+}
+
+.key-panel-header p {
+  margin: 0;
+  font-size: var(--font-size-small);
+  line-height: 1.4;
+  color: var(--text-dimmed);
+}
+
+.key-panel-keys {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-s);
+}
+
+.key-panel-key {
+  min-width: 0;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--corner-small);
+  background: var(--page);
+  color: var(--text);
+  font: 700 16px / 1 var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.key-panel-key:hover {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.key-panel-key[aria-pressed="true"] {
+  background: var(--surface-active);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  color: var(--accent);
+}
+
+.key-panel-key:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Two keys at the same pitch share one cell. */
+.key-panel-split {
+  display: flex;
+  gap: 2px;
+}
+
+.key-panel-split > .key-panel-key {
+  flex: 1;
+  font-size: var(--font-size-label);
+}
+
+.key-panel-split > .key-panel-key:first-child {
+  border-radius: var(--corner-small) 2px 2px var(--corner-small);
+}
+
+.key-panel-split > .key-panel-key:last-child {
+  border-radius: 2px var(--corner-small) var(--corner-small) 2px;
+}
+
+.key-panel-steps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  padding-top: var(--space-l);
+  border-top: 1px solid var(--border);
+}
+
+.key-panel-steps > span {
+  flex: 1;
+  text-align: center;
+  font: 600 var(--font-size-body) / 1.3 var(--font);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.key-panel-step.icon-button-standard {
+  background-color: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.key-panel-back {
+  align-self: flex-start;
+  margin: calc(-1 * var(--space-s)) 0 0 calc(-1 * var(--space-l));
+}
+
+/* On a phone: a sheet from the bottom, over a scrim. */
+@media (max-width: 640px) {
+  .key-panel {
+    position: fixed;
+    inset: auto 0 0;
+    width: 100%;
+    max-width: none;
+    border-radius: var(--corner-large) var(--corner-large) 0 0;
+    box-shadow: 0 -4px 16px var(--shadow);
+  }
+
+  .key-panel-content {
+    padding-bottom: calc(var(--space-2xl) + env(safe-area-inset-bottom));
+  }
+
+  .key-panel[open] {
+    animation: key-panel-in 200ms ease-out;
+  }
+
+  .key-panel::backdrop {
+    background: var(--scrim);
+  }
+
+  .key-panel-key {
+    height: 52px;
+  }
+}
+
+@keyframes key-panel-in {
+  from {
+    translate: 0 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key-panel[open] {
+    animation: none;
+  }
+}
