@@ -48,6 +48,8 @@ These follow tonal's dictionary, which also writes `7#5`, `maj7#5` and `6add9`, 
 
 **The root is read greedily.** A letter, any case, and then an optional `#`, `♯`, `b` or `♭`. So `bb` is B♭, `Bb5` is a B♭ power chord and `C#5` is a C♯ power chord. An alteration such as `b5` or `#5` only follows a sixth, a seventh or an extension, so this is never ambiguous. That is why `+5` is an alias for `aug`: `C+5` → `Caug`.
 
+**`H` is read as `B`.** `H` only ever means B natural, so reading it is safe, and it is stored and shown as `B`. The German `B`, which is B♭, is not read: `B` is always B natural, since nothing tells a German `B` apart from an English one. Reading the whole German system needs a notation setting, which belongs with display styles (#26).
+
 **The app reads, the package takes parts.** `insertChord` and `changeChord` take a chord symbol instead of text. The chord input calls `readChord` on Done; on `null` it shows the note and keeps the input open. The package stays free of UI text and of input handling, and its labels use `writeChord`. The note uses the existing `Note` component under the field; the input gets `aria-invalid` and `aria-describedby` pointing to it. The note goes away when the text changes. Empty text keeps working as before: Done closes a new chord's input and removes an edited chord.
 
 **Test helpers take text.** `line(text, [at, "Bbm7"])` reads each chord with `readChord` and throws when it isn't one. Tests stay readable, and a typo in a test fails loudly.

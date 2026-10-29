@@ -7,7 +7,7 @@ Transposing (#46), the Ultimate Guitar import (#47) and display styles (#26) all
 ## What Changes
 
 - **BREAKING (model):** a chord is stored as its parts, not as text: a root, an optional suffix and an optional bass, such as `{ at: 25, root: "Bb", suffix: "m7", bass: "F" }`. The model stays at version 1. Nothing is stored yet; only the seed song changes.
-- The root and the bass are spelled note names: a letter from `C` to `B` and an optional `#` or `b`. `Bb` and `A#` stay apart. English names only: `H` is not a chord.
+- The root and the bass are spelled note names: a letter from `C` to `B` and an optional `#` or `b`. `Bb` and `A#` stay apart. English names, except that `H` is read as `B`; it is stored and shown as `B`. The German `B` (B♭) is not read: `B` is always B.
 - The suffix is built by a small grammar from parts in a fixed order: quality, sixth or seventh, extension, sus, alterations, added notes. Each chord has one canonical suffix, such as `m7b5` or `7sus4`, and that is what is stored. For example, `C6/9` is stored as `6add9`, `C2` as `add9`, `Caug7` as `7#5`, and `C/C` as `C`.
 - A parser reads typed text into these parts. It is lenient: a lowercase root (`am`), `♭` and `♯`, and common aliases (`-`, `min`, `M7`, `Δ`, `°`, `ø`, `+`, brackets as in `7(b9)`) are read. Our own code, no library.
 - The sheet shows every chord in its canonical form, so `Bb-7` shows as `Bbm7` after Done. What was typed is not kept. Opening a chord to edit it shows the canonical form.

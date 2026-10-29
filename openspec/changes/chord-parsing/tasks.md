@@ -2,7 +2,7 @@
 
 ## 1. Reading and writing chords
 
-- [x] 1.1 Add `readChord` and `writeChord` to `packages/chordsheet` with the slot table from the design: the root and bass read greedily in any case with `#`, `♯`, `b` and `♭`, the suffix slots in order with brackets dropped, English names only. Verify with unit tests for each spec scenario of `chord-symbols`, a list of chords taken from real Ultimate Guitar sheets, and a round trip: reading the written text gives the same chord
+- [x] 1.1 Add `readChord` and `writeChord` to `packages/chordsheet` with the slot table from the design: the root and bass read greedily in any case with `#`, `♯`, `b` and `♭`, the suffix slots in order with brackets dropped, English names and `H` read as `B`. Verify with unit tests for each spec scenario of `chord-symbols`, a list of chords taken from real Ultimate Guitar sheets, and a round trip: reading the written text gives the same chord
 - [x] 1.2 Apply the design's one-form rules, and verify each with unit tests: `7add9` → `9` but `7add11` stays; `6/9`, `69`, `m69` and `C6/9/E`; `2` → `add9`; `aug7`, `+7`, `aug(maj7)`, `aug9` and `augadd9`; `dim7` stays, `dim9` is not a chord; `Cmsus4` is not a chord; `C/C` → `C` but `C/B#` stays; `7#9#5` → `7#5#9`, `7sus4(b9)` → `7sus4b9`; `C#5` is a C♯ power chord and `C+5` is `Caug`
 
 ## 2. Storing chords as parts

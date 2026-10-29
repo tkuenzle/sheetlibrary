@@ -112,10 +112,10 @@ export function isNote(text: string): boolean {
 export function readChord(text: string): ChordSymbol | null {
   const typed = text.trim().replaceAll("♭", "b").replaceAll("♯", "#");
   // The last slash starts the bass, so "C6/9/E" is a 6/9 chord over E.
-  const slash = /^(.*)\/([A-Ga-g][#b]?)$/.exec(typed);
+  const slash = /^(.*)\/([A-Ha-h][#b]?)$/.exec(typed);
   const head = slash?.[1] ?? typed;
   const bass = slash?.[2] ? spell(slash[2]) : undefined;
-  const parts = /^([A-Ga-g][#b]?)(.*)$/.exec(head);
+  const parts = /^([A-Ha-h][#b]?)(.*)$/.exec(head);
   if (!parts?.[1]) return null;
   const root = spell(parts[1]);
   const suffix = readSuffix(parts[2] ?? "");
@@ -132,9 +132,12 @@ export function writeChord(chord: ChordSymbol): string {
   return `${chord.root}${chord.suffix ?? ""}${bass}`;
 }
 
-// "bb" is B flat: the letter is upper case, the accidental stays.
+// "bb" is B flat: the letter is upper case, the accidental stays. H is the
+// German name for B, and is written as B. The German B, which is B flat, is
+// not read: "B" is always B.
 function spell(note: string): string {
-  return note.charAt(0).toUpperCase() + note.slice(1);
+  const letter = note.charAt(0).toUpperCase();
+  return (letter === "H" ? "B" : letter) + note.slice(1);
 }
 
 // The canonical suffix, "" for a major triad, or null when it isn't one.

@@ -26,6 +26,13 @@ describe("Reading a chord", () => {
     expect(readChord("B♭")).toEqual({ root: "Bb" });
   });
 
+  it("reads H as B", () => {
+    expect(readChord("H7")).toEqual({ root: "B", suffix: "7" });
+    expect(readChord("hm/F#")).toEqual({ root: "B", suffix: "m", bass: "F#" });
+    expect(readChord("G/H")).toEqual({ root: "G", bass: "B" });
+    expect(readChord("B")).toEqual({ root: "B" });
+  });
+
   it("reads a lower-case root and bass, and ignores spaces at the ends", () => {
     expect(readChord(" am/e ")).toEqual({ root: "A", suffix: "m", bass: "E" });
     expect(readChord("bb")).toEqual({ root: "Bb" });
@@ -144,7 +151,7 @@ describe("One form per chord", () => {
 
 describe("Text that isn't a chord", () => {
   it("refuses text outside the grammar", () => {
-    for (const text of ["N.C.", "Cmj7", "H7", "", "x2", "(riff)", "C7b9b9"]) {
+    for (const text of ["N.C.", "Cmj7", "I7", "", "x2", "(riff)", "C7b9b9"]) {
       expect(readChord(text)).toBeNull();
     }
   });
