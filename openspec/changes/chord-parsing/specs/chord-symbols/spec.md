@@ -7,7 +7,7 @@ Reads the chord text a user types into a root, a suffix and a bass, and writes a
 ## ADDED Requirements
 
 ### Requirement: Reading a chord
-Typed chord text SHALL be read into a root, an optional suffix and an optional bass. The root and the bass SHALL be spelled note names: a letter from A to G and an optional sharp or flat, kept as spelled. Reading SHALL ignore spaces at both ends, accept a lowercase letter, accept `♯` and `♭` for `#` and `b`, and read `H` as `B`.
+Typed chord text SHALL be read into a root, an optional suffix and an optional bass. The root and the bass SHALL be spelled note names: a letter from A to G and an optional sharp or flat, kept as spelled. Reading SHALL ignore spaces at both ends, accept a lowercase letter, and accept `♯` and `♭` for `#` and `b`.
 
 #### Scenario: Root, suffix and bass
 - **WHEN** "Bb-7/F" is read
@@ -16,10 +16,6 @@ Typed chord text SHALL be read into a root, an optional suffix and an optional b
 #### Scenario: Spelling is kept
 - **WHEN** "a#" and "B♭" are read
 - **THEN** their roots are "A#" and "Bb"
-
-#### Scenario: H is B
-- **WHEN** "H7" and "G/H" are read
-- **THEN** their root and bass are "B", and "B" alone is still B
 
 ### Requirement: Canonical suffix
 A suffix SHALL be read as parts in this order: quality, sixth or seventh, extension, sus, alterations and added notes. Each part's common spellings SHALL be read as the same part. A chord SHALL have one canonical suffix, which writes its parts in that order with one spelling each and no brackets.
@@ -41,10 +37,10 @@ A suffix SHALL be read as parts in this order: quality, sixth or seventh, extens
 - **THEN** the root is "C" and there is no bass
 
 ### Requirement: Text that isn't a chord
-Text that doesn't fit the grammar SHALL NOT be read as a chord.
+Text that doesn't fit the grammar SHALL NOT be read as a chord. Only English note names SHALL be read.
 
 #### Scenario: Not a chord
-- **WHEN** "N.C.", "Cmj7" and "I7" are read
+- **WHEN** "N.C.", "Cmj7" and "H7" are read
 - **THEN** none of them is a chord
 
 ### Requirement: Writing a chord
