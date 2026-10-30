@@ -113,6 +113,12 @@ describe("Putting chords on the lyrics", () => {
     );
   });
 
+  it("reads a line with an added #11 as chords", () => {
+    expect(read("Fadd#11   F", "Lalala lala")).toEqual(
+      sheet(section(line("Lalala lala", [0, "Fadd#11"], [10, "F"]))),
+    );
+  });
+
   it("makes a line of chords only, with its repeat count", () => {
     expect(read("[Intro]", "D A Bm G x2")).toEqual(
       sheet(
