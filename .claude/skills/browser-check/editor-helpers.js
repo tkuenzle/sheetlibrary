@@ -32,7 +32,10 @@ async (page) => {
       for (const [node, i] of lineChars(line)) {
         const chorded = node.parentElement.closest(".chorded");
         if (chorded && i === 0) {
-          for (const { chord } of JSON.parse(chorded.dataset.chords)) result += `[${chord}]`;
+          // Written as writeChord in chordsheet writes them.
+          for (const { root, suffix = "", bass } of JSON.parse(chorded.dataset.chords)) {
+            result += `[${root}${suffix}${bass ? `/${bass}` : ""}]`;
+          }
         }
         result += node.data[i];
       }

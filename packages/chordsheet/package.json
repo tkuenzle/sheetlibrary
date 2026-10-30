@@ -9,6 +9,9 @@
     "typecheck": "tsc -p .",
     "test": "vitest run"
   },
+  "dependencies": {
+    "get-east-asian-width": "^1.7.0"
+  },
   "devDependencies": {
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"

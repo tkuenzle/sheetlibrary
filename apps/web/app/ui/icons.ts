@@ -1,5 +1,6 @@
 import add from "./icons/add.svg?raw";
 import close from "./icons/close.svg?raw";
+import contentPasteGo from "./icons/content_paste_go.svg?raw";
 import expandMore from "./icons/expand_more.svg?raw";
 import help from "./icons/help.svg?raw";
 import info from "./icons/info.svg?raw";
@@ -16,6 +17,7 @@ import remove from "./icons/remove.svg?raw";
 const sources = {
   add,
   close,
+  contentPasteGo,
   expandMore,
   help,
   info,
