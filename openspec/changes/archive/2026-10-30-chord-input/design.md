@@ -28,7 +28,7 @@ Alternative: match on the chord's parts. Rejected, since what matches would be h
 
 ### The input is a combobox like the label field
 
-The field has `role="combobox"`, and the row is a `listbox` with `aria-activedescendant`. The up and down arrow keys choose, as in the label field. Left and right stay in the text. Each suggestion new to the sheet gets hidden text, "not in this sheet yet", in its name. The preview line is `aria-live="polite"`.
+The field has `role="combobox"`, and the row is a `listbox` with `aria-activedescendant`. The up and down arrow keys choose, as in the label field. Left and right stay in the text. Each suggestion new to the sheet gets an `aria-label`, such as "Am, not in this sheet yet". Hidden text in the option was read with a stray space before the comma. The preview line is `aria-live="polite"`.
 
 ### `SheetEditor` takes the key
 
