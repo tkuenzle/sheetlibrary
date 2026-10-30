@@ -62,6 +62,7 @@ export interface SheetEditorHandle {
 // too narrow for the section toolbar beside the section. The toolbar then
 // docks at the bottom.
 const compact = `(pointer: coarse), ${phone}`;
+const reducedMotion = "(prefers-reduced-motion: reduce)";
 
 type ChordTarget =
   | { kind: "new"; pos: number }
@@ -121,6 +122,8 @@ export function SheetEditor({
   const onEditedChangeRef = useRef(onEditedChange);
   const onChordsChangeRef = useRef(onChordsChange);
   const [chordInput, setChordInput] = useState<OpenChordInput | null>(null);
+  // A docked chord input that closed and is sliding out of view.
+  const [leaving, setLeaving] = useState<OpenChordInput | null>(null);
   const [toolbar, setToolbar] = useState<SectionToolbarState | null>(null);
   const [labelField, setLabelField] = useState<LabelField | null>(null);
 
@@ -152,11 +155,17 @@ export function SheetEditor({
   }
 
   function showInput(next: OpenChordInput | null) {
+    const current = chordInputRef.current;
     chordInputRef.current = next;
     // Render the input right away, so focusing it still counts as part of
     // the tap. Otherwise iOS doesn't open the keyboard.
     flushSync(() => {
       setChordInput(next);
+      setLeaving(
+        !next && current?.docked && !matchMedia(reducedMotion).matches
+          ? current
+          : null,
+      );
     });
   }
 
@@ -391,6 +400,8 @@ export function SheetEditor({
     // The editor is created once. Its handlers only read refs.
   }, []);
 
+  const shownInput = chordInput ?? leaving;
+
   return (
     <div
       className="sheet-editor"
@@ -421,22 +432,27 @@ export function SheetEditor({
           }}
         />
       )}
-      {chordInput && (
+      {shownInput && (
         <ChordInput
-          key={chordInput.opening}
+          // The same key while it slides out, so it keeps its text.
+          key={shownInput.opening}
           inputRef={inputRef}
           formRef={formRef}
-          left={chordInput.left}
-          top={chordInput.top}
-          docked={chordInput.docked}
-          initial={chordInput.initial}
-          editing={chordInput.kind === "edit" ? chordInput.chord : null}
-          sheetChords={chordInput.sheetChords}
+          left={shownInput.left}
+          top={shownInput.top}
+          docked={shownInput.docked}
+          closing={!chordInput}
+          initial={shownInput.initial}
+          editing={shownInput.kind === "edit" ? shownInput.chord : null}
+          sheetChords={shownInput.sheetChords}
           sheetKey={sheetKey}
           letterBox={letterBox}
           onCommit={commitInput}
           onRemove={deleteChord}
           onCancel={closeInput}
+          onClosed={() => {
+            setLeaving(null);
+          }}
         />
       )}
     </div>

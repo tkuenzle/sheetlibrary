@@ -68,11 +68,13 @@ export class Dock {
   }
 
   // Scrolls `box`, in window coordinates, into the part of the visible area
-  // above the docked element, when it is hidden.
+  // above the docked element, when it is hidden. Where the element ends up
+  // counts, not where it is while it slides in.
   keepAbove(box: { top: number; bottom: number }) {
     if (!this.element || !this.options.docked()) return;
     const top = window.visualViewport?.offsetTop ?? 0;
-    const bottom = this.element.getBoundingClientRect().top - margin;
+    const bottom =
+      this.element.getBoundingClientRect().top - slidBy(this.element) - margin;
     if (box.bottom > bottom) window.scrollBy(0, box.bottom - bottom);
     else if (box.top < top + margin) {
       window.scrollBy(0, box.top - top - margin);
@@ -136,6 +138,12 @@ export function setFlag(
   on: boolean,
 ) {
   element.toggleAttribute(`data-${name}`, on);
+}
+
+// How far the element is moved down by its `translate`, as while it slides.
+function slidBy(element: HTMLElement) {
+  const [, y = "0"] = getComputedStyle(element).translate.split(" ");
+  return parseFloat(y) || 0;
 }
 
 // How much of the bottom of the page's viewport is hidden, by the keyboard

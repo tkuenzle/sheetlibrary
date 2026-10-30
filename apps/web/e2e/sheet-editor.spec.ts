@@ -1379,6 +1379,12 @@ test.describe("the section toolbar", () => {
     test.skip(!(await isTouch(page)), "Needs touch");
     await tapChar(page, "wretch", 1);
     await press(page, addChordButton(page));
+    // Once it has slid in.
+    await page
+      .locator(".chord-input")
+      .evaluate((form) =>
+        Promise.all(form.getAnimations().map((a) => a.finished)),
+      );
     const form = await box(page.locator(".chord-input"));
     const size = page.viewportSize() ?? { width: 0, height: 0 };
     const gap = size.height - (form.y + form.height);
@@ -1393,6 +1399,36 @@ test.describe("the section toolbar", () => {
     await press(page, suggestion(page, "D"));
     await expect(chordInput(page)).toHaveCount(0);
     await expect(toolbar(page)).toBeVisible();
+  });
+
+  test("slides the docked chord input in and out", async ({ page }) => {
+    test.skip(!(await isTouch(page)), "Needs touch");
+    await tapChar(page, "wretch", 1);
+    await press(page, addChordButton(page));
+    expect(await chordInputAnimation(page)).toBe("chord-input-in");
+    // Closed, it stays a moment to slide out, and takes no input.
+    expect(await cancelChordInput(page)).toEqual({
+      shown: true,
+      closing: true,
+      animation: "chord-input-out",
+    });
+    await expect(page.locator(".chord-input")).toHaveCount(0);
+    await expect(toolbar(page)).toBeVisible();
+  });
+
+  test("opens and closes the docked chord input at once with reduced motion", async ({
+    page,
+  }) => {
+    test.skip(!(await isTouch(page)), "Needs touch");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await tapChar(page, "wretch", 1);
+    await press(page, addChordButton(page));
+    expect(await chordInputAnimation(page)).toBe("none");
+    expect(await cancelChordInput(page)).toEqual({
+      shown: false,
+      closing: false,
+      animation: "",
+    });
   });
 
   test("disables moving the first section up", async ({ page }) => {
@@ -1570,6 +1606,32 @@ function addChordButton(page: Page) {
 // The chord input's suggestion of `chord`.
 function suggestion(page: Page, chord: string) {
   return suggestions(page).filter({ hasText: exactly(chord) });
+}
+
+// The animation the chord input's form runs.
+function chordInputAnimation(page: Page) {
+  return page.evaluate(() => {
+    const form = document.querySelector(".chord-input");
+    return form ? getComputedStyle(form).animationName : null;
+  });
+}
+
+// Presses the chord input's Cancel and says, in the same moment, whether
+// the form still shows, whether it is closing, and its animation.
+function cancelChordInput(page: Page) {
+  return page.evaluate(() => {
+    const cancel = [...document.querySelectorAll(".chord-input button")].find(
+      (button) => button.textContent === "Cancel",
+    );
+    if (!(cancel instanceof HTMLElement)) throw new Error("no Cancel");
+    cancel.click();
+    const form = document.querySelector(".chord-input");
+    return {
+      shown: form !== null,
+      closing: form?.hasAttribute("data-closing") ?? false,
+      animation: form ? getComputedStyle(form).animationName : "",
+    };
+  });
 }
 
 // The line under the chord input's field that shows what it reads.

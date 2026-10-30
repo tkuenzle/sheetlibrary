@@ -10,7 +10,7 @@ The chord input is a bare text field. It reads the text only on Done, so the can
 - **One suggested row.** With the field empty, it shows the chords in this sheet, most used first, then the key's chords that the sheet doesn't use yet. While typing, it narrows to the chords that start with the typed text and adds completions, such as `D` → `D7`, `Dsus4`, `Dm`. Chords not in the sheet yet look different (outlined), with a short legend.
 - **Picking.** A click or tap on a suggestion adds it and closes the input. The arrow keys choose one, and Enter adds it. A mark typed in front, as in `(d`, stays on the picked chord.
 - **The key** is the one the editor page already has for transposing. For now, that is guessed from the chords. Once sheets store a key (#58), it will be the stored one.
-- **Layout.** The field and Done are on top, then the preview, then the suggestions, with Remove and Cancel at the bottom. On a touch device or in a phone-wide window, the input docks at the bottom of the visible area, above the keyboard, like the section toolbar.
+- **Layout.** The field and Done are on top, then the preview, then the suggestions, with Remove and Cancel at the bottom. On a touch device or in a phone-wide window, the input docks at the bottom of the visible area, above the keyboard, like the section toolbar. Docked, it slides up when it opens and down when it closes, as the key picker does on phones, and not at all with reduced motion.
 - Chord mode is not needed. It was a spike idea that never shipped, and the "+" below the lyrics, "+ Chord", the toolbar and dragging now cover what it was for.
 
 Building a chord from its parts, with toggles for held and optional chords, is #66. The design for both is on the "Chord input" canvas.
@@ -23,7 +23,7 @@ None.
 
 ### Modified Capabilities
 
-- `chord-editor`: the chord input shows a preview and suggestions, and docks on touch devices and phone-wide windows.
+- `chord-editor`: the chord input shows a preview and suggestions, and docks on touch devices and phone-wide windows, sliding in and out. With reduced motion, it doesn't slide.
 
 ## Impact
 

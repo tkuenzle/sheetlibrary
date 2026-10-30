@@ -18,6 +18,7 @@
 - [x] 3.5 Make it a combobox like the label field: a click or tap picks, up and down choose, Enter picks the chosen one, and the typed mark stays. Verify with e2e tests for "Tap" and "Keeping the mark", and that Enter without a chosen suggestion still reads the text
 - [x] 3.6 Dock the input with the shared module under the `compact` query, hide the docked section toolbar while it is open, and keep the letter above it. Verify with an e2e test for "Phone" on the phone project, and that the toolbar shows again after Done
 - [x] 3.7 Check by hand with the `browser-check` skill on desktop and in a phone-wide window: add a chord by picking a suggestion, type `bb-7`, and edit a held chord. Note whether an iPhone was at hand for #43. Checked on desktop Chromium and Pixel 7 emulation; no iPhone was at hand
+- [x] 3.8 Slide the docked input up when it opens and down when it closes, as the key picker does, keeping it in a closing state until it is out of view. Not with reduced motion. Verify with e2e tests on the phone project that it slides both ways, and for "Docked chord input with reduced motion"
 
 ## Workflow follow-up
 

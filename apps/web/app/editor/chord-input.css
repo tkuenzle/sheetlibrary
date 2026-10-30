@@ -165,6 +165,24 @@
   left: 0;
   z-index: 3;
   transition: opacity 150ms;
+  animation: chord-input-in 200ms ease-out;
+}
+
+/* Sliding out once closed, as the key picker does (see SheetEditor). */
+.chord-input[data-docked][data-closing] {
+  animation: chord-input-out 150ms ease-in forwards;
+}
+
+@keyframes chord-input-in {
+  from {
+    translate: 0 100%;
+  }
+}
+
+@keyframes chord-input-out {
+  to {
+    translate: 0 100%;
+  }
 }
 
 .chord-input[data-docked][data-moving] {
@@ -205,5 +223,6 @@
 @media (prefers-reduced-motion: reduce) {
   .chord-input[data-docked] {
     transition: none;
+    animation: none;
   }
 }

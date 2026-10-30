@@ -34,6 +34,7 @@ export function ChordInput({
   left,
   top,
   docked,
+  closing,
   initial,
   editing,
   sheetChords,
@@ -42,6 +43,7 @@ export function ChordInput({
   onCommit,
   onRemove,
   onCancel,
+  onClosed,
 }: {
   inputRef: RefObject<HTMLInputElement | null>;
   formRef: RefObject<HTMLFormElement | null>;
@@ -49,6 +51,8 @@ export function ChordInput({
   left: number;
   top: number;
   docked: boolean;
+  // Closed, and sliding out of view. It takes no input.
+  closing: boolean;
   initial: string;
   // The chord being edited, or null for a new one.
   editing: MarkedChord | null;
@@ -62,6 +66,8 @@ export function ChordInput({
   onCommit: (chord: MarkedChord | null) => void;
   onRemove: () => void;
   onCancel: () => void;
+  // The closing input is out of view.
+  onClosed: () => void;
 }) {
   const [text, setText] = useState(initial);
   // Done was pressed on text that isn't a chord. Cleared when the text
@@ -126,6 +132,21 @@ export function ChordInput({
     };
   }, [docked, formRef]);
 
+  // In case the slide doesn't end, as in a tab in the background.
+  const onClosedRef = useRef(onClosed);
+  useEffect(() => {
+    onClosedRef.current = onClosed;
+  });
+  useEffect(() => {
+    if (!closing) return;
+    const timer = setTimeout(() => {
+      onClosedRef.current();
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [closing]);
+
   function pick(suggestion: ChordSymbol) {
     const mark = typedMark(text);
     onCommit(mark ? { ...suggestion, mark } : suggestion);
@@ -164,7 +185,12 @@ export function ChordInput({
       ref={formRef}
       className="chord-input"
       data-docked={docked ? "" : undefined}
+      data-closing={closing ? "" : undefined}
+      inert={closing}
       style={docked ? undefined : { left, top }}
+      onAnimationEnd={(event) => {
+        if (closing && event.target === event.currentTarget) onClosed();
+      }}
       onSubmit={(event) => {
         event.preventDefault();
         done();

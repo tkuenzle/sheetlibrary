@@ -46,8 +46,21 @@ A click or tap on a suggestion SHALL add it, or change the chord being edited to
 - **THEN** "(D7)" appears above the letter
 
 ### Requirement: Docked chord input
-On a device whose main pointer is a finger, or in a window too narrow for the margin beside the section, the chord input SHALL be docked at the bottom of the visible area, across its width, above the keyboard when it is open. The letter the chord goes on SHALL stay visible above it.
+On a device whose main pointer is a finger, or in a window too narrow for the margin beside the section, the chord input SHALL be docked at the bottom of the visible area, across its width, above the keyboard when it is open. The letter the chord goes on SHALL stay visible above it. Docked, it SHALL slide up when it opens and slide down when it closes.
 
 #### Scenario: Phone
 - **WHEN** the user taps "+ Chord" on a phone
 - **THEN** the chord input is at the bottom of the visible area, above the keyboard, and the letter is above the input
+
+## MODIFIED Requirements
+
+### Requirement: Reduced motion
+When the user's system asks for reduced motion, the editor SHALL NOT animate: a label dragged by touch SHALL lift at once, the docked toolbar SHALL show again at once after hiding, and the docked chord input SHALL open and close at once.
+
+#### Scenario: Touch drag with reduced motion
+- **WHEN** reduced motion is on and the user starts dragging a chord with a finger
+- **THEN** the label is above the finger right away, without sliding
+
+#### Scenario: Docked chord input with reduced motion
+- **WHEN** reduced motion is on and the user opens the chord input on a phone and presses Cancel
+- **THEN** the input shows right away, without sliding, and is gone right away
