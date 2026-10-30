@@ -2,6 +2,7 @@ import { type EditorState, Plugin } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
 import { getActiveSection } from "./active-section";
+import { Dock, setFlag, setStyle } from "./dock";
 import { type Anchor, anchorAt } from "./letter";
 import { moveSection } from "./sections";
 
@@ -41,12 +42,6 @@ export interface SectionToolbarOptions {
   onAddChord?: (pos: number, anchor: Anchor) => void;
 }
 
-// Room kept between the caret's line and the docked toolbar.
-const caretMargin = 8;
-// On iOS, how long the visible area must be still before the docked toolbar
-// shows again, in milliseconds.
-const settleDelay = 150;
-
 const toolbars = new WeakMap<EditorView, SectionToolbar>();
 
 // "Add chord" in the app's toolbar: opens the chord input at the caret.
@@ -69,10 +64,7 @@ class SectionToolbar {
   private bar: HTMLElement | null;
   private media: MediaQueryList;
   private shown: SectionToolbarState | null = null;
-  private settleTimer = 0;
-  // Whether a finger is on the screen. While it is, the page may be held
-  // past its end, about to bounce back.
-  private fingerDown = false;
+  private dock: Dock;
   // Placed again when the editor's size changes, as when labels push text
   // onto a new line.
   private observer = new ResizeObserver(() => {
@@ -91,6 +83,11 @@ class SectionToolbar {
   ) {
     this.bar = options.toolbar ?? null;
     this.media = window.matchMedia(options.compact ?? "(pointer: coarse)");
+    this.dock = new Dock(this.bar, {
+      docked: () => this.docked,
+      place: this.place,
+      onResize: this.onViewportChange,
+    });
     toolbars.set(view, this);
     if (this.bar) {
       this.bar.dataset.sectionToolbar = "";
@@ -106,12 +103,6 @@ class SectionToolbar {
     }
     this.markCompact();
     this.media.addEventListener("change", this.onViewportChange);
-    window.visualViewport?.addEventListener("resize", this.onViewportChange);
-    window.visualViewport?.addEventListener("scroll", this.onViewportMove);
-    window.addEventListener("scroll", this.onViewportMove, { passive: true });
-    window.addEventListener("touchstart", this.onFingerDown, { passive: true });
-    window.addEventListener("touchend", this.onFingerUp, { passive: true });
-    window.addEventListener("touchcancel", this.onFingerUp, { passive: true });
     this.observer.observe(view.dom);
     this.update(view, null);
   }
@@ -142,15 +133,9 @@ class SectionToolbar {
     this.observer.disconnect();
     this.changes.disconnect();
     this.media.removeEventListener("change", this.onViewportChange);
-    window.visualViewport?.removeEventListener("resize", this.onViewportChange);
-    window.visualViewport?.removeEventListener("scroll", this.onViewportMove);
-    window.removeEventListener("scroll", this.onViewportMove);
-    window.removeEventListener("touchstart", this.onFingerDown);
-    window.removeEventListener("touchend", this.onFingerUp);
-    window.removeEventListener("touchcancel", this.onFingerUp);
+    this.dock.destroy();
     this.bar?.removeEventListener("pointerdown", keepFocus);
     this.bar?.removeEventListener("mousedown", keepFocus);
-    clearTimeout(this.settleTimer);
     this.hide();
     delete this.view.dom.parentElement?.dataset.compact;
   }
@@ -224,15 +209,9 @@ class SectionToolbar {
     setFlag(bar, "docked", docked);
     this.makeRoomBelow(docked);
     if (docked) {
-      // The browser keeps the toolbar at the bottom of the page's viewport
-      // itself, so it doesn't lag while scrolling. On Android, the page
-      // shrinks for the keyboard (see `interactive-widget` in the viewport
-      // meta tag). On iOS it doesn't, so the toolbar is lifted by the part
-      // of the page the keyboard covers.
       setStyle(bar, "top", "");
       setStyle(bar, "height", "");
-      const keyboard = coveredByKeyboard();
-      setStyle(bar, "bottom", keyboard > 0 ? `${String(keyboard)}px` : "");
+      this.dock.lift();
       return;
     }
     setStyle(bar, "bottom", "");
@@ -248,41 +227,8 @@ class SectionToolbar {
   private onViewportChange = () => {
     this.markCompact();
     this.update(this.view, null);
-    this.onViewportMove();
+    this.dock.moved();
     this.keepCaretInView();
-  };
-
-  // Where the keyboard covers part of the page, as on iOS, the browser moves
-  // the visible area inside the page while scrolling, lets the page scroll
-  // past its end and pulls it back, and the toolbar moves with all that
-  // until it is placed again. So it hides while the page or the visible
-  // area moves, and shows again once both are still and no finger is down.
-  private onViewportMove = () => {
-    const bar = this.bar;
-    if (!bar) return;
-    const lifted = bar.style.bottom !== "";
-    this.place();
-    if (!this.docked || !(lifted || bar.style.bottom !== "")) return;
-    setFlag(bar, "moving", true);
-    this.settle();
-  };
-
-  private settle() {
-    clearTimeout(this.settleTimer);
-    this.settleTimer = window.setTimeout(() => {
-      if (this.fingerDown) return;
-      this.place();
-      if (this.bar) setFlag(this.bar, "moving", false);
-    }, settleDelay);
-  }
-
-  private onFingerDown = (event: TouchEvent) => {
-    this.fingerDown = event.touches.length > 0;
-  };
-
-  private onFingerUp = (event: TouchEvent) => {
-    this.fingerDown = event.touches.length > 0;
-    if (this.bar?.dataset.moving !== undefined) this.settle();
   };
 
   // Docked, the toolbar covers the bottom of the visible area. Scrolls the
@@ -292,28 +238,8 @@ class SectionToolbar {
     if (!this.docked || !bar || !isShown(bar) || !this.view.hasFocus()) {
       return;
     }
-    const caret = this.view.coordsAtPos(this.view.state.selection.head);
-    const top = window.visualViewport?.offsetTop ?? 0;
-    const bottom = bar.getBoundingClientRect().top - caretMargin;
-    if (caret.bottom > bottom) window.scrollBy(0, caret.bottom - bottom);
-    else if (caret.top < top + caretMargin) {
-      window.scrollBy(0, caret.top - top - caretMargin);
-    }
+    this.dock.keepAbove(this.view.coordsAtPos(this.view.state.selection.head));
   }
-}
-
-// Writes an inline style only when it changes, so placing the toolbar again
-// doesn't make the browser lay out the page again for nothing.
-function setStyle(
-  element: HTMLElement,
-  name: "top" | "bottom" | "height",
-  value: string,
-) {
-  if (element.style[name] !== value) element.style[name] = value;
-}
-
-function setFlag(element: HTMLElement, name: "docked" | "moving", on: boolean) {
-  element.toggleAttribute(`data-${name}`, on);
 }
 
 function sameState(
@@ -328,17 +254,6 @@ function sameState(
 // offset parent.
 function isShown(element: HTMLElement) {
   return element.getClientRects().length > 0;
-}
-
-// How much of the bottom of the page's viewport is hidden, by the keyboard
-// on iOS. Zero where the page shrinks for the keyboard, as on Android.
-function coveredByKeyboard() {
-  const viewport = window.visualViewport;
-  if (!viewport) return 0;
-  const covered =
-    document.documentElement.clientHeight -
-    (viewport.offsetTop + viewport.height);
-  return covered >= 1 ? Math.round(covered) : 0;
 }
 
 function keepFocus(event: Event) {

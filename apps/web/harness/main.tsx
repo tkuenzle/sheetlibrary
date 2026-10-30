@@ -1,7 +1,7 @@
 import "../app/app.css";
 import "./harness.css";
 
-import type { ChordSheet, Problem } from "chordsheet";
+import { type ChordSheet, guessKey, type Key, type Problem } from "chordsheet";
 import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -23,6 +23,8 @@ function Harness() {
   const editorRef = useRef<SheetEditorHandle>(null);
   // Each new editor gets a new key, so it loads its sheet.
   const [key, setKey] = useState(0);
+  // The sheet's key, guessed from its chords as the editor page does.
+  const [sheetKey, setSheetKey] = useState<Key | null>(null);
   const [page, setPage] = useState<Page>({
     kind: "editing",
     sheet: seedSong,
@@ -48,7 +50,15 @@ function Harness() {
       <h1>Sheet editor harness</h1>
       {page.kind === "editing" ? (
         <>
-          <SheetEditor key={key} ref={editorRef} sheet={page.sheet} />
+          <SheetEditor
+            key={key}
+            ref={editorRef}
+            sheet={page.sheet}
+            sheetKey={sheetKey}
+            onChordsChange={(chords) => {
+              setSheetKey(guessKey(chords));
+            }}
+          />
           {page.problems.length > 0 && (
             <ul className="problems" aria-label="Problems">
               {page.problems.map((problem, index) => (
