@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { writeMarkedChord } from "./chord-mark";
 import {
+  chordsOfKey,
   guessKey,
   type Key,
   keysToMoveTo,
@@ -194,5 +195,46 @@ describe("Guessing the key", () => {
 
   it("has no key without chords", () => {
     expect(guessKey([])).toBeNull();
+  });
+});
+
+describe("The chords of a key", () => {
+  const written = (key: Key) => chordsOfKey(key).map(writeMarkedChord);
+
+  it("spells a sharp key with sharps", () => {
+    expect(written(major("G"))).toEqual([
+      "G",
+      "Am",
+      "Bm",
+      "C",
+      "D",
+      "Em",
+      "F#dim",
+    ]);
+  });
+
+  it("spells a flat key with flats", () => {
+    expect(written(major("F"))).toEqual([
+      "F",
+      "Gm",
+      "Am",
+      "Bb",
+      "C",
+      "Dm",
+      "Edim",
+    ]);
+  });
+
+  it("lists both fifths of a minor key", () => {
+    expect(written(minor("A"))).toEqual([
+      "Am",
+      "Bdim",
+      "C",
+      "Dm",
+      "Em",
+      "E",
+      "F",
+      "G",
+    ]);
   });
 });

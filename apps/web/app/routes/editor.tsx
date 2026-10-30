@@ -130,6 +130,7 @@ export default function EditorPage() {
             key={loaded.imports}
             ref={editor}
             sheet={loaded.sheet}
+            sheetKey={key}
             onEditedChange={setEdited}
             onChordsChange={(chords) => {
               const guess = guessKey(chords);

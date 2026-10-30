@@ -1,0 +1,228 @@
+/* The chord input, below the chord's letter. */
+.chord-input {
+  position: absolute;
+  z-index: 1;
+}
+
+/* Over the popover's own rules, which come later. */
+.chord-input .chord-input-panel {
+  width: 360px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-m);
+  padding: var(--space-m);
+}
+
+.chord-input .note {
+  max-width: 280px;
+  margin-top: var(--space-s);
+}
+
+.chord-input-field {
+  display: flex;
+  gap: var(--space-s);
+}
+
+/* 16px stops iOS from zooming in on focus. */
+.chord-input input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 var(--space-l);
+  border: 0;
+  border-radius: var(--corner-full);
+  background: var(--surface-active);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  color: var(--text);
+  font: 700 16px / 1 var(--font);
+  outline: 1px solid transparent;
+}
+
+.chord-input input::placeholder {
+  color: var(--text-dimmed);
+  font-weight: 400;
+}
+
+/* The input always has the focus while it shows; its border marks it. */
+.chord-input input:focus-visible {
+  outline: 1px solid transparent;
+}
+
+/* Keeps its line while blank, so the suggestions don't move. */
+.chord-input-preview {
+  min-height: 18px;
+  margin: calc(-1 * var(--space-s)) 0 0 var(--space-l);
+  color: var(--text-muted);
+  font: 400 var(--font-size-small) / 18px var(--font);
+}
+
+.chord-input-preview b {
+  color: var(--chord);
+  font-size: var(--font-size-chord);
+}
+
+.chord-input-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chord-input-suggestions[hidden] {
+  display: none;
+}
+
+.chord-input-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-s);
+  color: var(--text-muted);
+  font: 600 var(--font-size-small) / 1.2 var(--font);
+}
+
+.chord-input-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-weight: 400;
+}
+
+.chord-input-swatch {
+  width: 14px;
+  height: 12px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1.5px var(--text-dimmed);
+}
+
+.chord-input-suggestions ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chord-input-suggestions li {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0 var(--space-m);
+  border-radius: var(--corner-small);
+  background: var(--quiet);
+  color: var(--on-accent-soft);
+  font: 700 var(--font-size-chord) / 1 var(--font);
+  cursor: pointer;
+  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+  outline: 1px solid transparent;
+}
+
+/* Not in this sheet yet: outlined. */
+.chord-input-suggestions li[data-new] {
+  background: var(--surface-active);
+  box-shadow: inset 0 0 0 1.5px var(--text-dimmed);
+  color: var(--chord);
+}
+
+.chord-input-suggestions li:hover,
+.chord-input-suggestions li[aria-selected="true"] {
+  background: var(--accent);
+  box-shadow: none;
+  color: var(--on-accent);
+}
+
+.chord-input-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  margin: 0 calc(-1 * var(--space-m)) calc(-1 * var(--space-m));
+  padding: var(--space-xs) var(--space-s);
+  border-top: 1px solid var(--border);
+}
+
+@media (pointer: coarse) {
+  .chord-input-suggestions li {
+    min-width: 48px;
+    height: 44px;
+  }
+}
+
+/*
+  Docked at the bottom of the visible area, across its width, above the
+  keyboard (see Dock). The row of suggestions scrolls sideways. The docked
+  section toolbar makes way while it is open, and the page gets room for it
+  after its content.
+*/
+.chord-input[data-docked] {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  transition: opacity 150ms;
+  animation: chord-input-in 200ms ease-out;
+}
+
+/* Sliding out once closed, as the key picker does (see SheetEditor). */
+.chord-input[data-docked][data-closing] {
+  animation: chord-input-out 150ms ease-in forwards;
+}
+
+@keyframes chord-input-in {
+  from {
+    translate: 0 100%;
+  }
+}
+
+@keyframes chord-input-out {
+  to {
+    translate: 0 100%;
+  }
+}
+
+.chord-input[data-docked][data-moving] {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+.chord-input[data-docked] .chord-input-panel {
+  width: auto;
+  border-radius: var(--corner-medium) var(--corner-medium) 0 0;
+}
+
+.chord-input[data-docked] .chord-input-suggestions ul {
+  flex-wrap: nowrap;
+  margin: 0 calc(-1 * var(--space-m));
+  padding: 0 var(--space-m);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.chord-input[data-docked] .note {
+  position: absolute;
+  bottom: 100%;
+  left: var(--space-l);
+  margin: 0 0 var(--space-s);
+}
+
+.sheet-editor:has(> .chord-input[data-docked]) {
+  padding-bottom: var(--chord-input-height, 0px);
+}
+
+.sheet-editor:has(> .chord-input[data-docked]) [data-section-toolbar] {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chord-input[data-docked] {
+    transition: none;
+    animation: none;
+  }
+}

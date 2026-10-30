@@ -146,6 +146,39 @@ export function transposeChord<T extends ChordSymbol>(
   } as T;
 }
 
+// The chords of C major and A minor, in the key's order. The fifth of a
+// minor key is minor in the scale, and often major, so both are listed.
+const C_MAJOR: ChordSymbol[] = [
+  { root: "C" },
+  { root: "D", suffix: "m" },
+  { root: "E", suffix: "m" },
+  { root: "F" },
+  { root: "G" },
+  { root: "A", suffix: "m" },
+  { root: "B", suffix: "dim" },
+];
+const A_MINOR: ChordSymbol[] = [
+  { root: "A", suffix: "m" },
+  { root: "B", suffix: "dim" },
+  { root: "C" },
+  { root: "D", suffix: "m" },
+  { root: "E", suffix: "m" },
+  { root: "E" },
+  { root: "F" },
+  { root: "G" },
+];
+
+// The chords of a key, in its order, spelled as the key spells them: F#dim
+// in G, not Gbdim.
+export function chordsOfKey(key: Key): ChordSymbol[] {
+  const from: Key = key.minor
+    ? { tonic: "A", minor: true }
+    : { tonic: "C", minor: false };
+  return (key.minor ? A_MINOR : C_MAJOR).map((chord) =>
+    transposeChord(chord, from, key),
+  );
+}
+
 type Quality = "major" | "minor" | "dim" | "any";
 
 function qualityOf(chord: ChordSymbol): Quality {

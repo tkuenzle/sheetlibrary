@@ -28,8 +28,9 @@ import {
 } from "chord-editor";
 import {
   type ChordSheet,
+  type ChordSymbol,
+  type Key,
   type MarkedChord,
-  readMarkedChord,
   writeMarkedChord,
 } from "chordsheet";
 import type { Command } from "prosemirror-state";
@@ -45,9 +46,7 @@ import {
 import { flushSync } from "react-dom";
 
 import { phone } from "../breakpoints";
-import { Button } from "../ui/button";
-import { Note } from "../ui/note";
-import { Popover } from "../ui/popover";
+import { ChordInput } from "./chord-input";
 import { SectionLabelField } from "./section-label-field";
 import { SectionToolbar } from "./section-toolbar";
 
@@ -63,10 +62,23 @@ export interface SheetEditorHandle {
 // too narrow for the section toolbar beside the section. The toolbar then
 // docks at the bottom.
 const compact = `(pointer: coarse), ${phone}`;
+const reducedMotion = "(prefers-reduced-motion: reduce)";
 
-type ChordInput = { left: number; top: number } & (
-  { kind: "new"; pos: number } | { kind: "edit"; id: string }
-);
+type ChordTarget =
+  | { kind: "new"; pos: number }
+  | { kind: "edit"; id: string; chord: MarkedChord };
+
+// The chord input while it is open: what it adds or edits, where it goes,
+// and what it suggests from.
+type OpenChordInput = ChordTarget & {
+  left: number;
+  top: number;
+  docked: boolean;
+  initial: string;
+  sheetChords: ChordSymbol[];
+  // Counts the openings, so each one starts the input afresh.
+  opening: number;
+};
 
 // The label field of the section at `pos`, over its label.
 interface LabelField {
@@ -83,6 +95,7 @@ export function SheetEditor({
   sheet,
   onEditedChange,
   onChordsChange,
+  sheetKey = null,
   ref,
 }: {
   sheet: ChordSheet;
@@ -91,6 +104,8 @@ export function SheetEditor({
   // Called with every chord in order, once the editor is ready and then
   // whenever a chord changes.
   onChordsChange?: (chords: Chord[]) => void;
+  // The sheet's key, for the chord input's suggestions.
+  sheetKey?: Key | null;
   ref?: Ref<SheetEditorHandle>;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
@@ -101,14 +116,14 @@ export function SheetEditor({
   const labelInputRef = useRef<HTMLInputElement>(null);
   const labelFieldRef = useRef<LabelField | null>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const chordInputRef = useRef<ChordInput | null>(null);
+  const chordInputRef = useRef<OpenChordInput | null>(null);
+  const openings = useRef(0);
   const sheetRef = useRef(sheet);
   const onEditedChangeRef = useRef(onEditedChange);
   const onChordsChangeRef = useRef(onChordsChange);
-  const [chordInput, setChordInput] = useState<ChordInput | null>(null);
-  // Done was pressed on text that isn't a chord. Cleared when the text
-  // changes.
-  const [notChord, setNotChord] = useState(false);
+  const [chordInput, setChordInput] = useState<OpenChordInput | null>(null);
+  // A docked chord input that closed and is sliding out of view.
+  const [leaving, setLeaving] = useState<OpenChordInput | null>(null);
   const [toolbar, setToolbar] = useState<SectionToolbarState | null>(null);
   const [labelField, setLabelField] = useState<LabelField | null>(null);
 
@@ -139,23 +154,40 @@ export function SheetEditor({
     if (view) command(view.state, view.dispatch, view);
   }
 
-  function showInput(next: ChordInput | null) {
+  function showInput(next: OpenChordInput | null) {
+    const current = chordInputRef.current;
     chordInputRef.current = next;
-    setNotChord(false);
     // Render the input right away, so focusing it still counts as part of
     // the tap. Otherwise iOS doesn't open the keyboard.
     flushSync(() => {
       setChordInput(next);
+      setLeaving(
+        !next && current?.docked && !matchMedia(reducedMotion).matches
+          ? current
+          : null,
+      );
     });
   }
 
-  function openInput(next: ChordInput, value: string) {
+  function openInput(
+    target: ChordTarget,
+    place: { left: number; top: number },
+  ) {
+    const view = viewRef.current;
+    if (!view) return;
     keepLabel();
-    showInput(next);
-    run(selectChord(next.kind === "edit" ? next.id : null));
+    openings.current++;
+    showInput({
+      ...target,
+      ...place,
+      docked: window.matchMedia(compact).matches,
+      initial: target.kind === "edit" ? writeMarkedChord(target.chord) : "",
+      sheetChords: chordsIn(view.state.doc),
+      opening: openings.current,
+    });
+    run(selectChord(target.kind === "edit" ? target.id : null));
     const input = inputRef.current;
     if (!input) return;
-    input.value = value;
     input.focus();
     input.select();
   }
@@ -166,16 +198,10 @@ export function SheetEditor({
     viewRef.current?.focus();
   }
 
-  function commitInput() {
+  // Adds the chord, or changes the one being edited to it. Null adds
+  // nothing, and removes a chord being edited.
+  function commitInput(chord: MarkedChord | null) {
     const current = chordInputRef.current;
-    const text = inputRef.current?.value.trim() ?? "";
-    // Empty text adds nothing, and removes a chord being edited.
-    const chord = text ? readMarkedChord(text) : null;
-    if (text && !chord) {
-      setNotChord(true);
-      inputRef.current?.focus();
-      return;
-    }
     if (current?.kind === "new" && chord) run(insertChord(current.pos, chord));
     if (current?.kind === "edit") {
       run(chord ? changeChord(current.id, chord) : removeChord(current.id));
@@ -221,13 +247,26 @@ export function SheetEditor({
     closeInput();
   }
 
-  // The form is wider when it edits a chord, so it is measured once drawn
-  // and moved left if it would stick out. A form past the window's edge
-  // widens the page on phones, which moves the docked toolbar.
+  // The letter the open chord input adds to, or of the chord it edits, in
+  // window coordinates.
+  function letterBox() {
+    const view = viewRef.current;
+    const current = chordInputRef.current;
+    if (!view || !current) return null;
+    const pos =
+      current.kind === "new"
+        ? current.pos
+        : findChord(view.state.doc, current.id)?.pos;
+    return pos === undefined ? null : view.coordsAtPos(pos);
+  }
+
+  // The form is measured once drawn and moved left if it would stick out. A
+  // form past the window's edge widens the page on phones, which moves the
+  // docked toolbar.
   useLayoutEffect(() => {
     const form = formRef.current;
     const frame = frameRef.current;
-    if (!form || !frame || !chordInput) return;
+    if (!form || !frame || !chordInput || chordInput.docked) return;
     const max = Math.max(0, frame.clientWidth - form.offsetWidth);
     form.style.left = `${String(Math.min(chordInput.left, max))}px`;
   }, [chordInput]);
@@ -250,10 +289,7 @@ export function SheetEditor({
     function editChord(id: string, anchor: Anchor) {
       const found = findChord(view.state.doc, id);
       if (!found) return;
-      openInput(
-        { kind: "edit", id, ...placeBelow(anchor) },
-        writeMarkedChord(found.chord),
-      );
+      openInput({ kind: "edit", id, chord: found.chord }, placeBelow(anchor));
     }
 
     // Ctrl+K or Cmd+K edits the first chord on the letter after the caret,
@@ -261,7 +297,7 @@ export function SheetEditor({
     const onChordShortcut = (pos: number, anchor: Anchor) => {
       const [first] = chordsAt(view.state.doc, pos);
       if (first) editChord(first.id, anchor);
-      else openInput({ kind: "new", pos, ...placeBelow(anchor) }, "");
+      else openInput({ kind: "new", pos }, placeBelow(anchor));
     };
 
     // Over the label or "Add label" the editor points to.
@@ -306,7 +342,7 @@ export function SheetEditor({
         // A click below the lyrics adds a chord to the letter above it, and
         // so does "Add chord" in the toolbar, at the caret.
         onAddChord: (pos, anchor) => {
-          openInput({ kind: "new", pos, ...placeBelow(anchor) }, "");
+          openInput({ kind: "new", pos }, placeBelow(anchor));
         },
         // Dragging a chord cancels the chord input.
         onDragStart: () => {
@@ -364,6 +400,8 @@ export function SheetEditor({
     // The editor is created once. Its handlers only read refs.
   }, []);
 
+  const shownInput = chordInput ?? leaving;
+
   return (
     <div
       className="sheet-editor"
@@ -394,56 +432,28 @@ export function SheetEditor({
           }}
         />
       )}
-      {chordInput && (
-        <form
-          ref={formRef}
-          className="chord-input"
-          style={{ left: chordInput.left, top: chordInput.top }}
-          onSubmit={(event) => {
-            event.preventDefault();
-            commitInput();
+      {shownInput && (
+        <ChordInput
+          // The same key while it slides out, so it keeps its text.
+          key={shownInput.opening}
+          inputRef={inputRef}
+          formRef={formRef}
+          left={shownInput.left}
+          top={shownInput.top}
+          docked={shownInput.docked}
+          closing={!chordInput}
+          initial={shownInput.initial}
+          editing={shownInput.kind === "edit" ? shownInput.chord : null}
+          sheetChords={shownInput.sheetChords}
+          sheetKey={sheetKey}
+          letterBox={letterBox}
+          onCommit={commitInput}
+          onRemove={deleteChord}
+          onCancel={closeInput}
+          onClosed={() => {
+            setLeaving(null);
           }}
-        >
-          <Popover
-            // Keeps the focus in the field when a button is pressed. On a
-            // phone, the field losing it would close the keyboard, and the
-            // page would jump when Done shows the note and focuses it again.
-            onMouseDown={(event) => {
-              if (event.target !== inputRef.current) event.preventDefault();
-            }}
-          >
-            <input
-              ref={inputRef}
-              aria-label="Chord"
-              aria-invalid={notChord || undefined}
-              aria-describedby={notChord ? "chord-input-note" : undefined}
-              autoCapitalize="off"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") closeInput();
-              }}
-              onChange={() => {
-                setNotChord(false);
-              }}
-            />
-            <Button type="submit" size="small">
-              Done
-            </Button>
-            {chordInput.kind === "edit" && (
-              <Button variant="text" size="small" onClick={deleteChord}>
-                Remove
-              </Button>
-            )}
-            <Button variant="text" size="small" onClick={closeInput}>
-              Cancel
-            </Button>
-          </Popover>
-          {notChord && (
-            <Note id="chord-input-note">Type a chord, such as Am or G7.</Note>
-          )}
-        </form>
+        />
       )}
     </div>
   );

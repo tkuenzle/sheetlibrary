@@ -462,6 +462,92 @@ test.describe("adding and editing chords", () => {
   });
 });
 
+test.describe("the chord input's preview and suggestions", () => {
+  test("previews the chord in its canonical form", async ({ page }) => {
+    await clickChar(page, "before", "wretch", 1);
+    await page.keyboard.press("ControlOrMeta+k");
+    await chordInput(page).fill("bb-7");
+    await expect(preview(page)).toHaveText("Adds Bbm7");
+    // Halfway text shows nothing, not even the note.
+    await chordInput(page).fill("Cmx");
+    await expect(preview(page)).toHaveText("");
+    await expect(page.getByText("Type a chord, such as Am or G7.")).toHaveCount(
+      0,
+    );
+  });
+
+  test("previews a change to a chord", async ({ page }) => {
+    await clickChar(page, "before", "Amazing");
+    await clickLabel(page, "D");
+    await expect(preview(page)).toHaveText("");
+    await chordInput(page).fill("(bb-7)");
+    await expect(preview(page)).toHaveText("Changes D to (Bbm7)");
+  });
+
+  test("suggests the sheet's chords, then the key's", async ({ page }) => {
+    await clickChar(page, "before", "wretch", 1);
+    await page.keyboard.press("ControlOrMeta+k");
+    await expect(suggestions(page).first()).toHaveText("G");
+    // Am is in G major, and the sheet doesn't use it.
+    const am = suggestion(page, "Am");
+    await expect(am).toHaveAccessibleName("Am, not in this sheet yet");
+    await expect(am).toHaveAttribute("data-new");
+    await expect(
+      page.locator(".chord-input-legend", { hasText: "Not in this sheet yet" }),
+    ).toBeVisible();
+    await expect(suggestion(page, "G")).not.toHaveAttribute("data-new");
+  });
+
+  test("narrows the suggestions and completes the text", async ({ page }) => {
+    await clickChar(page, "before", "wretch", 1);
+    await page.keyboard.press("ControlOrMeta+k");
+    await chordInput(page).fill("d");
+    await expect(suggestions(page).first()).toHaveText("D");
+    for (const chord of ["D7", "Dsus4", "Dm"]) {
+      await expect(suggestion(page, chord)).toHaveCount(1);
+    }
+    await expect(suggestion(page, "G")).toHaveCount(0);
+  });
+
+  test("adds a suggestion on a click or tap", async ({ page }) => {
+    await clickChar(page, "before", "wretch", 1);
+    await page.keyboard.press("ControlOrMeta+k");
+    await press(page, suggestion(page, "D"));
+    await expect(chordInput(page)).toHaveCount(0);
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a w[D]retch like [D]me",
+    );
+  });
+
+  test("keeps a typed mark on the picked chord", async ({ page }) => {
+    await clickChar(page, "before", "wretch", 1);
+    await page.keyboard.press("ControlOrMeta+k");
+    await chordInput(page).fill("(d");
+    await press(page, suggestion(page, "D7"));
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a w[(D7)]retch like [D]me",
+    );
+  });
+
+  test("picks a suggestion with the arrow keys and Enter", async ({ page }) => {
+    await clickChar(page, "before", "wretch", 1);
+    await page.keyboard.press("ControlOrMeta+k");
+    await chordInput(page).fill("d");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await expect(suggestions(page).nth(1)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    const chosen = await suggestions(page).nth(1).textContent();
+    await page.keyboard.press("Enter");
+    await expect(chordInput(page)).toHaveCount(0);
+    expect((await firstSection(page))[1]).toBe(
+      `That saved a w[${chosen ?? ""}]retch like [D]me`,
+    );
+  });
+});
+
 test.describe("adding chords by mouse", () => {
   test.skip(({ hasTouch }) => hasTouch, "Needs a mouse");
 
@@ -1289,40 +1375,60 @@ test.describe("the section toolbar", () => {
     expect(caret.y + caret.height).toBeLessThanOrEqual(bar.y);
   });
 
-  test("draws the docked toolbar over the chord input", async ({ page }) => {
+  test("docks the chord input in place of the toolbar", async ({ page }) => {
     test.skip(!(await isTouch(page)), "Needs touch");
-    // Room to scroll the chord input down to the toolbar.
-    await page.evaluate(() => {
-      const main = document.querySelector("main");
-      if (main) main.style.paddingTop = "1500px";
-      window.scrollTo(0, 1500);
-    });
     await tapChar(page, "wretch", 1);
     await press(page, addChordButton(page));
-    const input = await box(page.locator(".chord-input"));
-    const bar = await box(toolbar(page));
-    // Scrolls the chord input under the toolbar.
-    await page.evaluate(
-      (by) => {
-        window.scrollBy(0, by);
-      },
-      input.y - (bar.y + 4),
-    );
-    await nextLayout(page);
-    // A point on a button of the toolbar, above the chord input.
-    const button = await box(addChordButton(page));
-    const x = Math.max(input.x, button.x) + 4;
-    expect(x).toBeLessThan(
-      Math.min(input.x + input.width, button.x + button.width),
-    );
-    const y = button.y + 20;
-    expect(
-      await page.evaluate(
-        ([x, y]) =>
-          document.elementFromPoint(x, y)?.closest(".section-toolbar") !== null,
-        [x, y] as const,
-      ),
-    ).toBe(true);
+    // Once it has slid in.
+    await page
+      .locator(".chord-input")
+      .evaluate((form) =>
+        Promise.all(form.getAnimations().map((a) => a.finished)),
+      );
+    const form = await box(page.locator(".chord-input"));
+    const size = page.viewportSize() ?? { width: 0, height: 0 };
+    const gap = size.height - (form.y + form.height);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThan(20);
+    expect(form.x).toBe(0);
+    expect(form.width).toBe(size.width);
+    // The letter stays above it, and the toolbar makes way.
+    const letter = await charBox(page, "wretch", 1);
+    expect(letter.bottom).toBeLessThanOrEqual(form.y);
+    await expect(toolbar(page)).toBeHidden();
+    await press(page, suggestion(page, "D"));
+    await expect(chordInput(page)).toHaveCount(0);
+    await expect(toolbar(page)).toBeVisible();
+  });
+
+  test("slides the docked chord input in and out", async ({ page }) => {
+    test.skip(!(await isTouch(page)), "Needs touch");
+    await tapChar(page, "wretch", 1);
+    await press(page, addChordButton(page));
+    expect(await chordInputAnimation(page)).toBe("chord-input-in");
+    // Closed, it stays a moment to slide out, and takes no input.
+    expect(await cancelChordInput(page)).toEqual({
+      shown: true,
+      closing: true,
+      animation: "chord-input-out",
+    });
+    await expect(page.locator(".chord-input")).toHaveCount(0);
+    await expect(toolbar(page)).toBeVisible();
+  });
+
+  test("opens and closes the docked chord input at once with reduced motion", async ({
+    page,
+  }) => {
+    test.skip(!(await isTouch(page)), "Needs touch");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await tapChar(page, "wretch", 1);
+    await press(page, addChordButton(page));
+    expect(await chordInputAnimation(page)).toBe("none");
+    expect(await cancelChordInput(page)).toEqual({
+      shown: false,
+      closing: false,
+      animation: "",
+    });
   });
 
   test("disables moving the first section up", async ({ page }) => {
@@ -1462,6 +1568,7 @@ function labelField(page: Page) {
   return page.getByRole("combobox", { name: "Label" });
 }
 
+// The suggestions of the label field or the chord input, whichever is open.
 function suggestions(page: Page) {
   return page.getByRole("listbox", { name: "Suggestions" }).getByRole("option");
 }
@@ -1494,6 +1601,42 @@ function toolbar(page: Page) {
 
 function addChordButton(page: Page) {
   return toolbar(page).getByRole("button", { name: "Add chord" });
+}
+
+// The chord input's suggestion of `chord`.
+function suggestion(page: Page, chord: string) {
+  return suggestions(page).filter({ hasText: exactly(chord) });
+}
+
+// The animation the chord input's form runs.
+function chordInputAnimation(page: Page) {
+  return page.evaluate(() => {
+    const form = document.querySelector(".chord-input");
+    return form ? getComputedStyle(form).animationName : null;
+  });
+}
+
+// Presses the chord input's Cancel and says, in the same moment, whether
+// the form still shows, whether it is closing, and its animation.
+function cancelChordInput(page: Page) {
+  return page.evaluate(() => {
+    const cancel = [...document.querySelectorAll(".chord-input button")].find(
+      (button) => button.textContent === "Cancel",
+    );
+    if (!(cancel instanceof HTMLElement)) throw new Error("no Cancel");
+    cancel.click();
+    const form = document.querySelector(".chord-input");
+    return {
+      shown: form !== null,
+      closing: form?.hasAttribute("data-closing") ?? false,
+      animation: form ? getComputedStyle(form).animationName : "",
+    };
+  });
+}
+
+// The line under the chord input's field that shows what it reads.
+function preview(page: Page) {
+  return page.locator(".chord-input-preview");
 }
 
 // The chord input's text field. "Add chord" buttons also match "Chord".
