@@ -7,7 +7,7 @@ Defines how the content of a chord sheet is stored: sections of lines with chord
 ## Requirements
 
 ### Requirement: Sheet content
-A chord sheet's content SHALL be JSON with a format name (`chordsheet`), a version number and a list of sections. A section SHALL hold one or more lines, and MAY have a label, which SHALL be text. A line SHALL hold its text and its chords. Each chord SHALL hold its position in the text and its root, and its suffix and bass if it has them.
+A chord sheet's content SHALL be JSON with a format name (`chordsheet`), a version number and a list of sections. A section SHALL hold one or more lines, and MAY have a label, which SHALL be text. A line SHALL hold its text and its chords. Each chord SHALL hold its position in the text and its root, and its suffix, bass and mark if it has them.
 
 #### Scenario: One line
 - **WHEN** the line "That saved a wretch like [D]me" is stored
@@ -38,6 +38,17 @@ A chord SHALL be stored as a root, an optional suffix and an optional bass, in t
 #### Scenario: Spelling is kept
 - **WHEN** a sheet holds the chords "A#" and "Bb"
 - **THEN** they are stored and read back with their own spelling
+
+### Requirement: Chord marks
+A chord MAY have one mark: `held`, for a chord that is still sounding, or `optional`, for a chord that may be left out. A chord without a mark SHALL be stored without one. Checking a sheet SHALL report a chord with any other mark.
+
+#### Scenario: Held chord
+- **WHEN** a held C is stored
+- **THEN** it holds the root "C" and the mark "held", and the content's version is still 1
+
+#### Scenario: Unknown mark
+- **WHEN** a sheet with a chord marked "maybe" is checked
+- **THEN** a problem is reported for that chord
 
 ### Requirement: Chord positions
 A chord's position SHALL be an index into its line's text, counted in UTF-16 code units, from 0 up to and including the text's length. The length means "after the last letter". A position SHALL NOT fall inside a surrogate pair.
