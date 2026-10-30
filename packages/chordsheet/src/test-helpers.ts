@@ -1,4 +1,4 @@
-import { readChord } from "./chord-symbol";
+import { readMarkedChord } from "./chord-mark";
 import type { ChordSheet, Line, Section } from "./sheet";
 
 export function sheet(...sections: Section[]): ChordSheet {
@@ -21,10 +21,10 @@ export function line(text: string, ...chords: [number, string][]): Line {
   };
 }
 
-// Reads chord text, and throws when it isn't a chord, so a typo in a test
-// fails loudly.
+// Reads chord text, such as "Am" or "(C)", and throws when it isn't a chord,
+// so a typo in a test fails loudly.
 export function read(chord: string) {
-  const symbol = readChord(chord);
+  const symbol = readMarkedChord(chord);
   if (!symbol) throw new Error(`Not a chord: ${chord}`);
   return symbol;
 }

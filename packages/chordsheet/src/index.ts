@@ -1,4 +1,5 @@
 export * from "./check";
+export * from "./chord-mark";
 export * from "./chord-symbol";
 export * from "./clean-up";
 export * from "./keys";

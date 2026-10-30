@@ -4,6 +4,7 @@
 
 import { eastAsianWidth } from "get-east-asian-width";
 
+import type { MarkedChord } from "./chord-mark";
 import { type ChordSymbol, readChord } from "./chord-symbol";
 import { cleanUpLabel, cleanUpSection } from "./clean-up";
 import {
@@ -18,7 +19,10 @@ import {
 // A chord on a chord line, at the column its first character is in.
 interface Placed {
   column: number;
-  symbol: ChordSymbol;
+  symbol: MarkedChord;
+  // Written in round brackets, such as "(C)": held or optional, by the
+  // chord before it.
+  bracketed?: boolean;
 }
 
 type UgLine =
@@ -35,6 +39,7 @@ const TAB = /^\s*(?:[A-Ga-g][#b]?)?\s*\|.*--/;
 const HEADER = /^\s*\[([^[\]]+)\]\s*$/;
 const REPEAT = /^\(?(?:x\d+|\d+x)\)?$/i;
 const NO_CHORD = /^\(?N\.?C\.?\)?$/i;
+const BRACKETED = /^\((.+)\)$/;
 
 // Reads text copied from an Ultimate Guitar page. Any text gives a valid
 // sheet, maybe without sections.
@@ -43,6 +48,7 @@ export function readUltimateGuitar(text: string): ChordSheet {
     .normalize("NFC")
     .split(/\r\n?|\n/)
     .map(classify);
+  markBracketed(lines);
   return { format: FORMAT, version: VERSION, sections: group(lines) };
 }
 
@@ -65,8 +71,8 @@ function cutLabel(label: string): string {
   return whole.trimEnd();
 }
 
-// A chord line holds chords, bars, repeat counts and "N.C.", and at least
-// one chord. Anything else makes it a lyrics line.
+// A chord line holds chords, chords in round brackets, bars, repeat counts
+// and "N.C.", and at least one chord. Anything else makes it a lyrics line.
 function readChordLine(line: string): UgLine | undefined {
   const columns = columnsOf(line);
   const chords: Placed[] = [];
@@ -79,14 +85,42 @@ function readChordLine(line: string): UgLine | undefined {
       repeat = typed;
       continue;
     }
+    const column = columns[word.index] ?? 0;
     const symbol = readChord(typed);
-    if (!symbol) return undefined;
-    chords.push({ column: columns[word.index] ?? 0, symbol });
+    if (symbol) {
+      chords.push({ column, symbol });
+      continue;
+    }
+    const inner = BRACKETED.exec(typed)?.[1];
+    const held = inner === undefined ? null : readChord(inner);
+    if (!held) return undefined;
+    chords.push({ column, symbol: held, bracketed: true });
   }
   if (chords.length === 0) return undefined;
   return repeat === undefined
     ? { kind: "chords", chords }
     : { kind: "chords", chords, repeat };
+}
+
+// Marks each chord in round brackets: held when the chord before it, in any
+// earlier line, is the same chord, and optional otherwise.
+function markBracketed(lines: UgLine[]) {
+  let previous: ChordSymbol | undefined;
+  for (const line of lines) {
+    if (line.kind !== "chords") continue;
+    for (const placed of line.chords) {
+      if (placed.bracketed) {
+        const held =
+          previous !== undefined && sameChord(placed.symbol, previous);
+        placed.symbol = { ...placed.symbol, mark: held ? "held" : "optional" };
+      }
+      previous = placed.symbol;
+    }
+  }
+}
+
+function sameChord(a: ChordSymbol, b: ChordSymbol): boolean {
+  return a.root === b.root && a.suffix === b.suffix && a.bass === b.bass;
 }
 
 // The column each UTF-16 index of the text starts at, as Ultimate Guitar

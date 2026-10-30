@@ -28,9 +28,9 @@ import {
 } from "chord-editor";
 import {
   type ChordSheet,
-  type ChordSymbol,
-  readChord,
-  writeChord,
+  type MarkedChord,
+  readMarkedChord,
+  writeMarkedChord,
 } from "chordsheet";
 import type { Command } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -54,7 +54,7 @@ import { SectionToolbar } from "./section-toolbar";
 export interface SheetEditorHandle {
   handBack(): HandBack;
   // Moves every chord with `move`, in one step to undo.
-  transpose(move: (chord: ChordSymbol) => ChordSymbol): void;
+  transpose(move: (chord: MarkedChord) => MarkedChord): void;
   undo(): void;
   redo(): void;
 }
@@ -170,7 +170,7 @@ export function SheetEditor({
     const current = chordInputRef.current;
     const text = inputRef.current?.value.trim() ?? "";
     // Empty text adds nothing, and removes a chord being edited.
-    const chord = text ? readChord(text) : null;
+    const chord = text ? readMarkedChord(text) : null;
     if (text && !chord) {
       setNotChord(true);
       inputRef.current?.focus();
@@ -252,7 +252,7 @@ export function SheetEditor({
       if (!found) return;
       openInput(
         { kind: "edit", id, ...placeBelow(anchor) },
-        writeChord(found.chord),
+        writeMarkedChord(found.chord),
       );
     }
 

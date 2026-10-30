@@ -1,22 +1,28 @@
-import { type ChordSymbol, isBlank } from "chordsheet";
+import { isBlank, type MarkedChord } from "chordsheet";
 import { type Mark, type Node, Schema } from "prosemirror-model";
 
 // The editor's own model of a sheet: sections of lines. The adapter converts
 // it to and from the stored model in `chordsheet`.
 
 // A chord in its canonical form, as stored, with an id instead of a position.
-export interface Chord extends ChordSymbol {
+export interface Chord extends MarkedChord {
   // Tells a chord that was deleted apart from one that was only moved. Only
   // the editor uses ids; they are not stored.
   id: string;
 }
 
-// The chord's parts without its id.
-export function symbolOf({ root, suffix, bass }: ChordSymbol): ChordSymbol {
+// The chord's parts and mark without its id.
+export function symbolOf({
+  root,
+  suffix,
+  bass,
+  mark,
+}: MarkedChord): MarkedChord {
   return {
     root,
     ...(suffix === undefined ? {} : { suffix }),
     ...(bass === undefined ? {} : { bass }),
+    ...(mark === undefined ? {} : { mark }),
   };
 }
 

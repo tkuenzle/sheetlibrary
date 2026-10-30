@@ -1,4 +1,4 @@
-import { writeChord } from "chordsheet";
+import { writeMarkedChord } from "chordsheet";
 import { type EditorState, Plugin } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
@@ -386,7 +386,7 @@ class ChordLayerView {
       .filter(Boolean)
       .join(" ");
     if (label.className !== name) label.className = name;
-    const text = writeChord(chord);
+    const text = writeMarkedChord(chord);
     if (label.textContent !== text) label.textContent = text;
     if (label.style.transform) label.style.transform = "";
     return label;

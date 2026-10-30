@@ -6,7 +6,7 @@ Guesses a chord sheet's key, lists the keys it can move to, and moves its chords
 ## Requirements
 
 ### Requirement: Guessing the key
-A sheet's key SHALL be guessed from its chords, as a tonic and major or minor. The guess SHALL keep the sheet's own spelling of the tonic.
+A sheet's key SHALL be guessed from its chords, as a tonic and major or minor. Held and optional chords SHALL count like any other. The guess SHALL keep the sheet's own spelling of the tonic.
 
 #### Scenario: Major sheet
 - **WHEN** the key of "Amazing Grace" with the chords G, G7, C, D and Em is guessed
@@ -32,7 +32,7 @@ The keys to move to SHALL be one per pitch, spelled with the fewer sharps or fla
 - **THEN** they are Cm, C#m, Dm, D#m and Ebm, Em, Fm, F#m, Gm, G#m, Am, Bbm and Bm
 
 ### Requirement: Moving chords to a key
-Moving a sheet to a key SHALL move each chord's root and bass by the same interval as the key. They SHALL be spelled as the new key spells them. A chord's suffix SHALL stay as it is.
+Moving a sheet to a key SHALL move each chord's root and bass by the same interval as the key. They SHALL be spelled as the new key spells them. A chord's suffix and mark SHALL stay as they are.
 
 #### Scenario: Flats in a flat key
 - **WHEN** a sheet in G with the chords G, Cmaj7, D and Em is moved to Bb
@@ -41,6 +41,10 @@ Moving a sheet to a key SHALL move each chord's root and bass by the same interv
 #### Scenario: Bass moves too
 - **WHEN** a sheet in G with the chord G/B is moved to A
 - **THEN** the chord is A/C#
+
+#### Scenario: Held chord
+- **WHEN** a sheet in G with a held C is moved to A
+- **THEN** it has a held D
 
 ### Requirement: Stepping by a semitone
 A step up or down SHALL move the sheet one semitone, to the listed key at that pitch. Where two keys are listed, a step SHALL land on F# for major and Ebm for minor.
