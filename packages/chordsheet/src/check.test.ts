@@ -134,6 +134,27 @@ describe("Checking a sheet", () => {
     ]);
   });
 
+  it("allows held and optional chords", () => {
+    expect(
+      checkSheet(
+        sheet(section(line("Amazing grace", [0, "(G)"], [8, "[G7]"]))),
+      ),
+    ).toEqual([]);
+  });
+
+  it("rejects an unknown mark", () => {
+    expect(
+      messages(
+        sheet(
+          section({
+            text: "a",
+            chords: [{ at: 0, root: "C", mark: "maybe" }],
+          } as never),
+        ),
+      ),
+    ).toEqual(["Chord mark is not held or optional"]);
+  });
+
   it("rejects a chord without a root", () => {
     expect(
       messages(sheet(section({ text: "a", chords: [{ at: 0 }] } as never))),

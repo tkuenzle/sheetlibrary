@@ -147,6 +147,51 @@ describe("Putting chords on the lyrics", () => {
   });
 });
 
+describe("Chords in round brackets", () => {
+  it("holds a chord that is the same as the one before, across sections", () => {
+    expect(
+      read(
+        "[Verse]",
+        "G       C",
+        "Amazing grace",
+        "[Chorus]",
+        "(C)   D",
+        "How sweet the sound",
+      ),
+    ).toEqual(
+      sheet(
+        labeled("Verse", line("Amazing grace", [0, "G"], [8, "C"])),
+        labeled("Chorus", line("How sweet the sound", [0, "(C)"], [6, "D"])),
+      ),
+    );
+  });
+
+  it("makes a chord optional when the one before is another chord", () => {
+    expect(read("G  (C)  D", "Amazing grace")).toEqual(
+      sheet(section(line("Amazing grace", [0, "G"], [3, "[C]"], [8, "D"]))),
+    );
+    expect(read("C  (Cmaj7)", "Amazing grace")).toEqual(
+      sheet(section(line("Amazing grace", [0, "C"], [3, "[Cmaj7]"]))),
+    );
+  });
+
+  it("makes the first chord of the sheet optional", () => {
+    expect(read("(Am)")).toEqual(sheet(section(line("", [0, "[Am]"]))));
+  });
+
+  it("still reads a repeat count in brackets", () => {
+    expect(read("D A (x2)")).toEqual(
+      sheet(section(line("  (x2)", [0, "D"], [1, "A"]))),
+    );
+  });
+
+  it("reads brackets around something else as lyrics", () => {
+    expect(read("(C D)", "(Hello)")).toEqual(
+      sheet(section(line("(C D)"), line("(Hello)"))),
+    );
+  });
+});
+
 describe("Sections", () => {
   it("starts a labeled section at each header", () => {
     expect(read("[Verse 1]", "one", "two", "[Chorus]", "three")).toEqual(

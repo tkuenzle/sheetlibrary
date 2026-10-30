@@ -31,6 +31,12 @@ describe("SampleSheet", () => {
     ).toEqual([{ chord: "G7", text: "Amazing" }]);
   });
 
+  it("writes a chord's mark", () => {
+    expect(
+      pieces({ text: "Amazing", chords: [{ at: 0, root: "G", mark: "held" }] }),
+    ).toEqual([{ chord: "(G)", text: "Amazing" }]);
+  });
+
   it("is hidden from screen readers", () => {
     expect(renderToString(<SampleSheet />)).toMatch(
       /^<div class="sample-sheet" aria-hidden="true">/,

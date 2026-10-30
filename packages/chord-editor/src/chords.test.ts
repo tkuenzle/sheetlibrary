@@ -37,6 +37,12 @@ describe("moving a chord", () => {
     expect(notation(next)).toBe("Amazing [C][G]grace");
   });
 
+  it("keeps its mark", () => {
+    const state = song("[(G)]Amazing [C]grace");
+    const next = exec(state, moveChord(idOf(state, "(G)"), at(state, "grace")));
+    expect(notation(next)).toBe("Amazing [C][(G)]grace");
+  });
+
   it("puts it at a spot in a pile", () => {
     const state = song("[D]Amazing [G][C]grace");
     const next = exec(
@@ -103,6 +109,11 @@ describe("transposing", () => {
     expect(notation(next)).toBe("[A]Amazing [D]grace\n\n[E/G#]me");
     expect(chordsIn(next.doc).map((c) => c.id)).toEqual(ids);
     expect(next.selection.head).toBe(3);
+  });
+
+  it("keeps marks", () => {
+    const state = song("[G]Amazing [(G)]grace");
+    expect(notation(exec(state, toA))).toBe("[A]Amazing [(A)]grace");
   });
 
   it("is undone in one step", () => {

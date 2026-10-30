@@ -1,6 +1,6 @@
 import "./sample-sheet.css";
 
-import { type Line, writeChord } from "chordsheet";
+import { type Line, writeMarkedChord } from "chordsheet";
 
 import { seedSong } from "../editor/seed-song";
 
@@ -17,7 +17,7 @@ export function pieces(line: Line) {
     .map((start, i) => {
       const chord = i === 0 ? undefined : line.chords[i - 1];
       return {
-        chord: chord ? writeChord(chord) : "",
+        chord: chord ? writeMarkedChord(chord) : "",
         text: line.text.slice(start, starts[i + 1]),
       };
     })

@@ -1,4 +1,4 @@
-import type { ChordSymbol } from "./chord-symbol";
+import type { MarkedChord } from "./chord-mark";
 
 // The stored content of a chord sheet, version 1. Metadata such as the title
 // belongs to the sheet around it and is not part of this model.
@@ -31,9 +31,9 @@ export interface Line {
   chords: Chord[];
 }
 
-// A chord in its canonical form, such as { root: "Bb", suffix: "m7" }. The
-// text the user typed is not kept.
-export interface Chord extends ChordSymbol {
+// A chord in its canonical form, such as { root: "Bb", suffix: "m7" }, with
+// its mark if it has one. The text the user typed is not kept.
+export interface Chord extends MarkedChord {
   // An index into the line's text in UTF-16 code units, like a JS string
   // index. 0 is before the first letter, `text.length` after the last.
   at: number;

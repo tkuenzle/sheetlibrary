@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { writeChord } from "./chord-symbol";
+import { writeMarkedChord } from "./chord-mark";
 import {
   guessKey,
   type Key,
@@ -21,7 +21,7 @@ function chords(...texts: string[]) {
 // Moves chords given as text, and writes them back.
 function moved(from: Key, to: Key, ...texts: string[]): string[] {
   return chords(...texts).map((chord) =>
-    writeChord(transposeChord(chord, from, to)),
+    writeMarkedChord(transposeChord(chord, from, to)),
   );
 }
 
@@ -117,6 +117,13 @@ describe("Moving chords to a key", () => {
     expect(moved(major("G"), major("A"), "F")).toEqual(["G"]);
   });
 
+  it("keeps the mark", () => {
+    expect(moved(major("G"), major("A"), "(C)", "[D7]")).toEqual([
+      "(D)",
+      "[E7]",
+    ]);
+  });
+
   it("spells sharp keys with sharps", () => {
     expect(moved(major("C"), major("F#"), "C", "F", "G", "Am", "Bdim")).toEqual(
       ["F#", "B", "C#", "D#m", "E#dim"],
@@ -179,6 +186,10 @@ describe("Guessing the key", () => {
       const sheet = moved(minor("E"), to, ...greensleeves);
       expect(guessKey(chords(...sheet))).toEqual(to);
     }
+  });
+
+  it("counts held and optional chords", () => {
+    expect(guessKey(chords("(G)", "[C]", "(D)"))).toEqual(major("G"));
   });
 
   it("has no key without chords", () => {

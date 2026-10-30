@@ -116,6 +116,19 @@ describe("editing a sheet", () => {
     ]);
   });
 
+  it("hands back held and optional chords as they were", () => {
+    const stored = sheet(
+      section(line("Amazing grace", [0, "(G)"], [8, "[G7]"], [8, "C"])),
+    );
+    const handed = handBack(load(stored));
+    expect(handed).toEqual({ ok: true, sheet: stored });
+    expect(handed.ok && handed.sheet.sections[0]?.lines[0]?.chords).toEqual([
+      { at: 0, root: "G", mark: "held" },
+      { at: 8, root: "G", suffix: "7", mark: "optional" },
+      { at: 8, root: "C" },
+    ]);
+  });
+
   it("hands back labels as they were", () => {
     const stored = sheet(
       { label: "Chorus", lines: [line("Amazing grace", [0, "G"])] },

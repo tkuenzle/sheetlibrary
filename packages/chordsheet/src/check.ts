@@ -1,3 +1,4 @@
+import { CHORD_MARKS } from "./chord-mark";
 import { isNote, readChord } from "./chord-symbol";
 import { FORMAT, LABEL_MAX, VERSION } from "./sheet";
 
@@ -108,9 +109,10 @@ function checkLine(line: unknown): LineProblem[] {
   return problems;
 }
 
-// A chord's parts must be in the canonical form that `readChord` gives.
+// A chord's parts must be in the canonical form that `readChord` gives, and
+// its mark, if it has one, must be a known mark.
 function checkChord(chord: Record<string, unknown>): string[] {
-  const { root, suffix, bass } = chord;
+  const { root, suffix, bass, mark } = chord;
   const problems: string[] = [];
   if (typeof root !== "string" || !isNote(root)) {
     problems.push("Chord root is not a note");
@@ -124,6 +126,9 @@ function checkChord(chord: Record<string, unknown>): string[] {
     } else if (bass === root) {
       problems.push("Chord bass is the same as its root");
     }
+  }
+  if (mark !== undefined && !CHORD_MARKS.includes(mark as never)) {
+    problems.push("Chord mark is not held or optional");
   }
   return problems;
 }

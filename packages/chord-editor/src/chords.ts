@@ -1,4 +1,4 @@
-import type { ChordSymbol } from "chordsheet";
+import type { MarkedChord } from "chordsheet";
 import type { Node } from "prosemirror-model";
 import {
   type Command,
@@ -61,7 +61,7 @@ export function findChord(doc: Node, id: string) {
 
 // Adds a chord to the letter right after `pos`, after any chords on it.
 // The caret stays where it was.
-export function insertChord(pos: number, chord: ChordSymbol): Command {
+export function insertChord(pos: number, chord: MarkedChord): Command {
   return (state, dispatch) => {
     const tr = state.tr;
     const chords = chordsAt(state.doc, pos);
@@ -72,8 +72,8 @@ export function insertChord(pos: number, chord: ChordSymbol): Command {
   };
 }
 
-// Replaces a chord's parts, so a suffix or bass it no longer has goes.
-export function changeChord(id: string, chord: ChordSymbol): Command {
+// Replaces a chord's parts, so a suffix, bass or mark it no longer has goes.
+export function changeChord(id: string, chord: MarkedChord): Command {
   return (state, dispatch) => {
     const found = findChord(state.doc, id);
     if (!found) return false;
@@ -117,7 +117,7 @@ export function chordsIn(doc: Node): Chord[] {
 // one step to undo. Ids stay, and so does the caret.
 function replaceChords(
   state: EditorState,
-  change: (chord: Chord) => ChordSymbol,
+  change: (chord: Chord) => MarkedChord,
 ): Transaction | null {
   const tr = state.tr;
   state.doc.descendants((node, pos) => {
@@ -138,12 +138,18 @@ function replaceChords(
 }
 
 function sameChord(a: Chord, b: Chord | undefined): boolean {
-  return !!b && a.root === b.root && a.suffix === b.suffix && a.bass === b.bass;
+  return (
+    !!b &&
+    a.root === b.root &&
+    a.suffix === b.suffix &&
+    a.bass === b.bass &&
+    a.mark === b.mark
+  );
 }
 
 // Moves every chord with `move`, such as to another key.
 export function transposeChords(
-  move: (chord: ChordSymbol) => ChordSymbol,
+  move: (chord: MarkedChord) => MarkedChord,
 ): Command {
   return (state, dispatch) => {
     const tr = replaceChords(state, (chord) => move(symbolOf(chord)));

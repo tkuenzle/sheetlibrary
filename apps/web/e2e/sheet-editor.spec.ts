@@ -7,7 +7,13 @@ interface Sheet {
     label?: string;
     lines: {
       text: string;
-      chords: { at: number; root: string; suffix?: string; bass?: string }[];
+      chords: {
+        at: number;
+        root: string;
+        suffix?: string;
+        bass?: string;
+        mark?: "held" | "optional";
+      }[];
     }[];
   }[];
 }
@@ -354,6 +360,40 @@ test.describe("adding and editing chords", () => {
     await page.getByRole("button", { name: "Cancel" }).click();
     expect((await firstSection(page))[1]).toBe(
       "That[Bbm7] saved a wretch like [D]me",
+    );
+  });
+
+  test("reads a held chord in round brackets", async ({ page }) => {
+    await addChord(page, "That", 4, "(Bb-7)");
+    await expect(
+      page.locator(".chord-label", { hasText: "(Bbm7)" }),
+    ).toHaveCount(1);
+    await clickLabel(page, "(Bbm7)");
+    await expect(chordInput(page)).toHaveValue("(Bbm7)");
+    await page.getByRole("button", { name: "Cancel" }).click();
+    expect((await firstSection(page))[1]).toBe(
+      "That[(Bbm7)] saved a wretch like [D]me",
+    );
+  });
+
+  test("reads an optional chord in square brackets", async ({ page }) => {
+    await addChord(page, "That", 4, "[ G7 ]");
+    await expect(page.locator(".chord-label", { hasText: "[G7]" })).toHaveCount(
+      1,
+    );
+    expect((await firstSection(page))[1]).toBe(
+      "That[<G7>] saved a wretch like [D]me",
+    );
+  });
+
+  test("refuses brackets that don't match", async ({ page }) => {
+    await addChord(page, "That", 4, "(C]");
+    await expect(
+      page.getByText("Type a chord, such as Am or G7."),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Cancel" }).click();
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a wretch like [D]me",
     );
   });
 
@@ -1514,10 +1554,13 @@ function isPhone(testInfo: { project: { name: string } }) {
   return testInfo.project.name === "phone";
 }
 
+// Matches only this text, so "(C)" doesn't match "C".
+function exactly(text: string) {
+  return new RegExp(`^${text.replace(/[()[\]]/g, "\\$&")}$`);
+}
+
 function label(page: Page, chord: string) {
-  return page
-    .locator(".chord-label", { hasText: new RegExp(`^${chord}$`) })
-    .first();
+  return page.locator(".chord-label", { hasText: exactly(chord) }).first();
 }
 
 async function box(locator: Locator) {
@@ -1623,7 +1666,8 @@ function caretBox(page: Page) {
 }
 
 // Clicks Hand back and returns the handed-back sheet's sections as lists of
-// lines, with chords in brackets before their letter.
+// lines, with chords in brackets before their letter. A held chord is
+// written "[(C)]" and an optional one "[<C>]".
 async function handBack(page: Page) {
   await page.getByRole("button", { name: "Hand back" }).click();
   const json = await page.getByTestId("sheet").textContent();
@@ -1632,8 +1676,14 @@ async function handBack(page: Page) {
     section.lines.map(({ text, chords }) => {
       let result = "";
       let start = 0;
-      for (const { at, root, suffix = "", bass } of chords) {
-        const chord = `${root}${suffix}${bass ? `/${bass}` : ""}`;
+      for (const { at, root, suffix = "", bass, mark } of chords) {
+        const name = `${root}${suffix}${bass ? `/${bass}` : ""}`;
+        const chord =
+          mark === "held"
+            ? `(${name})`
+            : mark === "optional"
+              ? `<${name}>`
+              : name;
         result += `${text.slice(start, at)}[${chord}]`;
         start = at;
       }
@@ -1694,7 +1744,7 @@ async function tapChar(page: Page, needle: string, offset: number) {
 
 async function clickLabel(page: Page, chord: string) {
   await page
-    .locator(".chord-label", { hasText: new RegExp(`^${chord}$`) })
+    .locator(".chord-label", { hasText: exactly(chord) })
     .first()
     .click();
 }
