@@ -17,9 +17,10 @@ type Seventh = "" | "6" | "7" | "maj7";
 type Extension = "" | "9" | "11" | "13";
 type Sus = "" | "sus2" | "sus4";
 const ALTERATIONS = ["b5", "#5", "b9", "#9", "#11", "b13"] as const;
-const ADDED = ["add9", "add11"] as const;
+const ADDED = ["add9", "add11", "add#11"] as const;
 type Alteration = (typeof ALTERATIONS)[number];
-type Added = (typeof ADDED)[number];
+// add13 is read but never written: it becomes a 6 or a 13.
+type Added = (typeof ADDED)[number] | "add13";
 
 interface Parts {
   quality: Quality;
@@ -95,7 +96,9 @@ const SLOTS: Slot[] = [
   ]),
   slot(true, [
     [{ added: ["add9"] }, ["add9", "add2", "2"]],
-    [{ added: ["add11"] }, ["add11"]],
+    [{ added: ["add11"] }, ["add11", "add4"]],
+    [{ added: ["add#11"] }, ["add#11", "add#4"]],
+    [{ added: ["add13"] }, ["add13"]],
   ]),
 ];
 
@@ -238,11 +241,31 @@ function canonical(parts: Parts): string | null {
       extension = "9";
     }
   }
+  // add13 is the 6 without a sixth or seventh. With a seventh it is the 13,
+  // which holds a 9 or an 11 already.
+  if (added.has("add13")) {
+    if (seventh === "6" || extension === "13") return null;
+    added.delete("add13");
+    if (seventh === "" && extension === "") seventh = "6";
+    else extension = "13";
+  }
   if (added.has("add11") && (extension === "11" || extension === "13")) {
     return null;
   }
   // An extension holds the seventh.
   if (extension !== "" && seventh === "") seventh = "7";
+  // A #11 changes a sixth or a seventh. Without one it is added, since
+  // "C#11" would read as a C# chord.
+  const sharpEleven = alterations.has("#11");
+  if (sharpEleven && added.has("add#11")) return null;
+  if (seventh === "" && sharpEleven) {
+    alterations.delete("#11");
+    added.add("add#11");
+  }
+  if (seventh !== "" && added.has("add#11")) {
+    added.delete("add#11");
+    alterations.add("#11");
+  }
   // aug is only for a chord without a 6, 7 or extension. With one, its
   // raised fifth is an alteration.
   let written: Quality = quality;

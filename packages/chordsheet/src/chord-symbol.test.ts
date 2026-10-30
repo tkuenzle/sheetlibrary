@@ -135,6 +135,42 @@ describe("One form per chord", () => {
     expect(readChord("C+5")).toEqual({ root: "C", suffix: "aug" });
   });
 
+  it("adds a #11 when there is no 6 or 7", () => {
+    expect(written("Fadd#11")).toBe("Fadd#11");
+    expect(written("F(#11)")).toBe("Fadd#11");
+    expect(written("Fm#11")).toBe("Fmadd#11");
+    expect(written("Fadd#4")).toBe("Fadd#11");
+  });
+
+  it("makes add#11 an alteration when there is a 6 or a 7", () => {
+    expect(written("C7add#11")).toBe("C7#11");
+    expect(written("C6add#11")).toBe("C6#11");
+    expect(written("Cmaj9add#11")).toBe("Cmaj9#11");
+    expect(readChord("C7#11add#11")).toBeNull();
+    expect(readChord("Cadd#11(#11)")).toBeNull();
+  });
+
+  it("reads add4 as add11", () => {
+    expect(written("Cadd4")).toBe("Cadd11");
+    expect(written("C7add4")).toBe("C7add11");
+  });
+
+  it("reads add13 as a 6, or as a 13 when there is a 7", () => {
+    expect(written("Cadd13")).toBe("C6");
+    expect(written("Cmadd13")).toBe("Cm6");
+    expect(written("Cadd9add13")).toBe("C6add9");
+    expect(written("C7add13")).toBe("C13");
+    expect(written("C9add13")).toBe("C13");
+    expect(written("C11add13")).toBe("C13");
+    expect(written("Cmaj7add13")).toBe("Cmaj13");
+  });
+
+  it("refuses add13 with a 6, a 13 or dim", () => {
+    for (const text of ["C6add13", "C13add13", "Cdimadd13", "C7add11add13"]) {
+      expect(readChord(text)).toBeNull();
+    }
+  });
+
   it("refuses alterations without a 6, a 7 or an extension", () => {
     expect(readChord("Cb9")).toEqual({ root: "Cb", suffix: "9" });
     expect(readChord("C-5")).toBeNull();
@@ -188,6 +224,10 @@ const ULTIMATE_GUITAR: [string, string][] = [
   ["Cadd9/E", "Cadd9/E"],
   ["G2", "Gadd9"],
   ["Emadd9", "Emadd9"],
+  ["Fadd#11", "Fadd#11"],
+  ["F(#11)", "Fadd#11"],
+  ["Cadd4", "Cadd11"],
+  ["Cadd13", "C6"],
   ["G/B", "G/B"],
   ["D/F#", "D/F#"],
   ["Am/G", "Am/G"],
