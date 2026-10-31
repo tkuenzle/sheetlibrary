@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { testEnv } from "../db/local-env.test-helper";
 import { getAuth } from "./auth.server";
-import { tooManyEmails } from "./sign-in-email.server";
+import { tooManyEmails } from "./error-codes";
 
 const origin = "https://sheetlibrary.com";
 

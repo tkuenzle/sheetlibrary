@@ -1,7 +1,8 @@
-import { createRequestHandler } from "react-router";
+import { createRequestHandler, RouterContextProvider } from "react-router";
 
 import { isAuthPath } from "../app/auth/auth-path";
 import { getAuth } from "../app/auth/auth.server";
+import { cloudflareContext } from "../app/context";
 import {
   previewMigrations,
   previewMigrationsPath,
@@ -21,6 +22,8 @@ export default {
     if (pathname === previewMigrationsPath) {
       return previewMigrations(request, env);
     }
-    return requestHandler(request);
+    const context = new RouterContextProvider();
+    context.set(cloudflareContext, { env });
+    return requestHandler(request, context);
   },
 } satisfies ExportedHandler<Env>;

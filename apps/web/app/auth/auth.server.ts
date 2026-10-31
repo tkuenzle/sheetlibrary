@@ -18,11 +18,13 @@ export interface Auth {
     getSession(context: {
       headers: Headers;
     }): Promise<{ session: Session; user: User } | null>;
+    listPasskeys(context: {
+      headers: Headers;
+    }): Promise<{ id: string; name?: string | null; createdAt: Date }[]>;
   };
 }
 
-// Also read by scripts/auth-migration.ts, which writes the schema it needs.
-export function authOptions(env: Env, origin: string): BetterAuthOptions {
+function options(env: Env, origin: string) {
   return {
     appName: "Sheet Library",
     baseURL: origin,
@@ -46,11 +48,16 @@ export function authOptions(env: Env, origin: string): BetterAuthOptions {
         origin,
       }),
     ],
-  };
+  } satisfies BetterAuthOptions;
+}
+
+// Also read by scripts/auth-migration.ts, which writes the schema it needs.
+export function authOptions(env: Env, origin: string): BetterAuthOptions {
+  return options(env, origin);
 }
 
 function createAuth(env: Env, origin: string): Auth {
-  return betterAuth(authOptions(env, origin));
+  return betterAuth(options(env, origin));
 }
 
 // Bindings only exist per request, but they stay the same within an isolate,

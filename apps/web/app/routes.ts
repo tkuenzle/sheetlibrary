@@ -13,5 +13,7 @@ const withDesignPage =
 export default [
   index("routes/home.tsx"),
   route("editor", "routes/editor.tsx"),
+  route("sign-in", "routes/sign-in.tsx"),
+  route("account", "routes/account.tsx"),
   ...(withDesignPage ? [route("design", "routes/design.tsx")] : []),
 ] satisfies RouteConfig;

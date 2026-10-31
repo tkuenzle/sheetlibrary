@@ -2,12 +2,8 @@ import { APIError } from "better-auth/api";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { testEnv } from "../db/local-env.test-helper";
-import {
-  emailsPerAddress,
-  notInvited,
-  sendSignInEmail,
-  tooManyEmails,
-} from "./sign-in-email.server";
+import { notInvited, tooManyEmails } from "./error-codes";
+import { emailsPerAddress, sendSignInEmail } from "./sign-in-email.server";
 
 const link = "https://sheetlibrary.com/api/auth/magic-link/verify?token=abc";
 

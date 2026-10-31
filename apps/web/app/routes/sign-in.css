@@ -1,0 +1,64 @@
+/* The sign-in and account pages: one narrow column below the top bar. */
+.sign-in,
+.account {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-l);
+  box-sizing: border-box;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: var(--space-3xl) var(--space-l) 96px;
+}
+
+.sign-in h1,
+.account h1 {
+  margin: 0 0 var(--space-s);
+  font: 800 var(--font-size-title) / 1.1 var(--font);
+  letter-spacing: -0.03em;
+}
+
+.sign-in-or {
+  margin: 0;
+  color: var(--text-muted);
+  font: 400 var(--font-size-small) / 1.4 var(--font);
+  text-align: center;
+}
+
+.sign-in-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+
+.sign-in-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.sign-in-field label {
+  font: 600 var(--font-size-label) / 1.3 var(--font);
+}
+
+.sign-in-field p {
+  margin: 0 0 var(--space-xs);
+  color: var(--text-muted);
+  font: 400 var(--font-size-small) / 1.4 var(--font);
+}
+
+.sign-in-field input {
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 0 var(--space-m);
+  border: 1px solid var(--border);
+  border-radius: var(--corner-small);
+  background: var(--surface);
+  color: var(--text);
+  font: 400 var(--font-size-body) / 1.4 var(--font);
+}
+
+.sign-in-field input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}

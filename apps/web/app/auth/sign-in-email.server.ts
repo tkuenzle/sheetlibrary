@@ -1,11 +1,6 @@
 import { APIError } from "better-auth/api";
 
-// Sent back when Cloudflare won't send to an address. The sign-in page shows
-// its note for this code.
-export const notInvited = "NOT_INVITED";
-
-// Sent back when an address has asked for too many emails.
-export const tooManyEmails = "TOO_MANY_EMAILS";
+import { notInvited, tooManyEmails } from "./error-codes";
 
 // Each address gets at most this many emails in this window. The limit per
 // visitor is Better Auth's, in auth.server.ts.

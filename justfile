@@ -40,7 +40,7 @@ test:
     pnpm -r --if-present run test
 
 # Run end-to-end tests against the built app.
-e2e:
+e2e: migrate-local
     pnpm -r --if-present run e2e
 
 # Run all read-only checks, same as CI.

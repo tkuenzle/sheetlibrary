@@ -22,11 +22,11 @@
 
 ## 4. Pages
 
-- [ ] 4.1 Pass `env` in the router context and read the session in a root middleware. Stop prerendering `/`. Verify the home page's tests and e2e still pass
-- [ ] 4.2 Add `/sign-in`: an email field with a send button, a passkey button, and notes for a sent link, an uninvited address and too many requests. Add the sign-in words to `docs/ui-text.md`. Verify with tests for the page's notes
-- [ ] 4.3 Land an email sign-in on `/account` with the offer to add a passkey, which can be skipped. Verify the scenario "Adding a passkey after an email sign-in" in the browser on local dev
-- [ ] 4.4 Add `/account`: the email, the passkeys with add, rename and remove, and sign-out. Send visitors who aren't signed in to `/sign-in`. Verify with an e2e test for the redirect and tests for the page
-- [ ] 4.5 Show "Sign in" or the account link in the top bar. Verify with tests for the scenarios "Signed out" and "Signed in"
+- [x] 4.1 Pass `env` in the router context and read the session in a root middleware. Stop prerendering `/`. Verify the home page's tests and e2e still pass
+- [x] 4.2 Add `/sign-in`: an email field with a send button, a passkey button, and notes for a sent link, an uninvited address and too many requests. Add the sign-in words to `docs/ui-text.md`. Verify with tests for the page's notes
+- [x] 4.3 Land an email sign-in on `/account` with the offer to add a passkey, which can be skipped. Verify the scenario "Adding a passkey after an email sign-in" in the browser on local dev
+- [x] 4.4 Add `/account`: the email, the passkeys with add, rename and remove, and sign-out. Send visitors who aren't signed in to `/sign-in`. Verify with an e2e test for the redirect and tests for the page
+- [x] 4.5 Show "Sign in" or the account link in the top bar. Verify with tests for the scenarios "Signed out" and "Signed in"
 
 ## 5. Checks on the preview
 
