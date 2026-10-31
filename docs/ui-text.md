@@ -27,6 +27,9 @@ All text is in sentence case.
 | Done    | OK           | Closes the chord input and keeps the chord.                                                        |
 | Remove  | Delete       | Takes a chord off its letter. "Delete" is kept for something gone for good, such as a sheet later. |
 | Cancel  |              | Closes the chord input without keeping what was typed. "Stop editing" (Esc) is a different action. |
+| sign in | log in       | Getting into an account, and "sign out" for leaving it. Signing up is the same as signing in.      |
+| link    | magic link   | What the sign-in email holds.                                                                      |
+| passkey | security key | The way back in without an email.                                                                  |
 
 ## Names that stay
 
@@ -35,4 +38,5 @@ All text is in sentence case.
 - **Section label:** the active section without one shows "Add label". The label's field is named "Label", and suggests "Intro", "Verse", "Pre-chorus", "Chorus", "Bridge", "Solo" and "Outro".
 - **Key button:** beside the title, "Key G" or "Key Em", read as "Key G" or "Key E minor". Its panel is named "Transpose to" and says "The original key, G, is guessed from the chords." The keys are written as chords are, such as "F#" and "Bbm", and read as "F sharp" and "B flat minor"; the cell with two keys is named "F sharp or G flat". The steps are "Down a semitone" and "Up a semitone", with "One semitone" between them. "Back to G" returns to the original key, and is disabled there.
 - **Import:** in the top bar, "Import" with an icon, and only the icon on a phone. Its name is "Import from Ultimate Guitar", and so is its dialog's. The field is named "Chords and lyrics", with the help line "Copy the chords and lyrics from the Ultimate Guitar page and paste them here". The note under it says "Importing replaces the sheet on this page. It can’t be undone." The buttons are "Cancel" and "Import".
+- **Sign-in page:** "Sign in with a passkey", then "or", then the field "Email" with the help line "Get a link by email to sign in" and the button "Send link". The notes under it say "Check your email. The link works once, for 15 minutes.", "Sheet Library is invite-only for now.", "Too many sign-in emails. Try again later.", "The email couldn’t be sent. Try again later.", "No passkey was used. Sign in with an email link instead." and "That link has expired or was already used. Send a new one."
 - **Keys:** as printed on the key, with a space between keys pressed together: "Ctrl K", "⌘ K", "Ctrl Shift L", "⌘ ⇧ L", "Enter", "Backspace", "Esc". Help names both "Ctrl K" and "⌘ K", and both "Ctrl Shift L" and "⌘ ⇧ L", instead of guessing the platform.

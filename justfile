@@ -6,9 +6,14 @@ default:
 install:
     pnpm install
 
-# Start the web app locally.
-dev:
+# Start the web app locally, with the local database up to date.
+dev: migrate-local
     pnpm --filter web dev
+
+# Apply the database migrations to the local database.
+# --config: after a build, wrangler reads the build output's config, which has no migrations folder.
+migrate-local:
+    CI=true pnpm --filter web exec wrangler d1 migrations apply DB --local --config wrangler.jsonc
 
 # Build all packages and apps.
 build:
@@ -22,8 +27,9 @@ fmt:
 fmt-check:
     pnpm format:check
 
-# Run ESLint.
+# Run ESLint. Its typed rules need React Router's generated route types.
 lint:
+    pnpm --filter web exec react-router typegen
     pnpm lint
 
 # Type-check the repo.
@@ -35,7 +41,7 @@ test:
     pnpm -r --if-present run test
 
 # Run end-to-end tests against the built app.
-e2e:
+e2e: migrate-local
     pnpm -r --if-present run e2e
 
 # Run all read-only checks, same as CI.
@@ -76,9 +82,10 @@ preview alias:
     pnpm --filter web exec wrangler triggers deploy
     pnpm --filter web exec wrangler versions upload --preview-alias {{ alias }}
 
-# Build and deploy to production. Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+# Build, migrate the production database and deploy to production. Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
 deploy:
     pnpm --filter web build
+    CI=true pnpm --filter web exec wrangler d1 migrations apply DB --remote --config wrangler.jsonc
     pnpm --filter web exec wrangler deploy
 
 # Check that the site responds with a 2xx status.

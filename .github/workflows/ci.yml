@@ -72,4 +72,6 @@ jobs:
           # (https://github.com/cloudflare/workers-sdk/issues/15890), so deploy the version too.
           version=$(jq -r 'select(.type == "version-upload") | .version_id' "$WRANGLER_OUTPUT_FILE_PATH" | tail -n 1)
           pnpm --filter web exec wrangler versions deploy "$version@100%" --yes --message "PR #${{ github.event.pull_request.number }}"
+          # The pull request token can't reach D1, so the preview applies its own migrations.
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-all-errors -X POST "$url/api/preview/migrations"
           echo "url=$url" >> "$GITHUB_OUTPUT"

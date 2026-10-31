@@ -12,6 +12,19 @@
     "enabled": true,
   },
   "upload_source_maps": true,
+  // The databases are created in infra/. Bindings aren't inherited by envs,
+  // so the preview env repeats them.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sheetlibrary",
+      "database_id": "75d27270-9d84-4a2d-89f2-465359984167",
+    },
+  ],
+  // Sign-in emails. On Workers Free, only verified addresses get them.
+  "send_email": [{ "name": "EMAIL" }],
+  // Set by hand with `wrangler secret put`. Local dev reads it from .dev.vars.
+  "secrets": { "required": ["BETTER_AUTH_SECRET"] },
   "env": {
     // Pull request previews. Select at build time with CLOUDFLARE_ENV=preview.
     "preview": {
@@ -22,6 +35,18 @@
       // (https://github.com/cloudflare/workers-sdk/issues/15890).
       "workers_dev": true,
       "preview_urls": true,
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "sheetlibrary-preview",
+          "database_id": "4eae04d8-718f-4179-b4a6-5db18e1cafad",
+        },
+      ],
+      "send_email": [{ "name": "EMAIL" }],
+      "secrets": { "required": ["BETTER_AUTH_SECRET"] },
+      // Pull request tokens can't reach D1, so the preview applies its own
+      // migrations through its binding. See openspec/specs/site-hosting.
+      "vars": { "PREVIEW_MIGRATIONS": "on" },
     },
   },
 }

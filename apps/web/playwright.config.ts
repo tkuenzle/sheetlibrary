@@ -14,6 +14,12 @@ import {
 // this in the right order. The editor tests run against the harness
 // (harness/), which is built here and never deployed. The design page only
 // exists in previews and the dev server, so its tests run on the dev server.
+// Sign-in needs a secret. The servers read it from the environment, so the
+// tests don't depend on a local .dev.vars.
+const env = {
+  BETTER_AUTH_SECRET: "a-secret-for-end-to-end-tests-only-0123456789",
+};
+
 export default defineConfig({
   testDir: "e2e",
   forbidOnly: !!process.env.CI,
@@ -31,6 +37,7 @@ export default defineConfig({
     {
       command: `pnpm preview --port ${String(appPort)} --strictPort`,
       url: appURL,
+      env,
       reuseExistingServer: !process.env.CI,
     },
     {
@@ -41,6 +48,7 @@ export default defineConfig({
     {
       command: `pnpm dev --port ${String(devPort)} --strictPort`,
       url: devURL,
+      env,
       reuseExistingServer: !process.env.CI,
     },
   ],
