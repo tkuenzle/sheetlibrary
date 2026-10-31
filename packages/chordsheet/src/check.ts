@@ -3,9 +3,11 @@ import { isNote, readChord } from "./chord-symbol";
 import { FORMAT, LABEL_MAX, VERSION } from "./sheet";
 
 // A broken rule and where it is: indexes into sections, their lines and the
-// lines' chords. Problems with the whole sheet have no location.
+// lines' chords. Problems with the whole sheet have no location. A problem
+// found by checking a sheet envelope also names the envelope's field.
 export interface Problem {
   message: string;
+  field?: "id" | "revision" | "title" | "artist" | "content";
   section?: number;
   line?: number;
   chord?: number;
@@ -164,6 +166,6 @@ function isLowSurrogate(code: number): boolean {
   return code >= 0xdc00 && code <= 0xdfff;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
