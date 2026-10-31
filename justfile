@@ -27,8 +27,9 @@ fmt:
 fmt-check:
     pnpm format:check
 
-# Run ESLint.
+# Run ESLint. Its typed rules need React Router's generated route types.
 lint:
+    pnpm --filter web exec react-router typegen
     pnpm lint
 
 # Type-check the repo.
