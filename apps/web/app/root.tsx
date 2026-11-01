@@ -1,7 +1,19 @@
 import "./app.css";
 
 import lyricsFont from "@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url";
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+} from "react-router";
+
+import type { Route } from "./+types/root";
+import { getAuth } from "./auth/auth.server";
+import { cloudflareContext, sessionContext } from "./context";
+import { SignedInContext } from "./shell/signed-in";
 
 // The font is served from our own origin (see docs/design-direction.md). The
 // latin file holds every weight, so preloading it covers the lyrics and the
@@ -16,6 +28,21 @@ export function links() {
       crossOrigin: "anonymous",
     },
   ];
+}
+
+// Reads who is signed in once per request, for every loader and action.
+export const middleware: Route.MiddlewareFunction[] = [
+  async ({ request, context }) => {
+    const { env } = context.get(cloudflareContext);
+    const session = await getAuth(env, request).api.getSession({
+      headers: request.headers,
+    });
+    context.set(sessionContext, session);
+  },
+];
+
+export function loader({ context }: Route.LoaderArgs) {
+  return { signedIn: context.get(sessionContext) !== null };
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -42,5 +69,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  const { signedIn } = useLoaderData<typeof loader>();
+  return (
+    <SignedInContext value={signedIn}>
+      <Outlet />
+    </SignedInContext>
+  );
 }

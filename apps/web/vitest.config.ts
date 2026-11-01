@@ -7,5 +7,8 @@ export default defineConfig({
     // Vitest empties CSS imports. Raw ones keep their text, so
     // breakpoints.test.ts can read the stylesheets.
     css: { include: [/\.css\?raw$/] },
+    // The module cache keeps a file's import.meta.glob results when new files
+    // match, so the tests would miss new migrations.
+    fsModuleCache: false,
   },
 });

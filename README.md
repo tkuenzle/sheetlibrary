@@ -23,4 +23,12 @@ just fix                                            # fix formatting and lint
 just spec-check                                     # validate the OpenSpec specs and changes
 ```
 
+Sign-in needs a secret locally. Create it once:
+
+```sh
+echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" > apps/web/.dev.vars
+```
+
+Locally, sign-in emails aren't sent. The dev server prints where it saved each one, with the link inside.
+
 Run `just` to see all recipes.

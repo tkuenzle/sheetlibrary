@@ -39,6 +39,11 @@
   margin-left: auto;
 }
 
+/* A link that looks like the buttons beside it. */
+.top-bar-account {
+  text-decoration: none;
+}
+
 /* Phone-wide (see app/breakpoints.ts): only the name and the actions. */
 @media (max-width: 640px) {
   .top-bar {
@@ -51,6 +56,20 @@
   }
 
   .top-bar-title {
+    display: none;
+  }
+}
+
+/* Phone-wide: the account link shows only its icon, as round as an icon
+   button. The selector outweighs the padding that button.css gives a button
+   with an icon. */
+@media (max-width: 640px) {
+  .top-bar .button.top-bar-account:has(> .icon:first-child) {
+    width: 48px;
+    padding: 0;
+  }
+
+  .top-bar-account-text {
     display: none;
   }
 }

@@ -1,11 +1,15 @@
+import accountCircle from "./icons/account_circle.svg?raw";
 import add from "./icons/add.svg?raw";
 import close from "./icons/close.svg?raw";
 import contentPasteGo from "./icons/content_paste_go.svg?raw";
 import expandMore from "./icons/expand_more.svg?raw";
 import help from "./icons/help.svg?raw";
 import info from "./icons/info.svg?raw";
+import login from "./icons/login.svg?raw";
+import mail from "./icons/mail.svg?raw";
 import moveDown from "./icons/move_down.svg?raw";
 import moveUp from "./icons/move_up.svg?raw";
+import passkey from "./icons/passkey.svg?raw";
 import remove from "./icons/remove.svg?raw";
 
 // The icons the UI uses: Material Symbols Rounded, weight 500, drawn for 24px
@@ -15,14 +19,18 @@ import remove from "./icons/remove.svg?raw";
 // The npm packages only have icons drawn for 48px, which look too thin at
 // 24px.
 const sources = {
+  accountCircle,
   add,
   close,
   contentPasteGo,
   expandMore,
   help,
   info,
+  login,
+  mail,
   moveDown,
   moveUp,
+  passkey,
   remove,
 };
 

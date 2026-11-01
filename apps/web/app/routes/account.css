@@ -1,0 +1,95 @@
+/* The account page. Its column is shared with sign-in (sign-in.css). */
+.account-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  padding-top: var(--space-l);
+  border-top: 1px solid var(--border);
+}
+
+.account-section h2 {
+  margin: 0;
+  font: 700 var(--font-size-heading) / 1.2 var(--font);
+}
+
+.account-section p {
+  margin: 0;
+}
+
+.account-email {
+  font: 400 var(--font-size-body) / 1.4 var(--font);
+  overflow-wrap: anywhere;
+}
+
+.account-empty {
+  color: var(--text-muted);
+}
+
+.account-offer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  padding: var(--space-l);
+  border-radius: var(--corner-medium);
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.account-offer p {
+  margin: 0;
+  font: 500 var(--font-size-body) / 1.4 var(--font);
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-s);
+}
+
+.account-passkeys {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-passkey {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  padding: var(--space-s) 0;
+}
+
+.account-passkey-rename {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.account-passkey-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.account-passkey-name {
+  font: 600 var(--font-size-body) / 1.4 var(--font);
+}
+
+.account-passkey-added {
+  color: var(--text-muted);
+  font: 400 var(--font-size-small) / 1.4 var(--font);
+}
+
+.account-add {
+  align-self: flex-start;
+}
+
+.account-sign-out {
+  align-self: flex-start;
+  margin-top: var(--space-l);
+}

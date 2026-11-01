@@ -33,4 +33,11 @@ jobs:
       - uses: extractions/setup-just@v4
       - run: just tofu-init
       # -lock=false: the read-only state keys can't write a lock.
-      - run: just tofu-plan -lock=false -no-color
+      # -exclude: reading these needs D1 or email permissions on the whole
+      # account, which would let a pull request read production data and
+      # sign-in links. Only the deploy on main plans and applies them.
+      - run: >-
+          just tofu-plan -lock=false -no-color
+          -exclude=cloudflare_d1_database.production
+          -exclude=cloudflare_d1_database.preview
+          -exclude=cloudflare_email_sending_subdomain.mail
