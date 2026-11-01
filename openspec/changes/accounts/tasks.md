@@ -18,7 +18,7 @@
 ## 3. Migrations in CI
 
 - [x] 3.1 Add the preview's migration route: it bundles `apps/web/migrations/`, applies the missing files through `DB`, records them in `d1_migrations`, and answers 404 without the preview var. Verify with tests that a second run changes nothing and that production gets 404
-- [ ] 3.2 Call the route from the preview job after `wrangler versions deploy`, and run `wrangler d1 migrations apply DB --remote` in `just deploy` before `wrangler deploy`. Verify this pull request's preview has the tables
+- [x] 3.2 Call the route from the preview job after `wrangler versions deploy`, and run `wrangler d1 migrations apply DB --remote` in `just deploy` before `wrangler deploy`. Verify this pull request's preview has the tables
 
 ## 4. Pages
 
