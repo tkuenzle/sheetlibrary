@@ -1,17 +1,21 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { meta, SignInNote, type SignInState } from "./sign-in";
+import { LinkSent, meta, SignInNote, type SignInState } from "./sign-in";
 
 function note(state: SignInState) {
   return renderToString(<SignInNote state={state} />);
 }
 
 describe("sign-in page", () => {
-  it("says to check the email once a link is sent", () => {
-    expect(note("sent")).toContain(
-      "Check your email. The link works once, for 15 minutes.",
+  it("says to check the email once a link is sent, and where it went", () => {
+    const html = renderToString(
+      <LinkSent email="ana@example.com" onBack={() => undefined} />,
     );
+    expect(html).toContain("Check your email");
+    expect(html).toContain("<strong>ana@example.com</strong>");
+    expect(html).toContain("It works once, for 15 minutes.");
+    expect(html).toContain("Use another email");
   });
 
   // Scenario "Uninvited email".
@@ -41,7 +45,6 @@ describe("sign-in page", () => {
 
   it("follows the voice in docs/ui-text.md", () => {
     const states: SignInState[] = [
-      "sent",
       "not-invited",
       "too-many",
       "failed",

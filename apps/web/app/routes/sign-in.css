@@ -62,3 +62,34 @@
   outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
+
+/* Takes the form's place once the link is sent. */
+.sign-in-sent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-m);
+  padding: var(--space-xl);
+  border-radius: var(--corner-medium);
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.sign-in-sent h2 {
+  margin: 0;
+  font: 700 var(--font-size-heading) / 1.2 var(--font);
+}
+
+.sign-in-sent h2:focus {
+  outline: none;
+}
+
+.sign-in-sent p {
+  margin: 0;
+  font: 400 var(--font-size-body) / 1.5 var(--font);
+  overflow-wrap: anywhere;
+}
+
+.sign-in-sent .sign-in-back {
+  margin-left: calc(-1 * var(--space-m));
+}

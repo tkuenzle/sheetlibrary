@@ -1,7 +1,7 @@
 import "../ui/button.css";
 import "./sign-in.css";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { redirect, useSearchParams } from "react-router";
 
 import {
@@ -33,13 +33,38 @@ export function loader({ context }: Route.LoaderArgs) {
 export type SignInState =
   LinkResult | "sending" | "passkey-failed" | "link-invalid" | null;
 
-// The note under the form for what just happened.
+// Shown instead of the form once the link is sent, so it can't be missed.
+// Focus moves to its heading, so screen readers read it too.
+export function LinkSent({
+  email,
+  onBack,
+}: {
+  email: string;
+  onBack: () => void;
+}) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
+  return (
+    <section className="sign-in-sent" aria-labelledby="sign-in-sent-title">
+      <h2 id="sign-in-sent-title" ref={heading} tabIndex={-1}>
+        Check your email
+      </h2>
+      <p>
+        A link to sign in is on its way to <strong>{email}</strong>. It works
+        once, for 15 minutes.
+      </p>
+      <Button variant="text" className="sign-in-back" onClick={onBack}>
+        Use another email
+      </Button>
+    </section>
+  );
+}
+
+// The note under the form for what went wrong.
 export function SignInNote({ state }: { state: SignInState }) {
   switch (state) {
-    case "sent":
-      return (
-        <Note>Check your email. The link works once, for 15 minutes.</Note>
-      );
     case "not-invited":
       return <Note>Sheet Library is invite-only for now.</Note>;
     case "too-many":
@@ -67,6 +92,24 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const fieldId = useId();
   const hintId = useId();
+
+  if (state === "sent") {
+    return (
+      <>
+        <TopBar />
+        <main className="sign-in">
+          <h1>Sign in</h1>
+          <LinkSent
+            email={email.trim()}
+            onBack={() => {
+              setEmail("");
+              setState(null);
+            }}
+          />
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -116,7 +159,7 @@ export default function SignIn() {
             icon="mail"
             disabled={state === "sending"}
           >
-            Send link
+            {state === "sending" ? "Sending…" : "Send link"}
           </Button>
         </form>
         <div aria-live="polite">
