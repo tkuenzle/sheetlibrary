@@ -7,7 +7,7 @@ Keeps the Cloudflare setup for sheetlibrary.com in code, so every infrastructure
 ## Requirements
 
 ### Requirement: Cloudflare setup in code
-The sheetlibrary.com zone, its DNS records, the hosting of the site, its databases and its email sending SHALL be defined in this repository. This repository SHALL be the only owner of the zone.
+The sheetlibrary.com zone, its DNS records, the hosting of the site and its databases SHALL be defined in this repository. This repository SHALL be the only owner of the zone, except for email sending and the DNS records Cloudflare adds for it, which are set up by hand for now.
 
 #### Scenario: Existing zone taken over
 - **WHEN** the infrastructure is first applied
@@ -18,7 +18,7 @@ The sheetlibrary.com zone, its DNS records, the hosting of the site, its databas
 - **THEN** the databases are imported, not recreated or deleted
 
 ### Requirement: Plan on pull request
-A pull request that changes the infrastructure SHALL show the planned infrastructure changes, without applying them. The plan SHALL leave out the databases and email sending, because reading them would give pull requests access to production data and sign-in links. Changes to those SHALL be planned and applied only on merge.
+A pull request that changes the infrastructure SHALL show the planned infrastructure changes, without applying them. The plan SHALL leave out the databases, because reading them would give pull requests access to production data. Changes to them SHALL be planned and applied only on merge.
 
 #### Scenario: Infrastructure change proposed
 - **WHEN** a pull request changes the infrastructure code
