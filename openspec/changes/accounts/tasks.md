@@ -30,9 +30,9 @@
 
 ## 5. Checks on the preview
 
-- [ ] 5.1 On this pull request's preview, sign in with an invited address, and try an uninvited one. Verify the scenarios "First sign-in", "Link used twice" and "Uninvited email", and note how the binding refuses
-- [ ] 5.2 On the preview, add a passkey, sign out and sign in with it, then remove it on the account page. Verify the scenarios "Returning on the same device" and "Removing a lost device's passkey"
-- [ ] 5.3 Use the pull request token against the production database. Verify Cloudflare rejects it (scenario "Pull request credentials used against the production database")
+- [x] 5.1 On this pull request's preview, sign in with an invited address, and try an uninvited one. Verify the scenarios "First sign-in", "Link used twice" and "Uninvited email", and note how the binding refuses
+- [x] 5.2 On the preview, add a passkey, sign out and sign in with it, then remove it on the account page. Verify the scenarios "Returning on the same device" and "Removing a lost device's passkey"
+- [x] 5.3 Use the pull request token against the production database. Verify Cloudflare rejects it (scenario "Pull request credentials used against the production database")
 - [x] 5.4 Run `just check` and `just spec-check`. Verify both pass
 
 ## Workflow follow-up
