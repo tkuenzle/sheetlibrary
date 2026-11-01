@@ -3,7 +3,7 @@
 ## 1. Cloudflare setup
 
 - [x] 1.1 Create the production and preview D1 databases with `wrangler d1 create` (needs the owner's Cloudflare login). Verify both appear in `wrangler d1 list`
-- [ ] 1.2 In `infra/`, import both databases with `import` blocks and `prevent_destroy`, import the `mail.sheetlibrary.com` sending subdomain, and leave all three out of the pull request plan. Verify the pull request plan passes and destroys nothing, and the first apply on main imports all three with no other changes
+- [x] 1.2 In `infra/`, import both databases with `import` blocks and `prevent_destroy`, import the `mail.sheetlibrary.com` sending subdomain, and leave all three out of the pull request plan. Verify the pull request plan passes and destroys nothing, and the first apply on main imports all three with no other changes
 - [x] 1.3 In `apps/web/wrangler.jsonc`, bind the database as `DB` and add a `send_email` binding, for production and again under `env.preview`, plus the var that turns on the preview's migration route. Verify `just typecheck` sees them in `Env`
 - [x] 1.4 Set `BETTER_AUTH_SECRET` on both workers with `wrangler secret put`, and add the first invited address in Cloudflare (owner). Verify with `wrangler secret list` for each worker
 
