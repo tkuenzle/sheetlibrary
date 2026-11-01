@@ -14,6 +14,7 @@ import { seedSong } from "../app/editor/seed-song";
 // The page the editor's Playwright tests run against (e2e/sheet-editor.spec.ts).
 // It is built on its own (vite.harness.config.ts) and never deployed. Hand
 // back shows the sheet the editor hands back, so the tests can check it.
+// It also counts the editor's changes and can make it read-only.
 
 type Page =
   | { kind: "editing"; sheet: ChordSheet; problems: Problem[] }
@@ -25,6 +26,8 @@ function Harness() {
   const [key, setKey] = useState(0);
   // The sheet's key, guessed from its chords as the editor page does.
   const [sheetKey, setSheetKey] = useState<Key | null>(null);
+  const [changes, setChanges] = useState(0);
+  const [readOnly, setReadOnly] = useState(false);
   const [page, setPage] = useState<Page>({
     kind: "editing",
     sheet: seedSong,
@@ -55,6 +58,10 @@ function Harness() {
             ref={editorRef}
             sheet={page.sheet}
             sheetKey={sheetKey}
+            readOnly={readOnly}
+            onChange={() => {
+              setChanges((count) => count + 1);
+            }}
             onChordsChange={(chords) => {
               setSheetKey(guessKey(chords));
             }}
@@ -69,6 +76,17 @@ function Harness() {
           <button type="button" onClick={done}>
             Hand back
           </button>
+          <label data-keeps-editing>
+            <input
+              type="checkbox"
+              checked={readOnly}
+              onChange={(event) => {
+                setReadOnly(event.target.checked);
+              }}
+            />
+            Read-only
+          </label>
+          <output data-testid="changes">{changes}</output>
         </>
       ) : (
         <>

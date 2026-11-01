@@ -680,6 +680,38 @@ test.describe("handing back the sheet", () => {
   });
 });
 
+test.describe("changes and read-only", () => {
+  test("reports every change to the sheet", async ({ page }) => {
+    const changes = page.getByTestId("changes");
+    await expect(changes).toHaveText("0");
+    await place(page, "wretch", 0);
+    await page.keyboard.type("x");
+    await expect(changes).toHaveText("1");
+    await page.keyboard.type("y");
+    await expect(changes).toHaveText("2");
+  });
+
+  test("ends editing and refuses edits when read-only", async ({ page }) => {
+    await place(page, "wretch", 0);
+    await expect(activeSection(page)).toHaveCount(1);
+    await page.getByLabel("Read-only").check();
+    await expect(activeSection(page)).toHaveCount(0);
+    await expect(toolbar(page)).toBeHidden();
+    const changes = await page.getByTestId("changes").textContent();
+    await page.keyboard.type("x");
+    // Clicks where the label is: outside the active section, labels let
+    // clicks through to the lyrics.
+    const d = await box(label(page, "D"));
+    await page.mouse.click(d.x + d.width / 2, d.y + d.height / 2);
+    await expect(chordInput(page)).toHaveCount(0);
+    await expect(activeSection(page)).toHaveCount(0);
+    await expect(page.getByTestId("changes")).toHaveText(changes ?? "");
+    expect((await firstSection(page))[1]).toBe(
+      "That saved a wretch like [D]me",
+    );
+  });
+});
+
 test.describe("the active section", () => {
   test("follows the caret into the next section", async ({ page }) => {
     await clickChar(page, "before", "Was blind");
