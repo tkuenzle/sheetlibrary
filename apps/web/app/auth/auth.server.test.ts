@@ -69,4 +69,17 @@ describe("sign-in emails", () => {
     expect(statuses[10]).toBe(429);
     expect(test.send).toHaveBeenCalledTimes(10);
   });
+
+  // A form on another site posts without the session, so it can't create a
+  // sheet through the library's action.
+  it("signs in with a SameSite=Lax session cookie", async () => {
+    await send(test.env, askForLink("ana@example.com", "1.1.1.1"));
+    const message = test.send.mock.calls[0]?.[0] as { text: string };
+    const link = /https?:\/\/\S+/.exec(message.text)?.[0] ?? "";
+    const response = await send(test.env, new Request(link));
+    const cookie = response.headers
+      .getSetCookie()
+      .find((value) => value.includes("session_token="));
+    expect(cookie).toMatch(/; SameSite=Lax/i);
+  });
 });

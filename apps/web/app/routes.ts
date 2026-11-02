@@ -15,6 +15,7 @@ export default [
   route("editor", "routes/editor.tsx"),
   route("sign-in", "routes/sign-in.tsx"),
   route("account", "routes/account.tsx"),
+  route("sheets", "routes/sheets.tsx"),
   route("sheets/:id", "routes/sheet.tsx"),
   route("api/sheets", "routes/api.sheets.ts"),
   route("api/sheets/:id", "routes/api.sheet.ts"),

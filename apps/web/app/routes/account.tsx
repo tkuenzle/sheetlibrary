@@ -3,12 +3,7 @@ import "./sign-in.css";
 import "./account.css";
 
 import { useId, useState } from "react";
-import {
-  redirect,
-  useLoaderData,
-  useRevalidator,
-  useSearchParams,
-} from "react-router";
+import { redirect, useLoaderData, useRevalidator } from "react-router";
 
 import {
   addPasskey,
@@ -158,21 +153,16 @@ function Passkey({
 export function AccountView({
   email,
   passkeys,
-  offer,
   failed,
   onAdd,
-  onSkip,
   onRename,
   onRemove,
   onSignOut,
 }: {
   email: string;
   passkeys: PasskeyItem[];
-  // After an email sign-in, offer a passkey for this device.
-  offer: boolean;
   failed: boolean;
   onAdd: () => void;
-  onSkip: () => void;
   onRename: (id: string, name: string) => void;
   onRemove: (id: string) => void;
   onSignOut: () => void;
@@ -180,22 +170,6 @@ export function AccountView({
   return (
     <main className="account">
       <h1>Account</h1>
-      {offer && (
-        <section className="account-offer" aria-label="Add a passkey">
-          <p>
-            Add a passkey to sign in on this device without waiting for an
-            email.
-          </p>
-          <div className="account-actions">
-            <Button variant="text" onClick={onSkip}>
-              Not now
-            </Button>
-            <Button icon="passkey" onClick={onAdd}>
-              Add passkey
-            </Button>
-          </div>
-        </section>
-      )}
       <section className="account-section">
         <h2>Email</h2>
         <p className="account-email">{email}</p>
@@ -220,16 +194,14 @@ export function AccountView({
             ))}
           </ul>
         )}
-        {!offer && (
-          <Button
-            variant="tonal"
-            icon="passkey"
-            className="account-add"
-            onClick={onAdd}
-          >
-            Add passkey
-          </Button>
-        )}
+        <Button
+          variant="tonal"
+          icon="passkey"
+          className="account-add"
+          onClick={onAdd}
+        >
+          Add passkey
+        </Button>
         <div aria-live="polite">
           {failed && <Note>No passkey was added.</Note>}
         </div>
@@ -244,13 +216,7 @@ export function AccountView({
 export default function Account() {
   const { email, passkeys } = useLoaderData<typeof loader>();
   const revalidator = useRevalidator();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [failed, setFailed] = useState(false);
-  const offer = searchParams.has("welcome");
-
-  function dropOffer() {
-    setSearchParams({}, { replace: true });
-  }
 
   return (
     <>
@@ -258,7 +224,6 @@ export default function Account() {
       <AccountView
         email={email}
         passkeys={passkeys}
-        offer={offer}
         failed={failed}
         onAdd={() => {
           setFailed(false);
@@ -267,11 +232,9 @@ export default function Account() {
               setFailed(true);
               return;
             }
-            dropOffer();
             await revalidator.revalidate();
           });
         }}
-        onSkip={dropOffer}
         onRename={(id, name) => {
           void renamePasskey(id, name).then(() => revalidator.revalidate());
         }}

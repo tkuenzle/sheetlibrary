@@ -11,6 +11,30 @@ describe("TopBar", () => {
     );
   });
 
+  // Scenario "Going home from the editor".
+  it("links the site's name to the home page when signed out", () => {
+    const html = renderToString(
+      <SignedInContext value={false}>
+        <TopBar />
+      </SignedInContext>,
+    );
+    expect(html).toContain(
+      '<a class="top-bar-name" href="/">Sheet Library</a>',
+    );
+  });
+
+  // Scenario "Back to the library".
+  it("links the site's name to the library when signed in", () => {
+    const html = renderToString(
+      <SignedInContext value={true}>
+        <TopBar title="Amazing Grace" />
+      </SignedInContext>,
+    );
+    expect(html).toContain(
+      '<a class="top-bar-name" href="/sheets">Sheet Library</a>',
+    );
+  });
+
   it("shows the title after the name", () => {
     const html = renderToString(<TopBar title="Amazing Grace" />);
     expect(html).toMatch(/Sheet Library<\/a>.*Amazing Grace/);

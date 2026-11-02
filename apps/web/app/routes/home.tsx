@@ -1,14 +1,24 @@
 import "../ui/button.css";
 import "./home.css";
 
+import { redirect } from "react-router";
+
+import { sessionContext } from "../context";
 import { SampleSheet } from "../home/sample-sheet";
 import { TopBar } from "../shell/top-bar";
+import type { Route } from "./+types/home";
 
 export function meta() {
   return [
     { title: "Sheet Library" },
     { name: "description", content: "A library for your sheet music." },
   ];
+}
+
+// Signed-in people go to their library.
+export function loader({ context }: Route.LoaderArgs) {
+  if (context.get(sessionContext)) return redirect("/sheets");
+  return null;
 }
 
 export default function Home() {

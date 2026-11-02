@@ -25,21 +25,6 @@
   color: var(--text-muted);
 }
 
-.account-offer {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
-  padding: var(--space-l);
-  border-radius: var(--corner-medium);
-  background: var(--accent-soft);
-  color: var(--on-accent-soft);
-}
-
-.account-offer p {
-  margin: 0;
-  font: 500 var(--font-size-body) / 1.4 var(--font);
-}
-
 .account-actions {
   display: flex;
   flex-wrap: wrap;

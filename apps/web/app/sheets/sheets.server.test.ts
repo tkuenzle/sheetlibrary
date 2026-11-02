@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
@@ -6,6 +6,7 @@ import {
   createSheet,
   deleteSheet,
   FIRST_REVISION,
+  listSheets,
   readSheet,
   saveSheet,
 } from "./sheets.server";
@@ -100,5 +101,39 @@ describe("sheet storage", () => {
     });
     expect(await deleteSheet(db, "ana", id)).toBe(true);
     expect(await readSheet(db, "ana", id)).toBeNull();
+  });
+
+  // Scenario "Newest edit first".
+  it("lists a person's sheets, the most recently edited first", async () => {
+    const now = vi.spyOn(Date, "now");
+    now.mockReturnValue(1000);
+    const hallelujah = await createSheet(db, "ana", {
+      title: "Hallelujah",
+      artist: "Leonard Cohen",
+      content: seedSong,
+    });
+    now.mockReturnValue(2000);
+    const grace = await createSheet(db, "ana", {
+      title: "Amazing Grace",
+      content: seedSong,
+    });
+    now.mockReturnValue(3000);
+    await saveSheet(db, "ana", hallelujah);
+    now.mockRestore();
+    expect(await listSheets(db, "ana")).toEqual([
+      {
+        id: hallelujah.id,
+        title: "Hallelujah",
+        artist: "Leonard Cohen",
+        updatedAt: 3000,
+      },
+      { id: grace.id, title: "Amazing Grace", updatedAt: 2000 },
+    ]);
+  });
+
+  // Scenario "Someone else's sheets".
+  it("lists no one else's sheets", async () => {
+    await createSheet(db, "bo", { title: "Shenandoah", content: seedSong });
+    expect(await listSheets(db, "ana")).toEqual([]);
   });
 });

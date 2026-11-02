@@ -5,10 +5,10 @@ import { type ReactNode, use } from "react";
 import { Icon } from "../ui/icon";
 import { SignedInContext } from "./signed-in";
 
-// The bar at the top of a page: the site's name, linking home, the song's
-// title after it, the page's actions, and the link to sign in or to the
-// account at the end. The links load the next page in full, so a page with
-// unsaved edits can warn before they go.
+// The bar at the top of a page: the site's name, linking home or, once
+// signed in, to the library, the song's title after it, the page's actions,
+// and the link to sign in or to the account at the end. The links load the
+// next page in full, so a page with unsaved edits can warn before they go.
 export function TopBar({
   title,
   children,
@@ -19,7 +19,7 @@ export function TopBar({
   const signedIn = use(SignedInContext);
   return (
     <header className="top-bar">
-      <a className="top-bar-name" href="/">
+      <a className="top-bar-name" href={signedIn ? "/sheets" : "/"}>
         Sheet Library
       </a>
       {title && (

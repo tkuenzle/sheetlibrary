@@ -14,12 +14,12 @@ const client = createAuthClient({
 
 export type LinkResult = "sent" | "not-invited" | "too-many" | "failed";
 
-// Asks for a sign-in link by email. Opening it signs in on the account page,
-// which offers a passkey. A link that doesn't work comes back to sign-in.
+// Asks for a sign-in link by email. Opening it signs in and opens the
+// library. A link that doesn't work comes back to sign-in.
 export async function askForLink(email: string): Promise<LinkResult> {
   const { error } = await client.signIn.magicLink({
     email,
-    callbackURL: "/account?welcome",
+    callbackURL: "/sheets",
     errorCallbackURL: "/sign-in?link=invalid",
   });
   if (!error) return "sent";

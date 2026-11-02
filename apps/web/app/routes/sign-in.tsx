@@ -26,7 +26,7 @@ export function meta() {
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  if (context.get(sessionContext)) return redirect("/account");
+  if (context.get(sessionContext)) return redirect("/sheets");
   return null;
 }
 

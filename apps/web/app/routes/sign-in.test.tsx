@@ -1,7 +1,16 @@
 import { renderToString } from "react-dom/server";
+import { RouterContextProvider } from "react-router";
 import { describe, expect, it } from "vitest";
 
-import { LinkSent, meta, SignInNote, type SignInState } from "./sign-in";
+import { sessionContext } from "../context";
+import type { Route } from "./+types/sign-in";
+import {
+  LinkSent,
+  loader,
+  meta,
+  SignInNote,
+  type SignInState,
+} from "./sign-in";
 
 function note(state: SignInState) {
   return renderToString(<SignInNote state={state} />);
@@ -58,5 +67,13 @@ describe("sign-in page", () => {
 
   it("sets the page title", () => {
     expect(meta()).toContainEqual({ title: "Sign in | Sheet Library" });
+  });
+
+  it("sends signed-in people to the library", () => {
+    const context = new RouterContextProvider();
+    context.set(sessionContext, {} as never);
+    const response = loader({ context } as unknown as Route.LoaderArgs);
+    expect(response?.status).toBe(302);
+    expect(response?.headers.get("Location")).toBe("/sheets");
   });
 });
