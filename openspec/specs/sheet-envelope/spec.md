@@ -14,7 +14,7 @@ A sheet SHALL be JSON with an id, a revision, a title, an optional artist and it
 - **THEN** the sheet holds its id, its revision, the title "Amazing Grace" and the chord sheet content with the format `chordsheet`
 
 ### Requirement: Title and artist
-A sheet SHALL have a title, which SHALL be text. A sheet MAY have an artist, the performer, which SHALL be text. A sheet without an artist SHALL be stored without one.
+A sheet SHALL have a title, which SHALL be text of at most 100 characters. A sheet MAY have an artist, the performer, which SHALL be text of at most 100 characters. A sheet without an artist SHALL be stored without one.
 
 #### Scenario: No artist
 - **WHEN** a sheet with the title "Amazing Grace" and no artist is stored
@@ -22,6 +22,10 @@ A sheet SHALL have a title, which SHALL be text. A sheet MAY have an artist, the
 
 #### Scenario: Missing title
 - **WHEN** a sheet without a title is checked
+- **THEN** a problem is reported for the title
+
+#### Scenario: Title too long
+- **WHEN** a sheet with a title of 101 characters is checked
 - **THEN** a problem is reported for the title
 
 ### Requirement: Shown details are not stored

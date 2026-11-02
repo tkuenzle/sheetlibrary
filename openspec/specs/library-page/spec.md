@@ -25,11 +25,15 @@ A row SHALL say "Today" or "Yesterday" for a sheet last edited on those days, in
 - **THEN** its row says "28 Oct"
 
 ### Requirement: New sheet
-"New sheet" SHALL create a sheet titled "Untitled" with no lyrics, and open it at `/sheets/:id`.
+"New sheet" SHALL create a sheet titled "Untitled" with no lyrics, and open it at `/sheets/:id` with the title field open and "Untitled" selected. A reload of that sheet SHALL NOT open the field again.
 
 #### Scenario: Starting a sheet
 - **WHEN** a person selects "New sheet"
 - **THEN** the sheet page opens with the heading "Untitled", and the library lists "Untitled" first
+
+#### Scenario: Naming a new sheet
+- **WHEN** a person selects "New sheet", types "Amazing Grace" and presses Enter
+- **THEN** the heading reads "Amazing Grace"
 
 ### Requirement: No sheets yet
 A person without sheets SHALL see "No sheets yet" and "New sheet" instead of the list.
