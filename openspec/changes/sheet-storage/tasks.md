@@ -22,7 +22,7 @@
 
 ## 5. Checks
 
-- [ ] 5.1 On this pull request's preview, sign in, create a sheet through the API, edit it in two tabs and check the conflict notice in the second
+- [x] 5.1 On this pull request's preview, sign in, create a sheet through the API, edit it in two tabs and check the conflict notice in the second
 - [x] 5.2 Run `just check` and `just spec-check`. Verify both pass
 
 ## Workflow follow-up
