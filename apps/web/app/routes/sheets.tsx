@@ -1,12 +1,14 @@
 import "./sheets.css";
 
 import { useEffect, useState } from "react";
-import { Form, redirect } from "react-router";
+import { Form, redirect, useNavigate } from "react-router";
 
 import { cloudflareContext, sessionContext } from "../context";
+import { ImportButton } from "../editor/import-button";
 import { TopBar } from "../shell/top-bar";
 import { editDate, lastEdit } from "../sheets/last-edit";
 import { UNTITLED } from "../sheets/details";
+import { importSheet } from "../sheets/import";
 import {
   createSheet,
   listSheets,
@@ -15,7 +17,7 @@ import {
 import { Button } from "../ui/button";
 import type { Route } from "./+types/sheets";
 
-// The library: the signed-in person's sheets, and "New sheet". See
+// The library: the signed-in person's sheets, "Import" and "New sheet". See
 // openspec/specs/library-page.
 
 export function meta() {
@@ -55,13 +57,42 @@ export default function Library({ loaderData }: Route.ComponentProps) {
 }
 
 // Posts to the action above. Works before the scripts load.
-function NewSheet({ size, className }: { size?: "large"; className?: string }) {
+function NewSheet({ size }: { size?: "large" }) {
   return (
-    <Form method="post" className={className}>
+    <Form method="post">
       <Button type="submit" icon="add" size={size}>
         New sheet
       </Button>
     </Form>
+  );
+}
+
+// "Import": creates a sheet from Ultimate Guitar text and opens it, to be
+// named, as "New sheet" does. The dialog stays until the sheet replaces the
+// library.
+function LibraryImport({ size }: { size?: "large" }) {
+  const navigate = useNavigate();
+  return (
+    <ImportButton
+      variant="tonal"
+      size={size}
+      onImport={async (sheet) => {
+        const result = await importSheet(sheet);
+        if ("error" in result) return result.error;
+        void navigate(`/sheets/${result.id}?new`);
+        return undefined;
+      }}
+    />
+  );
+}
+
+// "Import" before "New sheet", as on the canvas.
+function Actions({ size, className }: { size?: "large"; className: string }) {
+  return (
+    <div className={className}>
+      <LibraryImport size={size} />
+      <NewSheet size={size} />
+    </div>
   );
 }
 
@@ -82,7 +113,7 @@ export function LibraryView({ sheets }: { sheets: SheetListItem[] }) {
         <h1>Library</h1>
         <section className="library-empty" aria-labelledby="library-empty">
           <h2 id="library-empty">No sheets yet</h2>
-          <NewSheet />
+          <Actions className="library-actions" />
         </section>
       </main>
     );
@@ -92,7 +123,7 @@ export function LibraryView({ sheets }: { sheets: SheetListItem[] }) {
     <main className="library library-with-sheets">
       <div className="library-heading">
         <h1>Library</h1>
-        <NewSheet className="library-new-beside" />
+        <Actions className="library-actions library-actions-beside" />
       </div>
       <div className="library-list">
         <div className="library-columns library-labels" aria-hidden="true">
@@ -124,7 +155,10 @@ export function LibraryView({ sheets }: { sheets: SheetListItem[] }) {
           ))}
         </ul>
       </div>
-      <NewSheet size="large" className="library-new-docked" />
+      <Actions
+        size="large"
+        className="library-actions library-actions-docked"
+      />
     </main>
   );
 }

@@ -44,7 +44,8 @@ export default function EditorPage() {
   const editor = useRef<SheetEditorHandle>(null);
   const sheetKey = useSheetKey(seedSong);
 
-  function load(sheet: ChordSheet) {
+  // Uses the import right away, so the dialog closes (see ImportButton).
+  function load(sheet: ChordSheet): undefined {
     setLoaded(({ imports }) => ({ sheet, imports: imports + 1 }));
     setEdited(false);
     sheetKey.reset(sheet);
@@ -70,7 +71,10 @@ export default function EditorPage() {
   return (
     <>
       <TopBar title={title}>
-        <ImportButton onImport={load} />
+        <ImportButton
+          onImport={load}
+          note="Importing replaces the sheet on this page. It can’t be undone."
+        />
         <SidePanelButton icon="help" title="How to edit">
           <EditorHelp />
         </SidePanelButton>

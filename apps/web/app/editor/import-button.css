@@ -1,16 +1,19 @@
 /*
-  The import in the top bar, and its dialog over the page. The widths are
-  listed in app/breakpoints.ts.
+  The import button, in the top bar or in the library, and its dialog over
+  the page. The widths are listed in app/breakpoints.ts.
 */
-/* Phone-wide: only the icon, as round as an icon button. The selector
-   outweighs the padding that button.css gives a button with an icon. */
+/* Phone-wide, in the top bar: only the icon, as round as an icon button.
+   The selector outweighs the padding that button.css gives a button with an
+   icon. Elsewhere, such as in the library, the text stays. */
 @media (max-width: 640px) {
-  .import-button .button.import-button-toggle:has(> .icon:first-child) {
+  .top-bar
+    .import-button
+    .button.import-button-toggle:has(> .icon:first-child) {
     width: 48px;
     padding: 0;
   }
 
-  .import-button-text {
+  .top-bar .import-button-text {
     display: none;
   }
 }
