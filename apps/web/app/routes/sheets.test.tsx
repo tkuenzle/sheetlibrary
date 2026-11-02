@@ -111,6 +111,21 @@ describe("library page", () => {
     expect(html).not.toContain("No sheets yet");
   });
 
+  it("offers Import before New sheet, beside the heading and docked", () => {
+    const html = render([
+      { id: "abcdefghijkl", title: "Hallelujah", updatedAt: today },
+    ]);
+    const beside = /library-actions-beside">(.*?)<\/form><\/div>/s.exec(html);
+    const docked = /library-actions-docked">(.*?)<\/form><\/div>/s.exec(html);
+    for (const actions of [beside?.[1], docked?.[1]]) {
+      expect(actions).toMatch(
+        /class="button button-tonal[^"]*"[^>]*aria-label="Import from Ultimate Guitar".*New sheet<\/button>/s,
+      );
+    }
+    expect(docked?.[1]).toMatch(/button-tonal button-large/);
+    expect(docked?.[1]).toMatch(/button-filled button-large/);
+  });
+
   it("hides the last edit until the viewer's time zone is known", () => {
     const html = render([
       {
@@ -125,11 +140,14 @@ describe("library page", () => {
   });
 
   // Scenario "First sign-in".
-  it("says there are no sheets yet, and offers a new one", () => {
+  it("says there are no sheets yet, and offers Import and a new sheet", () => {
     const html = render([]);
     expect(html).toContain("No sheets yet");
-    expect(html).toMatch(/<form [^>]*method="post"[^>]*>.*New sheet<\/button>/);
+    expect(html).toMatch(
+      /aria-label="Import from Ultimate Guitar".*<form [^>]*method="post"[^>]*>.*New sheet<\/button>/s,
+    );
     expect(html).not.toContain("<ul");
+    expect(html).not.toContain("library-actions-docked");
   });
 
   it("sets the page title and asks search engines not to index it", () => {

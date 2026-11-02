@@ -9,6 +9,22 @@ function heading(page: Page) {
   return page.getByRole("heading", { level: 1 });
 }
 
+function importButton(page: Page) {
+  return page.getByRole("button", { name: "Import from Ultimate Guitar" });
+}
+
+function importDialog(page: Page) {
+  return page.getByRole("dialog", { name: "Import from Ultimate Guitar" });
+}
+
+async function pasteAndImport(page: Page, text: string) {
+  await importButton(page).click();
+  await importDialog(page).getByLabel("Chords and lyrics").fill(text);
+  await importDialog(page)
+    .getByRole("button", { name: "Import", exact: true })
+    .click();
+}
+
 // Scenarios "Opening the email link", "First sign-in" and "Starting a
 // sheet". A new account starts with no sheets, so this signs in by email
 // itself. Sign-in emails are limited per visitor, so only on one project.
@@ -44,6 +60,7 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await expect(page).toHaveTitle("Library | Sheet Library");
   await expect(heading(page)).toHaveText("Library");
   await expect(page.getByText("No sheets yet")).toBeVisible();
+  await expect(importButton(page)).toBeVisible();
 
   await page.getByRole("button", { name: "New sheet" }).click();
   await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
@@ -109,6 +126,74 @@ test.describe("signed in", () => {
     await page.reload();
     await expect(heading(page)).toHaveText(title);
     await expect(page.getByLabel("Title")).toHaveCount(0);
+  });
+});
+
+test.describe("the import", () => {
+  test.use({ storageState: authFile });
+
+  const verse = ["[Verse 1]", "C     G", "Hello world"].join("\n");
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/sheets");
+  });
+
+  // Scenario "Importing a song". On a phone, "Import" is docked beside
+  // "New sheet" and keeps its text.
+  test("creates a sheet and opens it, to be named", async ({ page }) => {
+    await expect(
+      importButton(page).getByText("Import", { exact: true }),
+    ).toBeVisible();
+    await pasteAndImport(page, verse);
+    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
+    await expect(page.getByLabel("Title")).toBeFocused();
+    await expect(page.getByLabel("Title")).toHaveValue("Untitled");
+    await expect(page.locator(".section-label")).toHaveText(["Verse 1"]);
+    await expect(page.locator(".ProseMirror .line")).toHaveText([
+      "Hello world",
+    ]);
+    await expect(page.locator(".chord-label")).toHaveText(["C", "G"]);
+
+    // It is stored: a reload shows it again.
+    await page.keyboard.press("Escape");
+    await page.reload();
+    await expect(heading(page)).toHaveText("Untitled");
+    await expect(page.locator(".chord-label")).toHaveText(["C", "G"]);
+  });
+
+  // Scenario "Cancelling".
+  test("cancels without a new sheet", async ({ page }) => {
+    const posts: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() === "POST") posts.push(request.url());
+    });
+    await importButton(page).click();
+    await expect(importDialog(page)).not.toContainText("replaces");
+    await importDialog(page).getByLabel("Chords and lyrics").fill(verse);
+    await importDialog(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(importDialog(page)).toBeHidden();
+    await expect(importButton(page)).toBeFocused();
+    await expect(page).toHaveURL("/sheets");
+    expect(posts).toEqual([]);
+  });
+
+  // Scenario "Too large".
+  test("keeps the dialog open when the text is too long", async ({ page }) => {
+    // About 50 KB of text, but a sheet of more than 256 KB: a chord costs
+    // more in a sheet than in the text.
+    const pair = `${"C ".repeat(40)}\n${"la".repeat(40)}`;
+    const text = Array.from({ length: 300 }, () => pair).join("\n");
+    await pasteAndImport(page, text);
+    await expect(importDialog(page)).toContainText(
+      "The text is too long to import.",
+    );
+    await expect(
+      importDialog(page).getByLabel("Chords and lyrics"),
+    ).toHaveValue(text);
+    await expect(
+      importDialog(page).getByRole("button", { name: "Import", exact: true }),
+    ).toBeEnabled();
+    await expect(page).toHaveURL("/sheets");
   });
 });
 

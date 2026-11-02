@@ -125,8 +125,17 @@
   font: 700 var(--font-size-heading) / 1.2 var(--font);
 }
 
-/* On a phone, "New sheet" is docked at the bottom right instead. */
-.library-new-docked {
+/* "Import" and "New sheet", side by side. */
+.library-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-m);
+}
+
+/* On a phone, they are docked at the bottom right instead. */
+.library-actions-docked {
   display: none;
 }
 
@@ -146,13 +155,13 @@
     padding-bottom: 120px;
   }
 
-  .library-new-beside,
+  .library-actions-beside,
   .library-labels {
     display: none;
   }
 
-  .library-new-docked {
-    display: block;
+  .library-actions-docked {
+    display: flex;
     position: fixed;
     right: var(--space-l);
     bottom: var(--space-xl);

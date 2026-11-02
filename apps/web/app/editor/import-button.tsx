@@ -1,23 +1,39 @@
 import "./import-button.css";
 
 import { type ChordSheet, readUltimateGuitar } from "chordsheet";
-import { useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../ui/button";
 import { Note } from "../ui/note";
 
 const name = "Import from Ultimate Guitar";
 
-// The top bar's button that imports a sheet from text copied from Ultimate
-// Guitar. It opens a modal dialog to paste the text into. The dialog's
-// content is only rendered while it is open, so the text goes when it
-// closes.
+// The button that imports a sheet from text copied from Ultimate Guitar. It
+// opens a modal dialog to paste the text into. The dialog's content is only
+// rendered while it is open, so the text goes when it closes.
+//
+// `onImport` either uses the sheet right away, and the dialog closes, or
+// returns a promise. While that runs, the buttons are disabled and Escape
+// and the backdrop do nothing. A message it resolves to shows in the dialog,
+// with the text kept, and the buttons work again. Resolving to nothing means
+// the page is going, so the dialog stays as it is until it does.
 export function ImportButton({
   onImport,
+  note,
+  variant = "text",
+  size,
+  className,
 }: {
-  onImport: (sheet: ChordSheet) => void;
+  onImport: (sheet: ChordSheet) => Promise<string | undefined> | undefined;
+  // Shown above the buttons, such as that the sheet on the page is replaced.
+  note?: ReactNode;
+  variant?: "tonal" | "text";
+  size?: "large";
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string>();
   const button = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -29,20 +45,41 @@ export function ImportButton({
   }, [open]);
 
   function close() {
-    dialog.current?.close();
+    if (!busy) dialog.current?.close();
+  }
+
+  function importSheet(sheet: ChordSheet) {
+    const result = onImport(sheet);
+    if (!result) {
+      dialog.current?.close();
+      return;
+    }
+    setBusy(true);
+    setFailure(undefined);
+    void result.then((message) => {
+      if (message === undefined) return;
+      setFailure(message);
+      setBusy(false);
+    });
   }
 
   return (
     // Opening the import doesn't stop editing (see SheetEditor).
-    <div className="import-button" data-keeps-editing>
+    <div
+      className={className ? `import-button ${className}` : "import-button"}
+      data-keeps-editing
+    >
       <Button
         ref={button}
-        variant="text"
+        variant={variant}
+        size={size}
         icon="contentPasteGo"
         className="import-button-toggle"
         aria-label={name}
         aria-haspopup="dialog"
         onClick={() => {
+          setBusy(false);
+          setFailure(undefined);
           setOpen(true);
         }}
       >
@@ -52,6 +89,9 @@ export function ImportButton({
         ref={dialog}
         className="import-dialog"
         aria-labelledby={titleId}
+        onCancel={(event) => {
+          if (busy) event.preventDefault();
+        }}
         onClose={() => {
           setOpen(false);
           button.current?.focus();
@@ -65,11 +105,11 @@ export function ImportButton({
         {open && (
           <ImportForm
             titleId={titleId}
+            note={note}
+            busy={busy}
+            failure={failure}
             onCancel={close}
-            onImport={(sheet) => {
-              onImport(sheet);
-              close();
-            }}
+            onImport={importSheet}
           />
         )}
       </dialog>
@@ -77,14 +117,20 @@ export function ImportButton({
   );
 }
 
-// What the dialog holds: the field to paste into, the note that the sheet
-// is replaced, Cancel and Import.
+// What the dialog holds: the field to paste into, the note when there is
+// one, the failure when there is one, Cancel and Import.
 export function ImportForm({
   titleId,
+  note,
+  busy = false,
+  failure,
   onCancel,
   onImport,
 }: {
   titleId: string;
+  note?: ReactNode;
+  busy?: boolean;
+  failure?: string;
   onCancel: () => void;
   onImport: (sheet: ChordSheet) => void;
 }) {
@@ -97,7 +143,7 @@ export function ImportForm({
       className="import-form"
       onSubmit={(event) => {
         event.preventDefault();
-        if (text.trim() === "") return;
+        if (busy || text.trim() === "") return;
         onImport(readUltimateGuitar(text));
       }}
     >
@@ -115,19 +161,19 @@ export function ImportForm({
           rows={12}
           wrap="off"
           spellCheck={false}
+          readOnly={busy}
           onChange={(event) => {
             setText(event.target.value);
           }}
         />
       </div>
-      <Note>
-        Importing replaces the sheet on this page. It can’t be undone.
-      </Note>
+      {note && <Note>{note}</Note>}
+      {failure && <Note>{failure}</Note>}
       <div className="import-actions">
-        <Button variant="text" onClick={onCancel}>
+        <Button variant="text" disabled={busy} onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={text.trim() === ""}>
+        <Button type="submit" disabled={busy || text.trim() === ""}>
           Import
         </Button>
       </div>
