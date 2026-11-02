@@ -29,7 +29,7 @@ The look was designed on the canvas's "Library and account" page: <https://claud
 
 **The list reads only what the rows show.** A `listSheets(db, userId)` in `sheets.server.ts` selects `id`, `title`, `artist` and `updatedAt`, ordered by `updatedAt` descending. It never parses `content`.
 
-**The last edit is formatted in the browser.** The loader sends `updatedAt` as milliseconds. "Today" and "Yesterday" depend on the viewer's time zone, which the server doesn't know. The server's HTML shows the day and month in UTC; after hydration, the row switches to the viewer's local "Today", "Yesterday" or date. The format is fixed English ("28 Oct", "3 Sep 2025"), not the browser's locale, to match the rest of the UI.
+**The last edit is formatted in the browser.** The loader sends `updatedAt` as milliseconds. "Today" and "Yesterday" depend on the viewer's time zone, which the server doesn't know. The server's HTML holds the date in UTC but hides it, so it keeps its place; after hydration, the row shows the viewer's local "Today", "Yesterday" or date. A wrong day never shows. The format is fixed English ("28 Oct", "3 Sep 2025"), not the browser's locale, to match the rest of the UI.
 
 **Redirects live in loaders.** `/` gets a loader that redirects signed-in people to `/sheets`. `/sheets` redirects visitors to `/sign-in`, like `/sheets/:id` and `/account`.
 
@@ -40,4 +40,4 @@ The look was designed on the canvas's "Library and account" page: <https://claud
 ## Risks / Trade-offs
 
 - [A new sheet can't be renamed until #76.] → #76 is next in M4. Untitled sheets can be deleted with #77 or renamed once #76 lands.
-- [The last-edit text can change once after load near midnight, or for viewers far from UTC.] → Only that small text changes. The layout keeps its place.
+- [The last edit shows a moment after the rest of the page, and not at all without JavaScript.] → The editor needs JavaScript anyway. The layout keeps its place.

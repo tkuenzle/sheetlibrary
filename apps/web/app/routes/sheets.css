@@ -103,6 +103,11 @@
   display: none;
 }
 
+/* Until the viewer's time zone is known (see LibraryView). */
+.library-edited[data-pending] {
+  visibility: hidden;
+}
+
 /* No sheets yet. */
 .library-empty {
   display: flex;

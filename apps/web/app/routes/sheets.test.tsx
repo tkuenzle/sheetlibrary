@@ -110,7 +110,7 @@ describe("library page", () => {
     expect(html).not.toContain("No sheets yet");
   });
 
-  it("shows the date in UTC until the viewer's time zone is known", () => {
+  it("hides the last edit until the viewer's time zone is known", () => {
     const html = render([
       {
         id: "abcdefghijkl",
@@ -118,7 +118,9 @@ describe("library page", () => {
         updatedAt: Date.UTC(2025, 8, 3, 12),
       },
     ]);
-    expect(html).toContain("3 Sep 2025");
+    expect(html).toContain(
+      '<span class="library-edited" data-pending="">3 Sep 2025</span>',
+    );
   });
 
   // Scenario "First sign-in".

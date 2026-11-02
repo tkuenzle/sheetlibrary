@@ -66,7 +66,7 @@ function NewSheet({ size, className }: { size?: "large"; className?: string }) {
 
 export function LibraryView({ sheets }: { sheets: SheetListItem[] }) {
   // The viewer's time zone is only known in the browser. Until then, the
-  // rows show the date in UTC.
+  // last edit is hidden, with the date in UTC holding its place.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     setHydrated(true);
@@ -111,7 +111,12 @@ export function LibraryView({ sheets }: { sheets: SheetListItem[] }) {
                       {" · "}
                     </span>
                   )}
-                  <span>{edited(sheet.updatedAt)}</span>
+                  <span
+                    className="library-edited"
+                    data-pending={hydrated ? undefined : ""}
+                  >
+                    {edited(sheet.updatedAt)}
+                  </span>
                 </span>
               </a>
             </li>
