@@ -94,18 +94,25 @@ interface LabelField {
 export function SheetEditor({
   sheet,
   onEditedChange,
+  onChange,
   onChordsChange,
   sheetKey = null,
+  readOnly = false,
   ref,
 }: {
   sheet: ChordSheet;
   // Called when the sheet starts or stops differing from the one loaded.
   onEditedChange?: (edited: boolean) => void;
+  // Called after every change to the sheet.
+  onChange?: () => void;
   // Called with every chord in order, once the editor is ready and then
   // whenever a chord changes.
   onChordsChange?: (chords: Chord[]) => void;
   // The sheet's key, for the chord input's suggestions.
   sheetKey?: Key | null;
+  // Shows the sheet without letting it change: no caret, no chord input, no
+  // section toolbar, and no edits from the handle.
+  readOnly?: boolean;
   ref?: Ref<SheetEditorHandle>;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
@@ -120,7 +127,9 @@ export function SheetEditor({
   const openings = useRef(0);
   const sheetRef = useRef(sheet);
   const onEditedChangeRef = useRef(onEditedChange);
+  const onChangeRef = useRef(onChange);
   const onChordsChangeRef = useRef(onChordsChange);
+  const readOnlyRef = useRef(readOnly);
   const [chordInput, setChordInput] = useState<OpenChordInput | null>(null);
   // A docked chord input that closed and is sliding out of view.
   const [leaving, setLeaving] = useState<OpenChordInput | null>(null);
@@ -129,8 +138,23 @@ export function SheetEditor({
 
   useEffect(() => {
     onEditedChangeRef.current = onEditedChange;
+    onChangeRef.current = onChange;
     onChordsChangeRef.current = onChordsChange;
   });
+
+  // Turning read-only on ends editing first, so the active section is
+  // cleaned up and its toolbar goes away.
+  useEffect(() => {
+    if (readOnly === readOnlyRef.current) return;
+    if (readOnly) {
+      if (chordInputRef.current) showInput(null);
+      if (labelFieldRef.current) showLabelField(null);
+      run(endEditing);
+    }
+    readOnlyRef.current = readOnly;
+    // Makes the view read `editable` again.
+    viewRef.current?.setProps({});
+  }, [readOnly]);
 
   useImperativeHandle(ref, () => ({
     handBack: () => {
@@ -174,7 +198,7 @@ export function SheetEditor({
     place: { left: number; top: number },
   ) {
     const view = viewRef.current;
-    if (!view) return;
+    if (!view || readOnlyRef.current) return;
     keepLabel();
     openings.current++;
     showInput({
@@ -219,6 +243,7 @@ export function SheetEditor({
   }
 
   function openLabelField(next: LabelField) {
+    if (readOnlyRef.current) return;
     if (chordInputRef.current) closeInput();
     showLabelField(next);
     labelInputRef.current?.focus();
@@ -349,10 +374,14 @@ export function SheetEditor({
           if (chordInputRef.current) closeInput();
         },
       }),
+      editable: () => !readOnlyRef.current,
       dispatchTransaction: (tr) => {
+        // A read-only sheet still takes selection changes, never edits.
+        if (readOnlyRef.current && tr.docChanged) return;
         const state = view.state.apply(tr);
         view.updateState(state);
         if (!tr.docChanged) return;
+        onChangeRef.current?.();
         reportChords(state.doc);
         // Undoing back to the loaded sheet counts as not edited.
         const now = !state.doc.eq(loaded);
@@ -407,11 +436,12 @@ export function SheetEditor({
       className="sheet-editor"
       ref={frameRef}
       data-editing-label={labelField ? "" : undefined}
+      data-read-only={readOnly ? "" : undefined}
     >
       <div className="chord-editor" ref={mountRef} data-testid="editor" />
       <SectionToolbar
         ref={toolbarRef}
-        state={toolbar}
+        state={readOnly ? null : toolbar}
         onAddChord={() => {
           if (viewRef.current) addChordAtCaret(viewRef.current);
         }}

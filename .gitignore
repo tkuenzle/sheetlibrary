@@ -5,6 +5,7 @@ build/
 .wrangler/
 test-results/
 playwright-report/
+apps/web/playwright/.auth/
 .playwright-cli/
 .env
 .dev.vars

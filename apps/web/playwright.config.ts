@@ -29,9 +29,19 @@ export default defineConfig({
     baseURL: appURL,
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // Signs in once, for the tests that need an account (e2e/auth.setup.ts).
+    { name: "setup", testMatch: /\.setup\.ts$/ },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+    },
     // Phone layout and touch in Chromium. Not a real phone keyboard.
-    { name: "phone", use: { ...devices["Pixel 7"] } },
+    {
+      name: "phone",
+      use: { ...devices["Pixel 7"] },
+      dependencies: ["setup"],
+    },
   ],
   webServer: [
     {
