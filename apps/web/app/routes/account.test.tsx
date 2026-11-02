@@ -9,16 +9,14 @@ const iphone: PasskeyItem = {
   createdAt: "2026-10-31T12:00:00.000Z",
 };
 
-function render(props: { passkeys?: PasskeyItem[]; offer?: boolean }) {
+function render(props: { passkeys?: PasskeyItem[] }) {
   const noop = () => undefined;
   return renderToString(
     <AccountView
       email="ana@example.com"
       passkeys={props.passkeys ?? []}
-      offer={props.offer ?? false}
       failed={false}
       onAdd={noop}
-      onSkip={noop}
       onRename={noop}
       onRemove={noop}
       onSignOut={noop}
@@ -48,14 +46,6 @@ describe("account page", () => {
 
   it("says when there are no passkeys", () => {
     expect(render({})).toContain("No passkeys yet.");
-  });
-
-  // Scenario "Adding a passkey after an email sign-in".
-  it("offers a passkey after an email sign-in, which can be skipped", () => {
-    const html = render({ offer: true });
-    expect(html).toContain("Add a passkey to sign in on this device");
-    expect(html).toContain("Not now");
-    expect(render({ offer: false })).not.toContain("Not now");
   });
 
   it("sets the page title", () => {

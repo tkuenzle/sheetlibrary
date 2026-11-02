@@ -1,7 +1,16 @@
 import { renderToString } from "react-dom/server";
+import { RouterContextProvider } from "react-router";
 import { describe, expect, it } from "vitest";
 
-import Home, { meta } from "./home";
+import { sessionContext } from "../context";
+import type { Route } from "./+types/home";
+import Home, { loader, meta } from "./home";
+
+function load(signedIn: boolean) {
+  const context = new RouterContextProvider();
+  context.set(sessionContext, signedIn ? ({} as never) : null);
+  return loader({ context } as unknown as Route.LoaderArgs);
+}
 
 describe("home page", () => {
   it("says what the site is and that it's coming soon", () => {
@@ -24,5 +33,16 @@ describe("home page", () => {
 
   it("sets the page title", () => {
     expect(meta()).toContainEqual({ title: "Sheet Library" });
+  });
+
+  // Scenario "Signed in".
+  it("sends signed-in people to the library", () => {
+    const response = load(true);
+    expect(response?.status).toBe(302);
+    expect(response?.headers.get("Location")).toBe("/sheets");
+  });
+
+  it("shows the home page to visitors", () => {
+    expect(load(false)).toBeNull();
   });
 });

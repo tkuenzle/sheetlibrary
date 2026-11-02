@@ -114,6 +114,39 @@ export async function saveSheet(
   return stored ? { kind: "stale" } : { kind: "not-found" };
 }
 
+// A sheet as the library lists it, without its content.
+export interface SheetListItem {
+  id: string;
+  title: string;
+  artist?: string;
+  // Milliseconds since 1970.
+  updatedAt: number;
+}
+
+// The person's sheets, the most recently edited first.
+export async function listSheets(
+  db: D1Database,
+  userId: string,
+): Promise<SheetListItem[]> {
+  const { results } = await db
+    .prepare(
+      'SELECT "id", "title", "artist", "updatedAt" FROM "sheet" WHERE "userId" = ? ORDER BY "updatedAt" DESC',
+    )
+    .bind(userId)
+    .all<{
+      id: string;
+      title: string;
+      artist: string | null;
+      updatedAt: number;
+    }>();
+  return results.map((row) => ({
+    id: row.id,
+    title: row.title,
+    ...(row.artist === null ? {} : { artist: row.artist }),
+    updatedAt: row.updatedAt,
+  }));
+}
+
 // Returns whether a sheet was deleted.
 export async function deleteSheet(
   db: D1Database,

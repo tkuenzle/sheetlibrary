@@ -1,0 +1,183 @@
+/* The library: one column below the top bar. */
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  box-sizing: border-box;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--space-xl) 80px;
+}
+
+.library h1 {
+  margin: 0;
+  font: 800 var(--font-size-title) / 1.05 var(--font);
+  letter-spacing: -0.035em;
+}
+
+.library-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-m);
+}
+
+.library-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* Title, artist and last edit in columns. */
+.library-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px 120px;
+  align-items: center;
+  gap: var(--space-l);
+  padding: 0 var(--space-xl);
+}
+
+.library-labels {
+  min-height: 36px;
+  color: var(--text-muted);
+  font: 600 var(--font-size-small) / 1.2 var(--font);
+}
+
+/* A grouped list: rows 2px apart, round only at the group's ends. */
+.library-list ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-list li {
+  border-radius: var(--space-xs);
+  background: var(--surface-active);
+}
+
+.library-list li:first-child {
+  border-top-left-radius: var(--corner-medium);
+  border-top-right-radius: var(--corner-medium);
+}
+
+.library-list li:last-child {
+  border-bottom-left-radius: var(--corner-medium);
+  border-bottom-right-radius: var(--corner-medium);
+}
+
+.library-list a {
+  min-height: 64px;
+  border-radius: inherit;
+  color: var(--text-muted);
+  font: 400 var(--font-size-body) / 1.3 var(--font);
+  text-decoration: none;
+}
+
+.library-list a:hover {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--text) 4%, transparent) 0 0
+  );
+}
+
+.library-list a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.library-list .library-title {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font: 700 17px / 1.3 var(--font);
+}
+
+/* Wide, the artist and the last edit are columns of their own. */
+.library-details {
+  display: contents;
+}
+
+.library-separator {
+  display: none;
+}
+
+/* Until the viewer's time zone is known (see LibraryView). */
+.library-edited[data-pending] {
+  visibility: hidden;
+}
+
+/* No sheets yet. */
+.library-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-l);
+  padding: 56px var(--space-2xl) var(--space-3xl);
+  border-radius: var(--corner-large);
+  background: var(--surface-active);
+  text-align: center;
+}
+
+.library-empty h2 {
+  margin: 0;
+  font: 700 var(--font-size-heading) / 1.2 var(--font);
+}
+
+/* On a phone, "New sheet" is docked at the bottom right instead. */
+.library-new-docked {
+  display: none;
+}
+
+/* Phone-wide (see app/breakpoints.ts): the title, with the artist and the
+   last edit below it. */
+@media (max-width: 640px) {
+  .library {
+    gap: var(--space-l);
+    padding: var(--space-m) var(--space-m) var(--space-3xl);
+  }
+
+  .library h1 {
+    padding: 0 var(--space-s);
+  }
+
+  .library-with-sheets {
+    padding-bottom: 120px;
+  }
+
+  .library-new-beside,
+  .library-labels {
+    display: none;
+  }
+
+  .library-new-docked {
+    display: block;
+    position: fixed;
+    right: var(--space-l);
+    bottom: var(--space-xl);
+  }
+
+  .library-list a {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    gap: 2px;
+    min-height: 68px;
+    padding: var(--space-s) 20px;
+    font-size: 14px;
+  }
+
+  .library-details {
+    display: block;
+  }
+
+  .library-separator {
+    display: inline;
+  }
+
+  .library-empty {
+    padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
+  }
+}

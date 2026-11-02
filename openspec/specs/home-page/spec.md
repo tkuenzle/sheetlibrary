@@ -19,3 +19,10 @@ The home page SHALL show a short sample of a chord sheet, with chords above the 
 #### Scenario: Screen reader
 - **WHEN** a screen reader reads the home page
 - **THEN** it reads the heading, the text and the link to the editor, but not the sample's lyrics or chords
+
+### Requirement: Signed-in people go to the library
+A signed-in person who opens `/` SHALL be sent to the library at `/sheets`. A visitor who isn't signed in SHALL see the home page.
+
+#### Scenario: Signed in
+- **WHEN** a signed-in person opens `/`
+- **THEN** the library opens

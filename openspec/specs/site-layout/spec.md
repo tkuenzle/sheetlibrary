@@ -7,11 +7,15 @@ The frame shared by the site's pages: the top bar that names the site and leads 
 ## Requirements
 
 ### Requirement: Top bar
-The home page and the editor page SHALL show a top bar with the name "Sheet Library" as a link to the home page. The `/design` page SHALL NOT have it.
+The home page and the editor page SHALL show a top bar with the name "Sheet Library" as a link to the home page. Once the visitor is signed in, the name SHALL link to the library at `/sheets` instead. The `/design` page SHALL NOT have it.
 
 #### Scenario: Going home from the editor
 - **WHEN** a visitor on `/editor` clicks "Sheet Library" in the top bar
 - **THEN** the home page opens
+
+#### Scenario: Back to the library
+- **WHEN** a signed-in person on a sheet clicks "Sheet Library" in the top bar
+- **THEN** the library opens
 
 ### Requirement: Account link in the top bar
 The top bar SHALL show a "Sign in" link to the sign-in page when the visitor isn't signed in. When they are signed in, it SHALL show a link to their account page instead.
