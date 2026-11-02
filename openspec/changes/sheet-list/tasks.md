@@ -21,7 +21,7 @@
 ## 4. Checks
 
 - [x] 4.1 Add an e2e test: sign in with no sheets, see "No sheets yet", select "New sheet", land on a sheet titled "Untitled", go back with "Sheet Library" and see it listed (scenario "Starting a sheet")
-- [ ] 4.2 On this pull request's preview, sign in, create two sheets, edit the first and check that it moves to the top
+- [x] 4.2 On this pull request's preview, sign in, create two sheets, edit the first and check that it moves to the top
 - [x] 4.3 Run `just check` and `just spec-check`. Verify both pass
 
 ## Workflow follow-up
