@@ -1,0 +1,75 @@
+/*
+  The title and the artist, and their fields. The button and the field share
+  their box, so the text doesn't move when the field opens.
+*/
+.detail-button,
+.detail-field {
+  box-sizing: border-box;
+  max-width: calc(100% + var(--space-s));
+  margin: 0 0 0 calc(-1 * var(--space-s));
+  padding: 0 var(--space-s);
+  border: 0;
+  border-radius: var(--space-m);
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  outline: 1px solid transparent;
+}
+
+.detail-button {
+  background: transparent;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: text;
+  touch-action: manipulation;
+}
+
+.detail-button:hover:not(:disabled) {
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.detail-button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.detail-button:disabled {
+  cursor: default;
+}
+
+.detail-field {
+  field-sizing: content;
+  min-width: 4ch;
+  background: var(--accent-soft);
+  color: var(--text);
+  outline: 2px solid var(--focus);
+}
+
+.detail-field::placeholder {
+  color: var(--text-dimmed);
+}
+
+@supports not (field-sizing: content) {
+  .detail-field {
+    width: calc(100% + var(--space-s));
+  }
+}
+
+/* Below the title. 17px also stops iOS from zooming in on the field. */
+.detail-button-artist,
+.detail-button-add,
+.detail-field-artist {
+  min-height: 36px;
+  color: var(--text-muted);
+  font: 500 17px / 1.4 var(--font);
+}
+
+.detail-button-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: calc(-1 * var(--space-m));
+  padding: 0 var(--space-m);
+  border-radius: var(--corner-full);
+  cursor: pointer;
+}

@@ -6,6 +6,7 @@ import { Form, redirect } from "react-router";
 import { cloudflareContext, sessionContext } from "../context";
 import { TopBar } from "../shell/top-bar";
 import { editDate, lastEdit } from "../sheets/last-edit";
+import { UNTITLED } from "../sheets/details";
 import {
   createSheet,
   listSheets,
@@ -38,10 +39,10 @@ export async function action({ context }: Route.ActionArgs) {
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
   const sheet = await createSheet(env.DB, session.user.id, {
-    title: "Untitled",
+    title: UNTITLED,
     content: { format: "chordsheet", version: 1, sections: [] },
   });
-  return redirect(`/sheets/${sheet.id}`);
+  return redirect(`/sheets/${sheet.id}?new`);
 }
 
 export default function Library({ loaderData }: Route.ComponentProps) {

@@ -39,18 +39,30 @@ describe("sheet page loader", () => {
   });
   afterEach(() => test.dispose());
 
-  function load(userId: string | null, id = sheet.id) {
+  function load(userId: string | null, id = sheet.id, search = "") {
     const context = new RouterContextProvider();
     context.set(cloudflareContext, { env: test.env });
     // Only the user's id matters here.
     const session = { user: { id: userId }, session: {} } as never;
     context.set(sessionContext, userId ? session : null);
-    return loader({ context, params: { id } } as unknown as Route.LoaderArgs);
+    const url = new URL(`https://sheetlibrary.test/sheets/${id}${search}`);
+    return loader({
+      context,
+      params: { id },
+      url,
+    } as unknown as Route.LoaderArgs);
   }
 
   // Scenario "Opening a sheet".
   it("gives the owner their sheet", async () => {
-    expect(await load("ana")).toEqual({ sheet });
+    expect(await load("ana")).toEqual({ sheet, isNew: false });
+  });
+
+  it("says when the sheet was just made with New sheet", async () => {
+    expect(await load("ana", sheet.id, "?new")).toEqual({
+      sheet,
+      isNew: true,
+    });
   });
 
   // Scenario "Not signed in".
@@ -77,9 +89,43 @@ describe("sheet page loader", () => {
 describe("sheet page", () => {
   it("shows the sheet's title as the heading, with the key and the help", () => {
     const html = renderToString(<SheetView sheet={amazingGrace} />);
-    expect(html).toContain("<h1>Amazing Grace</h1>");
+    expect(html).toMatch(/<h1><button [^>]*>Amazing Grace<\/button><\/h1>/);
     expect(html).toContain("Key G");
     expect(html).toContain("How to edit");
+  });
+
+  // Scenario "Opening a sheet".
+  it("shows the artist below the title", () => {
+    const html = renderToString(
+      <SheetView sheet={{ ...amazingGrace, artist: "Chris Tomlin" }} />,
+    );
+    expect(html).toMatch(/<\/h1>.*>Chris Tomlin<\/button>/s);
+    expect(html).not.toContain("Add artist");
+  });
+
+  it("offers to add an artist when there is none", () => {
+    expect(renderToString(<SheetView sheet={amazingGrace} />)).toContain(
+      "Add artist",
+    );
+  });
+
+  it("has the sheet's menu", () => {
+    const html = renderToString(<SheetView sheet={amazingGrace} />);
+    expect(html).toContain('aria-label="More for this sheet"');
+    expect(html).toContain('aria-haspopup="menu"');
+  });
+
+  it("opens the title field for a new sheet", () => {
+    const html = renderToString(<SheetView sheet={amazingGrace} isNew />);
+    expect(html).toMatch(/<h1><input [^>]*aria-label="Title"/);
+    expect(html).toContain('value="Amazing Grace"');
+  });
+
+  // Scenario "Help on the sheet page".
+  it("says how to rename in the help", () => {
+    const html = renderToString(<SheetView sheet={amazingGrace} />);
+    expect(html).toContain("Click the title to rename the sheet");
+    expect(html).toContain("Tap the title to rename the sheet");
   });
 
   it("has no prototype notice and no import", () => {

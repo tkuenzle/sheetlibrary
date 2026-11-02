@@ -2,7 +2,7 @@ import "./editor.css";
 import "./sheet.css";
 
 import type { Sheet } from "chordsheet";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { data, redirect } from "react-router";
 
 import { cloudflareContext, sessionContext } from "../context";
@@ -12,7 +12,9 @@ import { SheetTitle, useSheetKey } from "../editor/sheet-title";
 import { SidePanel, SidePanelButton } from "../shell/side-panel";
 import { TopBar } from "../shell/top-bar";
 import { type SaveState, useAutosave } from "../sheets/autosave";
+import { ArtistInPlace, TitleInPlace } from "../sheets/sheet-details";
 import { readSheet } from "../sheets/sheets.server";
+import { Menu } from "../ui/menu";
 import { Note } from "../ui/note";
 import type { Route } from "./+types/sheet";
 
@@ -30,29 +32,78 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 // Only the owner gets the sheet. Anyone else gets the same "not found" as
-// for an id that doesn't exist, with a 404 status.
-export async function loader({ context, params }: Route.LoaderArgs) {
+// for an id that doesn't exist, with a 404 status. "New sheet" adds `?new`,
+// which opens the title field.
+export async function loader({ context, params, url }: Route.LoaderArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
   const sheet = await readSheet(env.DB, session.user.id, params.id);
-  if (!sheet) return data({ sheet: null }, { status: 404 });
-  return { sheet };
+  if (!sheet) return data({ sheet: null, isNew: false }, { status: 404 });
+  return { sheet, isNew: url.searchParams.has("new") };
 }
 
 export default function SheetPage({ loaderData }: Route.ComponentProps) {
-  const { sheet } = loaderData;
-  return sheet ? <SheetView sheet={sheet} /> : <NotFound />;
+  const { sheet, isNew } = loaderData;
+  return sheet ? <SheetView sheet={sheet} isNew={isNew} /> : <NotFound />;
 }
 
-export function SheetView({ sheet }: { sheet: Sheet }) {
+// Which of the sheet's details has its field open.
+type Editing = "title" | "artist" | null;
+
+export function SheetView({
+  sheet,
+  isNew = false,
+}: {
+  sheet: Sheet;
+  // Opened from "New sheet": the title field starts open.
+  isNew?: boolean;
+}) {
   const editor = useRef<SheetEditorHandle>(null);
   const sheetKey = useSheetKey(sheet.content);
+  const [title, setTitle] = useState(sheet.title);
+  const [artist, setArtist] = useState(sheet.artist);
+  const [editing, setEditing] = useState<Editing>(isNew ? "title" : null);
   const autosave = useAutosave(sheet, () => {
     const handed = editor.current?.handBack();
-    return handed?.ok ? handed.sheet : null;
+    return handed?.ok ? { title, artist, content: handed.sheet } : null;
   });
   const conflict = autosave.state === "conflict";
+
+  // A field that is open when the sheet turns read-only closes without
+  // keeping: its save could never go through.
+  const conflictRef = useRef(conflict);
+  useEffect(() => {
+    conflictRef.current = conflict;
+    if (conflict) setEditing(null);
+  }, [conflict]);
+
+  // `?new` opens the field once. Without it in the URL, a reload doesn't.
+  useEffect(() => {
+    if (!isNew) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    window.history.replaceState(window.history.state, "", url);
+  }, [isNew]);
+
+  // The tab follows a rename. The meta tags come from the loaded sheet.
+  useEffect(() => {
+    document.title = `${title} | Sheet Library`;
+  }, [title]);
+
+  function closeTitle(kept: string | null) {
+    setEditing(null);
+    if (kept === null || conflictRef.current || kept === title) return;
+    setTitle(kept);
+    autosave.edited();
+  }
+
+  function closeArtist(kept: string | undefined | null) {
+    setEditing(null);
+    if (kept === null || conflictRef.current || kept === artist) return;
+    setArtist(kept);
+    autosave.edited();
+  }
 
   // Leaving with edits that aren't saved asks first, with the browser's own
   // prompt.
@@ -72,20 +123,56 @@ export function SheetView({ sheet }: { sheet: Sheet }) {
     <>
       <TopBar title={sheet.title}>
         <SidePanelButton icon="help" title="How to edit">
-          <EditorHelp />
+          <EditorHelp rename />
         </SidePanelButton>
       </TopBar>
       <div className="editor-layout">
         <main className="editor-page">
           <div className="editor-intro">
-            <SheetTitle
-              title={sheet.title}
-              sheetKey={sheetKey}
-              editor={editor}
-              readOnly={conflict}
-            >
-              <SaveStatus state={autosave.state} />
-            </SheetTitle>
+            <div className="sheet-heading">
+              <div className="sheet-heading-main">
+                <SheetTitle
+                  title={
+                    <TitleInPlace
+                      title={title}
+                      editing={editing === "title"}
+                      readOnly={conflict}
+                      onOpen={() => {
+                        setEditing("title");
+                      }}
+                      onClose={closeTitle}
+                    />
+                  }
+                  sheetKey={sheetKey}
+                  editor={editor}
+                  readOnly={conflict}
+                >
+                  <SaveStatus state={autosave.state} />
+                </SheetTitle>
+                <ArtistInPlace
+                  artist={artist}
+                  editing={editing === "artist"}
+                  readOnly={conflict}
+                  onOpen={() => {
+                    setEditing("artist");
+                  }}
+                  onClose={closeArtist}
+                />
+              </div>
+              <Menu
+                label="More for this sheet"
+                items={[
+                  {
+                    label: "Rename",
+                    icon: "edit",
+                    disabled: conflict,
+                    onSelect: () => {
+                      setEditing("title");
+                    },
+                  },
+                ]}
+              />
+            </div>
             {conflict && <ConflictNote />}
           </div>
           <SheetEditor
@@ -98,7 +185,7 @@ export function SheetView({ sheet }: { sheet: Sheet }) {
           />
         </main>
         <SidePanel title="How to edit">
-          <EditorHelp />
+          <EditorHelp rename />
         </SidePanel>
       </div>
     </>

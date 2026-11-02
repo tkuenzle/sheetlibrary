@@ -1,0 +1,124 @@
+import "./menu.css";
+
+import { useEffect, useId, useRef, useState } from "react";
+
+import { IconButton } from "./button";
+import { Icon } from "./icon";
+import type { IconName } from "./icons";
+import { Popover } from "./popover";
+
+export interface MenuItem {
+  label: string;
+  icon: IconName;
+  disabled?: boolean;
+  onSelect: () => void;
+}
+
+// A button that opens a short list of actions under it, at its right edge.
+// It opens with the first item focused; the arrow keys, Home and End move
+// between the items. Escape or a click outside closes it, with the focus back
+// on the button. A picked item closes it and leaves the focus to the item's
+// action.
+export function Menu({
+  label,
+  icon = "moreVert",
+  items,
+}: {
+  label: string;
+  icon?: IconName;
+  items: MenuItem[];
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapper = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+
+  function menuItems() {
+    return [
+      ...(list.current?.querySelectorAll<HTMLButtonElement>(
+        "[role=menuitem]:not(:disabled)",
+      ) ?? []),
+    ];
+  }
+
+  function close() {
+    setOpen(false);
+    wrapper.current?.querySelector<HTMLElement>("[aria-haspopup]")?.focus();
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    menuItems()[0]?.focus();
+    function onPointerDown(event: PointerEvent) {
+      if (!wrapper.current?.contains(event.target as globalThis.Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="menu" ref={wrapper}>
+      <IconButton
+        icon={icon}
+        label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        onClick={() => {
+          setOpen(!open);
+        }}
+      />
+      {open && (
+        <Popover
+          ref={list}
+          id={menuId}
+          role="menu"
+          aria-label={label}
+          className="menu-list"
+          onKeyDown={(event) => {
+            const all = menuItems();
+            const at = all.indexOf(document.activeElement as HTMLButtonElement);
+            let next: HTMLButtonElement | undefined;
+            if (event.key === "ArrowDown") next = all[(at + 1) % all.length];
+            else if (event.key === "ArrowUp")
+              next = all[(at - 1 + all.length) % all.length];
+            else if (event.key === "Home") next = all[0];
+            else if (event.key === "End") next = all.at(-1);
+            else if (event.key === "Escape") {
+              event.preventDefault();
+              close();
+              return;
+            } else if (event.key === "Tab") {
+              setOpen(false);
+              return;
+            } else return;
+            event.preventDefault();
+            next?.focus();
+          }}
+        >
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              className="menu-item"
+              disabled={item.disabled}
+              onClick={() => {
+                setOpen(false);
+                item.onSelect();
+              }}
+            >
+              <Icon name={item.icon} />
+              {item.label}
+            </button>
+          ))}
+        </Popover>
+      )}
+    </div>
+  );
+}

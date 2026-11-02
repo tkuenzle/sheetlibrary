@@ -4,10 +4,19 @@ import "./help.css";
 // the help for a mouse, in that order, and CSS hides the group that doesn't
 // match the main pointer. So a finger gets touch, then keys, and a mouse gets
 // keys, then mouse, already from the server. The text follows
-// docs/ui-text.md.
-export function EditorHelp() {
+// docs/ui-text.md. `rename` adds how to rename, for a sheet whose title can
+// change.
+export function EditorHelp({ rename = false }: { rename?: boolean }) {
   return (
     <>
+      {rename && (
+        <p className="help-intro">
+          <span className="help-touch">Tap the title to rename the sheet</span>
+          <span className="help-mouse">
+            Click the title to rename the sheet
+          </span>
+        </p>
+      )}
       <p className="help-intro">
         <span className="help-touch">Tap a section to edit it</span>
         <span className="help-mouse">Click a section to edit it</span>

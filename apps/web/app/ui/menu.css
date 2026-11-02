@@ -1,0 +1,53 @@
+/* The list hangs under the button, at its right edge, over the page. */
+.menu {
+  position: relative;
+  flex: none;
+}
+
+.menu-list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  width: 200px;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 48px;
+  padding: 0 20px 0 16px;
+  border: 0;
+  border-radius: var(--space-m);
+  background: transparent;
+  color: var(--text);
+  font: 500 var(--font-size-body) / 1 var(--font);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  outline: 1px solid transparent;
+}
+
+.menu-item > .icon {
+  color: var(--text-muted);
+}
+
+.menu-item:hover:not(:disabled),
+.menu-item:focus-visible {
+  background: var(--page);
+}
+
+.menu-item:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.menu-item:disabled {
+  opacity: 0.38;
+  cursor: default;
+}

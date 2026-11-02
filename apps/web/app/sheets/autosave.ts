@@ -1,4 +1,4 @@
-import type { Sheet, SheetContent } from "chordsheet";
+import type { Sheet } from "chordsheet";
 import { useEffect, useRef, useState } from "react";
 
 import type { Saved } from "./sheets-api.server";
@@ -21,11 +21,14 @@ export type SaveState =
   // The sheet was saved elsewhere since it was loaded. Saving has stopped.
   | "conflict";
 
+// What a save sends besides the id and the revision.
+export type SheetDraft = Pick<Sheet, "title" | "artist" | "content">;
+
 export interface AutosaveOptions {
-  // The sheet as loaded. Saves keep its id, title and artist.
+  // The sheet as loaded. Saves keep its id and start from its revision.
   sheet: Sheet;
-  // The content to save now, or null if there is nothing valid to save.
-  read: () => SheetContent | null;
+  // The sheet to save now, or null if there is nothing valid to save.
+  read: () => SheetDraft | null;
   onState: (state: SaveState) => void;
   fetch?: typeof fetch;
   // How long edits must pause before a save.
@@ -92,12 +95,13 @@ export class Autosave {
   }
 
   private async save() {
-    const content = this.options.read();
-    if (!content) {
+    const draft = this.options.read();
+    if (!draft) {
       this.retry();
       return;
     }
-    const { id, title, artist } = this.options.sheet;
+    const { id } = this.options.sheet;
+    const { title, artist, content } = draft;
     const body: Sheet = {
       id,
       revision: this.revision,
@@ -146,7 +150,7 @@ export class Autosave {
 // it reads the sheet once; give the page a new key to load another one.
 export function useAutosave(
   sheet: Sheet,
-  read: () => SheetContent | null,
+  read: () => SheetDraft | null,
 ): { state: SaveState; edited: () => void } {
   const [state, setState] = useState<SaveState>("saved");
   const [loaded] = useState(sheet);
