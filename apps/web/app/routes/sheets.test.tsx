@@ -59,10 +59,11 @@ describe("library loader and action", () => {
     expect(response.headers.get("Location")).toBe("/sign-in");
   });
 
-  it("creates an Untitled sheet and opens it", async () => {
+  // Scenario "Naming a new sheet": `?new` opens the title field.
+  it("creates an Untitled sheet and opens it, to be named", async () => {
     const response = await post("ana");
     expect(response.status).toBe(302);
-    const id = /^\/sheets\/([\w-]+)$/.exec(
+    const id = /^\/sheets\/([\w-]+)\?new$/.exec(
       response.headers.get("Location") ?? "",
     )?.[1];
     expect(await readSheet(test.env.DB, "ana", id ?? "")).toMatchObject({

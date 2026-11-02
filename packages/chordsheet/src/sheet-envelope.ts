@@ -32,6 +32,10 @@ export interface Sheet {
 
 export const ID_LENGTH = 12;
 
+// The longest title and artist, in UTF-16 code units, as LABEL_MAX.
+export const TITLE_MAX = 100;
+export const ARTIST_MAX = 100;
+
 // 64 characters, so each random byte picks one by its low 6 bits and every
 // character is equally likely. 12 of them make 72 random bits.
 export const ID_ALPHABET =
@@ -70,9 +74,13 @@ export function checkEnvelope(value: unknown): Problem[] {
     problems.push({ message: "Sheet has no title", field: "title" });
   } else if (typeof title !== "string") {
     problems.push({ message: "Title is not text", field: "title" });
+  } else if (title.length > TITLE_MAX) {
+    problems.push({ message: "Title is too long", field: "title" });
   }
   if (artist !== undefined && typeof artist !== "string") {
     problems.push({ message: "Artist is not text", field: "artist" });
+  } else if (artist !== undefined && artist.length > ARTIST_MAX) {
+    problems.push({ message: "Artist is too long", field: "artist" });
   }
   for (const problem of checkContent(content)) {
     problems.push({ ...problem, field: "content" });

@@ -47,7 +47,7 @@ test("a new account signs in to an empty library and starts a sheet", async ({
 
   await page.getByRole("button", { name: "New sheet" }).click();
   await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
-  await expect(heading(page)).toHaveText("Untitled");
+  await expect(page.getByLabel("Title")).toHaveValue("Untitled");
 
   await page
     .getByRole("banner")
@@ -94,7 +94,21 @@ test.describe("signed in", () => {
       }
     }
     await button.click();
-    await expect(heading(page)).toHaveText("Untitled");
+
+    // Scenario "Naming a new sheet": the title field is open, with
+    // "Untitled" selected, so typing replaces it.
+    const title = `Sheet ${crypto.randomUUID().slice(0, 8)}`;
+    await expect(page.getByLabel("Title")).toBeFocused();
+    await page.keyboard.type(title);
+    await page.keyboard.press("Enter");
+    await expect(heading(page)).toHaveText(title);
+    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
+
+    // A reload doesn't open the field again.
+    await expect(page.getByRole("status")).toHaveText("Saved");
+    await page.reload();
+    await expect(heading(page)).toHaveText(title);
+    await expect(page.getByLabel("Title")).toHaveCount(0);
   });
 });
 

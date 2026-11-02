@@ -51,7 +51,8 @@ export function useSheetKey(sheet: ChordSheet): SheetKey {
 }
 
 // The heading, and the key button for a sheet with chords. `children` comes
-// after them, on the same line.
+// after them, on the same line. The title is text, or on the sheet page the
+// button or field that renames it.
 export function SheetTitle({
   title,
   sheetKey: { key, original },
@@ -59,7 +60,7 @@ export function SheetTitle({
   readOnly = false,
   children,
 }: {
-  title: string;
+  title: ReactNode;
   sheetKey: SheetKey;
   editor: RefObject<SheetEditorHandle | null>;
   // A read-only sheet can't be transposed, so it has no key button.

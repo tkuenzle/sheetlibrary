@@ -42,6 +42,19 @@ describe("Title and artist", () => {
       { message: "Artist is not text", field: "artist" },
     ]);
   });
+
+  it("accepts a title and an artist of 100 characters", () => {
+    const text = "a".repeat(100);
+    expect(checkEnvelope(envelope({ title: text, artist: text }))).toEqual([]);
+  });
+
+  it("reports a title or an artist of 101 characters", () => {
+    const text = "a".repeat(101);
+    expect(checkEnvelope(envelope({ title: text, artist: text }))).toEqual([
+      { message: "Title is too long", field: "title" },
+      { message: "Artist is too long", field: "artist" },
+    ]);
+  });
 });
 
 describe("Revision", () => {

@@ -19,9 +19,45 @@
   margin: 0;
 }
 
-/* Quiet, at the end of the title's line. */
+/*
+  The title's line and the artist on the left, and the sheet's menu at the
+  top right. The title wraps beside the menu, so the menu stays in its place
+  at every width. The heading takes over the title's padding from
+  editor.css, so the menu sits inside it.
+*/
+.sheet-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-s);
+  padding: 0 var(--space-s);
+}
+
+.sheet-heading .editor-title {
+  padding: 0;
+}
+
+.sheet-heading h1 {
+  min-width: 0;
+}
+
+.sheet-heading-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+@media not ((pointer: coarse) or (max-width: 640px)) {
+  .sheet-heading {
+    padding: 0 28px;
+  }
+}
+
+/* Quiet, after the title and the key. */
 .save-status {
-  margin: 0 0 0 auto;
+  margin: 0;
   color: var(--text-muted);
   font: 400 var(--font-size-small) / 1.4 var(--font);
 }

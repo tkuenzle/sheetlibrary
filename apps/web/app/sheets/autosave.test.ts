@@ -41,6 +41,7 @@ function fakeFetch() {
 describe("autosave", () => {
   let states: SaveState[];
   let content: SheetContent | null;
+  let details: Pick<Sheet, "title" | "artist">;
   let net: ReturnType<typeof fakeFetch>;
   let autosave: Autosave;
 
@@ -48,10 +49,11 @@ describe("autosave", () => {
     vi.useFakeTimers();
     states = [];
     content = seedSong;
+    details = { title: sheet.title };
     net = fakeFetch();
     autosave = new Autosave({
       sheet,
-      read: () => content,
+      read: () => content && { ...details, content },
       onState: (state) => states.push(state),
       fetch: net.fetch as unknown as typeof fetch,
     });
@@ -138,6 +140,25 @@ describe("autosave", () => {
     content = seedSong;
     await vi.advanceTimersByTimeAsync(2000);
     expect(net.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  // Scenario "Reload after renaming" (sheet-page).
+  it("sends the title and the artist as they are now", async () => {
+    details = { title: "Grace", artist: "Chris Tomlin" };
+    autosave.edited();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(net.pending[0]?.body).toEqual({
+      ...sheet,
+      title: "Grace",
+      artist: "Chris Tomlin",
+    });
+  });
+
+  it("leaves out a removed artist", async () => {
+    details = { title: "Grace", artist: undefined };
+    autosave.edited();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(net.pending[0]?.body).not.toHaveProperty("artist");
   });
 
   // Scenario "Two tabs" (sheet-page).
