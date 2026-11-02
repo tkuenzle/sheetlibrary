@@ -2,6 +2,7 @@ import accountCircle from "./icons/account_circle.svg?raw";
 import add from "./icons/add.svg?raw";
 import close from "./icons/close.svg?raw";
 import contentPasteGo from "./icons/content_paste_go.svg?raw";
+import deleteIcon from "./icons/delete.svg?raw";
 import edit from "./icons/edit.svg?raw";
 import expandMore from "./icons/expand_more.svg?raw";
 import help from "./icons/help.svg?raw";
@@ -25,6 +26,8 @@ const sources = {
   add,
   close,
   contentPasteGo,
+  // `delete` is a keyword, so its import has another name.
+  delete: deleteIcon,
   edit,
   expandMore,
   help,

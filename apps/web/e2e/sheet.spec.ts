@@ -243,6 +243,8 @@ test("the sheet's menu opens the title field", async ({ page }) => {
   const rename = page.getByRole("menuitem", { name: "Rename" });
   await expect(rename).toBeFocused();
   await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: "Delete" })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
   await expect(rename).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(rename).toHaveCount(0);
@@ -299,4 +301,130 @@ test.describe("not signed in", () => {
     const response = await page.request.get("/api/sheets/AAAAAAAAAAAA");
     expect(response.status()).toBe(401);
   });
+});
+
+async function createTitled(page: Page, title: string): Promise<string> {
+  const response = await page.request.post("/api/sheets", {
+    data: { title, content },
+  });
+  expect(response.status()).toBe(201);
+  return ((await response.json()) as { id: string }).id;
+}
+
+async function openDelete(page: Page, title: string) {
+  await menuButton(page).click();
+  await page.getByRole("menuitem", { name: "Delete" }).click();
+  const dialog = page.getByRole("alertdialog", { name: `Delete “${title}”?` });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText(
+    "The sheet is gone for good. This can’t be undone.",
+  );
+  return dialog;
+}
+
+// Scenarios "Cancelling" and "Deleting".
+test("deletes the sheet after asking, and goes to the library", async ({
+  page,
+}) => {
+  const title = newTitle();
+  const id = await createTitled(page, title);
+  await openSheet(page, id);
+
+  // Focus starts on Cancel. Escape cancels; a click on the scrim does nothing.
+  let dialog = await openDelete(page, title);
+  await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(menuButton(page)).toBeFocused();
+
+  dialog = await openDelete(page, title);
+  await page.mouse.click(4, 4);
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(heading(page)).toHaveText(title);
+  expect((await page.request.get(`/api/sheets/${id}`)).status()).toBe(200);
+
+  // The dialog stays until the library is there, so the sheet doesn't show
+  // again for a moment while the library loads.
+  await page.route(/\.data(\?|$)/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.fallback();
+  });
+  dialog = await openDelete(page, title);
+  const deleted = page.waitForResponse(
+    (response) => response.request().method() === "DELETE",
+  );
+  await dialog.getByRole("button", { name: "Delete" }).click();
+  await deleted;
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  await expect(page).toHaveURL("/sheets");
+  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
+  await expect(page.getByRole("link", { name: new RegExp(title) })).toHaveCount(
+    0,
+  );
+  expect((await page.request.get(`/api/sheets/${id}`)).status()).toBe(404);
+});
+
+// Scenario "Offline" (deleting).
+test("keeps the dialog open when the delete doesn't get through", async ({
+  page,
+}) => {
+  const title = newTitle();
+  const id = await createTitled(page, title);
+  await openSheet(page, id);
+  await page.route("**/api/sheets/*", (route) =>
+    route.request().method() === "DELETE" ? route.abort() : route.fallback(),
+  );
+
+  const dialog = await openDelete(page, title);
+  await dialog.getByRole("button", { name: "Delete" }).click();
+  await expect(dialog).toContainText(
+    "The sheet couldn’t be deleted. Try again.",
+  );
+  await expect(page).toHaveURL(`/sheets/${id}`);
+
+  await page.unroute("**/api/sheets/*");
+  await dialog.getByRole("button", { name: "Delete" }).click();
+  await expect(page).toHaveURL("/sheets");
+});
+
+// Scenario "Deleted in another tab".
+test("stops saving when the sheet was deleted in another tab", async ({
+  page,
+  context,
+}) => {
+  const title = newTitle();
+  const id = await createTitled(page, title);
+  const other = await context.newPage();
+  await openSheet(page, id);
+  await openSheet(other, id);
+
+  const dialog = await openDelete(page, title);
+  await dialog.getByRole("button", { name: "Delete" }).click();
+  await expect(page).toHaveURL("/sheets");
+
+  await typeAtEnd(other, " again");
+  await expect(other.getByText("This sheet was deleted.")).toBeVisible();
+  await expect(status(other)).toHaveText("Not saved");
+  // The edits stay on screen, and they can't change.
+  await expect(firstLine(other)).toHaveText(
+    "Amazing grace, how sweet the sound again",
+  );
+  await expect(other.locator(".ProseMirror")).toHaveAttribute(
+    "contenteditable",
+    "false",
+  );
+  await expect(titleButton(other)).toBeDisabled();
+  await menuButton(other).click();
+  await expect(other.getByRole("menuitem", { name: "Rename" })).toBeDisabled();
+  await expect(other.getByRole("menuitem", { name: "Delete" })).toBeDisabled();
+  await other.keyboard.press("Escape");
+
+  // Leaving asks first, so the edits can be copied.
+  const seen = prompts(other, true);
+  await other.getByRole("link", { name: "Back to library" }).click();
+  await expect.poll(() => seen).toEqual(["beforeunload"]);
+  await expect(other).toHaveURL("/sheets");
 });

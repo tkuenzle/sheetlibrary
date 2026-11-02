@@ -1,0 +1,45 @@
+/* A question over the page, as on the canvas board "Delete, from the
+   sheet". */
+.confirm-dialog {
+  width: min(400px, 100vw - 2 * var(--space-l));
+  max-width: none;
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+  border-radius: var(--corner-large);
+  background: var(--surface-active);
+  color: var(--text);
+  box-shadow: 0 8px 24px var(--shadow);
+  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+  outline: 1px solid transparent;
+}
+
+.confirm-dialog::backdrop {
+  background: var(--scrim);
+}
+
+.confirm-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+  padding: 28px var(--space-xl) 20px 28px;
+}
+
+.confirm-content h2 {
+  margin: 0;
+  font: 700 var(--font-size-heading) / 1.25 var(--font);
+  overflow-wrap: anywhere;
+}
+
+.confirm-content > p {
+  margin: 0;
+  color: var(--text-muted);
+  font: 400 var(--font-size-body) / 1.5 var(--font);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-s);
+  margin-top: var(--space-s);
+}
