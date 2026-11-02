@@ -38,13 +38,6 @@ An account SHALL hold the person's email, which the link has confirmed. Signing 
 - **WHEN** an invited person signs up
 - **THEN** they are asked only for their email
 
-### Requirement: Offer a passkey
-After a person signs in with an email link, the site SHALL offer to add a passkey for this device. They SHALL be able to skip it.
-
-#### Scenario: Adding a passkey after an email sign-in
-- **WHEN** a person signs in with an email link and accepts the offer
-- **THEN** a passkey for their account is saved on the device
-
 ### Requirement: Sign in with a passkey
 On the sign-in page, a person SHALL be able to sign in with a passkey they added before, without entering their email.
 
@@ -69,3 +62,10 @@ A pull request preview SHALL keep its accounts apart from production. An account
 #### Scenario: Production account on a preview
 - **WHEN** a person with an account on `https://sheetlibrary.com` signs in on a preview
 - **THEN** the preview treats them as a person without an account
+
+### Requirement: Landing after sign-in
+After signing in, by email link or by passkey, a person SHALL land in the library. A signed-in person who opens the sign-in page SHALL be sent to the library too.
+
+#### Scenario: Opening the email link
+- **WHEN** a person opens the sign-in link from their email
+- **THEN** they are signed in and the library opens
