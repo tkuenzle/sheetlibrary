@@ -9,6 +9,8 @@ import type { Saved } from "./sheets-api.server";
 //   saved --edit--> waiting --quiet--> saving --200--> saved (or waiting)
 //   saving --network or server--> failed --backoff--> saving
 //   saving --409--> conflict, for good
+//   saving --404--> deleted, for good
+//   any state --stop()--> stopped: nothing more is sent or reported
 
 export type SaveState =
   // Everything is saved.
@@ -19,7 +21,9 @@ export type SaveState =
   // A save failed, and another one is coming.
   | "failed"
   // The sheet was saved elsewhere since it was loaded. Saving has stopped.
-  | "conflict";
+  | "conflict"
+  // The sheet was deleted elsewhere. Saving has stopped.
+  | "deleted";
 
 // What a save sends besides the id and the revision.
 export type SheetDraft = Pick<Sheet, "title" | "artist" | "content">;
@@ -45,6 +49,7 @@ export class Autosave {
   private edits = 0;
   private inFlight = false;
   private failures = 0;
+  private stopped = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private readonly options: Required<AutosaveOptions>;
 
@@ -61,7 +66,7 @@ export class Autosave {
 
   // Call after every edit.
   edited(): void {
-    if (this.state === "conflict") return;
+    if (this.stopped || this.isFinal()) return;
     this.edits++;
     // A save under way sends the newer edits once it's back. A failed save
     // keeps its retry, which reads the newest content.
@@ -70,8 +75,15 @@ export class Autosave {
     this.schedule(this.options.quietMs);
   }
 
-  dispose(): void {
+  // Stops saving for good. A save under way may still reach the server, but
+  // its answer changes nothing here and schedules nothing.
+  stop(): void {
+    this.stopped = true;
     clearTimeout(this.timer);
+  }
+
+  private isFinal() {
+    return this.state === "conflict" || this.state === "deleted";
   }
 
   private setState(state: SaveState) {
@@ -112,29 +124,35 @@ export class Autosave {
     const sent = this.edits;
     this.inFlight = true;
     this.setState("saving");
+    // The whole answer is read before anything changes, so a stop while it
+    // was away is checked once.
     let response: Response;
+    let saved: Saved | undefined;
     try {
       response = await this.options.fetch(`/api/sheets/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (response.ok) saved = await response.json<Saved>();
     } catch {
       this.inFlight = false;
+      if (this.stopped) return;
       this.retry();
       return;
     }
     this.inFlight = false;
-    if (response.status === 409) {
+    if (this.stopped) return;
+    if (response.status === 409 || response.status === 404) {
       clearTimeout(this.timer);
-      this.setState("conflict");
+      this.setState(response.status === 409 ? "conflict" : "deleted");
       return;
     }
-    if (!response.ok) {
+    if (!saved) {
       this.retry();
       return;
     }
-    this.revision = (await response.json<Saved>()).revision;
+    this.revision = saved.revision;
     this.failures = 0;
     if (this.edits !== sent) {
       this.setState("waiting");
@@ -148,10 +166,11 @@ export class Autosave {
 // Autosave for a page: the save state, and the function to call after every
 // edit. Saving starts in the browser, once the page is up. Like the editor,
 // it reads the sheet once; give the page a new key to load another one.
+// Saving stops when the page closes, or on `stop()`.
 export function useAutosave(
   sheet: Sheet,
   read: () => SheetDraft | null,
-): { state: SaveState; edited: () => void } {
+): { state: SaveState; edited: () => void; stop: () => void } {
   const [state, setState] = useState<SaveState>("saved");
   const [loaded] = useState(sheet);
   const autosave = useRef<Autosave | null>(null);
@@ -167,12 +186,13 @@ export function useAutosave(
     });
     autosave.current = current;
     return () => {
-      current.dispose();
+      current.stop();
       autosave.current = null;
     };
   }, [loaded]);
   return {
     state,
     edited: () => autosave.current?.edited(),
+    stop: () => autosave.current?.stop(),
   };
 }

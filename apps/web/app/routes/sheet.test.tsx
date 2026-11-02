@@ -11,11 +11,13 @@ import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheet";
 import {
   ConflictNote,
+  DeletedNote,
   loader,
   meta,
   NotFound,
   SaveStatus,
   SheetView,
+  sheetMenuItems,
 } from "./sheet";
 
 const amazingGrace: Sheet = {
@@ -115,6 +117,34 @@ describe("sheet page", () => {
     expect(html).toContain('aria-haspopup="menu"');
   });
 
+  it("has Rename and Delete in the sheet's menu", () => {
+    const items = (state: Parameters<typeof SaveStatus>[0]["state"]) =>
+      sheetMenuItems({
+        state,
+        onRename: () => undefined,
+        onDelete: () => undefined,
+      }).map(({ label, disabled }) => [label, disabled]);
+    expect(items("saved")).toEqual([
+      ["Rename", false],
+      ["Delete", false],
+    ]);
+    expect(items("conflict")).toEqual([
+      ["Rename", true],
+      ["Delete", false],
+    ]);
+    // Scenario "Deleted in another tab".
+    expect(items("deleted")).toEqual([
+      ["Rename", true],
+      ["Delete", true],
+    ]);
+  });
+
+  it("has the delete dialog, closed", () => {
+    expect(renderToString(<SheetView sheet={amazingGrace} />)).toMatch(
+      /<dialog [^>]*role="alertdialog"[^>]*><\/dialog>/,
+    );
+  });
+
   it("opens the title field for a new sheet", () => {
     const html = renderToString(<SheetView sheet={amazingGrace} isNew />);
     expect(html).toMatch(/<h1><input [^>]*aria-label="Title"/);
@@ -147,12 +177,20 @@ describe("sheet page", () => {
     expect(text("saving")).toContain("Saving…");
     expect(text("failed")).toContain("Not saved yet. Trying again…");
     expect(text("conflict")).toContain("Not saved");
+    expect(text("deleted")).toContain("Not saved");
   });
 
   it("says to reload when the sheet changed in another tab", () => {
     expect(renderToString(<ConflictNote />)).toContain(
       "This sheet changed in another tab. Reload to see it.",
     );
+  });
+
+  // Scenario "Deleted in another tab".
+  it("says the sheet was deleted and links to the library", () => {
+    const html = renderToString(<DeletedNote />);
+    expect(html).toContain("This sheet was deleted.");
+    expect(html).toMatch(/<a href="\/sheets">Back to library<\/a>/);
   });
 
   it("sets the page title and asks search engines not to index it", () => {

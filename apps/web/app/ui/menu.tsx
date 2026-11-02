@@ -48,7 +48,9 @@ export function Menu({
 
   useEffect(() => {
     if (!open) return;
-    menuItems()[0]?.focus();
+    // With every item disabled, the list takes the focus, so Escape still
+    // closes it.
+    (menuItems()[0] ?? list.current)?.focus();
     function onPointerDown(event: PointerEvent) {
       if (!wrapper.current?.contains(event.target as globalThis.Node)) {
         setOpen(false);
@@ -79,6 +81,7 @@ export function Menu({
           role="menu"
           aria-label={label}
           className="menu-list"
+          tabIndex={-1}
           onKeyDown={(event) => {
             const all = menuItems();
             const at = all.indexOf(document.activeElement as HTMLButtonElement);

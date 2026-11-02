@@ -3,7 +3,7 @@ import "./sheet.css";
 
 import type { Sheet } from "chordsheet";
 import { useEffect, useRef, useState } from "react";
-import { data, redirect } from "react-router";
+import { data, redirect, useNavigate } from "react-router";
 
 import { cloudflareContext, sessionContext } from "../context";
 import { EditorHelp } from "../editor/help";
@@ -13,8 +13,10 @@ import { SidePanel, SidePanelButton } from "../shell/side-panel";
 import { TopBar } from "../shell/top-bar";
 import { type SaveState, useAutosave } from "../sheets/autosave";
 import { ArtistInPlace, TitleInPlace } from "../sheets/sheet-details";
+import { deleteStoredSheet } from "../sheets/delete";
 import { readSheet } from "../sheets/sheets.server";
-import { Menu } from "../ui/menu";
+import { ConfirmDialog } from "../ui/confirm-dialog";
+import { Menu, type MenuItem } from "../ui/menu";
 import { Note } from "../ui/note";
 import type { Route } from "./+types/sheet";
 
@@ -45,7 +47,16 @@ export async function loader({ context, params, url }: Route.LoaderArgs) {
 
 export default function SheetPage({ loaderData }: Route.ComponentProps) {
   const { sheet, isNew } = loaderData;
-  return sheet ? <SheetView sheet={sheet} isNew={isNew} /> : <NotFound />;
+  const navigate = useNavigate();
+  return sheet ? (
+    <SheetView
+      sheet={sheet}
+      isNew={isNew}
+      onDeleted={() => void navigate("/sheets")}
+    />
+  ) : (
+    <NotFound />
+  );
 }
 
 // Which of the sheet's details has its field open.
@@ -54,29 +65,37 @@ type Editing = "title" | "artist" | null;
 export function SheetView({
   sheet,
   isNew = false,
+  onDeleted = () => undefined,
 }: {
   sheet: Sheet;
   // Opened from "New sheet": the title field starts open.
   isNew?: boolean;
+  // Called once the sheet is deleted, to leave the page.
+  onDeleted?: () => void;
 }) {
   const editor = useRef<SheetEditorHandle>(null);
   const sheetKey = useSheetKey(sheet.content);
   const [title, setTitle] = useState(sheet.title);
   const [artist, setArtist] = useState(sheet.artist);
   const [editing, setEditing] = useState<Editing>(isNew ? "title" : null);
+  const [deleting, setDeleting] = useState(false);
+  const heading = useRef<HTMLDivElement>(null);
   const autosave = useAutosave(sheet, () => {
     const handed = editor.current?.handBack();
     return handed?.ok ? { title, artist, content: handed.sheet } : null;
   });
   const conflict = autosave.state === "conflict";
+  const deleted = autosave.state === "deleted";
+  // Saving has stopped for good, so nothing more can be edited.
+  const readOnly = conflict || deleted;
 
   // A field that is open when the sheet turns read-only closes without
   // keeping: its save could never go through.
-  const conflictRef = useRef(conflict);
+  const readOnlyRef = useRef(readOnly);
   useEffect(() => {
-    conflictRef.current = conflict;
-    if (conflict) setEditing(null);
-  }, [conflict]);
+    readOnlyRef.current = readOnly;
+    if (readOnly) setEditing(null);
+  }, [readOnly]);
 
   // `?new` opens the field once. Without it in the URL, a reload doesn't.
   useEffect(() => {
@@ -93,14 +112,14 @@ export function SheetView({
 
   function closeTitle(kept: string | null) {
     setEditing(null);
-    if (kept === null || conflictRef.current || kept === title) return;
+    if (kept === null || readOnlyRef.current || kept === title) return;
     setTitle(kept);
     autosave.edited();
   }
 
   function closeArtist(kept: string | undefined | null) {
     setEditing(null);
-    if (kept === null || conflictRef.current || kept === artist) return;
+    if (kept === null || readOnlyRef.current || kept === artist) return;
     setArtist(kept);
     autosave.edited();
   }
@@ -129,14 +148,14 @@ export function SheetView({
       <div className="editor-layout">
         <main className="editor-page">
           <div className="editor-intro">
-            <div className="sheet-heading">
+            <div className="sheet-heading" ref={heading}>
               <div className="sheet-heading-main">
                 <SheetTitle
                   title={
                     <TitleInPlace
                       title={title}
                       editing={editing === "title"}
-                      readOnly={conflict}
+                      readOnly={readOnly}
                       onOpen={() => {
                         setEditing("title");
                       }}
@@ -145,14 +164,14 @@ export function SheetView({
                   }
                   sheetKey={sheetKey}
                   editor={editor}
-                  readOnly={conflict}
+                  readOnly={readOnly}
                 >
                   <SaveStatus state={autosave.state} />
                 </SheetTitle>
                 <ArtistInPlace
                   artist={artist}
                   editing={editing === "artist"}
-                  readOnly={conflict}
+                  readOnly={readOnly}
                   onOpen={() => {
                     setEditing("artist");
                   }}
@@ -161,25 +180,46 @@ export function SheetView({
               </div>
               <Menu
                 label="More for this sheet"
-                items={[
-                  {
-                    label: "Rename",
-                    icon: "edit",
-                    disabled: conflict,
-                    onSelect: () => {
-                      setEditing("title");
-                    },
+                items={sheetMenuItems({
+                  state: autosave.state,
+                  onRename: () => {
+                    setEditing("title");
                   },
-                ]}
+                  onDelete: () => {
+                    setDeleting(true);
+                  },
+                })}
               />
             </div>
             {conflict && <ConflictNote />}
+            {deleted && <DeletedNote />}
           </div>
+          <ConfirmDialog
+            open={deleting}
+            title={`Delete “${title}”?`}
+            text="The sheet is gone for good. This can’t be undone."
+            confirm="Delete"
+            failure="The sheet couldn’t be deleted. Try again."
+            onConfirm={async () => {
+              await deleteStoredSheet(sheet.id);
+              // Edits not saved yet go with the sheet.
+              autosave.stop();
+              onDeleted();
+            }}
+            onClose={() => {
+              setDeleting(false);
+              // The menu item that opened the dialog is gone, so the focus
+              // goes back to the menu's button.
+              heading.current
+                ?.querySelector<HTMLElement>("[aria-haspopup=menu]")
+                ?.focus();
+            }}
+          />
           <SheetEditor
             ref={editor}
             sheet={sheet.content}
             sheetKey={sheetKey.key}
-            readOnly={conflict}
+            readOnly={readOnly}
             onChange={autosave.edited}
             onChordsChange={sheetKey.onChordsChange}
           />
@@ -192,12 +232,40 @@ export function SheetView({
   );
 }
 
+// The sheet's menu. Rename needs saving to work; Delete doesn't, so it stays
+// after a conflict, but not once the sheet is gone.
+export function sheetMenuItems({
+  state,
+  onRename,
+  onDelete,
+}: {
+  state: SaveState;
+  onRename: () => void;
+  onDelete: () => void;
+}): MenuItem[] {
+  return [
+    {
+      label: "Rename",
+      icon: "edit",
+      disabled: state === "conflict" || state === "deleted",
+      onSelect: onRename,
+    },
+    {
+      label: "Delete",
+      icon: "delete",
+      disabled: state === "deleted",
+      onSelect: onDelete,
+    },
+  ];
+}
+
 const saveStateText: Record<SaveState, string> = {
   saved: "Saved",
   waiting: "Saving…",
   saving: "Saving…",
   failed: "Not saved yet. Trying again…",
   conflict: "Not saved",
+  deleted: "Not saved",
 };
 
 // Whether the edits are saved, beside the title.
@@ -212,6 +280,16 @@ export function SaveStatus({ state }: { state: SaveState }) {
 // Saving stopped because the sheet was saved elsewhere.
 export function ConflictNote() {
   return <Note>This sheet changed in another tab. Reload to see it.</Note>;
+}
+
+// Saving stopped because the sheet was deleted elsewhere. The edits stay on
+// screen, so they can be copied before leaving.
+export function DeletedNote() {
+  return (
+    <Note>
+      This sheet was deleted. <a href="/sheets">Back to library</a>
+    </Note>
+  );
 }
 
 export function NotFound() {

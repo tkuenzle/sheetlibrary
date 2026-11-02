@@ -59,7 +59,7 @@ describe("autosave", () => {
     });
   });
   afterEach(() => {
-    autosave.dispose();
+    autosave.stop();
     vi.useRealTimers();
   });
 
@@ -171,5 +171,38 @@ describe("autosave", () => {
     await vi.advanceTimersByTimeAsync(60_000);
     expect(net.fetch).toHaveBeenCalledTimes(1);
     expect(states.at(-1)).toBe("conflict");
+  });
+
+  // Scenario "Deleted in another tab" (sheet-page).
+  it("stops for good when the sheet was deleted elsewhere", async () => {
+    autosave.edited();
+    await vi.advanceTimersByTimeAsync(1000);
+    await net.pending[0]?.answer(new Response(null, { status: 404 }));
+    expect(states.at(-1)).toBe("deleted");
+    autosave.edited();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(net.fetch).toHaveBeenCalledTimes(1);
+    expect(states.at(-1)).toBe("deleted");
+  });
+
+  it("sends nothing once stopped while waiting", async () => {
+    autosave.edited();
+    autosave.stop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(net.fetch).not.toHaveBeenCalled();
+    autosave.edited();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(net.fetch).not.toHaveBeenCalled();
+    expect(states).toEqual(["waiting"]);
+  });
+
+  it("ignores a save that fails after the stop", async () => {
+    autosave.edited();
+    await vi.advanceTimersByTimeAsync(1000);
+    autosave.stop();
+    await net.pending[0]?.answer(new TypeError("Failed to fetch"));
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(net.fetch).toHaveBeenCalledTimes(1);
+    expect(states).toEqual(["waiting", "saving"]);
   });
 });
