@@ -10,7 +10,8 @@ import { Note } from "./note";
 // confirm. Escape cancels; a click on the scrim does nothing. While
 // `onConfirm` runs, the buttons are disabled and Escape does nothing. If it
 // fails, `failure` shows under the text and the buttons work again. Once it
-// succeeds, the dialog closes.
+// succeeds, the dialog stays as it is until `open` turns false or the page
+// goes, so a page that is being left doesn't show again for a moment.
 export function ConfirmDialog({
   open,
   title,
@@ -38,6 +39,7 @@ export function ConfirmDialog({
 
   useEffect(() => {
     if (!open) return;
+    setBusy(false);
     setFailed(false);
     dialog.current?.showModal();
     cancel.current?.focus();
@@ -55,10 +57,8 @@ export function ConfirmDialog({
     setFailed(false);
     try {
       await onConfirm();
-      close();
     } catch {
       setFailed(true);
-    } finally {
       setBusy(false);
     }
   }

@@ -345,8 +345,20 @@ test("deletes the sheet after asking, and goes to the library", async ({
   await expect(heading(page)).toHaveText(title);
   expect((await page.request.get(`/api/sheets/${id}`)).status()).toBe(200);
 
+  // The dialog stays until the library is there, so the sheet doesn't show
+  // again for a moment while the library loads.
+  await page.route(/\.data(\?|$)/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.fallback();
+  });
   dialog = await openDelete(page, title);
+  const deleted = page.waitForResponse(
+    (response) => response.request().method() === "DELETE",
+  );
   await dialog.getByRole("button", { name: "Delete" }).click();
+  await deleted;
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Cancel" })).toBeDisabled();
   await expect(page).toHaveURL("/sheets");
   await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
   await expect(page.getByRole("link", { name: new RegExp(title) })).toHaveCount(
