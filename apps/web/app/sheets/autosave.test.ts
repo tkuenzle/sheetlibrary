@@ -92,11 +92,54 @@ describe("autosave", () => {
     autosave.edited();
     await vi.advanceTimersByTimeAsync(1000);
     autosave.edited();
-    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(2000);
     expect(net.fetch).toHaveBeenCalledTimes(1);
     await net.pending[0]?.answer(saved(2));
     expect(states.at(-1)).toBe("waiting");
     await vi.advanceTimersByTimeAsync(1000);
+    expect(net.fetch).toHaveBeenCalledTimes(2);
+    expect(net.pending[1]?.body.revision).toBe(2);
+  });
+
+  // Scenario "Typing without a pause".
+  it("saves within 5 seconds while edits keep coming", async () => {
+    for (let t = 0; t < 4500; t += 500) {
+      autosave.edited();
+      await vi.advanceTimersByTimeAsync(500);
+    }
+    expect(net.fetch).not.toHaveBeenCalled();
+    autosave.edited();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(net.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("still saves after a pause, before the longest wait", async () => {
+    for (let t = 0; t < 3000; t += 500) {
+      autosave.edited();
+      await vi.advanceTimersByTimeAsync(500);
+    }
+    // The last edit was at 2.5s.
+    await vi.advanceTimersByTimeAsync(499);
+    expect(net.fetch).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(net.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends edits made during a save within 5 seconds of the first", async () => {
+    autosave.edited();
+    await vi.advanceTimersByTimeAsync(1000);
+    // A slow save. Edits keep coming from 1.5s on.
+    await vi.advanceTimersByTimeAsync(500);
+    for (let t = 1500; t < 4000; t += 500) {
+      autosave.edited();
+      await vi.advanceTimersByTimeAsync(500);
+    }
+    await net.pending[0]?.answer(saved(2));
+    for (let t = 4000; t < 6500; t += 500) {
+      autosave.edited();
+      await vi.advanceTimersByTimeAsync(500);
+    }
+    // 6.5s: 5 seconds after the edit at 1.5s.
     expect(net.fetch).toHaveBeenCalledTimes(2);
     expect(net.pending[1]?.body.revision).toBe(2);
   });
