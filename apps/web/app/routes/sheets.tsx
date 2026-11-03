@@ -4,6 +4,8 @@ import "./sheets.css";
 import { useEffect, useState } from "react";
 import { Form, redirect, useNavigate } from "react-router";
 
+import { closeOffer, offerClosed } from "../auth/passkey-offer";
+import { hasPasskey } from "../auth/passkeys.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { ImportButton } from "../editor/import-button";
 import { TopBar } from "../shell/top-bar";
@@ -15,7 +17,8 @@ import {
   listSheets,
   type SheetListItem,
 } from "../sheets/sheets.server";
-import { Button } from "../ui/button";
+import { Button, IconButton } from "../ui/button";
+import { Icon } from "../ui/icon";
 import type { Route } from "./+types/sheets";
 
 // The library: the signed-in person's sheets, "Import" and "New sheet". See
@@ -28,11 +31,17 @@ export function meta() {
   ];
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+// The email link lands on `?passkey`. Only then is a passkey offered, if
+// the account has none and this device didn't close the offer.
+export async function loader({ context, request, url }: Route.LoaderArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
-  return { sheets: await listSheets(env.DB, session.user.id) };
+  const offerPasskey =
+    url.searchParams.has("passkey") &&
+    !offerClosed(request.headers.get("Cookie")) &&
+    !(await hasPasskey(env.DB, session.user.id));
+  return { sheets: await listSheets(env.DB, session.user.id), offerPasskey };
 }
 
 // "New sheet". A form on another site can't get here signed in, since the
@@ -49,11 +58,46 @@ export async function action({ context }: Route.ActionArgs) {
 }
 
 export default function Library({ loaderData }: Route.ComponentProps) {
+  // `?passkey` offers a passkey once. Without it in the URL, a reload
+  // doesn't.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("passkey")) return;
+    url.searchParams.delete("passkey");
+    window.history.replaceState(window.history.state, "", url);
+  }, []);
+
   return (
     <>
       <TopBar />
-      <LibraryView sheets={loaderData.sheets} />
+      <LibraryView
+        sheets={loaderData.sheets}
+        offerPasskey={loaderData.offerPasskey}
+      />
     </>
+  );
+}
+
+// After an email sign-in. The passkey is added on the account page, so the
+// library never asks the device itself.
+function PasskeyOffer({ onClose }: { onClose: () => void }) {
+  return (
+    <section className="passkey-offer" aria-label="Passkey">
+      <Icon name="passkey" />
+      <p>
+        Add a passkey to sign in on this device without waiting for an email.
+      </p>
+      <a className="button button-filled passkey-offer-add" href="/account">
+        <Icon name="passkey" />
+        Add passkey
+      </a>
+      <IconButton
+        icon="close"
+        label="Close"
+        tooltipPlacement="left"
+        onClick={onClose}
+      />
+    </section>
   );
 }
 
@@ -97,7 +141,23 @@ function Actions({ size, className }: { size?: "large"; className: string }) {
   );
 }
 
-export function LibraryView({ sheets }: { sheets: SheetListItem[] }) {
+export function LibraryView({
+  sheets,
+  offerPasskey = false,
+}: {
+  sheets: SheetListItem[];
+  offerPasskey?: boolean;
+}) {
+  const [offering, setOffering] = useState(offerPasskey);
+  const offer = offering && (
+    <PasskeyOffer
+      onClose={() => {
+        closeOffer();
+        setOffering(false);
+      }}
+    />
+  );
+
   // The viewer's time zone is only known in the browser. Until then, the
   // last edit is hidden, with the date in UTC holding its place.
   const [hydrated, setHydrated] = useState(false);
@@ -112,6 +172,7 @@ export function LibraryView({ sheets }: { sheets: SheetListItem[] }) {
     return (
       <main className="library">
         <h1>Library</h1>
+        {offer}
         <section className="library-empty" aria-labelledby="library-empty">
           <h2 id="library-empty">No sheets yet</h2>
           <Actions className="library-actions" />
@@ -126,6 +187,7 @@ export function LibraryView({ sheets }: { sheets: SheetListItem[] }) {
         <h1>Library</h1>
         <Actions className="library-actions library-actions-beside" />
       </div>
+      {offer}
       <div className="library-list">
         <div className="library-columns library-labels" aria-hidden="true">
           <span>Title</span>

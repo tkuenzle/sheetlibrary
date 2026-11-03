@@ -27,6 +27,7 @@ The mockups are on the canvas's "Library and account" page.
 - **Top bar A.** The library and the account page start with the site's name. On a sheet, the bar starts with "Library" and a back arrow instead, and the sheet's title is only the heading. No page has a breadcrumb: it repeated the heading. Signed in, the bar ends with the account: the email's first letter in a round tonal chip, linking to the account page. Option B, a breadcrumb on every page and a menu behind the initial, was dropped.
 - **Sign-in B.** The sign-in page has no top bar. The site's name sits above one card in the middle of the page, so nothing competes with the form, and "Check your email" takes the form's place in the card. "Send link" is the main button and "Sign in with a passkey" a tonal one, since everyone's first sign-in is by email. Option A, the card beside the home page's sample sheet, was dropped.
 - **The account page** uses the library's grouped rows: the email is one row, the passkeys a group with "Add passkey" as a tonal button under it, and "Sign out" is its own one-row group with an icon, so it doesn't look like another button.
+- **The passkey offer** is a card in the note colors under the library's heading, above the sheets, so the library still works around it. It shows after an email sign-in when the account has no passkey. "Add passkey" opens the account page, so the library never asks the device itself. "Close" hides it on this device for good. A dialog was dropped: it would cover the library right after sign-in.
 
 ## Role tokens
 
