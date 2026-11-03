@@ -46,11 +46,11 @@ The home page SHALL link to `/editor`.
 - **THEN** `/editor` opens
 
 ### Requirement: Song title
-The page SHALL show the song's title, "Amazing Grace", as its heading, and after the site's name in the top bar. On a phone, the top bar SHALL show only the site's name. The browser tab SHALL read "Amazing Grace | Sheet Library".
+The page SHALL show the song's title, "Amazing Grace", as its heading. The top bar SHALL NOT show it. The browser tab SHALL read "Amazing Grace | Sheet Library".
 
 #### Scenario: Opening the editor
-- **WHEN** a visitor opens `/editor` in a window wider than a phone
-- **THEN** the heading reads "Amazing Grace", the top bar reads "Sheet Library / Amazing Grace", and the tab reads "Amazing Grace | Sheet Library"
+- **WHEN** a visitor opens `/editor`
+- **THEN** the heading reads "Amazing Grace", the top bar doesn't, and the tab reads "Amazing Grace | Sheet Library"
 
 ### Requirement: Help beside the editor
 In a window at least 1024px wide, the page SHALL show a side panel beside the editor with how to edit. The panel SHALL stay in view while the page scrolls.

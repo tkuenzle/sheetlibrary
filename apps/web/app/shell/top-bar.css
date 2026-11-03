@@ -6,6 +6,11 @@
   padding: 0 var(--space-s) 0 var(--space-xl);
 }
 
+/* The back link has its own padding, so the bar has less. */
+.top-bar-with-back {
+  padding-left: var(--space-m);
+}
+
 .top-bar-name {
   color: var(--text);
   font: 800 20px / 1 var(--font);
@@ -20,56 +25,109 @@
   outline-offset: 3px;
 }
 
-.top-bar-title {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-muted);
-  font: 500 var(--font-size-body) / 1.3 var(--font);
-  text-overflow: ellipsis;
+/* "Library" with a back arrow, shaped like a text button. */
+.top-bar-back {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-s);
+  height: 48px;
+  padding: 0 20px 0 var(--space-m);
+  border-radius: var(--corner-full);
+  color: var(--text);
+  font: 700 17px / 1 var(--font);
+  text-decoration: none;
   white-space: nowrap;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
 }
 
-.top-bar-title > [aria-hidden] {
-  margin-right: var(--space-xs);
-  color: var(--text-dimmed);
+.top-bar-back:hover,
+.top-bar-account:hover {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--text) 8%, transparent) 0 0
+  );
+}
+
+.top-bar-back:focus-visible,
+.top-bar-account:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
 }
 
 .top-bar-actions {
   display: flex;
+  align-items: center;
   margin-left: auto;
 }
 
 /* A link that looks like the buttons beside it. */
-.top-bar-account {
+.top-bar-sign-in {
   text-decoration: none;
 }
 
-/* Phone-wide (see app/breakpoints.ts): only the name and the actions. */
+/* The account: a round initial inside a round touch target. */
+.top-bar-account {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--corner-full);
+  text-decoration: none;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.top-bar-account[aria-current="page"] {
+  background-color: var(--quiet);
+}
+
+.top-bar-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--corner-full);
+  background-color: var(--accent-soft);
+  color: var(--on-accent-soft);
+  font: 700 16px / 1 var(--font);
+}
+
+/* Phone-wide (see app/breakpoints.ts): smaller, and "Sign in" only as its
+   icon. */
 @media (max-width: 640px) {
   .top-bar {
+    gap: var(--space-xs);
     min-height: 56px;
     padding: 0 var(--space-xs) 0 20px;
+  }
+
+  .top-bar-with-back {
+    padding-left: var(--space-xs);
   }
 
   .top-bar-name {
     font-size: 19px;
   }
 
-  .top-bar-title {
-    display: none;
+  .top-bar-back {
+    padding-right: var(--space-l);
   }
 }
 
-/* Phone-wide: the account link shows only its icon, as round as an icon
+/* Phone-wide: the sign-in link shows only its icon, as round as an icon
    button. The selector outweighs the padding that button.css gives a button
    with an icon. */
 @media (max-width: 640px) {
-  .top-bar .button.top-bar-account:has(> .icon:first-child) {
+  .top-bar .button.top-bar-sign-in:has(> .icon:first-child) {
     width: 48px;
     padding: 0;
   }
 
-  .top-bar-account-text {
+  .top-bar-sign-in-text {
     display: none;
   }
 }

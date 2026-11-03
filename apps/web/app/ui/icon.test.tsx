@@ -13,7 +13,8 @@ describe("Icon", () => {
 
   it("has a path for every listed icon", () => {
     for (const path of Object.values(iconPaths)) {
-      expect(path).toMatch(/^M/);
+      // A path starts with a move, which is absolute at the start in either case.
+      expect(path).toMatch(/^[Mm]/);
     }
   });
 });

@@ -1,3 +1,4 @@
+import "../ui/group-list.css";
 import "./sheets.css";
 
 import { useEffect, useState } from "react";
@@ -131,7 +132,7 @@ export function LibraryView({ sheets }: { sheets: SheetListItem[] }) {
           <span>Artist</span>
           <span>Edited</span>
         </div>
-        <ul>
+        <ul className="group-list">
           {sheets.map((sheet) => (
             <li key={sheet.id}>
               <a className="library-columns" href={`/sheets/${sheet.id}`}>

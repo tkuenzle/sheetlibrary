@@ -113,10 +113,7 @@ test("asks before leaving while edits aren't saved", async ({ page }) => {
   await typeAtEnd(page, " again");
   await expect(status(page)).toHaveText("Not saved yet. Trying again…");
   const seen = prompts(page, false);
-  await page
-    .getByRole("banner")
-    .getByRole("link", { name: "Sheet Library" })
-    .click();
+  await page.getByRole("banner").getByRole("link", { name: "Library" }).click();
   await expect.poll(() => seen).toEqual(["beforeunload"]);
   await expect(page).toHaveURL(/\/sheets\//);
 });

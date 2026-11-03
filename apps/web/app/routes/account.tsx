@@ -1,4 +1,5 @@
 import "../ui/button.css";
+import "../ui/group-list.css";
 import "./sign-in.css";
 import "./account.css";
 
@@ -15,6 +16,7 @@ import { getAuth } from "../auth/auth.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { TopBar } from "../shell/top-bar";
 import { Button } from "../ui/button";
+import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 import type { Route } from "./+types/account";
 
@@ -80,7 +82,7 @@ function Passkey({
 
   if (editing) {
     return (
-      <li className="account-passkey">
+      <li className="account-row account-passkey">
         <form
           className="account-passkey-rename"
           onSubmit={(event) => {
@@ -121,7 +123,7 @@ function Passkey({
   }
 
   return (
-    <li className="account-passkey">
+    <li className="account-row account-passkey">
       <div className="account-passkey-text">
         <span className="account-passkey-name">{passkeyName(passkey)}</span>
         <span className="account-passkey-added">{added(passkey)}</span>
@@ -170,17 +172,23 @@ export function AccountView({
   return (
     <main className="account">
       <h1>Account</h1>
-      <section className="account-section">
-        <h2>Email</h2>
-        <p className="account-email">{email}</p>
+      <section className="account-section" aria-labelledby="account-email">
+        <h2 id="account-email">Email</h2>
+        <ul className="group-list">
+          <li className="account-row">
+            <span className="account-email">{email}</span>
+          </li>
+        </ul>
       </section>
-      <section className="account-section">
-        <h2>Passkeys</h2>
-        {passkeys.length === 0 ? (
-          <p className="account-empty">No passkeys yet.</p>
-        ) : (
-          <ul className="account-passkeys">
-            {passkeys.map((passkey) => (
+      <section className="account-section" aria-labelledby="account-passkeys">
+        <h2 id="account-passkeys">Passkeys</h2>
+        <ul className="group-list">
+          {passkeys.length === 0 ? (
+            <li className="account-row">
+              <span className="account-empty">No passkeys yet.</span>
+            </li>
+          ) : (
+            passkeys.map((passkey) => (
               <Passkey
                 key={passkey.id}
                 passkey={passkey}
@@ -191,9 +199,9 @@ export function AccountView({
                   onRemove(passkey.id);
                 }}
               />
-            ))}
-          </ul>
-        )}
+            ))
+          )}
+        </ul>
         <Button
           variant="tonal"
           icon="passkey"
@@ -206,9 +214,16 @@ export function AccountView({
           {failed && <Note>No passkey was added.</Note>}
         </div>
       </section>
-      <Button variant="tonal" className="account-sign-out" onClick={onSignOut}>
-        Sign out
-      </Button>
+      {/* Its own one-row group, with an icon, so it doesn't look like
+          another button. */}
+      <ul className="group-list account-sign-out">
+        <li>
+          <button type="button" onClick={onSignOut}>
+            <Icon name="logout" />
+            Sign out
+          </button>
+        </li>
+      </ul>
     </main>
   );
 }
@@ -220,7 +235,7 @@ export default function Account() {
 
   return (
     <>
-      <TopBar />
+      <TopBar accountPage />
       <AccountView
         email={email}
         passkeys={passkeys}

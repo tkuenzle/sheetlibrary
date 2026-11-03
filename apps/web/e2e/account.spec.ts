@@ -18,3 +18,13 @@ test("the sign-in page offers a passkey and an email link", async ({
   await expect(page.getByLabel("Email")).toBeVisible();
   await expect(page.getByRole("button", { name: "Send link" })).toBeVisible();
 });
+
+// Scenario "Sign-in page" (site-layout).
+test("the sign-in page has no top bar, and its name links home", async ({
+  page,
+}) => {
+  await page.goto("/sign-in");
+  await expect(page.getByRole("banner")).toHaveCount(0);
+  await page.getByRole("link", { name: "Sheet Library" }).click();
+  await expect(page).toHaveURL("/");
+});

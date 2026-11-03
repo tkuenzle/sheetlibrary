@@ -145,7 +145,7 @@ export function SheetView({
 
   return (
     <>
-      <TopBar title={sheet.title}>
+      <TopBar back>
         <SidePanelButton icon="help" title="How to edit">
           <EditorHelp rename />
         </SidePanelButton>
@@ -300,7 +300,7 @@ export function DeletedNote() {
 export function NotFound() {
   return (
     <>
-      <TopBar />
+      <TopBar back />
       <main className="sheet-not-found">
         <h1>Sheet not found</h1>
         <p>This sheet doesn’t exist, or it belongs to another account.</p>

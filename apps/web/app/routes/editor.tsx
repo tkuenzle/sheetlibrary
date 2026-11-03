@@ -70,7 +70,7 @@ export default function EditorPage() {
 
   return (
     <>
-      <TopBar title={title}>
+      <TopBar>
         <ImportButton
           onImport={load}
           note="Importing replaces the sheet on this page. It can’t be undone."

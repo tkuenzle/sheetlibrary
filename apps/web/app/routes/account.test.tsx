@@ -44,8 +44,26 @@ describe("account page", () => {
     expect(html).toContain('aria-label="Remove Passkey"');
   });
 
-  it("says when there are no passkeys", () => {
-    expect(render({})).toContain("No passkeys yet.");
+  it("says when there are no passkeys, inside the group", () => {
+    expect(render({})).toMatch(
+      /<ul class="group-list"><li [^>]*><span [^>]*>No passkeys yet\.<\/span><\/li><\/ul>/,
+    );
+  });
+
+  it("puts the email and the passkeys in grouped rows", () => {
+    const html = render({ passkeys: [iphone] });
+    expect(html).toMatch(
+      /<h2 id="account-email">Email<\/h2><ul class="group-list"><li [^>]*><span [^>]*>ana@example\.com/,
+    );
+    expect(html).toMatch(
+      /<h2 id="account-passkeys">Passkeys<\/h2><ul class="group-list"><li [^>]*>.*iPhone/,
+    );
+  });
+
+  it("shows sign-out as its own row, with an icon", () => {
+    expect(render({})).toMatch(
+      /<ul class="group-list account-sign-out"><li><button type="button"><svg [^>]*>.*<\/svg>Sign out<\/button><\/li><\/ul>/,
+    );
   });
 
   it("sets the page title", () => {

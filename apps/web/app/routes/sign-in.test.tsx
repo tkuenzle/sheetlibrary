@@ -8,6 +8,7 @@ import {
   LinkSent,
   loader,
   meta,
+  SignInFrame,
   SignInNote,
   type SignInState,
 } from "./sign-in";
@@ -17,6 +18,15 @@ function note(state: SignInState) {
 }
 
 describe("sign-in page", () => {
+  // Scenario "Sign-in page" (site-layout).
+  it("has no top bar, and the site's name above the card links home", () => {
+    const html = renderToString(<SignInFrame>form</SignInFrame>);
+    expect(html).not.toContain("<header");
+    expect(html).toMatch(
+      /^<div class="sign-in-page"><a class="sign-in-name" href="\/">Sheet Library<\/a><main class="sign-in"><h1>Sign in<\/h1>form<\/main>/,
+    );
+  });
+
   it("says to check the email once a link is sent, and where it went", () => {
     const html = renderToString(
       <LinkSent email="ana@example.com" onBack={() => undefined} />,
