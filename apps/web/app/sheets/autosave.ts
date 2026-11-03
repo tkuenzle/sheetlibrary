@@ -7,6 +7,7 @@ import type { Saved } from "./sheets-api.server";
 // and the save loop in the sheet-storage change's design.
 //
 //   saved --edit--> waiting --quiet--> saving --200--> saved (or waiting)
+//   waiting --longest wait, while edits keep coming--> saving
 //   saving --network or server--> failed --backoff--> saving
 //   saving --409--> conflict, for good
 //   saving --404--> deleted, for good
@@ -37,6 +38,8 @@ export interface AutosaveOptions {
   fetch?: typeof fetch;
   // How long edits must pause before a save.
   quietMs?: number;
+  // The longest an edit waits for its save while edits keep coming.
+  maxWaitMs?: number;
   // The wait before the first retry. It doubles up to maxRetryMs.
   retryMs?: number;
   maxRetryMs?: number;
@@ -48,6 +51,8 @@ export class Autosave {
   // Counts the edits, so a save can tell if more came while it was away.
   private edits = 0;
   private inFlight = false;
+  // When the first edit that no save has sent yet was made.
+  private firstUnsent: number | undefined;
   private failures = 0;
   private stopped = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -57,6 +62,7 @@ export class Autosave {
     this.options = {
       fetch: (...args) => fetch(...args),
       quietMs: 1000,
+      maxWaitMs: 5000,
       retryMs: 2000,
       maxRetryMs: 30_000,
       ...options,
@@ -68,11 +74,12 @@ export class Autosave {
   edited(): void {
     if (this.stopped || this.isFinal()) return;
     this.edits++;
+    this.firstUnsent ??= Date.now();
     // A save under way sends the newer edits once it's back. A failed save
     // keeps its retry, which reads the newest content.
     if (this.inFlight || this.state === "failed") return;
     this.setState("waiting");
-    this.schedule(this.options.quietMs);
+    this.schedule(this.nextSaveIn());
   }
 
   // Stops saving for good. A save under way may still reach the server, but
@@ -90,6 +97,13 @@ export class Autosave {
     if (state === this.state) return;
     this.state = state;
     this.options.onState(state);
+  }
+
+  // A quiet moment, or the longest wait if that comes first.
+  private nextSaveIn() {
+    const { quietMs, maxWaitMs } = this.options;
+    const longest = (this.firstUnsent ?? Date.now()) + maxWaitMs - Date.now();
+    return Math.max(0, Math.min(quietMs, longest));
   }
 
   private schedule(ms: number) {
@@ -122,6 +136,7 @@ export class Autosave {
       content,
     };
     const sent = this.edits;
+    this.firstUnsent = undefined;
     this.inFlight = true;
     this.setState("saving");
     // The whole answer is read before anything changes, so a stop while it
@@ -156,7 +171,7 @@ export class Autosave {
     this.failures = 0;
     if (this.edits !== sent) {
       this.setState("waiting");
-      this.schedule(this.options.quietMs);
+      this.schedule(this.nextSaveIn());
     } else {
       this.setState("saved");
     }

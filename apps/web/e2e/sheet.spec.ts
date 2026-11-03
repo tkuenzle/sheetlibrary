@@ -71,11 +71,11 @@ test("shows the sheet with its title", async ({ page }) => {
   await expect(status(page)).toHaveText("Saved");
 });
 
-// Scenarios "Reload after editing" and "Leaving after the save".
+// Scenarios "Reload after editing", "Leaving after the save" and "Typing".
 test("saves edits on its own, and a reload shows them", async ({ page }) => {
   await openSheet(page, await createSheet(page));
   await typeAtEnd(page, " again");
-  await expect(status(page)).toHaveText("Saving…");
+  await expect(status(page)).toHaveText("");
   await expect(status(page)).toHaveText("Saved");
   const seen = prompts(page, true);
   await page.reload();
@@ -83,6 +83,18 @@ test("saves edits on its own, and a reload shows them", async ({ page }) => {
     "Amazing grace, how sweet the sound again",
   );
   expect(seen).toEqual([]);
+});
+
+// Scenario "Slow save".
+test("says Saving… while a save takes a while", async ({ page }) => {
+  await openSheet(page, await createSheet(page));
+  await page.route("**/api/sheets/*", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
+  await typeAtEnd(page, " again");
+  await expect(status(page)).toHaveText("Saving…");
+  await expect(status(page)).toHaveText("Saved");
 });
 
 // Scenario "Offline".

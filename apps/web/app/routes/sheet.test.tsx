@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
+import type { SaveState } from "../sheets/autosave";
 import { createSheet } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheet";
@@ -118,7 +119,7 @@ describe("sheet page", () => {
   });
 
   it("has Rename and Delete in the sheet's menu", () => {
-    const items = (state: Parameters<typeof SaveStatus>[0]["state"]) =>
+    const items = (state: SaveState) =>
       sheetMenuItems({
         state,
         onRename: () => undefined,
@@ -171,13 +172,15 @@ describe("sheet page", () => {
   });
 
   it("says whether the edits are saved", () => {
-    const text = (state: Parameters<typeof SaveStatus>[0]["state"]) =>
-      renderToString(<SaveStatus state={state} />);
-    expect(text("waiting")).toContain("Saving…");
+    const text = (shown: Parameters<typeof SaveStatus>[0]["shown"]) =>
+      renderToString(<SaveStatus shown={shown} />);
+    expect(text("saved")).toContain("Saved");
     expect(text("saving")).toContain("Saving…");
     expect(text("failed")).toContain("Not saved yet. Trying again…");
     expect(text("conflict")).toContain("Not saved");
     expect(text("deleted")).toContain("Not saved");
+    // Scenario "Typing": nothing while edits wait.
+    expect(text(null)).toBe('<p class="save-status" role="status"></p>');
   });
 
   it("says to reload when the sheet changed in another tab", () => {

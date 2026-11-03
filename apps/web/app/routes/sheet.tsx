@@ -13,6 +13,10 @@ import { SidePanel, SidePanelButton } from "../shell/side-panel";
 import { TopBar } from "../shell/top-bar";
 import { type SaveState, useAutosave } from "../sheets/autosave";
 import { ArtistInPlace, TitleInPlace } from "../sheets/sheet-details";
+import {
+  type ShownSaveState,
+  useShownSaveState,
+} from "../sheets/shown-save-state";
 import { deleteStoredSheet } from "../sheets/delete";
 import { readSheet } from "../sheets/sheets.server";
 import { ConfirmDialog } from "../ui/confirm-dialog";
@@ -84,6 +88,7 @@ export function SheetView({
     const handed = editor.current?.handBack();
     return handed?.ok ? { title, artist, content: handed.sheet } : null;
   });
+  const shown = useShownSaveState(autosave.state);
   const conflict = autosave.state === "conflict";
   const deleted = autosave.state === "deleted";
   // Saving has stopped for good, so nothing more can be edited.
@@ -166,7 +171,7 @@ export function SheetView({
                   editor={editor}
                   readOnly={readOnly}
                 >
-                  <SaveStatus state={autosave.state} />
+                  <SaveStatus shown={shown} />
                 </SheetTitle>
                 <ArtistInPlace
                   artist={artist}
@@ -259,20 +264,20 @@ export function sheetMenuItems({
   ];
 }
 
-const saveStateText: Record<SaveState, string> = {
+const saveStateText: Record<NonNullable<ShownSaveState>, string> = {
   saved: "Saved",
-  waiting: "Saving…",
   saving: "Saving…",
   failed: "Not saved yet. Trying again…",
   conflict: "Not saved",
   deleted: "Not saved",
 };
 
-// Whether the edits are saved, beside the title.
-export function SaveStatus({ state }: { state: SaveState }) {
+// Whether the edits are saved, beside the title. Empty while edits wait, so
+// it stays quiet while someone types.
+export function SaveStatus({ shown }: { shown: ShownSaveState }) {
   return (
-    <p className="save-status" role="status" data-state={state}>
-      {saveStateText[state]}
+    <p className="save-status" role="status" data-state={shown ?? undefined}>
+      {shown && saveStateText[shown]}
     </p>
   );
 }

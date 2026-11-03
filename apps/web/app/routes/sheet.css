@@ -55,8 +55,10 @@
   }
 }
 
-/* Quiet, after the title and the key. */
+/* Quiet, after the title and the key. It keeps its line while empty, so
+   nothing moves when it wraps on a phone. */
 .save-status {
+  min-height: 1lh;
   margin: 0;
   color: var(--text-muted);
   font: 400 var(--font-size-small) / 1.4 var(--font);
