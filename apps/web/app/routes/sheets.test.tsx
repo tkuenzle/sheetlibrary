@@ -2,6 +2,7 @@ import { renderToString } from "react-dom/server";
 import { createRoutesStub, RouterContextProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { addPasskey } from "../auth/passkeys.test-helper";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
@@ -31,8 +32,17 @@ describe("library loader and action", () => {
     return context;
   }
 
-  const load = (userId: string | null) =>
-    loader({ context: context(userId) } as unknown as Route.LoaderArgs);
+  const load = (userId: string | null, search = "", cookie?: string) => {
+    const url = new URL(`https://sheetlibrary.com/sheets${search}`);
+    const request = new Request(url, {
+      headers: cookie ? { Cookie: cookie } : {},
+    });
+    return loader({
+      context: context(userId),
+      request,
+      url,
+    } as unknown as Route.LoaderArgs);
+  };
   const post = (userId: string | null) =>
     action({ context: context(userId) } as unknown as Route.ActionArgs);
 
@@ -49,7 +59,35 @@ describe("library loader and action", () => {
           updatedAt: expect.any(Number) as number,
         },
       ],
+      offerPasskey: false,
     });
+  });
+
+  // Scenario "First email sign-in".
+  it("offers a passkey after an email sign-in", async () => {
+    expect(await load("ana", "?passkey")).toMatchObject({
+      offerPasskey: true,
+    });
+  });
+
+  // Scenario "Account with a passkey".
+  it("offers no passkey to an account that has one", async () => {
+    await addPasskey(test.env.DB, "ana");
+    expect(await load("ana", "?passkey")).toMatchObject({
+      offerPasskey: false,
+    });
+  });
+
+  // Scenario "Closed before".
+  it("offers no passkey once this device closed the offer", async () => {
+    expect(
+      await load("ana", "?passkey", "a=1; passkey-offer=closed"),
+    ).toMatchObject({ offerPasskey: false });
+  });
+
+  // A reload, or a passkey sign-in, has no `?passkey`.
+  it("offers no passkey without ?passkey", async () => {
+    expect(await load("ana")).toMatchObject({ offerPasskey: false });
   });
 
   // Scenario "Not signed in".
@@ -80,9 +118,14 @@ describe("library loader and action", () => {
 });
 
 // The page needs a router for its form.
-function render(sheets: SheetListItem[]) {
+function render(sheets: SheetListItem[], offerPasskey?: boolean) {
   const Stub = createRoutesStub([
-    { path: "/", Component: () => <LibraryView sheets={sheets} /> },
+    {
+      path: "/",
+      Component: () => (
+        <LibraryView sheets={sheets} offerPasskey={offerPasskey} />
+      ),
+    },
   ]);
   return renderToString(<Stub />);
 }
@@ -148,6 +191,32 @@ describe("library page", () => {
     );
     expect(html).not.toContain("<ul");
     expect(html).not.toContain("library-actions-docked");
+  });
+
+  // Scenarios "First email sign-in" and "Opening the account page".
+  it("offers a passkey under the heading, linking to the account page", () => {
+    for (const sheets of [
+      [{ id: "abcdefghijkl", title: "Hallelujah", updatedAt: today }],
+      [],
+    ]) {
+      const html = render(sheets, true);
+      expect(html).toContain(
+        "Add a passkey to sign in on this device without waiting for an email.",
+      );
+      expect(html).toMatch(/<a [^>]*href="\/account"[^>]*>.*Add passkey<\/a>/);
+      expect(html).toMatch(/aria-label="Close"/);
+      expect(html.indexOf("passkey-offer")).toBeGreaterThan(
+        html.indexOf("<h1>Library</h1>"),
+      );
+      expect(html.indexOf("passkey-offer")).toBeLessThan(
+        html.indexOf(sheets.length ? "<ul" : "No sheets yet"),
+      );
+    }
+  });
+
+  it("offers no passkey without offerPasskey", () => {
+    expect(render([])).not.toContain("passkey-offer");
+    expect(render([], false)).not.toContain("passkey-offer");
   });
 
   it("sets the page title and asks search engines not to index it", () => {

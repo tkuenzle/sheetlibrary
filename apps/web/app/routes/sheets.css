@@ -100,6 +100,33 @@
   font: 700 var(--font-size-heading) / 1.2 var(--font);
 }
 
+/* The passkey offer after an email sign-in, in the note colors. */
+.passkey-offer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-l);
+  padding: 14px 14px 14px 20px;
+  border-radius: var(--corner-medium);
+  background: var(--info);
+  color: var(--on-info);
+  outline: 1px solid transparent;
+}
+
+.passkey-offer > p {
+  margin: 0;
+  font: 400 var(--font-size-body) / 1.45 var(--font);
+}
+
+.passkey-offer-add {
+  text-decoration: none;
+}
+
+/* "Close" sits in its tooltip's anchor. */
+.passkey-offer > .tooltip-anchor {
+  margin-left: calc(-1 * var(--space-m));
+}
+
 /* "Import" and "New sheet", side by side. */
 .library-actions {
   display: flex;
@@ -163,5 +190,36 @@
 
   .library-empty {
     padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
+  }
+
+  /* "Add passkey" below the text, and "Close" at the top right. */
+  .passkey-offer {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon text close"
+      ". add .";
+    align-items: start;
+    gap: var(--space-m);
+    padding: var(--space-xs) var(--space-xs) var(--space-l) 20px;
+  }
+
+  .passkey-offer > .icon {
+    grid-area: icon;
+    margin-top: var(--space-m);
+  }
+
+  .passkey-offer > p {
+    grid-area: text;
+    padding-top: var(--space-m);
+  }
+
+  .passkey-offer-add {
+    grid-area: add;
+    justify-self: start;
+  }
+
+  .passkey-offer > .tooltip-anchor {
+    grid-area: close;
+    margin-left: 0;
   }
 }

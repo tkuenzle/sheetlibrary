@@ -13,6 +13,10 @@ function importButton(page: Page) {
   return page.getByRole("button", { name: "Import from Ultimate Guitar" });
 }
 
+function passkeyOffer(page: Page) {
+  return page.getByRole("region", { name: "Passkey" });
+}
+
 function importDialog(page: Page) {
   return page.getByRole("dialog", { name: "Import from Ultimate Guitar" });
 }
@@ -26,7 +30,7 @@ async function pasteAndImport(page: Page, text: string) {
 }
 
 // Scenarios "Opening the email link", "First sign-in" and "Starting a
-// sheet". A new account starts with no sheets, so this signs in by email
+// sheet", and the passkey offer. A new account starts with no sheets, so this signs in by email
 // itself. Sign-in emails are limited per visitor, so only on one project.
 test("a new account signs in to an empty library and starts a sheet", async ({
   page,
@@ -40,10 +44,12 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await page.route("**/api/auth/sign-in/magic-link", async (route) => {
     const body = route.request().postDataJSON() as { callbackURL: string };
     callbackURL = body.callbackURL;
+    const marked = new URL(body.callbackURL, "http://localhost");
+    marked.searchParams.set("e2e", mark);
     await route.continue({
       postData: JSON.stringify({
         ...body,
-        callbackURL: `${body.callbackURL}?e2e=${mark}`,
+        callbackURL: marked.pathname + marked.search,
       }),
     });
   });
@@ -51,7 +57,7 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await page.getByLabel("Email").fill(`e2e-${mark}@example.com`);
   await page.getByRole("button", { name: "Send link" }).click();
   await expect(page.getByText("Check your email")).toBeVisible();
-  expect(callbackURL).toBe("/sheets");
+  expect(callbackURL).toBe("/sheets?passkey");
 
   let link: string | undefined;
   await expect.poll(async () => (link = await findLink(mark))).toBeDefined();
@@ -61,6 +67,25 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await expect(heading(page)).toHaveText("Library");
   await expect(page.getByText("No sheets yet")).toBeVisible();
   await expect(importButton(page)).toBeVisible();
+
+  // Scenarios "First email sign-in", "Opening the account page" and "Closed
+  // before". A reload doesn't offer it again.
+  await expect(passkeyOffer(page)).toContainText(
+    "Add a passkey to sign in on this device without waiting for an email.",
+  );
+  await expect(page).not.toHaveURL(/passkey/);
+  await page.reload();
+  await expect(heading(page)).toHaveText("Library");
+  await expect(passkeyOffer(page)).toHaveCount(0);
+  await page.goto("/sheets?passkey");
+  await passkeyOffer(page).getByRole("link", { name: "Add passkey" }).click();
+  await expect(page).toHaveURL("/account");
+  await page.goto("/sheets?passkey");
+  await passkeyOffer(page).getByRole("button", { name: "Close" }).click();
+  await expect(passkeyOffer(page)).toHaveCount(0);
+  await page.goto("/sheets?passkey");
+  await expect(heading(page)).toHaveText("Library");
+  await expect(passkeyOffer(page)).toHaveCount(0);
 
   await page.getByRole("button", { name: "New sheet" }).click();
   await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
