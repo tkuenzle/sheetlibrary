@@ -1,0 +1,26 @@
+/* A grouped list: rows 2px apart, small inner corners, and only the outer
+   corners of the first and last row fully round. The library and the
+   account page use it. */
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-list > li {
+  border-radius: var(--space-xs);
+  background: var(--surface-active);
+}
+
+.group-list > li:first-child {
+  border-top-left-radius: var(--corner-medium);
+  border-top-right-radius: var(--corner-medium);
+}
+
+.group-list > li:last-child {
+  border-bottom-left-radius: var(--corner-medium);
+  border-bottom-right-radius: var(--corner-medium);
+}

@@ -1,7 +1,7 @@
 import "../ui/button.css";
 import "./sign-in.css";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { redirect, useSearchParams } from "react-router";
 
 import {
@@ -10,8 +10,8 @@ import {
   signInWithPasskey,
 } from "../auth/auth-client";
 import { sessionContext } from "../context";
-import { TopBar } from "../shell/top-bar";
 import { Button } from "../ui/button";
+import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 import type { Route } from "./+types/sign-in";
 
@@ -33,7 +33,24 @@ export function loader({ context }: Route.LoaderArgs) {
 export type SignInState =
   LinkResult | "sending" | "passkey-failed" | "link-invalid" | null;
 
-// Shown instead of the form once the link is sent, so it can't be missed.
+// The page has no top bar: the site's name, linking home, sits above one
+// card that holds the sign-in, so nothing competes with the form.
+export function SignInFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="sign-in-page">
+      <a className="sign-in-name" href="/">
+        Sheet Library
+      </a>
+      <main className="sign-in">
+        <h1>Sign in</h1>
+        {children}
+      </main>
+    </div>
+  );
+}
+
+// Shown in the card instead of the form once the link is sent, so it can't
+// be missed.
 // Focus moves to its heading, so screen readers read it too.
 export function LinkSent({
   email,
@@ -49,6 +66,7 @@ export function LinkSent({
   return (
     <section className="sign-in-sent" aria-labelledby="sign-in-sent-title">
       <h2 id="sign-in-sent-title" ref={heading} tabIndex={-1}>
+        <Icon name="mail" />
         Check your email
       </h2>
       <p>
@@ -95,77 +113,65 @@ export default function SignIn() {
 
   if (state === "sent") {
     return (
-      <>
-        <TopBar />
-        <main className="sign-in">
-          <h1>Sign in</h1>
-          <LinkSent
-            email={email.trim()}
-            onBack={() => {
-              setEmail("");
-              setState(null);
-            }}
-          />
-        </main>
-      </>
+      <SignInFrame>
+        <LinkSent
+          email={email.trim()}
+          onBack={() => {
+            setEmail("");
+            setState(null);
+          }}
+        />
+      </SignInFrame>
     );
   }
 
   return (
-    <>
-      <TopBar />
-      <main className="sign-in">
-        <h1>Sign in</h1>
-        <Button
-          icon="passkey"
-          className="sign-in-passkey"
-          onClick={() => {
-            void signInWithPasskey().then((signedIn) => {
-              if (signedIn) window.location.assign("/");
-              else setState("passkey-failed");
-            });
-          }}
-        >
-          Sign in with a passkey
-        </Button>
-        <p className="sign-in-or">or</p>
-        <form
-          className="sign-in-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setState("sending");
-            void askForLink(email.trim()).then(setState);
-          }}
-        >
-          <div className="sign-in-field">
-            <label htmlFor={fieldId}>Email</label>
-            <p id={hintId}>Get a link by email to sign in</p>
-            <input
-              id={fieldId}
-              type="email"
-              name="email"
-              autoComplete="email"
-              required
-              aria-describedby={hintId}
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-              }}
-            />
-          </div>
-          <Button
-            type="submit"
-            variant="tonal"
-            icon="mail"
-            disabled={state === "sending"}
-          >
-            {state === "sending" ? "Sending…" : "Send link"}
-          </Button>
-        </form>
-        <div aria-live="polite">
-          <SignInNote state={state} />
+    <SignInFrame>
+      <Button
+        variant="tonal"
+        icon="passkey"
+        className="sign-in-passkey"
+        onClick={() => {
+          void signInWithPasskey().then((signedIn) => {
+            if (signedIn) window.location.assign("/");
+            else setState("passkey-failed");
+          });
+        }}
+      >
+        Sign in with a passkey
+      </Button>
+      <p className="sign-in-or">or</p>
+      <form
+        className="sign-in-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setState("sending");
+          void askForLink(email.trim()).then(setState);
+        }}
+      >
+        <div className="sign-in-field">
+          <label htmlFor={fieldId}>Email</label>
+          <p id={hintId}>Get a link by email to sign in</p>
+          <input
+            id={fieldId}
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            aria-describedby={hintId}
+            value={email}
+            onChange={(event) => {
+              setEmail(event.target.value);
+            }}
+          />
         </div>
-      </main>
-    </>
+        <Button type="submit" disabled={state === "sending"}>
+          {state === "sending" ? "Sending…" : "Send link"}
+        </Button>
+      </form>
+      <div aria-live="polite">
+        <SignInNote state={state} />
+      </div>
+    </SignInFrame>
   );
 }

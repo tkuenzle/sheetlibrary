@@ -1,5 +1,5 @@
-import accountCircle from "./icons/account_circle.svg?raw";
 import add from "./icons/add.svg?raw";
+import arrowBack from "./icons/arrow_back.svg?raw";
 import close from "./icons/close.svg?raw";
 import contentPasteGo from "./icons/content_paste_go.svg?raw";
 import deleteIcon from "./icons/delete.svg?raw";
@@ -8,6 +8,7 @@ import expandMore from "./icons/expand_more.svg?raw";
 import help from "./icons/help.svg?raw";
 import info from "./icons/info.svg?raw";
 import login from "./icons/login.svg?raw";
+import logout from "./icons/logout.svg?raw";
 import mail from "./icons/mail.svg?raw";
 import moreVert from "./icons/more_vert.svg?raw";
 import moveDown from "./icons/move_down.svg?raw";
@@ -22,8 +23,8 @@ import remove from "./icons/remove.svg?raw";
 // The npm packages only have icons drawn for 48px, which look too thin at
 // 24px.
 const sources = {
-  accountCircle,
   add,
+  arrowBack,
   close,
   contentPasteGo,
   // `delete` is a keyword, so its import has another name.
@@ -33,6 +34,7 @@ const sources = {
   help,
   info,
   login,
+  logout,
   mail,
   moreVert,
   moveDown,

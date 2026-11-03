@@ -1,34 +1,69 @@
-/* The sign-in and account pages: one narrow column below the top bar. */
-.sign-in,
-.account {
+/* The sign-in page: the site's name above one card, in the middle of the
+   page. */
+.sign-in-page {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-l);
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
   box-sizing: border-box;
-  max-width: 440px;
-  margin: 0 auto;
+  min-height: 100dvh;
   padding: var(--space-3xl) var(--space-l) 96px;
 }
 
-.sign-in h1,
-.account h1 {
-  margin: 0 0 var(--space-s);
-  font: 800 var(--font-size-title) / 1.1 var(--font);
+.sign-in-name {
+  color: var(--text);
+  font: 800 24px / 1 var(--font);
   letter-spacing: -0.03em;
+  text-decoration: none;
+}
+
+.sign-in-name:focus-visible {
+  border-radius: var(--space-xs);
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.sign-in {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 400px;
+  padding: 36px var(--space-2xl) var(--space-2xl);
+  border-radius: var(--corner-large);
+  background: var(--surface-active);
+}
+
+.sign-in h1 {
+  margin: 0 0 var(--space-xs);
+  font: 800 var(--font-size-title) / 1.05 var(--font);
+  letter-spacing: -0.035em;
 }
 
 .sign-in-or {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
   margin: 0;
   color: var(--text-muted);
   font: 400 var(--font-size-small) / 1.4 var(--font);
-  text-align: center;
+}
+
+/* The lines beside "or". */
+.sign-in-or::before,
+.sign-in-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 .sign-in-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-m);
+  gap: var(--space-l);
 }
 
 .sign-in-field {
@@ -63,21 +98,24 @@
   outline-offset: 1px;
 }
 
-/* Takes the form's place once the link is sent. */
+/* Takes the form's place in the card once the link is sent. */
 .sign-in-sent {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-m);
-  padding: var(--space-xl);
-  border-radius: var(--corner-medium);
-  background: var(--accent-soft);
-  color: var(--on-accent-soft);
 }
 
 .sign-in-sent h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   font: 700 var(--font-size-heading) / 1.2 var(--font);
+}
+
+.sign-in-sent h2 > .icon {
+  color: var(--accent);
 }
 
 .sign-in-sent h2:focus {
@@ -86,10 +124,33 @@
 
 .sign-in-sent p {
   margin: 0;
+  color: var(--text-muted);
   font: 400 var(--font-size-body) / 1.5 var(--font);
   overflow-wrap: anywhere;
 }
 
+.sign-in-sent strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .sign-in-sent .sign-in-back {
-  margin-left: calc(-1 * var(--space-m));
+  margin: var(--space-xs) 0 0 calc(-1 * var(--space-l));
+}
+
+/* Phone-wide (see app/breakpoints.ts): the card starts near the top. */
+@media (max-width: 640px) {
+  .sign-in-page {
+    justify-content: flex-start;
+    gap: var(--space-xl);
+    padding: 72px var(--space-m) 40px;
+  }
+
+  .sign-in-name {
+    font-size: 22px;
+  }
+
+  .sign-in {
+    padding: 28px 20px var(--space-xl);
+  }
 }

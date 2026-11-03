@@ -20,6 +20,14 @@ Three other directions were tried and dropped. Their boards are on the canvas's 
 
 The keeper idea from Margin is the tools beside the section.
 
+## The signed-in shell
+
+The mockups are on the canvas's "Library and account" page.
+
+- **Top bar A.** The library and the account page start with the site's name. On a sheet, the bar starts with "Library" and a back arrow instead, and the sheet's title is only the heading. No page has a breadcrumb: it repeated the heading. Signed in, the bar ends with the account: the email's first letter in a round tonal chip, linking to the account page. Option B, a breadcrumb on every page and a menu behind the initial, was dropped.
+- **Sign-in B.** The sign-in page has no top bar. The site's name sits above one card in the middle of the page, so nothing competes with the form, and "Check your email" takes the form's place in the card. "Send link" is the main button and "Sign in with a passkey" a tonal one, since everyone's first sign-in is by email. Option A, the card beside the home page's sample sheet, was dropped.
+- **The account page** uses the library's grouped rows: the email is one row, the passkeys a group with "Add passkey" as a tonal button under it, and "Sign out" is its own one-row group with an icon, so it doesn't look like another button.
+
 ## Role tokens
 
 Components only use role tokens. A style is one set of values for them. Light is the default; lamplight is the dark style. A later style, for example one for the stage, is a new set of values.
@@ -73,7 +81,7 @@ The tokens are in `apps/web/app/ui/tokens.css`. Each color is written as `light-
 
 ## Components
 
-The base components are React components in `apps/web/app/ui/`, each with its own CSS on the role tokens: `Button`, `IconButton`, `Tooltip`, `Toolbar`, `Popover` and `Note`. They keep an outline in forced colors mode. The `/design` page shows them in both styles. It exists only in pull request previews and the dev server.
+The base components are React components in `apps/web/app/ui/`, each with its own CSS on the role tokens: `Button`, `IconButton`, `Tooltip`, `Toolbar`, `Popover` and `Note`. They keep an outline in forced colors mode. The grouped rows of the library and the account page are a class, `group-list` in `group-list.css`, since their rows hold different things. The `/design` page shows them in both styles. It exists only in pull request previews and the dev server.
 
 The parts of a page are in `apps/web/app/shell/`: `TopBar` and `SidePanel`. Where the side panel sits is decided by CSS, so the server renders the right layout and nothing jumps when the scripts load.
 

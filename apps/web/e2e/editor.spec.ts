@@ -90,16 +90,12 @@ test("says it is a prototype and nothing is saved", async ({
   await expect(note).toContainText(/nothing is saved/i);
 });
 
-test("shows the song's title", async ({ page }, testInfo) => {
+// Scenario "Opening the editor".
+test("shows the song's title as the heading only", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Amazing Grace",
   );
-  // A phone's top bar only has room for the site's name.
-  if (!isPhone(testInfo)) {
-    await expect(
-      page.getByRole("banner").getByText("Amazing Grace"),
-    ).toBeVisible();
-  }
+  await expect(page.getByRole("banner")).not.toContainText("Amazing Grace");
 });
 
 test("goes home from the top bar", async ({ page }) => {

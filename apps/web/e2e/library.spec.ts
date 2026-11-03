@@ -66,10 +66,7 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
   await expect(page.getByLabel("Title")).toHaveValue("Untitled");
 
-  await page
-    .getByRole("banner")
-    .getByRole("link", { name: "Sheet Library" })
-    .click();
+  await page.getByRole("banner").getByRole("link", { name: "Library" }).click();
   await expect(page).toHaveURL("/sheets");
   await expect(page.getByRole("listitem")).toHaveCount(1);
   await expect(page.getByRole("listitem")).toContainText("Untitled");

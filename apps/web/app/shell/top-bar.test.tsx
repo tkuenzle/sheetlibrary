@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import { SignedInContext } from "./signed-in";
 import { TopBar } from "./top-bar";
 
+const ana = { initial: "A" };
+
 describe("TopBar", () => {
   it("links the site's name to the home page", () => {
     expect(renderToString(<TopBar />)).toContain(
@@ -14,7 +16,7 @@ describe("TopBar", () => {
   // Scenario "Going home from the editor".
   it("links the site's name to the home page when signed out", () => {
     const html = renderToString(
-      <SignedInContext value={false}>
+      <SignedInContext value={null}>
         <TopBar />
       </SignedInContext>,
     );
@@ -23,11 +25,10 @@ describe("TopBar", () => {
     );
   });
 
-  // Scenario "Back to the library".
   it("links the site's name to the library when signed in", () => {
     const html = renderToString(
-      <SignedInContext value={true}>
-        <TopBar title="Amazing Grace" />
+      <SignedInContext value={ana}>
+        <TopBar />
       </SignedInContext>,
     );
     expect(html).toContain(
@@ -35,9 +36,17 @@ describe("TopBar", () => {
     );
   });
 
-  it("shows the title after the name", () => {
-    const html = renderToString(<TopBar title="Amazing Grace" />);
-    expect(html).toMatch(/Sheet Library<\/a>.*Amazing Grace/);
+  // Scenarios "Back to the library" and "No title in the bar".
+  it("starts with Library instead of the site's name on a sheet", () => {
+    const html = renderToString(
+      <SignedInContext value={ana}>
+        <TopBar back />
+      </SignedInContext>,
+    );
+    expect(html).toMatch(
+      /^<header [^>]*><a class="top-bar-back" href="\/sheets"><svg [^>]*>.*<\/svg>Library<\/a>/,
+    );
+    expect(html).not.toContain("Sheet Library");
   });
 
   it("shows the actions only when given", () => {
@@ -54,7 +63,7 @@ describe("TopBar", () => {
   // Scenario "Signed out".
   it("links to sign-in when signed out", () => {
     const html = renderToString(
-      <SignedInContext value={false}>
+      <SignedInContext value={null}>
         <TopBar />
       </SignedInContext>,
     );
@@ -63,19 +72,33 @@ describe("TopBar", () => {
   });
 
   // Scenario "Signed in".
-  it("links to the account when signed in, and not to sign-in", () => {
+  it("shows the account as its initial when signed in, and not sign-in", () => {
     const html = renderToString(
-      <SignedInContext value={true}>
+      <SignedInContext value={ana}>
         <TopBar />
       </SignedInContext>,
     );
-    expect(html).toMatch(/<a [^>]*href="\/account" aria-label="Account">/);
+    expect(html).toMatch(
+      /<a class="top-bar-account" href="\/account" aria-label="Account"><span [^>]*aria-hidden="true">A<\/span><\/a>/,
+    );
     expect(html).not.toContain("Sign in");
+    expect(html).not.toContain("aria-current");
+  });
+
+  it("marks the account as the current page on the account page", () => {
+    const html = renderToString(
+      <SignedInContext value={ana}>
+        <TopBar accountPage />
+      </SignedInContext>,
+    );
+    expect(html).toMatch(
+      /<a [^>]*href="\/account" aria-label="Account" aria-current="page">/,
+    );
   });
 
   it("puts the account link after the page's actions", () => {
     const html = renderToString(
-      <SignedInContext value={false}>
+      <SignedInContext value={null}>
         <TopBar>
           <button type="button">Help</button>
         </TopBar>

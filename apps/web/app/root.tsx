@@ -13,7 +13,7 @@ import {
 import type { Route } from "./+types/root";
 import { getAuth } from "./auth/auth.server";
 import { cloudflareContext, sessionContext } from "./context";
-import { SignedInContext } from "./shell/signed-in";
+import { initialOf, SignedInContext } from "./shell/signed-in";
 
 // The font is served from our own origin (see docs/design-direction.md). The
 // latin file holds every weight, so preloading it covers the lyrics and the
@@ -42,7 +42,10 @@ export const middleware: Route.MiddlewareFunction[] = [
 ];
 
 export function loader({ context }: Route.LoaderArgs) {
-  return { signedIn: context.get(sessionContext) !== null };
+  const session = context.get(sessionContext);
+  return {
+    signedIn: session ? { initial: initialOf(session.user.email) } : null,
+  };
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
