@@ -19,8 +19,8 @@
 
 ## 4. Infrastructure
 
-- [ ] 4.1 Create the gateway `sheetlibrary` by hand with logs off (authentication stays on), then add `cloudflare_ai_gateway` with an `import` block to `infra/`; verify with `just tofu-plan` showing an import and no other change to it
-- [ ] 4.2 Give the pipeline's Cloudflare tokens access to AI Gateway: read for the pull request plan, edit for apply on merge; verify with the plan on the pull request
+- [x] 4.1 Create the gateway `sheetlibrary` by hand with logs off (authentication stays on), then add `cloudflare_ai_gateway` with an `import` block to `infra/`; verify with `just tofu-plan` showing an import and no other change to it
+- [x] 4.2 Give the pipeline's Cloudflare tokens access to AI Gateway: read for the pull request plan, edit for apply on merge; verify with the plan on the pull request
 - [ ] 4.3 Create the production and preview API keys in separate Anthropic workspaces, each with a monthly spending cap, and a gateway token for each Worker; set them with `wrangler secret put ANTHROPIC_API_KEY` and `wrangler secret put PHOTO_GATEWAY_TOKEN` on `sheetlibrary` and `sheetlibrary-preview`; verify with `wrangler secret list` on both Workers
 
 ## 5. Checks on the preview

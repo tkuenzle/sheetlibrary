@@ -97,7 +97,8 @@ describe("Claude photo model", () => {
     const [url, init] = fetch.mock.calls[0] ?? [];
     expect(String(url)).toBe(`${gatewayURL}/v1/messages`);
     const headers = new Headers(init?.headers);
-    expect(headers.get("authorization")).toBe("Bearer test-key");
+    expect(headers.get("x-api-key")).toBe("test-key");
+    expect(headers.get("authorization")).toBeNull();
     expect(headers.get("cf-aig-authorization")).toBe("Bearer gateway-token");
     expect(headers.get("anthropic-beta")).toBe(
       "server-side-fallback-2026-07-01",

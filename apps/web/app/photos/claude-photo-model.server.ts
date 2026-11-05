@@ -16,10 +16,16 @@ export function claudePhotoModel({
   gatewayURL: string;
   gatewayToken: string;
 }): PhotoModel {
+  // The SDK sends an API key as "Authorization: Bearer", which the gateway
+  // doesn't take as the Anthropic key: it then bills the call to Cloudflare's
+  // unified billing. So the key goes in x-api-key instead.
   const client = new Anthropic({
-    apiKey,
+    apiKey: null,
     baseURL: gatewayURL,
-    defaultHeaders: { "cf-aig-authorization": `Bearer ${gatewayToken}` },
+    defaultHeaders: {
+      "x-api-key": apiKey,
+      "cf-aig-authorization": `Bearer ${gatewayToken}`,
+    },
   });
   return async (photos, signal) => {
     const content: Anthropic.Beta.BetaContentBlockParam[] = [];
