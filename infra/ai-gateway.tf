@@ -17,6 +17,10 @@ resource "cloudflare_ai_gateway" "sheetlibrary" {
   cache_invalidate_on_update = false
 
   # No rate limit. Each API key has a monthly spending cap instead.
-  rate_limiting_interval = 0
-  rate_limiting_limit    = 0
+  rate_limiting_interval  = 0
+  rate_limiting_limit     = 0
+  rate_limiting_technique = "fixed"
+
+  # The Worker sends only the Anthropic API key, no gateway token.
+  authentication = false
 }
