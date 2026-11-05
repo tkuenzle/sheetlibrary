@@ -6,11 +6,10 @@ import { eastAsianWidth } from "get-east-asian-width";
 
 import type { MarkedChord } from "./chord-mark";
 import { type ChordSymbol, readChord } from "./chord-symbol";
-import { cleanUpLabel, cleanUpSection } from "./clean-up";
+import { cleanUpLabel, cleanUpSection, cutLabel } from "./clean-up";
 import {
   type ChordSheet,
   FORMAT,
-  LABEL_MAX,
   type Line,
   type Section,
   VERSION,
@@ -59,16 +58,6 @@ function classify(line: string): UgLine {
   if (label !== undefined) return { kind: "header", label: cutLabel(label) };
   if (TAB.test(line)) return { kind: "tab" };
   return readChordLine(line) ?? { kind: "lyrics", text: line };
-}
-
-// Cuts a label to the longest one a section can have, without splitting a
-// character.
-function cutLabel(label: string): string {
-  if (label.length <= LABEL_MAX) return label;
-  const cut = label.slice(0, LABEL_MAX);
-  const end = cut.charCodeAt(cut.length - 1);
-  const whole = end >= 0xd800 && end <= 0xdbff ? cut.slice(0, -1) : cut;
-  return whole.trimEnd();
 }
 
 // A chord line holds chords, chords in round brackets, bars, repeat counts

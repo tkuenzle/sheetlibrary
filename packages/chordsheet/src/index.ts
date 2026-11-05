@@ -3,6 +3,8 @@ export * from "./chord-mark";
 export * from "./chord-symbol";
 export * from "./clean-up";
 export * from "./keys";
+export * from "./photo-answer";
+export * from "./photo-answer-prompt";
 export * from "./sheet";
 export * from "./sheet-envelope";
 export * from "./suggestions";
