@@ -1,5 +1,5 @@
 import { isBlank } from "./check";
-import type { Line, Section } from "./sheet";
+import { LABEL_MAX, type Line, type Section } from "./sheet";
 
 // Cleans up a section after editing: drops spaces from each line, then
 // drops empty lines, and cleans up the label. Returns undefined when no line
@@ -19,6 +19,16 @@ export function cleanUpSection(section: Section): Section | undefined {
 export function cleanUpLabel(label: string | undefined): string | undefined {
   const cleaned = label?.replace(/\s+/g, " ").trim();
   return cleaned === "" ? undefined : cleaned;
+}
+
+// Cuts a label to the longest one a section can have, without splitting a
+// character.
+export function cutLabel(label: string): string {
+  if (label.length <= LABEL_MAX) return label;
+  const cut = label.slice(0, LABEL_MAX);
+  const end = cut.charCodeAt(cut.length - 1);
+  const whole = end >= 0xd800 && end <= 0xdbff ? cut.slice(0, -1) : cut;
+  return whole.trimEnd();
 }
 
 // The positions of the spaces that clean-up drops from a line, in order:

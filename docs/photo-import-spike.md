@@ -62,6 +62,8 @@ At high effort, Sonnet and Haiku thought far longer than Opus (up to 80,000 thin
 
 Version 4. Its last three rules were added after the runs and are untested.
 
+The prompt now lives in `packages/chordsheet/src/photo-answer-prompt.ts`, next to the reader for its answers (#37). It was edited there to ask only for what a chord sheet can hold: no comments, composer or lyricist, `[[C]]` for optional chords, repeats written out, and spoken words as plain lines. Those edits have not been run yet. The version below is the one from the spike.
+
 ```text
 You turn photos of a song from a vocal songbook into a chord sheet in ChordPro.
 
