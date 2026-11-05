@@ -5,6 +5,7 @@ import { pickPhotoModel } from "./photo-model.server";
 
 const env = {
   PHOTO_GATEWAY_URL: "https://gateway.example/anthropic",
+  PHOTO_GATEWAY_TOKEN: "gateway-token",
   ANTHROPIC_API_KEY: "test-key",
 };
 

@@ -3,13 +3,13 @@
 ## 1. Setup
 
 - [x] 1.1 Add `@anthropic-ai/sdk` to `apps/web` and check that a build that imports it runs in workerd under `just dev`; verify with `just build` and note the bundle growth in the pull request
-- [x] 1.2 In `wrangler.jsonc`, add the `enable_request_signal` flag, `PHOTO_MODEL` (`claude`) and `PHOTO_GATEWAY_URL` to production and the preview, and `ANTHROPIC_API_KEY` to both lists of required secrets; verify with `pnpm --filter web cf-typegen` and `just typecheck`
+- [x] 1.2 In `wrangler.jsonc`, add the `enable_request_signal` flag, `PHOTO_MODEL` (`claude`) and `PHOTO_GATEWAY_URL` to production and the preview, and `ANTHROPIC_API_KEY` and `PHOTO_GATEWAY_TOKEN` to both lists of required secrets; verify with `pnpm --filter web cf-typegen` and `just typecheck`
 - [x] 1.3 Set `PHOTO_MODEL=fake` for local dev and the end-to-end servers, and check that it overrides the config there; add it to the README's `.dev.vars` line; verify by reading `env.PHOTO_MODEL` under `just dev` and `just e2e`
 
 ## 2. The models
 
 - [x] 2.1 Add the `PhotoModel` type and the fake in `app/photos/`, answering "Amazing Grace" in the answer format after an optional `PHOTO_FAKE_DELAY_SECONDS` and stopping when its signal aborts; verify with a test that `readPhotoAnswer` gives a sheet with the title "Amazing Grace", its sections and chords, and a test that an abort ends the wait
-- [x] 2.2 Add the Claude model: SDK client on the gateway URL, `claude-opus-5-5`, effort `low`, `max_tokens` 64000, the prompt as system, "Page n" and the base64 image per page, `fallbacks: "default"`, streamed with `finalMessage()`, the signal passed on, and an error for any stop but `end_turn`; verify with tests on a stubbed `fetch` for the request body, a refusal and an abort
+- [x] 2.2 Add the Claude model: SDK client on the gateway URL with the gateway token in `cf-aig-authorization`, `claude-opus-5-5`, effort `low`, `max_tokens` 64000, the prompt as system, "Page n" and the base64 image per page, `fallbacks: "default"`, streamed with `finalMessage()`, the signal passed on, and an error for any stop but `end_turn`; verify with tests on a stubbed `fetch` for the request body and headers, a refusal and an abort
 - [x] 2.3 Pick the model from `PHOTO_MODEL`, failing on any other value; verify with a test for `claude`, `fake` and an unknown value
 
 ## 3. The endpoint
@@ -19,9 +19,9 @@
 
 ## 4. Infrastructure
 
-- [ ] 4.1 Create the gateway `sheetlibrary` by hand with logs off, then add `cloudflare_ai_gateway` with an `import` block to `infra/`; verify with `just tofu-plan` showing an import and no other change to it
+- [ ] 4.1 Create the gateway `sheetlibrary` by hand with logs off (authentication stays on), then add `cloudflare_ai_gateway` with an `import` block to `infra/`; verify with `just tofu-plan` showing an import and no other change to it
 - [ ] 4.2 Give the pipeline's Cloudflare tokens access to AI Gateway: read for the pull request plan, edit for apply on merge; verify with the plan on the pull request
-- [ ] 4.3 Create the production and preview API keys in separate Anthropic workspaces, each with a monthly spending cap, and set them with `wrangler secret put ANTHROPIC_API_KEY` on `sheetlibrary` and `sheetlibrary-preview`; verify with `wrangler secret list` on both Workers
+- [ ] 4.3 Create the production and preview API keys in separate Anthropic workspaces, each with a monthly spending cap, and a gateway token for each Worker; set them with `wrangler secret put ANTHROPIC_API_KEY` and `wrangler secret put PHOTO_GATEWAY_TOKEN` on `sheetlibrary` and `sheetlibrary-preview`; verify with `wrangler secret list` on both Workers
 
 ## 5. Checks on the preview
 

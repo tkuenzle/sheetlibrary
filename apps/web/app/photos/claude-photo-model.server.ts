@@ -3,17 +3,24 @@ import { PHOTO_ANSWER_PROMPT } from "chordsheet";
 
 import type { PhotoModel } from "./photo-model.server";
 
-// Reads photos with Claude, through the AI gateway in infra/. The model and
-// effort are the ones the photo import spike chose to start with
-// (docs/photo-import-spike.md); #102 picks the final ones.
+// Reads photos with Claude, through the AI gateway in infra/, which only
+// takes requests with its token. The model and effort are the ones the photo
+// import spike chose to start with (docs/photo-import-spike.md); #102 picks
+// the final ones.
 export function claudePhotoModel({
   apiKey,
   gatewayURL,
+  gatewayToken,
 }: {
   apiKey: string;
   gatewayURL: string;
+  gatewayToken: string;
 }): PhotoModel {
-  const client = new Anthropic({ apiKey, baseURL: gatewayURL });
+  const client = new Anthropic({
+    apiKey,
+    baseURL: gatewayURL,
+    defaultHeaders: { "cf-aig-authorization": `Bearer ${gatewayToken}` },
+  });
   return async (photos, signal) => {
     const content: Anthropic.Beta.BetaContentBlockParam[] = [];
     for (const [index, photo] of photos.entries()) {

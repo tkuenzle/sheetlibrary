@@ -21,6 +21,7 @@ resource "cloudflare_ai_gateway" "sheetlibrary" {
   rate_limiting_limit     = 0
   rate_limiting_technique = "fixed"
 
-  # The Worker sends only the Anthropic API key, no gateway token.
-  authentication = false
+  # New gateways only take requests with a gateway token, and this can't be
+  # turned off. Each Worker has its own token in PHOTO_GATEWAY_TOKEN.
+  authentication = true
 }

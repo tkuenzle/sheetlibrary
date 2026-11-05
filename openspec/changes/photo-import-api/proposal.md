@@ -12,7 +12,7 @@ Photo import (#93) needs a vision model behind the site. Calling it from the Wor
 - The model sits behind an interface, with two kinds: Claude through Cloudflare AI Gateway, and a fake that answers with a public-domain song. Local dev and CI use the fake.
 - When the browser's request goes away, the Worker stops the call to the model.
 - The photos are not kept. The AI gateway is defined in `infra/`, with logs off.
-- Production and previews each get their own API key, set as a secret by hand. The preview key has a small spending cap.
+- Production and previews each get their own API key and gateway token, set as secrets by hand. The preview key has a small spending cap.
 - On a preview: measure the CPU time per request, check that a 2-minute call gets through, and run the prompt on the owner's real pages.
 
 No change in the app's pages. The UI is #93.
@@ -29,9 +29,9 @@ No change in the app's pages. The UI is #93.
 
 ## Impact
 
-- `apps/web`: a new route and its handler, the model client and the fake, `@anthropic-ai/sdk` as a dependency, and `wrangler.jsonc` (a var for the gateway, the model choice, the API key as a required secret).
+- `apps/web`: a new route and its handler, the model client and the fake, `@anthropic-ai/sdk` as a dependency, and `wrangler.jsonc` (a var for the gateway, the model choice, the API key and the gateway token as required secrets).
 - `infra/`: the AI gateway. The Cloudflare tokens for the pipeline need access to AI Gateway.
-- Cloudflare and Anthropic, by hand: two API keys in separate workspaces with spending caps, set as Worker secrets.
+- Cloudflare and Anthropic, by hand: two API keys in separate workspaces with spending caps, and two gateway tokens, set as Worker secrets.
 - Maybe Workers Paid (#71), if a request needs more than 10 ms of CPU.
 
 ## Open Questions

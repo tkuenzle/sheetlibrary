@@ -13,6 +13,7 @@ export type PhotoModel = (
 export interface PhotoModelEnv {
   PHOTO_MODEL: string;
   PHOTO_GATEWAY_URL: string;
+  PHOTO_GATEWAY_TOKEN: string;
   ANTHROPIC_API_KEY: string;
   PHOTO_FAKE_DELAY_SECONDS?: string;
 }
@@ -26,6 +27,7 @@ export function pickPhotoModel(env: PhotoModelEnv): PhotoModel {
       return claudePhotoModel({
         apiKey: env.ANTHROPIC_API_KEY,
         gatewayURL: env.PHOTO_GATEWAY_URL,
+        gatewayToken: env.PHOTO_GATEWAY_TOKEN,
       });
     case "fake":
       return fakePhotoModel(Number(env.PHOTO_FAKE_DELAY_SECONDS ?? "0"));

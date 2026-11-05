@@ -35,7 +35,9 @@
 
 **One AI gateway, created by hand and imported.** `cloudflare_ai_gateway` named `sheetlibrary`, with logs off. Previews need it before the change is merged, and `infra/` only applies on merge, so it is created by hand first and imported, as the databases were. It holds no data, so unlike the databases it stays in the pull request plan. Production and previews share it; their keys keep the spending apart. The Worker gets its URL from a var, `PHOTO_GATEWAY_URL`. The AI binding's `gateway().getUrl()` was the other choice, but the binding always runs remotely, also in local dev, which CI can't do.
 
-**`PHOTO_MODEL` picks the model: `claude` or `fake`.** Production and previews set `claude` in `wrangler.jsonc`, with `ANTHROPIC_API_KEY` as a required secret, so a deploy without a key fails. Local dev sets `fake` in `.dev.vars`, and the end-to-end servers set it in their environment. Any other value is an error, so nothing falls back to the fake by accident.
+**The gateway needs a token.** New gateways only take requests with a gateway token, and this can't be turned off. The Worker sends it in the `cf-aig-authorization` header, from the `PHOTO_GATEWAY_TOKEN` secret, next to the API key. Production and previews each have their own token, like their keys.
+
+**`PHOTO_MODEL` picks the model: `claude` or `fake`.** Production and previews set `claude` in `wrangler.jsonc`, with `ANTHROPIC_API_KEY` and `PHOTO_GATEWAY_TOKEN` as required secrets, so a deploy without them fails. Local dev sets `fake` in `.dev.vars`, and the end-to-end servers set it in their environment. Any other value is an error, so nothing falls back to the fake by accident.
 
 **The fake answers with "Amazing Grace".** It is in the public domain, and the app already uses it as the editor's seed song. Its answer is written by hand in the answer format, with sections and chords. The spike's public-domain song is with the owner and can replace it later. The fake can wait before answering, with `PHOTO_FAKE_DELAY_SECONDS`, for the timeout check and for #93's progress; it stops waiting when the signal aborts.
 
@@ -45,12 +47,12 @@
 
 - [A request needs more than 10 ms of CPU] → Move to Workers Paid (#71), which open sign-up needs anyway.
 - [`request.signal` doesn't fire on the preview] → The call runs to its end and costs up to about 30 cents; the spending cap limits it. Found by a check on the preview.
-- [The preview key is readable by code in any pull request from this repository] → Only people who can push get a preview. The key has a small cap and can be revoked without touching production.
+- [The preview key and gateway token are readable by code in any pull request from this repository] → Only people who can push get a preview. The key has a small cap, and both can be revoked without touching production.
 - [The SDK doesn't run in workerd, or is large] → Checked in the first task, before anything is built on it.
 - [The fallback model answers worse than Opus] → It runs only after a refusal, which songbook pages shouldn't cause. #102 can count it.
 
 ## Migration Plan
 
-1. Before the pull request's first preview: create the gateway by hand, create both API keys with their caps, set them as secrets on both Workers, and give the pipeline's Cloudflare tokens access to AI Gateway.
+1. Before the pull request's first preview: create the gateway by hand, create both API keys with their caps and a gateway token for each Worker, set them as secrets on both Workers, and give the pipeline's Cloudflare tokens access to AI Gateway.
 2. On merge, `infra/` imports the gateway and production deploys with its key.
 3. Rollback: revert the pull request. Nothing calls the endpoint until #93.

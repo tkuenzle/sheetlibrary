@@ -17,7 +17,11 @@ const gatewayURL =
   "https://gateway.ai.cloudflare.com/v1/account/sheetlibrary/anthropic";
 
 function model() {
-  return claudePhotoModel({ apiKey: "test-key", gatewayURL });
+  return claudePhotoModel({
+    apiKey: "test-key",
+    gatewayURL,
+    gatewayToken: "gateway-token",
+  });
 }
 
 function photo(bytes: number[], type = "image/jpeg") {
@@ -94,6 +98,7 @@ describe("Claude photo model", () => {
     expect(String(url)).toBe(`${gatewayURL}/v1/messages`);
     const headers = new Headers(init?.headers);
     expect(headers.get("authorization")).toBe("Bearer test-key");
+    expect(headers.get("cf-aig-authorization")).toBe("Bearer gateway-token");
     expect(headers.get("anthropic-beta")).toBe(
       "server-side-fallback-2026-07-01",
     );
