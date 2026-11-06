@@ -21,15 +21,15 @@
 
 - [x] 4.1 Create the gateway `sheetlibrary` by hand with logs off (authentication stays on), then add `cloudflare_ai_gateway` with an `import` block to `infra/`; verify with `just tofu-plan` showing an import and no other change to it
 - [x] 4.2 Give the pipeline's Cloudflare tokens access to AI Gateway: read for the pull request plan, edit for apply on merge; verify with the plan on the pull request
-- [ ] 4.3 Create the production and preview API keys in separate Anthropic workspaces, each with a monthly spending cap, and a gateway token for each Worker; set them with `wrangler secret put ANTHROPIC_API_KEY` and `wrangler secret put PHOTO_GATEWAY_TOKEN` on `sheetlibrary` and `sheetlibrary-preview`; verify with `wrangler secret list` on both Workers
+- [x] 4.3 Create the production and preview API keys in separate Anthropic workspaces, each with a monthly spending cap, and a gateway token for each Worker; set them with `wrangler secret put ANTHROPIC_API_KEY` and `wrangler secret put PHOTO_GATEWAY_TOKEN` on `sheetlibrary` and `sheetlibrary-preview`; verify with `wrangler secret list` on both Workers
 
 ## 5. Checks on the preview
 
 - [x] 5.1 Send the spike's 7-page song to the preview and read its CPU time in Workers Logs; record it in `docs/photo-import-spike.md`, and if it is over 10 ms, stop and decide with the owner on Workers Paid (#71)
-- [ ] 5.2 Set the preview to the fake with a 120-second delay, check that the answer arrives, then set it back to Claude; record the result in `docs/photo-import-spike.md`
+- [x] 5.2 Set the preview to the fake with a 120-second delay, check that the answer arrives, then set it back to Claude; record the result in `docs/photo-import-spike.md`
 - [x] 5.3 Stop a request while the model reads, and check in the gateway's analytics or the Anthropic console that the call ended early; record it in `docs/photo-import-spike.md`
 - [x] 5.4 Run the owner's spike songs through the preview, check them against the spike's bar (stacked verses as one section each, `artist` only for a performer, and the three untested rules), and record the counts in `docs/photo-import-spike.md`; fix the prompt and its tests if a rule fails
-- [ ] 5.5 Check in the gateway that no log holds a request; verify by reading its logs page after 5.4
+- [x] 5.5 Check in the gateway that no log holds a request; verify by reading its logs page after 5.4
 
 ## Workflow follow-up
 
