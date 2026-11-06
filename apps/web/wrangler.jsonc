@@ -71,7 +71,9 @@
         // Pull request tokens can't reach D1, so the preview applies its own
         // migrations through its binding. See openspec/specs/site-hosting.
         "PREVIEW_MIGRATIONS": "on",
-        "PHOTO_MODEL": "claude",
+        // Temporary, for the 2-minute check (task 5.2). Revert to "claude".
+        "PHOTO_MODEL": "fake",
+        "PHOTO_FAKE_DELAY_SECONDS": "120",
         "PHOTO_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/2a6fd0d4958405587e8d5fc78066a0fb/sheetlibrary/anthropic",
       },
     },
