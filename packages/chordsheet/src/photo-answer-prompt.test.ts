@@ -15,6 +15,7 @@ const spans = [...PHOTO_ANSWER_PROMPT.matchAll(/`([^`]+)`/g)].map(
 const examples: Record<string, Line> = {
   "A[D]mazing [G]grace": line("Amazing grace", [1, "D"], [8, "G"]),
   "grace[D7] how": line("grace how", [5, "D7"]),
+  "[Fm] the sound": line(" the sound", [0, "Fm"]),
   "[C] [G] [C]": line("  ", [0, "C"], [1, "G"], [2, "C"]),
   "[(C)]": line("", [0, "(C)"]),
   "[[C]]": line("", [0, "[C]"]),

@@ -110,3 +110,11 @@ Answer with the ChordPro text only, with no code fence and nothing before or aft
 - **#37, reading ChordPro:** answers use `{comment: …}` lines for repeat signs, spoken lines and singers, and the chord sheet model has no comment lines yet. Pages can name several lyricists, so `{lyricist}` can appear more than once. Section labels come from the page in its language, such as "Strophe" and "Refrain". `[N.C.]` and `[(C)]` need reading too.
 - **#93, photo import:** send all pages of a song in one call; seven pages worked. Show progress, since a hard page can take two minutes. The prompt above is the starting point, and `{artist}` stays empty unless the page names a performer.
 - **#102, benchmark:** the six songs and their corrected answers are with the owner. Try Opus 5.5 at low and medium effort, Sonnet 5.5 at low effort and with thinking off, and photo sizes below 2000 px.
+
+## On the server (#105)
+
+Checks of `POST /api/photo-import` on the pull request preview, with Opus 5.5 at low effort through the AI gateway.
+
+- **CPU time.** The 7-page song took 179 ms of CPU in the Worker, far over the 10 ms of Workers Free. Reading the photos, writing them as base64 into a 10 MB request and reading the streamed answer all count; waiting for the model doesn't. The account moved to Workers Paid.
+- **Stopping.** A request for the 7-page song, stopped in the browser after about 10 seconds, showed up as cancelled: the call to the model ended too, so a closed dialog doesn't keep paying for the answer.
+- **At the End of the Day, first run.** No wrong words. 68 chords, 98.5% with the right name and 84% on the right syllable, so below the bar. 11 chords on a rest at the start of a line were moved to the next syllable, and verse 4 got a chord the page doesn't have. The coda was a section of its own, as the prompt asked, although it finishes verse 5. The prompt now puts a chord on a rest at the start of the line, `[Fm] the sound`, and writes the coda at the end of the section that jumps to it.

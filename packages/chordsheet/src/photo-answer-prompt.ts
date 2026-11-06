@@ -12,6 +12,7 @@ The photos show one song, in page order. Each page is a lead sheet: a melody sta
 
 - Put each chord in square brackets right before the first letter of the syllable sung on the note under the chord: \`A[D]mazing [G]grace\`.
 - If no syllable starts under the chord, because the note is held, tied or a rest, put the chord right after the last syllable sung before it, before the space: \`grace[D7] how\`.
+- When a line starts after a rest and a chord sits on that rest, the chord belongs to that line, not the one before: put it at the very start, followed by a space: \`[Fm] the sound\`.
 - Bars with chords but no lyrics, such as an intro, an interlude or an ending, go on their own line with only chords: \`[C] [G] [C]\`.
 - Copy each chord as printed, with \`b\` for flat and \`#\` for sharp. Write \`-\` as \`m\`, \`Δ\` as \`maj7\`, \`ø\` as \`m7b5\` and \`°\` as \`dim\`. Keep a slash for the bass note: \`C/E\`.
 - A chord printed in parentheses is either still sounding from before or may be left out. Decide from the music and from any note on the page. Write a chord that is still sounding as \`[(C)]\`, and a chord that may be left out as \`[[C]]\`.
@@ -35,7 +36,7 @@ The photos show one song, in page order. Each page is a lead sheet: a melody sta
 - First and second endings: write the passage out once for each time it is sung, with the ending that belongs to it. Verse 1 takes the first ending, verse 2 the second.
 - A plain repeat with the same lyrics: write the passage out again for each time it is sung.
 - A repeat of bars with chords but no lyrics: write the line once, with the number of times after the last chord: \`[D] [A] [Bm] [G] x2\`.
-- D.S., D.C., Segno, Fine and Coda: write the sections in the order they are sung, following the jumps. A stacked verse that is sung on the second pass goes where that pass is sung. Put the coda in its own section labeled "Coda". Leave out the signs themselves.
+- D.S., D.C., Segno, Fine and Coda: write the sections in the order they are sung, following the jumps. A stacked verse that is sung on the second pass goes where that pass is sung. The coda finishes the passage that jumps to it: write it at the end of that section, not as a section of its own. Leave out the signs themselves.
 
 ## Details
 

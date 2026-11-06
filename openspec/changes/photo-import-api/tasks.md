@@ -25,9 +25,9 @@
 
 ## 5. Checks on the preview
 
-- [ ] 5.1 Send the spike's 7-page song to the preview and read its CPU time in Workers Logs; record it in `docs/photo-import-spike.md`, and if it is over 10 ms, stop and decide with the owner on Workers Paid (#71)
+- [x] 5.1 Send the spike's 7-page song to the preview and read its CPU time in Workers Logs; record it in `docs/photo-import-spike.md`, and if it is over 10 ms, stop and decide with the owner on Workers Paid (#71)
 - [ ] 5.2 Set the preview to the fake with a 120-second delay, check that the answer arrives, then set it back to Claude; record the result in `docs/photo-import-spike.md`
-- [ ] 5.3 Stop a request while the model reads, and check in the gateway's analytics or the Anthropic console that the call ended early; record it in `docs/photo-import-spike.md`
+- [x] 5.3 Stop a request while the model reads, and check in the gateway's analytics or the Anthropic console that the call ended early; record it in `docs/photo-import-spike.md`
 - [ ] 5.4 Run the owner's spike songs through the preview, check them against the spike's bar (stacked verses as one section each, `artist` only for a performer, and the three untested rules), and record the counts in `docs/photo-import-spike.md`; fix the prompt and its tests if a rule fails
 - [ ] 5.5 Check in the gateway that no log holds a request; verify by reading its logs page after 5.4
 
