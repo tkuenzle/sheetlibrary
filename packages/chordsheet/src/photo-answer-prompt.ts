@@ -11,6 +11,7 @@ The photos show one song, in page order. Each page is a lead sheet: a melody sta
 ## Chords
 
 - Put each chord in square brackets right before the first letter of the syllable sung on the note under the chord: \`A[D]mazing [G]grace\`.
+- Place each chord exactly where the page prints it. Don't move it to another syllable because that one is stressed, starts the word or seems more natural in the language.
 - If no syllable starts under the chord, because the note is held, tied or a rest, put the chord right after the last syllable sung before it, before the space: \`grace[D7] how\`.
 - When a line starts after a rest and a chord sits on that rest, the chord belongs to that line, not the one before: put it at the very start, followed by a space: \`[Fm] the sound\`.
 - Bars with chords but no lyrics, such as an intro, an interlude or an ending, go on their own line with only chords: \`[C] [G] [C]\`.

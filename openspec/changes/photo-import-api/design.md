@@ -39,7 +39,7 @@
 
 **`PHOTO_MODEL` picks the model: `claude` or `fake`.** Production and previews set `claude` in `wrangler.jsonc`, with `ANTHROPIC_API_KEY` and `PHOTO_GATEWAY_TOKEN` as required secrets, so a deploy without them fails. Local dev sets `fake` in `.dev.vars`, and the end-to-end servers set it in their environment. Any other value is an error, so nothing falls back to the fake by accident.
 
-**The fake answers with "Amazing Grace".** It is in the public domain, and the app already uses it as the editor's seed song. Its answer is written by hand in the answer format, with sections and chords. The spike's public-domain song is with the owner and can replace it later. The fake can wait before answering, with `PHOTO_FAKE_DELAY_SECONDS`, for the timeout check and for #93's progress; it stops waiting when the signal aborts.
+**The fake answers with "Amazing Grace".** It is in the public domain, and the app already uses it as the editor's seed song. Its answer is written by hand in the answer format, with sections and chords. The fake can wait before answering, with `PHOTO_FAKE_DELAY_SECONDS`, for the timeout check and for #93's progress; it stops waiting when the signal aborts.
 
 **Base64 with `Uint8Array.prototype.toBase64()`.** It is native, so it costs the least CPU. The CPU time is measured on the preview with the 7-page song from the spike.
 

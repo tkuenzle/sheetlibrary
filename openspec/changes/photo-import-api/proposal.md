@@ -39,4 +39,3 @@ No change in the app's pages. The UI is #93.
 - Limits on the photos: how many per song (the canvas proposes 10), how large, and which image types. #93 shrinks them first, so the server could only check the count and the total size.
 - What the endpoint answers when the model fails, refuses or runs out of tokens. One error for all, or different ones so #93 can say "Try again" or "No song found on the photos"?
 - An answer with no lines at all, such as a photo of a cat: an empty sheet, or an error?
-- The fake answers with a song written by hand for it, since the spike's public-domain answer is with the owner. Swap it in later?
