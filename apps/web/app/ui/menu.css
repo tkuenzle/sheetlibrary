@@ -1,4 +1,5 @@
-/* The list hangs under the button, at its right edge, over the page. */
+/* The list hangs over the page, under the button at its right or left edge,
+   or above it (see MenuPlacement). */
 .menu {
   position: relative;
   flex: none;
@@ -7,17 +8,51 @@
 .menu-list {
   position: absolute;
   z-index: 10;
-  top: calc(100% + var(--space-xs));
-  right: 0;
-  width: 200px;
+  min-width: 200px;
+  width: max-content;
   box-sizing: border-box;
   flex-direction: column;
   align-items: stretch;
   gap: 2px;
 }
 
+.menu-below-end > .menu-list {
+  top: calc(100% + var(--space-xs));
+  right: 0;
+}
+
+.menu-below-start > .menu-list {
+  top: calc(100% + var(--space-xs));
+  left: 0;
+}
+
+.menu-above-end > .menu-list {
+  bottom: calc(100% + var(--space-m));
+  right: 0;
+}
+
+/* The chevron after the text, pointing where the list opens. */
+.button.menu-toggle-text {
+  padding-right: 14px;
+}
+
+.button-large.menu-toggle-text {
+  padding-right: 16px;
+}
+
+.menu-toggle-text > .icon:last-child {
+  width: 20px;
+  height: 20px;
+}
+
+.menu-above-end > .menu-toggle-text > .icon:last-child {
+  rotate: 180deg;
+}
+
+/* Each item stretches itself: the popover centers its children. */
 .menu-item {
   display: flex;
+  align-self: stretch;
   align-items: center;
   gap: 14px;
   height: 48px;
@@ -28,6 +63,7 @@
   color: var(--text);
   font: 500 var(--font-size-body) / 1 var(--font);
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
   outline: 1px solid transparent;

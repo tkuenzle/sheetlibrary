@@ -1,5 +1,6 @@
 import { readPhotoAnswer } from "chordsheet";
 
+import { MAX_PHOTOS } from "./limits";
 import type { PhotoModel } from "./photo-model.server";
 
 // POST /api/photo-import reads photos of one song into a chord sheet, as a
@@ -36,6 +37,7 @@ export async function handlePhotoImport(
     .getAll("photo")
     .filter((value): value is File => value instanceof File);
   if (photos.length === 0) return error(400, "No photos");
+  if (photos.length > MAX_PHOTOS) return error(400, "Too many photos");
   const text = await model(photos, request.signal);
   return Response.json(readPhotoAnswer(text));
 }

@@ -9,8 +9,14 @@ function heading(page: Page) {
   return page.getByRole("heading", { level: 1 });
 }
 
+// The Import menu's button. On a phone, it is the docked one.
 function importButton(page: Page) {
-  return page.getByRole("button", { name: "Import from Ultimate Guitar" });
+  return page.getByRole("button", { name: "Import", exact: true });
+}
+
+async function openUltimateGuitar(page: Page) {
+  await importButton(page).click();
+  await page.getByRole("menuitem", { name: "From Ultimate Guitar…" }).click();
 }
 
 function passkeyOffer(page: Page) {
@@ -22,7 +28,7 @@ function importDialog(page: Page) {
 }
 
 async function pasteAndImport(page: Page, text: string) {
-  await importButton(page).click();
+  await openUltimateGuitar(page);
   await importDialog(page).getByLabel("Chords and lyrics").fill(text);
   await importDialog(page)
     .getByRole("button", { name: "Import", exact: true })
@@ -163,9 +169,7 @@ test.describe("the import", () => {
   // Scenario "Importing a song". On a phone, "Import" is docked beside
   // "New sheet" and keeps its text.
   test("creates a sheet and opens it, to be named", async ({ page }) => {
-    await expect(
-      importButton(page).getByText("Import", { exact: true }),
-    ).toBeVisible();
+    await expect(importButton(page)).toHaveText("Import");
     await pasteAndImport(page, verse);
     await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
     await expect(page.getByLabel("Title")).toBeFocused();
@@ -189,7 +193,7 @@ test.describe("the import", () => {
     page.on("request", (request) => {
       if (request.method() === "POST") posts.push(request.url());
     });
-    await importButton(page).click();
+    await openUltimateGuitar(page);
     await expect(importDialog(page)).not.toContainText("replaces");
     await importDialog(page).getByLabel("Chords and lyrics").fill(verse);
     await importDialog(page).getByRole("button", { name: "Cancel" }).click();

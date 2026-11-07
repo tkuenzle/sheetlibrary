@@ -1,17 +1,18 @@
 import "../ui/group-list.css";
 import "./sheets.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, redirect, useNavigate } from "react-router";
 
 import { closeOffer, offerClosed } from "../auth/passkey-offer";
 import { hasPasskey } from "../auth/passkeys.server";
 import { cloudflareContext, sessionContext } from "../context";
-import { ImportButton } from "../editor/import-button";
+import { ImportDialog } from "../editor/import-button";
+import { PhotoImportDialog } from "../photos/photo-import-dialog";
 import { TopBar } from "../shell/top-bar";
 import { editDate, lastEdit } from "../sheets/last-edit";
 import { UNTITLED } from "../sheets/details";
-import { importSheet } from "../sheets/import";
+import { importedSheetPath, importSheet } from "../sheets/import";
 import {
   createSheet,
   listSheets,
@@ -19,6 +20,7 @@ import {
 } from "../sheets/sheets.server";
 import { Button, IconButton } from "../ui/button";
 import { Icon } from "../ui/icon";
+import { Menu } from "../ui/menu";
 import type { Route } from "./+types/sheets";
 
 // The library: the signed-in person's sheets, "Import" and "New sheet". See
@@ -112,22 +114,67 @@ function NewSheet({ size }: { size?: "large" }) {
   );
 }
 
-// "Import": creates a sheet from Ultimate Guitar text and opens it, to be
-// named, as "New sheet" does. The dialog stays until the sheet replaces the
-// library.
+// "Import": a menu of the imports. Each creates a sheet and opens it, as
+// "New sheet" does. A dialog stays until the sheet replaces the library.
+// Docked at the bottom of a phone, the menu opens above the button. A sheet
+// from photos takes the title read from them, and only opens to be named
+// without one.
 function LibraryImport({ size }: { size?: "large" }) {
   const navigate = useNavigate();
+  const [dialog, setDialog] = useState<"photos" | "ultimate-guitar">();
+  const wrapper = useRef<HTMLDivElement>(null);
+
+  function closed() {
+    setDialog(undefined);
+    wrapper.current?.querySelector<HTMLElement>("[aria-haspopup]")?.focus();
+  }
+
   return (
-    <ImportButton
-      variant="tonal"
-      size={size}
-      onImport={async (sheet) => {
-        const result = await importSheet(sheet);
-        if ("error" in result) return result.error;
-        void navigate(`/sheets/${result.id}?new`);
-        return undefined;
-      }}
-    />
+    <div className="library-import" ref={wrapper}>
+      <Menu
+        label="Import"
+        icon="contentPasteGo"
+        text
+        size={size}
+        placement={size === "large" ? "above-end" : "below-start"}
+        items={[
+          {
+            label: "From photos…",
+            icon: "photoCamera",
+            onSelect: () => {
+              setDialog("photos");
+            },
+          },
+          {
+            label: "From Ultimate Guitar…",
+            icon: "contentPasteGo",
+            onSelect: () => {
+              setDialog("ultimate-guitar");
+            },
+          },
+        ]}
+      />
+      <ImportDialog
+        open={dialog === "ultimate-guitar"}
+        onClose={closed}
+        onImport={async (sheet) => {
+          const result = await importSheet(sheet);
+          if ("error" in result) return result.error;
+          void navigate(importedSheetPath(result.id));
+          return undefined;
+        }}
+      />
+      <PhotoImportDialog
+        open={dialog === "photos"}
+        onClose={closed}
+        onRead={async ({ content, title, artist }) => {
+          const result = await importSheet(content, { title, artist });
+          if ("error" in result) return false;
+          void navigate(importedSheetPath(result.id, title));
+          return true;
+        }}
+      />
+    </div>
   );
 }
 

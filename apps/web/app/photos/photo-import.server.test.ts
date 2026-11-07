@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { seedSong } from "../editor/seed-song";
 import { fakePhotoModel } from "./fake-photo-model.server";
+import { MAX_PHOTOS } from "./limits";
 import { handlePhotoImport } from "./photo-import.server";
 import type { PhotoModel } from "./photo-model.server";
 
@@ -124,6 +125,21 @@ describe("photo import API", () => {
     );
     expect(notForm.status).toBe(400);
     expect(model).not.toHaveBeenCalled();
+  });
+
+  // Scenario "Eleven photos".
+  it("refuses more than 10 photos", async () => {
+    expect(MAX_PHOTOS).toBe(10);
+    const model = spyModel();
+    const pages = (count: number) =>
+      Array.from({ length: count }, (_, at) => page(`page-${String(at)}`));
+    const eleven = await handlePhotoImport(request(pages(11)), "ana", model);
+    expect(eleven.status).toBe(400);
+    expect(await eleven.json()).toEqual({ error: "Too many photos" });
+    expect(model).not.toHaveBeenCalled();
+
+    const ten = await handlePhotoImport(request(pages(10)), "ana", model);
+    expect(ten.status).toBe(200);
   });
 
   it("refuses other methods", async () => {

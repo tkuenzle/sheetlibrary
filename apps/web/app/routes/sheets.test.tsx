@@ -162,9 +162,11 @@ describe("library page", () => {
     const docked = /library-actions-docked">(.*?)<\/form><\/div>/s.exec(html);
     for (const actions of [beside?.[1], docked?.[1]]) {
       expect(actions).toMatch(
-        /class="button button-tonal[^"]*"[^>]*aria-label="Import from Ultimate Guitar".*New sheet<\/button>/s,
+        /class="button button-tonal[^"]*menu-toggle-text"[^>]*aria-haspopup="menu".*Import<svg .*New sheet<\/button>/s,
       );
     }
+    expect(beside?.[1]).toContain('class="menu menu-below-start"');
+    expect(docked?.[1]).toContain('class="menu menu-above-end"');
     expect(docked?.[1]).toMatch(/button-tonal button-large/);
     expect(docked?.[1]).toMatch(/button-filled button-large/);
   });
@@ -187,7 +189,7 @@ describe("library page", () => {
     const html = render([]);
     expect(html).toContain("No sheets yet");
     expect(html).toMatch(
-      /aria-label="Import from Ultimate Guitar".*<form [^>]*method="post"[^>]*>.*New sheet<\/button>/s,
+      /aria-haspopup="menu".*Import<svg .*<form [^>]*method="post"[^>]*>.*New sheet<\/button>/s,
     );
     expect(html).not.toContain("<ul");
     expect(html).not.toContain("library-actions-docked");
