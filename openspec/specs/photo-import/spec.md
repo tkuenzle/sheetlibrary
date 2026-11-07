@@ -53,3 +53,10 @@ Local dev and the CI pipeline SHALL use a fake model that answers with a public-
 #### Scenario: End-to-end test
 - **WHEN** the end-to-end tests read photos
 - **THEN** they get the fake model's song, and no real model is called
+
+### Requirement: At most 10 photos
+`POST /api/photo-import` SHALL refuse a request with more than 10 photos, and the model SHALL NOT be called.
+
+#### Scenario: Eleven photos
+- **WHEN** a signed-in person sends 11 photos
+- **THEN** the request is refused, and no model is called
