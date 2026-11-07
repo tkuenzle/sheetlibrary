@@ -19,5 +19,6 @@ export default [
   route("sheets/:id", "routes/sheet.tsx"),
   route("api/sheets", "routes/api.sheets.ts"),
   route("api/sheets/:id", "routes/api.sheet.ts"),
+  route("api/photo-import", "routes/api.photo-import.ts"),
   ...(withDesignPage ? [route("design", "routes/design.tsx")] : []),
 ] satisfies RouteConfig;

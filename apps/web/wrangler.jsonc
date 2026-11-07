@@ -4,6 +4,9 @@
   // deploys it and attaches the custom domain.
   "name": "sheetlibrary",
   "compatibility_date": "2026-10-06",
+  // Fires request.signal when the client goes away, so photo import stops
+  // the call to the model.
+  "compatibility_flags": ["enable_request_signal"],
   "main": "./workers/app.ts",
   "workers_dev": false,
   "preview_urls": false,
@@ -23,8 +26,22 @@
   ],
   // Sign-in emails. On Workers Free, only verified addresses get them.
   "send_email": [{ "name": "EMAIL" }],
-  // Set by hand with `wrangler secret put`. Local dev reads it from .dev.vars.
-  "secrets": { "required": ["BETTER_AUTH_SECRET"] },
+  // Set by hand with `wrangler secret put`. Local dev reads them from
+  // .dev.vars. Production and the preview have separate Anthropic API keys
+  // and AI gateway tokens.
+  "secrets": {
+    "required": [
+      "BETTER_AUTH_SECRET",
+      "ANTHROPIC_API_KEY",
+      "PHOTO_GATEWAY_TOKEN",
+    ],
+  },
+  // Photo import reads photos with Claude through the AI gateway in infra/.
+  // Local dev and the end-to-end tests set PHOTO_MODEL to "fake".
+  "vars": {
+    "PHOTO_MODEL": "claude",
+    "PHOTO_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/2a6fd0d4958405587e8d5fc78066a0fb/sheetlibrary/anthropic",
+  },
   "env": {
     // Pull request previews. Select at build time with CLOUDFLARE_ENV=preview.
     "preview": {
@@ -43,10 +60,20 @@
         },
       ],
       "send_email": [{ "name": "EMAIL" }],
-      "secrets": { "required": ["BETTER_AUTH_SECRET"] },
-      // Pull request tokens can't reach D1, so the preview applies its own
-      // migrations through its binding. See openspec/specs/site-hosting.
-      "vars": { "PREVIEW_MIGRATIONS": "on" },
+      "secrets": {
+        "required": [
+          "BETTER_AUTH_SECRET",
+          "ANTHROPIC_API_KEY",
+          "PHOTO_GATEWAY_TOKEN",
+        ],
+      },
+      "vars": {
+        // Pull request tokens can't reach D1, so the preview applies its own
+        // migrations through its binding. See openspec/specs/site-hosting.
+        "PREVIEW_MIGRATIONS": "on",
+        "PHOTO_MODEL": "claude",
+        "PHOTO_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/2a6fd0d4958405587e8d5fc78066a0fb/sheetlibrary/anthropic",
+      },
     },
   },
 }

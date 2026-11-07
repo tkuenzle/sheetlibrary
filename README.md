@@ -23,10 +23,10 @@ just fix                                            # fix formatting and lint
 just spec-check                                     # validate the OpenSpec specs and changes
 ```
 
-Sign-in needs a secret locally. Create it once:
+Sign-in needs a secret locally, and photo import uses a fake model instead of Claude. Set both once:
 
 ```sh
-echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" > apps/web/.dev.vars
+printf 'BETTER_AUTH_SECRET=%s\nPHOTO_MODEL=fake\n' "$(openssl rand -base64 32)" > apps/web/.dev.vars
 ```
 
 Locally, sign-in emails aren't sent. The dev server prints where it saved each one, with the link inside.
