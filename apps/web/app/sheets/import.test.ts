@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { seedSong } from "../editor/seed-song";
-import { importSheet, NOT_IMPORTED, TOO_LONG } from "./import";
+import {
+  importedSheetPath,
+  importSheet,
+  NOT_IMPORTED,
+  TOO_LONG,
+} from "./import";
 
 function answering(response: Response | Error) {
   return vi.fn(() =>
@@ -17,7 +22,9 @@ describe("importSheet", () => {
     const fetch = answering(
       Response.json({ id: "abcdefghijkl" }, { status: 201 }),
     );
-    expect(await importSheet(seedSong, fetch)).toEqual({ id: "abcdefghijkl" });
+    expect(await importSheet(seedSong, {}, fetch)).toEqual({
+      id: "abcdefghijkl",
+    });
     expect(fetch).toHaveBeenCalledWith("/api/sheets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -25,24 +32,47 @@ describe("importSheet", () => {
     });
   });
 
+  // Scenario "Title read".
+  it("creates the sheet with the title and artist read", async () => {
+    const fetch = answering(
+      Response.json({ id: "abcdefghijkl" }, { status: 201 }),
+    );
+    await importSheet(
+      seedSong,
+      { title: "Amazing Grace", artist: "John Newton" },
+      fetch,
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/sheets",
+      expect.objectContaining({
+        body: JSON.stringify({
+          title: "Amazing Grace",
+          artist: "John Newton",
+          content: seedSong,
+        }),
+      }),
+    );
+  });
+
   // Scenario "Too large".
   it("says when the text is too long", async () => {
     const fetch = answering(
       Response.json({ error: "Sheet is too large" }, { status: 400 }),
     );
-    expect(await importSheet(seedSong, fetch)).toEqual({ error: TOO_LONG });
+    expect(await importSheet(seedSong, {}, fetch)).toEqual({ error: TOO_LONG });
   });
 
   it("says when the server refuses for another reason", async () => {
     const fetch = answering(
       Response.json({ error: "Sheet is not valid" }, { status: 400 }),
     );
-    expect(await importSheet(seedSong, fetch)).toEqual({
+    expect(await importSheet(seedSong, {}, fetch)).toEqual({
       error: NOT_IMPORTED,
     });
     expect(
       await importSheet(
         seedSong,
+        {},
         answering(new Response(null, { status: 503 })),
       ),
     ).toEqual({ error: NOT_IMPORTED });
@@ -50,7 +80,21 @@ describe("importSheet", () => {
 
   it("says when the network is down", async () => {
     expect(
-      await importSheet(seedSong, answering(new TypeError("Failed to fetch"))),
+      await importSheet(
+        seedSong,
+        {},
+        answering(new TypeError("Failed to fetch")),
+      ),
     ).toEqual({ error: NOT_IMPORTED });
+  });
+});
+
+describe("importedSheetPath", () => {
+  // Scenarios "Title read" and "No title read".
+  it("opens the sheet to be named only without a title", () => {
+    expect(importedSheetPath("abcdefghijkl", "Amazing Grace")).toBe(
+      "/sheets/abcdefghijkl",
+    );
+    expect(importedSheetPath("abcdefghijkl")).toBe("/sheets/abcdefghijkl?new");
   });
 });

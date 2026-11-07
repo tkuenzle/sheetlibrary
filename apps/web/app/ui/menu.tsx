@@ -2,7 +2,7 @@ import "./menu.css";
 
 import { useEffect, useId, useRef, useState } from "react";
 
-import { IconButton } from "./button";
+import { Button, IconButton } from "./button";
 import { Icon } from "./icon";
 import type { IconName } from "./icons";
 import { Popover } from "./popover";
@@ -14,7 +14,13 @@ export interface MenuItem {
   onSelect: () => void;
 }
 
-// A button that opens a short list of actions under it, at its right edge.
+// Where the list opens: under the button at its right edge (the default) or
+// its left edge, or above it at its right edge, for a button docked at the
+// bottom of the screen.
+export type MenuPlacement = "below-end" | "below-start" | "above-end";
+
+// A button that opens a short list of actions. It is an icon button named by
+// `label`, or, with `text`, a tonal button that shows `label` and a chevron.
 // It opens with the first item focused; the arrow keys, Home and End move
 // between the items. Escape or a click outside closes it, with the focus back
 // on the button. A picked item closes it and leaves the focus to the item's
@@ -23,10 +29,17 @@ export function Menu({
   label,
   icon = "moreVert",
   items,
+  text = false,
+  size,
+  placement = "below-end",
 }: {
   label: string;
   icon?: IconName;
   items: MenuItem[];
+  text?: boolean;
+  // Large for the main actions docked at the bottom of a phone.
+  size?: "large";
+  placement?: MenuPlacement;
 }) {
   const [open, setOpen] = useState(false);
   const wrapper = useRef<HTMLDivElement>(null);
@@ -62,18 +75,31 @@ export function Menu({
     };
   }, [open]);
 
+  const toggle = {
+    "aria-haspopup": "menu",
+    "aria-expanded": open,
+    "aria-controls": open ? menuId : undefined,
+    onClick: () => {
+      setOpen(!open);
+    },
+  } as const;
+
   return (
-    <div className="menu" ref={wrapper}>
-      <IconButton
-        icon={icon}
-        label={label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        onClick={() => {
-          setOpen(!open);
-        }}
-      />
+    <div className={`menu menu-${placement}`} ref={wrapper}>
+      {text ? (
+        <Button
+          variant="tonal"
+          size={size}
+          icon={icon}
+          className="menu-toggle-text"
+          {...toggle}
+        >
+          {label}
+          <Icon name="expandMore" />
+        </Button>
+      ) : (
+        <IconButton icon={icon} label={label} {...toggle} />
+      )}
       {open && (
         <Popover
           ref={list}

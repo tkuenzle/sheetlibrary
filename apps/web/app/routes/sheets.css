@@ -169,6 +169,12 @@
     bottom: var(--space-xl);
   }
 
+  /* The Import menu opens above the docked buttons, at their right edge, so
+     it stays on the screen. */
+  .library-actions-docked .menu {
+    position: static;
+  }
+
   .library-list a {
     display: flex;
     flex-direction: column;

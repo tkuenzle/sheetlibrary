@@ -1,0 +1,242 @@
+/*
+  The import from photos, over the library, as on the canvas's "Photo
+  import" page. On a phone, it is a sheet from the bottom. The widths are
+  listed in app/breakpoints.ts.
+*/
+/* The content fills the dialog, so a click on the dialog itself was on the
+   backdrop (see PhotoImportDialog). */
+.photo-import-dialog {
+  width: min(480px, 100vw - 2 * var(--space-l));
+  max-width: none;
+  max-height: calc(100dvh - 2 * var(--space-l));
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+  border-radius: var(--corner-large);
+  background: var(--surface-active);
+  color: var(--text);
+  box-shadow: 0 8px 24px var(--shadow);
+  overflow-y: auto;
+  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+  outline: 1px solid transparent;
+}
+
+.photo-import-dialog::backdrop {
+  background: var(--scrim);
+}
+
+.photo-import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+  padding: 28px var(--space-xl) 20px 28px;
+}
+
+.photo-import h2 {
+  margin: 0;
+  font: 700 var(--font-size-heading) / 1.25 var(--font);
+}
+
+.photo-import > p {
+  margin: 0;
+  color: var(--text-muted);
+  font: 400 var(--font-size-body) / 1.5 var(--font);
+}
+
+/* No photos yet: "Add photos" in the middle of a well. */
+.photo-import-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  border-radius: 16px;
+  background: var(--page);
+}
+
+/* The pages as a group of rows, rounded at its ends. */
+.photo-import-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo-import-pages[data-busy] {
+  opacity: 0.6;
+}
+
+.photo-import-pages > li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  box-sizing: border-box;
+  padding: 6px var(--space-xs) 6px var(--space-m);
+  border-radius: var(--space-xs);
+  background: var(--page);
+}
+
+.photo-import-pages > li:first-child {
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.photo-import-pages > li:last-child {
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.photo-import-thumbnail {
+  width: 44px;
+  height: 58px;
+  flex: none;
+  border-radius: var(--space-xs);
+  object-fit: cover;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+.photo-import-no-thumbnail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--quiet);
+  color: var(--text-dimmed);
+  box-shadow: none;
+}
+
+.photo-import-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  color: var(--text-muted);
+  font: 500 var(--font-size-small) / 1.4 var(--font);
+}
+
+.photo-import-page-name {
+  color: var(--text);
+  font: 600 var(--font-size-body) / 1.3 var(--font);
+}
+
+/* "Add photos" with the count beside it. */
+.photo-import-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-l);
+  color: var(--text-muted);
+  font: 500 var(--font-size-small) / 1.3 var(--font);
+}
+
+.photo-import-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--space-xs) 0;
+}
+
+.photo-import-progress label,
+.photo-import-reading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-m);
+  margin: 0;
+  font: 600 var(--font-size-body) / 1.3 var(--font);
+}
+
+.photo-import-time {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.photo-import-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font: 500 var(--font-size-small) / 1.4 var(--font);
+}
+
+.photo-import-progress progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: var(--space-xs);
+  background: var(--quiet);
+  overflow: hidden;
+}
+
+.photo-import-progress progress::-webkit-progress-bar {
+  background: var(--quiet);
+}
+
+.photo-import-progress progress::-webkit-progress-value {
+  border-radius: var(--space-xs);
+  background: var(--accent);
+}
+
+.photo-import-progress progress::-moz-progress-bar {
+  border-radius: var(--space-xs);
+  background: var(--accent);
+}
+
+/* While the pages are read, a bar that keeps moving, since there is no
+   share to show. */
+.photo-import-working {
+  position: relative;
+  height: 8px;
+  border-radius: var(--space-xs);
+  background: var(--quiet);
+  overflow: hidden;
+}
+
+.photo-import-working > div {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  border-radius: var(--space-xs);
+  background: var(--accent);
+  animation: photo-import-working 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes photo-import-working {
+  from {
+    translate: 0;
+  }
+
+  to {
+    translate: 233%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-import-working > div {
+    width: 100%;
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+.photo-import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-s);
+  margin-top: var(--space-s);
+}
+
+/* Phone-wide: a sheet from the bottom, as wide as the screen. */
+@media (max-width: 640px) {
+  .photo-import-dialog {
+    width: 100vw;
+    max-height: calc(100dvh - var(--space-2xl));
+    margin: auto 0 0;
+    border-radius: var(--corner-large) var(--corner-large) 0 0;
+  }
+
+  .photo-import {
+    padding: var(--space-xl) var(--space-l) var(--space-l) 20px;
+  }
+}
