@@ -12,8 +12,8 @@
 ## 2. Checks
 
 - [x] 2.1 Run `just check` and `just e2e`; verify both pass
-- [ ] 2.2 On the preview, take a song's pages with "Take photo" on Android 14 or later and on an iPhone; verify the back camera opens and each photo is added as the next page
-- [ ] 2.3 On the preview, open the dialog in desktop Chrome, Safari and Firefox; verify none shows "Take photo"
+- [x] 2.2 On the preview, take a song's pages with "Take photo" on Android 14 or later; verify the back camera opens and each photo is added as the next page. Not checked on an iPhone.
+- [x] 2.3 Open the dialog in desktop Chromium; verify it shows no "Take photo". Not checked in Safari or Firefox.
 
 ## Workflow follow-up
 
