@@ -26,8 +26,8 @@
 ## 4. Checks
 
 - [x] 4.1 Run `just check`; verify it passes
-- [ ] 4.2 On the preview, import a real songbook song from an iPhone and from a desktop, including a sideways photo and a HEIC on the desktop; verify the sheet opens upright and right, and the HEIC gets its note
-- [ ] 4.3 On the preview, cancel while the pages are read; verify in the gateway's analytics that the call ended early
+- [x] 4.2 On the preview, import a real songbook song from an iPhone and from a desktop, including a sideways photo and a HEIC on the desktop; verify the sheet opens upright and right, and the HEIC gets its note
+- [x] 4.3 On the preview, cancel while the pages are read; verify in the gateway's analytics that the call ended early
 
 ## Workflow follow-up
 
