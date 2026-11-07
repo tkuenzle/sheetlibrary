@@ -43,7 +43,7 @@
   font: 400 var(--font-size-body) / 1.5 var(--font);
 }
 
-/* No photos yet: "Add photos" in the middle of a well. */
+/* No photos yet: the buttons in the middle of a well. */
 .photo-import-empty {
   display: flex;
   align-items: center;
@@ -121,7 +121,16 @@
   font: 600 var(--font-size-body) / 1.3 var(--font);
 }
 
-/* "Add photos" with the count beside it. */
+/* "Take photo" and "Pick photos", kept together. In the well, they are
+   centred when they wrap. */
+.photo-import-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-s);
+}
+
+/* The buttons with the count beside them, or below on a narrow phone. */
 .photo-import-add {
   display: flex;
   flex-wrap: wrap;

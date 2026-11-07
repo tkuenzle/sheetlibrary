@@ -5,6 +5,7 @@ import { useEffect, useId, useReducer, useRef, useState } from "react";
 
 import { Button, IconButton } from "../ui/button";
 import { Icon } from "../ui/icon";
+import type { IconName } from "../ui/icons";
 import { Note } from "../ui/note";
 import { MAX_PHOTOS } from "./limits";
 import {
@@ -101,6 +102,10 @@ function PhotoImportForm<Image extends Decoded>({
 }) {
   const [state, dispatch] = useReducer(photoImportReducer, initialState);
   const [now, setNow] = useState(() => Date.now());
+  // Whether the browser can take a photo from a file input. Desktop
+  // browsers ignore `capture`, and don't have the property. The form is
+  // only rendered in the browser, so this needs no effect.
+  const [camera] = useState(() => "capture" in HTMLInputElement.prototype);
   const nextId = useRef(1);
   const shrinking = useRef(Promise.resolve());
   const thumbnails = useRef(new Set<string>());
@@ -197,6 +202,7 @@ function PhotoImportForm<Image extends Decoded>({
       titleId={titleId}
       state={state}
       now={now}
+      camera={camera}
       onAdd={add}
       onRemove={remove}
       onCancel={onCancel}
@@ -205,12 +211,14 @@ function PhotoImportForm<Image extends Decoded>({
   );
 }
 
-// What the dialog shows for a state: the pages, "Add photos" with the count,
-// the progress or the failure, Cancel and Import.
+// What the dialog shows for a state: the pages, "Take photo" and "Pick
+// photos" with the count, the progress or the failure, Cancel and Import.
+// "Take photo" is there only with `camera`.
 export function PhotoImportView({
   titleId,
   state,
   now,
+  camera,
   onAdd,
   onRemove,
   onCancel,
@@ -219,6 +227,7 @@ export function PhotoImportView({
   titleId: string;
   state: PhotoImportState;
   now: number;
+  camera: boolean;
   onAdd: (files: File[]) => void;
   onRemove: (id: number) => void;
   onCancel: () => void;
@@ -226,7 +235,9 @@ export function PhotoImportView({
 }) {
   const { pages, stage } = state;
   const changing = editable(state);
-  const add = <AddPhotos disabled={!canAdd(state)} onAdd={onAdd} />;
+  const add = (
+    <AddPhotos camera={camera} disabled={!canAdd(state)} onAdd={onAdd} />
+  );
 
   return (
     <form
@@ -312,14 +323,61 @@ export function PhotoImportView({
   );
 }
 
-// "Add photos" opens the browser's picker, which on a phone offers both the
-// camera and the photo library.
+// "Take photo" opens the camera, one photo at a time, and comes first.
+// "Pick photos" opens the browser's picker for several photos; without the
+// camera, it is the only button. On Android, the picker has no camera.
 function AddPhotos({
+  camera,
   disabled,
   onAdd,
 }: {
+  camera: boolean;
   disabled: boolean;
   onAdd: (files: File[]) => void;
+}) {
+  return (
+    <span className="photo-import-buttons">
+      {camera && (
+        <FileButton
+          variant="tonal"
+          icon="addAPhoto"
+          capture="environment"
+          disabled={disabled}
+          onAdd={onAdd}
+        >
+          Take photo
+        </FileButton>
+      )}
+      <FileButton
+        variant={camera ? "text" : "tonal"}
+        icon="photoLibrary"
+        multiple
+        disabled={disabled}
+        onAdd={onAdd}
+      >
+        Pick photos
+      </FileButton>
+    </span>
+  );
+}
+
+// A button that opens a hidden file input for images.
+function FileButton({
+  variant,
+  icon,
+  multiple,
+  capture,
+  disabled,
+  onAdd,
+  children,
+}: {
+  variant: "tonal" | "text";
+  icon: IconName;
+  multiple?: boolean;
+  capture?: "environment";
+  disabled: boolean;
+  onAdd: (files: File[]) => void;
+  children: string;
 }) {
   const input = useRef<HTMLInputElement>(null);
   return (
@@ -328,7 +386,8 @@ function AddPhotos({
         ref={input}
         type="file"
         accept="image/*"
-        multiple
+        multiple={multiple}
+        capture={capture}
         hidden
         disabled={disabled}
         onChange={(event) => {
@@ -339,14 +398,14 @@ function AddPhotos({
         }}
       />
       <Button
-        variant="tonal"
-        icon="addAPhoto"
+        variant={variant}
+        icon={icon}
         disabled={disabled}
         onClick={() => {
           input.current?.click();
         }}
       >
-        Add photos
+        {children}
       </Button>
     </>
   );

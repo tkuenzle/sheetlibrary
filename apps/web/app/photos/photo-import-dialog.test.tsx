@@ -15,12 +15,16 @@ const ready = (id: number): Page => ({
   thumbnail: `blob:page-${String(id)}`,
 });
 
-function render(state: Partial<PhotoImportState>, now = 0) {
+function render(
+  state: Partial<PhotoImportState>,
+  { now = 0, camera = false } = {},
+) {
   return renderToString(
     <PhotoImportView
       titleId="title"
       state={{ pages: [], stage: { kind: "pages" }, ...state }}
       now={now}
+      camera={camera}
       onAdd={nothing}
       onRemove={nothing}
       onCancel={nothing}
@@ -28,6 +32,11 @@ function render(state: Partial<PhotoImportState>, now = 0) {
     />,
   );
 }
+
+const pickPhotos = (variant: string) =>
+  new RegExp(
+    `<button[^>]*class="button button-${variant}"[^>]*>.*?Pick photos`,
+  );
 
 const importButton = /<button type="submit"[^>]*>Import<\/button>/;
 const disabledImport = /<button type="submit"[^>]*disabled=""[^>]*>Import/;
@@ -39,13 +48,29 @@ describe("PhotoImportView", () => {
     expect(html).toContain("Take or pick a photo of each page, in order");
   });
 
-  it("offers Add photos, for any image, with Import disabled", () => {
+  // Scenario "On a desktop".
+  it("offers Pick photos alone, for any image, with Import disabled", () => {
     const html = render({});
     expect(html).toMatch(/<input type="file" accept="image\/\*" multiple=""/);
-    expect(html).toContain("Add photos");
+    expect(html).toMatch(pickPhotos("tonal"));
+    expect(html).not.toContain("capture");
+    expect(html).not.toContain("Take photo");
     expect(html).not.toContain("<ol");
     expect(html).toMatch(disabledImport);
     expect(html).toContain("Cancel");
+  });
+
+  // Scenario "On an Android phone".
+  it("offers Take photo first with the camera, then Pick photos", () => {
+    const html = render({ pages: [ready(1), ready(2)] }, { camera: true });
+    expect(html).toMatch(
+      /<input type="file" accept="image\/\*" capture="environment"[^>]*>.*?Take photo.*?<input type="file" accept="image\/\*" multiple=""[^>]*>.*?Pick photos/s,
+    );
+    expect(html).toMatch(
+      /<button[^>]*class="button button-tonal"[^>]*>.*?Take photo/,
+    );
+    expect(html).toMatch(pickPhotos("text"));
+    expect(html).toContain("2 of 10 pages");
   });
 
   // Scenario "Removing a page".
@@ -63,11 +88,16 @@ describe("PhotoImportView", () => {
   });
 
   // Scenario "Ten pages".
-  it("disables Add photos at 10 pages", () => {
+  it("disables Take photo and Pick photos at 10 pages", () => {
     const pages = Array.from({ length: 10 }, (_, at) => ready(at + 1));
-    const html = render({ pages });
+    const html = render({ pages }, { camera: true });
     expect(html).toContain("10 of 10 pages");
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*?Add photos/s);
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*>(?:(?!<button).)*Take photo/s,
+    );
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*>(?:(?!<button).)*Pick photos/s,
+    );
   });
 
   // Scenario "A HEIC photo on a desktop".
@@ -96,7 +126,7 @@ describe("PhotoImportView", () => {
     expect(html).toMatch(
       /aria-label="Remove page 1"[^>]*disabled=""|disabled=""[^>]*aria-label="Remove page 1"/,
     );
-    expect(html).not.toContain("Add photos");
+    expect(html).not.toContain("Pick photos");
     expect(html).toMatch(disabledImport);
     // Cancel works the whole time.
     expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>Cancel/);
@@ -106,7 +136,7 @@ describe("PhotoImportView", () => {
   it("shows the reading with the time so far", () => {
     const html = render(
       { pages: [ready(1)], stage: { kind: "reading", since: 1000 } },
-      43_000,
+      { now: 43_000 },
     );
     expect(html).toContain('<span role="status">Reading the pages…</span>');
     expect(html).toContain("0:42");
@@ -120,7 +150,7 @@ describe("PhotoImportView", () => {
     expect(NOT_READ).toBe("The photos couldn’t be read. Try again.");
     expect(html).toMatch(/role="status".*The photos couldn’t be read/s);
     expect(html).toContain("Page 1");
-    expect(html).toContain("Add photos");
+    expect(html).toContain("Pick photos");
     expect(html).toMatch(importButton);
     expect(html).not.toMatch(disabledImport);
   });

@@ -17,6 +17,7 @@ import moveDown from "./icons/move_down.svg?raw";
 import moveUp from "./icons/move_up.svg?raw";
 import passkey from "./icons/passkey.svg?raw";
 import photoCamera from "./icons/photo_camera.svg?raw";
+import photoLibrary from "./icons/photo_library.svg?raw";
 import remove from "./icons/remove.svg?raw";
 
 // The icons the UI uses: Material Symbols Rounded, weight 500, drawn for 24px
@@ -46,6 +47,7 @@ const sources = {
   moveUp,
   passkey,
   photoCamera,
+  photoLibrary,
   remove,
 };
 
