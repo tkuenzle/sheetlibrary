@@ -25,7 +25,7 @@ A visitor who isn't signed in SHALL be sent to the sign-in page. A signed-in per
 - **THEN** they see a "not found" page
 
 ### Requirement: Edits save on their own
-Edits SHALL save on their own, shortly after the person stops typing. While the person keeps typing, the edits SHALL still save at least every 5 seconds. A transpose SHALL save like any other edit. A reload after a save SHALL show the saved sheet.
+Edits SHALL save on their own, shortly after the person stops typing. While the person keeps typing, the edits SHALL still save at least every 5 seconds. A transpose, and setting the sheet's key, SHALL save like any other edit. A reload after a save SHALL show the saved sheet.
 
 #### Scenario: Reload after editing
 - **WHEN** the owner changes a chord, waits until it is saved and reloads
@@ -34,6 +34,10 @@ Edits SHALL save on their own, shortly after the person stops typing. While the 
 #### Scenario: Typing without a pause
 - **WHEN** the owner types for 12 seconds without pausing
 - **THEN** their edits are saved while they type, at most 5 seconds apart
+
+#### Scenario: Reload after setting the key
+- **WHEN** the owner sets the key of a sheet guessed as G to Em, waits until it is saved and reloads
+- **THEN** the key button reads "Key Em", and the panel doesn't say the key is guessed
 
 ### Requirement: Save state
 The page SHALL show whether the edits are saved. Once everything has stayed saved for a moment, it SHALL say "Saved". When a save takes longer than a moment, it SHALL say "Saving…". While edits wait for their save, it SHALL say nothing, without moving the page. When a save fails because the network or server can't be reached, the page SHALL say at once that it is not saved, keep the editor editable and keep trying.
