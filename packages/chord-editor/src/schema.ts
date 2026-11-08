@@ -1,4 +1,4 @@
-import { isBlank, type MarkedChord } from "chordsheet";
+import { isBlank, type Key, type MarkedChord } from "chordsheet";
 import { type Mark, type Node, Schema } from "prosemirror-model";
 
 // The editor's own model of a sheet: sections of lines. The adapter converts
@@ -32,7 +32,14 @@ export function newChordId(): string {
 
 export const schema = new Schema({
   nodes: {
-    doc: { content: "section+" },
+    doc: {
+      // The key the person set, or null: the key is then guessed from the
+      // chords. `original` is the set key the sheet was loaded with, or the
+      // last one set, where "Back" goes; it isn't handed back. Attributes,
+      // so undo covers them.
+      attrs: { key: { default: null }, original: { default: null } },
+      content: "section+",
+    },
     section: {
       // Null when the section has no label. The section's node view draws
       // it; it isn't part of the editable text or the clipboard.
@@ -71,6 +78,17 @@ export const schema = new Schema({
     },
   },
 });
+
+// The sheet's set key, or null when none is set.
+export function keyOf(doc: Node): Key | null {
+  return (doc.attrs as { key: Key | null }).key;
+}
+
+// The sheet's original key, if one was set: the set key it was loaded
+// with, or the last one set since.
+export function originalKeyOf(doc: Node): Key | null {
+  return (doc.attrs as { original: Key | null }).original;
+}
 
 // The section's label, or null when it has none.
 export function labelOf(section: Node): string | null {

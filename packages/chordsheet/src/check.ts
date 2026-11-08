@@ -31,6 +31,9 @@ export function checkSheet(content: unknown): Problem[] {
     return [{ message: "Sections are not a list" }];
   }
   const problems: Problem[] = [];
+  if (content.key !== undefined) {
+    for (const message of checkKey(content.key)) problems.push({ message });
+  }
   (content.sections as unknown[]).forEach((section, s) => {
     if (!isRecord(section) || !Array.isArray(section.lines)) {
       problems.push({ message: "Section has no list of lines", section: s });
@@ -50,6 +53,19 @@ export function checkSheet(content: unknown): Problem[] {
       }
     });
   });
+  return problems;
+}
+
+// A key's tonic is spelled as a chord's root is.
+function checkKey(key: unknown): string[] {
+  if (!isRecord(key)) return ["Key is not an object"];
+  const problems: string[] = [];
+  if (typeof key.tonic !== "string" || !isNote(key.tonic)) {
+    problems.push("Key tonic is not a note");
+  }
+  if (typeof key.minor !== "boolean") {
+    problems.push("Key doesn't say whether it is minor");
+  }
   return problems;
 }
 

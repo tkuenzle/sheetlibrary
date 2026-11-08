@@ -5,7 +5,7 @@ import {
   stepKey,
   transposeChord,
 } from "chordsheet";
-import { type ReactNode, type RefObject, useState } from "react";
+import { type ReactNode, type RefObject, useReducer } from "react";
 
 import { KeyButton } from "./key-button";
 import type { SheetEditorHandle } from "./sheet-editor";
@@ -17,35 +17,88 @@ function chordsOf(sheet: ChordSheet) {
   return sheet.sections.flatMap((s) => s.lines.flatMap((l) => l.chords));
 }
 
-export interface SheetKey {
-  // The key guessed from the chords now.
+type Chords = Parameters<typeof guessKey>[0];
+
+export interface SheetKeyState {
+  // The sheet's key: the set key, or else the key guessed from the chords
+  // now.
   key: Key | null;
-  // The key the sheet was loaded in, or the first one guessed. "Back" goes
-  // there. Sheets don't store a key yet (#58).
+  // Where "Back" goes: the set key the sheet was loaded with, or the last
+  // one set since. Without one, the first key guessed.
   original: Key | null;
+  // Whether `key` is guessed, since no key is set.
+  guessed: boolean;
+  // The key guessed from the chords now, also when a key is set.
+  guess: Key | null;
+  // The first key guessed from the chords.
+  firstGuess: Key | null;
+}
+
+export type SheetKeyAction =
+  | {
+      type: "chords";
+      chords: Chords;
+      key: Key | null;
+      original: Key | null;
+    }
+  | { type: "reset"; sheet: ChordSheet };
+
+export function loadSheetKey(sheet: ChordSheet): SheetKeyState {
+  const guess = guessKey(chordsOf(sheet));
+  const key = sheet.key ?? guess;
+  return {
+    key,
+    original: key,
+    guessed: !sheet.key,
+    guess,
+    firstGuess: guess,
+  };
+}
+
+export function sheetKeyReducer(
+  state: SheetKeyState,
+  action: SheetKeyAction,
+): SheetKeyState {
+  switch (action.type) {
+    case "chords": {
+      const guess = guessKey(action.chords);
+      const firstGuess = state.firstGuess ?? guess;
+      return {
+        key: action.key ?? guess,
+        original: action.original ?? firstGuess,
+        guessed: action.key === null,
+        guess,
+        firstGuess,
+      };
+    }
+    case "reset":
+      return loadSheetKey(action.sheet);
+  }
+}
+
+export interface SheetKey extends SheetKeyState {
   // Pass to the editor's onChordsChange.
-  onChordsChange: (chords: Parameters<typeof guessKey>[0]) => void;
+  onChordsChange: (
+    chords: Chords,
+    key: Key | null,
+    original: Key | null,
+  ) => void;
   // Starts over with a newly loaded sheet.
   reset: (sheet: ChordSheet) => void;
 }
 
-// The sheet's key, guessed from its chords. Until the editor reports them,
-// it is guessed from the loaded sheet, so the server renders the button too.
+// The sheet's key: the set key, or else guessed from its chords. Until the
+// editor reports them, it comes from the loaded sheet, so the server
+// renders the button too.
 export function useSheetKey(sheet: ChordSheet): SheetKey {
-  const [key, setKey] = useState(() => guessKey(chordsOf(sheet)));
-  const [original, setOriginal] = useState(key);
+  const [state, dispatch] = useReducer(sheetKeyReducer, sheet, loadSheetKey);
   return {
-    key,
-    original,
-    onChordsChange: (chords) => {
-      const guess = guessKey(chords);
-      setKey(guess);
-      setOriginal((first) => first ?? guess);
+    ...state,
+    onChordsChange: (chords, key, original) => {
+      dispatch({ type: "chords", chords, key, original });
     },
     reset: (next) => {
-      const guess = guessKey(chordsOf(next));
-      setKey(guess);
-      setOriginal(guess);
+      dispatch({ type: "reset", sheet: next });
     },
   };
 }
@@ -55,7 +108,7 @@ export function useSheetKey(sheet: ChordSheet): SheetKey {
 // button or field that renames it.
 export function SheetTitle({
   title,
-  sheetKey: { key, original },
+  sheetKey: { key, original, guessed, guess },
   editor,
   readOnly = false,
   children,
@@ -69,7 +122,7 @@ export function SheetTitle({
 }) {
   function moveTo(to: Key) {
     if (!key) return;
-    editor.current?.transpose((c) => transposeChord(c, key, to));
+    editor.current?.transpose((c) => transposeChord(c, key, to), to);
   }
 
   return (
@@ -79,7 +132,12 @@ export function SheetTitle({
         <KeyButton
           current={key}
           original={original}
+          guessed={guessed}
+          guess={guess}
           onPick={moveTo}
+          onSet={(to) => {
+            editor.current?.setKey(to);
+          }}
           onStep={(step) => {
             moveTo(stepKey(key, step));
           }}

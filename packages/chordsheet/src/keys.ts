@@ -25,6 +25,11 @@ function parseNote(note: string): Note {
   return { letter, accidental: sign === "#" ? 1 : sign === "b" ? -1 : 0 };
 }
 
+// The same key, spelled the same way.
+export function sameKey(a: Key, b: Key): boolean {
+  return a.tonic === b.tonic && a.minor === b.minor;
+}
+
 // The pitch of a spelled note, in semitones from C, 0 to 11.
 export function pitchOf(note: string): number {
   const { letter, accidental } = parseNote(note);
