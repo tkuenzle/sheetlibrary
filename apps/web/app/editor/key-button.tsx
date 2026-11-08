@@ -1,6 +1,6 @@
 import "./key-button.css";
 
-import { type Key, keysToMoveTo, pitchOf } from "chordsheet";
+import { type Key, keysToMoveTo, pitchOf, sameKey } from "chordsheet";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { phone } from "../breakpoints";
@@ -18,27 +18,29 @@ function spokenKey(key: Key): string {
   return `${key.tonic.charAt(0)}${accidental}${key.minor ? " minor" : ""}`;
 }
 
-function sameKey(a: Key, b: Key): boolean {
-  return a.tonic === b.tonic && a.minor === b.minor;
-}
-
 // The sheet's key beside its title. It opens a panel with the keys to move
 // to and steps of a semitone: under the button, or a bottom sheet on a
 // phone. The panel stays open after a pick, and offers to go back to the
-// sheet's original key.
+// sheet's original key and to change which key the song is in.
 export function KeyButton({
   current,
   original,
+  guessed,
   onPick,
+  onSet,
   onStep,
   onBack,
   onUndo,
   onRedo,
 }: {
   current: Key;
-  // The key the sheet was in when it was loaded.
+  // The key the sheet was in when it was loaded, or the key set since.
   original: Key;
+  // Whether the original key was guessed from the chords.
+  guessed: boolean;
   onPick: (key: Key) => void;
+  // Sets the song's key, without moving a chord.
+  onSet: (key: Key) => void;
   onStep: (step: 1 | -1) => void;
   onBack: () => void;
   onUndo: () => void;
@@ -158,8 +160,10 @@ export function KeyButton({
           <KeyPanel
             current={current}
             original={original}
+            guessed={guessed}
             titleId={titleId}
             onPick={onPick}
+            onSet={onSet}
             onStep={onStep}
             onBack={() => {
               onBack();
@@ -178,72 +182,98 @@ export function KeyButton({
   );
 }
 
+// Focuses the marked key in the panel once it has rendered, or `fallback`
+// when no key is marked.
+function focusMarked(content: HTMLElement | null, fallback = "button") {
+  requestAnimationFrame(() => {
+    (
+      content?.querySelector<HTMLElement>("[aria-pressed=true]") ??
+      content?.querySelector<HTMLElement>(fallback)
+    )?.focus();
+  });
+}
+
 // What the panel holds: the keys to move to, the steps, and "Back" to the
 // original key. "Back" is always there, so nothing moves when the key
-// changes.
+// changes. "Change" turns the panel into the list of keys the song can be
+// in, until one is picked or Cancel.
 export function KeyPanel({
   current,
   original,
+  guessed,
   titleId,
   onPick,
+  onSet,
   onStep,
   onBack,
 }: {
   current: Key;
   original: Key;
+  guessed: boolean;
   titleId: string;
   onPick: (key: Key) => void;
+  onSet: (key: Key) => void;
   onStep: (step: 1 | -1) => void;
   onBack: () => void;
 }) {
-  const cells = keysToMoveTo(current.minor);
-  // The current key is marked where it is listed. A sheet in a key that
-  // isn't listed, such as G#, marks the key at its pitch, Ab.
-  const listed = cells.flat().find((key) => sameKey(key, current));
-  const pitch = pitchOf(current.tonic);
-  const marked = (key: Key) =>
-    listed
-      ? sameKey(key, listed)
-      : pitchOf(key.tonic) === pitch && cells[pitch]?.length === 1;
+  const [changing, setChanging] = useState(false);
+  const content = useRef<HTMLDivElement>(null);
+
+  function stopChanging() {
+    setChanging(false);
+    focusMarked(content.current);
+  }
+
+  if (changing) {
+    return (
+      <div className="key-panel-content" ref={content}>
+        <SongKeyPanel
+          current={current}
+          titleId={titleId}
+          onSet={(key) => {
+            onSet(key);
+            stopChanging();
+          }}
+          onCancel={stopChanging}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="key-panel-content">
+    <div className="key-panel-content" ref={content}>
       <div className="key-panel-header">
         <h2 id={titleId}>Transpose to</h2>
-        <p>
-          The original key, {keyName(original)}, is guessed from the chords.
-        </p>
+        <div className="key-panel-original">
+          <p>
+            {guessed ? (
+              <>
+                The original key, {keyName(original)}, is guessed from the
+                chords.
+              </>
+            ) : (
+              <>The original key is {keyName(original)}.</>
+            )}
+          </p>
+          <Button
+            variant="text"
+            size="small"
+            className="key-panel-change"
+            aria-label="Change the song's key"
+            onClick={() => {
+              setChanging(true);
+              focusMarked(content.current);
+            }}
+          >
+            Change
+          </Button>
+        </div>
       </div>
-      <div className="key-panel-keys">
-        {cells.map((cell) => {
-          const keys = cell.map((key) => (
-            <button
-              key={key.tonic}
-              type="button"
-              className="key-panel-key"
-              aria-label={spokenKey(key)}
-              aria-pressed={marked(key)}
-              onClick={() => {
-                onPick(key);
-              }}
-            >
-              {keyName(key)}
-            </button>
-          ));
-          return cell.length === 1 ? (
-            keys
-          ) : (
-            <div
-              key={cell.map((key) => key.tonic).join()}
-              role="group"
-              className="key-panel-split"
-              aria-label={cell.map(spokenKey).join(" or ")}
-            >
-              {keys}
-            </div>
-          );
-        })}
-      </div>
+      <KeyGrid
+        keys={keysToMoveTo(current.minor)}
+        current={current}
+        onPick={onPick}
+      />
       <div className="key-panel-steps">
         <IconButton
           icon="remove"
@@ -271,6 +301,101 @@ export function KeyPanel({
       >
         Back to {keyName(original)}
       </Button>
+    </div>
+  );
+}
+
+// The keys the song can be in, major and minor, with the sheet's key
+// marked. A pick sets the song's key and moves no chord.
+export function SongKeyPanel({
+  current,
+  titleId,
+  onSet,
+  onCancel,
+}: {
+  current: Key;
+  titleId: string;
+  onSet: (key: Key) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <>
+      <div className="key-panel-header">
+        <h2 id={titleId}>This song is in</h2>
+        <p>The chords stay as they are.</p>
+      </div>
+      {[false, true].map((minor) => (
+        <section
+          key={String(minor)}
+          className="key-panel-mode"
+          aria-label={minor ? "Minor" : "Major"}
+        >
+          <h3>{minor ? "Minor" : "Major"}</h3>
+          <KeyGrid
+            keys={keysToMoveTo(minor)}
+            current={current.minor === minor ? current : null}
+            onPick={onSet}
+          />
+        </section>
+      ))}
+      <Button variant="text" className="key-panel-back" onClick={onCancel}>
+        Cancel
+      </Button>
+    </>
+  );
+}
+
+// A grid of keys, one cell per pitch from C, with `current` marked where it
+// is listed. A key that isn't listed, such as G#, marks the key at its
+// pitch, Ab.
+function KeyGrid({
+  keys: cells,
+  current,
+  onPick,
+}: {
+  keys: Key[][];
+  current: Key | null;
+  onPick: (key: Key) => void;
+}) {
+  const listed = current && cells.flat().find((key) => sameKey(key, current));
+  const pitch = current && pitchOf(current.tonic);
+  const marked = (key: Key) =>
+    listed
+      ? sameKey(key, listed)
+      : pitch !== null &&
+        pitchOf(key.tonic) === pitch &&
+        cells[pitch]?.length === 1;
+
+  return (
+    <div className="key-panel-keys">
+      {cells.map((cell) => {
+        const keys = cell.map((key) => (
+          <button
+            key={key.tonic}
+            type="button"
+            className="key-panel-key"
+            aria-label={spokenKey(key)}
+            aria-pressed={marked(key)}
+            onClick={() => {
+              onPick(key);
+            }}
+          >
+            {keyName(key)}
+          </button>
+        ));
+        return cell.length === 1 ? (
+          keys
+        ) : (
+          <div
+            key={cell.map((key) => key.tonic).join()}
+            role="group"
+            className="key-panel-split"
+            aria-label={cell.map(spokenKey).join(" or ")}
+          >
+            {keys}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { docFromSheet, handBackSheet } from "./adapter";
 import { insertChord, moveChord } from "./chords";
 import { createEditorState } from "./editor";
-import { chordsOn } from "./schema";
+import { chordsOn, keyOf, originalKeyOf } from "./schema";
 import {
   at,
   chord,
@@ -101,6 +101,27 @@ describe("editing a sheet", () => {
       section(line("  ", [0, "G"], [1, "C"], [2, "D"])),
     );
     expect(handBack(load(stored))).toEqual({ ok: true, sheet: stored });
+  });
+
+  it("hands back a set key as it was", () => {
+    const stored = {
+      ...sheet(section(line("Amazing grace", [0, "G"]))),
+      key: { tonic: "E", minor: true },
+    };
+    const state = load(stored);
+    expect(keyOf(state.doc)).toEqual({ tonic: "E", minor: true });
+    expect(originalKeyOf(state.doc)).toEqual({ tonic: "E", minor: true });
+    expect(handBack(state)).toEqual({ ok: true, sheet: stored });
+  });
+
+  it("hands back no key when none is set", () => {
+    const state = load(section(line("Amazing grace", [0, "G"])));
+    expect(keyOf(state.doc)).toBeNull();
+    expect(handBack(state)).toEqual(
+      handedBack(section(line("Amazing grace", [0, "G"]))),
+    );
+    const handed = handBack(state);
+    expect(handed.ok && "key" in handed.sheet).toBe(false);
   });
 
   it("hands back a chord's suffix and bass as they were", () => {

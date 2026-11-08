@@ -2,7 +2,7 @@ import type { Key } from "chordsheet";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { KeyButton, KeyPanel } from "./key-button";
+import { KeyButton, KeyPanel, SongKeyPanel } from "./key-button";
 
 function nothing() {
   return undefined;
@@ -11,13 +11,15 @@ function nothing() {
 const major = (tonic: string): Key => ({ tonic, minor: false });
 const minor = (tonic: string): Key => ({ tonic, minor: true });
 
-function panel(current: Key, original: Key = current) {
+function panel(current: Key, original: Key = current, guessed = true) {
   return renderToString(
     <KeyPanel
       current={current}
       original={original}
+      guessed={guessed}
       titleId="title"
       onPick={nothing}
+      onSet={nothing}
       onStep={nothing}
       onBack={nothing}
     />,
@@ -43,7 +45,9 @@ describe("KeyButton", () => {
       <KeyButton
         current={major("G")}
         original={major("G")}
+        guessed
         onPick={nothing}
+        onSet={nothing}
         onStep={nothing}
         onBack={nothing}
         onUndo={nothing}
@@ -114,6 +118,19 @@ describe("KeyPanel", () => {
     );
   });
 
+  it("says the original key was guessed only when it was", () => {
+    expect(panel(major("G"), major("G"), false)).toContain(
+      "The original key is <!-- -->G<!-- -->.",
+    );
+    expect(panel(major("G"), major("G"), false)).not.toContain("guessed");
+  });
+
+  it("offers to change the song's key", () => {
+    expect(panel(major("G"))).toMatch(
+      /<button[^>]*aria-label="Change the song&#x27;s key"[^>]*>Change<\/button>/,
+    );
+  });
+
   it("always shows the way back, disabled in the original key", () => {
     const back = (html: string) =>
       /<button[^>]*>Back to <!-- -->G<\/button>/.exec(html)?.[0];
@@ -125,5 +142,34 @@ describe("KeyPanel", () => {
     const html = panel(major("G"));
     expect(html).toContain('aria-label="Down a semitone"');
     expect(html).toContain('aria-label="Up a semitone"');
+  });
+});
+
+describe("SongKeyPanel", () => {
+  function songKeys(current: Key) {
+    return renderToString(
+      <SongKeyPanel
+        current={current}
+        titleId="title"
+        onSet={nothing}
+        onCancel={nothing}
+      />,
+    );
+  }
+
+  it("lists the major and then the minor keys", () => {
+    const html = songKeys(major("G"));
+    expect(html).toContain("This song is in");
+    expect(keys(html)).toEqual([
+      ...["C", "Db", "D", "Eb", "E", "F", "F#", "Gb", "G", "Ab", "A", "Bb"],
+      ...["B", "Cm", "C#m", "Dm", "D#m", "Ebm", "Em", "Fm", "F#m", "Gm"],
+      ...["G#m", "Am", "Bbm", "Bm"],
+    ]);
+    expect(html).toContain("Cancel");
+  });
+
+  it("marks the sheet's key, in its own mode only", () => {
+    expect(pressed(songKeys(major("G")))).toEqual(["G"]);
+    expect(pressed(songKeys(minor("E")))).toEqual(["Em"]);
   });
 });

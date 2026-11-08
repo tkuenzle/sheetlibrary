@@ -366,6 +366,43 @@ test.describe("the key", () => {
     await expect(back).toBeDisabled();
   });
 
+  test("sets the song's key without moving a chord", async ({ page }) => {
+    await keyButton(page).click();
+    await panel(page)
+      .getByRole("button", { name: "Change the song's key" })
+      .click();
+    const songKey = page.getByRole("dialog", { name: "This song is in" });
+    await expect(
+      songKey.getByRole("button", { name: "G", exact: true }),
+    ).toBeFocused();
+    await songKey
+      .getByRole("region", { name: "Minor" })
+      .getByRole("button", { name: "E minor" })
+      .click();
+    expect(await chords(page)).toEqual(["G", "G7", "C", "G"]);
+    await expect(keyButton(page)).toHaveText("Key Em");
+    await expect(panel(page)).toContainText("The original key is Em.");
+    await expect(panel(page)).not.toContainText("guessed");
+    await expect(
+      panel(page).getByRole("button", { name: "E minor" }),
+    ).toBeFocused();
+  });
+
+  test("keeps the key as it was on Cancel", async ({ page }) => {
+    await keyButton(page).click();
+    await panel(page)
+      .getByRole("button", { name: "Change the song's key" })
+      .click();
+    await page
+      .getByRole("dialog", { name: "This song is in" })
+      .getByRole("button", { name: "Cancel" })
+      .click();
+    await expect(keyButton(page)).toHaveText("Key G");
+    await expect(panel(page)).toContainText(
+      "The original key, G, is guessed from the chords.",
+    );
+  });
+
   test("slides out on a phone before it closes", async ({ page }, testInfo) => {
     test.skip(!isPhone(testInfo), "The panel is a sheet only on a phone");
     await keyButton(page).click();
@@ -407,6 +444,30 @@ test.describe("the key", () => {
     await page.keyboard.type("C");
     await page.keyboard.press("Enter");
     await expect(keyButton(page)).toHaveText("Key C");
+  });
+
+  test("keeps a set key without chords", async ({ page }) => {
+    await keyButton(page).click();
+    await panel(page)
+      .getByRole("button", { name: "Change the song's key" })
+      .click();
+    await page
+      .getByRole("dialog", { name: "This song is in" })
+      .getByRole("button", { name: "E minor" })
+      .click();
+    await page.keyboard.press("Escape");
+    const lines = page.locator(".ProseMirror .line");
+    await firstLine(page).click();
+    await expect(page.locator(".section-toolbar")).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await expect(lines).toHaveCount(5);
+    await page.keyboard.press("ArrowDown");
+    await expect(lines).toHaveCount(4);
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await expect(page.locator(".chord-label")).toHaveCount(0);
+    await expect(keyButton(page)).toHaveText("Key Em");
   });
 });
 

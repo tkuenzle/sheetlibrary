@@ -85,6 +85,35 @@
   color: var(--text-dimmed);
 }
 
+/* The original key, with "Change" at the end of the line. */
+.key-panel-original {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.key-panel-original > p {
+  flex: 1;
+}
+
+.key-panel-change {
+  flex: none;
+  margin-right: -12px;
+}
+
+/* The major and the minor keys, when changing the song's key. */
+.key-panel-mode {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.key-panel-mode h3 {
+  margin: 0;
+  font: 600 var(--font-size-small) / 1.3 var(--font);
+  color: var(--text-muted);
+}
+
 .key-panel-keys {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

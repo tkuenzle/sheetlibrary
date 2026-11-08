@@ -85,6 +85,26 @@ test("saves edits on its own, and a reload shows them", async ({ page }) => {
   expect(seen).toEqual([]);
 });
 
+test("saves a set key, and a reload shows it", async ({ page }) => {
+  await openSheet(page, await createSheet(page));
+  const keyButton = page.getByRole("button", { name: /^Key / });
+  await expect(keyButton).toHaveText("Key G");
+  await keyButton.click();
+  await page.getByRole("button", { name: "Change the song's key" }).click();
+  await page
+    .getByRole("dialog", { name: "This song is in" })
+    .getByRole("button", { name: "E minor" })
+    .click();
+  await expect(keyButton).toHaveText("Key Em");
+  await expect(status(page)).toHaveText("Saved");
+  await page.reload();
+  await expect(keyButton).toHaveText("Key Em");
+  await keyButton.click();
+  const panel = page.getByRole("dialog", { name: "Transpose to" });
+  await expect(panel).toContainText("The original key is Em.");
+  await expect(panel).not.toContainText("guessed");
+});
+
 // Scenario "Slow save".
 test("says Saving… while a save takes a while", async ({ page }) => {
   await openSheet(page, await createSheet(page));

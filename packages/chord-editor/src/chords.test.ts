@@ -3,7 +3,14 @@ import { describe, expect, it } from "vitest";
 
 import { transposeChord } from "chordsheet";
 
-import { chordsIn, insertChord, moveChord, transposeChords } from "./chords";
+import {
+  chordsIn,
+  insertChord,
+  moveChord,
+  setKey,
+  transposeChords,
+} from "./chords";
+import { keyOf, originalKeyOf } from "./schema";
 import {
   at,
   chord,
@@ -93,14 +100,12 @@ describe("moving a chord", () => {
   });
 });
 
+const G = { tonic: "G", minor: false };
+const A = { tonic: "A", minor: false };
+const Em = { tonic: "E", minor: true };
+
 describe("transposing", () => {
-  const toA = transposeChords((c) =>
-    transposeChord(
-      c,
-      { tonic: "G", minor: false },
-      { tonic: "A", minor: false },
-    ),
-  );
+  const toA = transposeChords((c) => transposeChord(c, G, A), A);
 
   it("moves every chord and keeps the ids and the caret", () => {
     const state = withCaret(song("[G]Amazing [C]grace\n\n[D/F#]me"), 3);
@@ -126,5 +131,46 @@ describe("transposing", () => {
   it("changes nothing in a sheet without chords", () => {
     const state = song("Amazing grace");
     expect(exec(state, toA).doc.eq(state.doc)).toBe(true);
+  });
+
+  it("moves a set key with the chords, in one step", () => {
+    const state = exec(song("[G]Amazing [C]grace"), setKey(G));
+    const next = exec(state, toA);
+    expect(notation(next)).toBe("[A]Amazing [D]grace");
+    expect(keyOf(next.doc)).toEqual(A);
+    expect(originalKeyOf(next.doc)).toEqual(G);
+    const undone = exec(next, undo);
+    expect(notation(undone)).toBe("[G]Amazing [C]grace");
+    expect(keyOf(undone.doc)).toEqual(G);
+  });
+
+  it("sets no key when none is set", () => {
+    expect(keyOf(exec(song("[G]Amazing grace"), toA).doc)).toBeNull();
+  });
+});
+
+describe("setting the key", () => {
+  it("moves no chord", () => {
+    const state = song("[G]Amazing [C]grace\n\n[D]me");
+    const next = exec(state, setKey(Em));
+    expect(keyOf(next.doc)).toEqual(Em);
+    expect(originalKeyOf(next.doc)).toEqual(Em);
+    expect(notation(next)).toBe(notation(state));
+    expect(chordsIn(next.doc)).toEqual(chordsIn(state.doc));
+  });
+
+  it("is undone in one step", () => {
+    const state = exec(song("[G]Amazing grace"), setKey(G));
+    const undone = exec(exec(state, setKey(Em)), undo);
+    expect(keyOf(undone.doc)).toEqual(G);
+    expect(originalKeyOf(undone.doc)).toEqual(G);
+    const redone = exec(undone, redo);
+    expect(keyOf(redone.doc)).toEqual(Em);
+    expect(originalKeyOf(redone.doc)).toEqual(Em);
+  });
+
+  it("changes nothing when the key is already set", () => {
+    const state = exec(song("[G]Amazing grace"), setKey(G));
+    expect(exec(state, setKey({ ...G })).doc).toBe(state.doc);
   });
 });

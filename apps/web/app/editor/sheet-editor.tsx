@@ -15,13 +15,16 @@ import {
   type HandBack,
   handBackSheet,
   insertChord,
+  keyOf,
   type LabelBox,
   labelOf,
   moveActiveSection,
+  originalKeyOf,
   redo,
   removeChord,
   type SectionToolbarState,
   selectChord,
+  setKey,
   setSectionLabel,
   transposeChords,
   undo,
@@ -52,8 +55,12 @@ import { SectionToolbar } from "./section-toolbar";
 
 export interface SheetEditorHandle {
   handBack(): HandBack;
-  // Moves every chord with `move`, in one step to undo.
-  transpose(move: (chord: MarkedChord) => MarkedChord): void;
+  // Moves every chord with `move` to the key `to`, in one step to undo. A
+  // set key moves to `to` too.
+  transpose(move: (chord: MarkedChord) => MarkedChord, to: Key): void;
+  // Sets the sheet's key and makes it the original key, without moving a
+  // chord, in one step to undo.
+  setKey(key: Key): void;
   undo(): void;
   redo(): void;
 }
@@ -105,9 +112,13 @@ export function SheetEditor({
   onEditedChange?: (edited: boolean) => void;
   // Called after every change to the sheet.
   onChange?: () => void;
-  // Called with every chord in order, once the editor is ready and then
-  // whenever a chord changes.
-  onChordsChange?: (chords: Chord[]) => void;
+  // Called with every chord in order, the set key and the original key if
+  // one was set, once the editor is ready and then whenever one changes.
+  onChordsChange?: (
+    chords: Chord[],
+    key: Key | null,
+    original: Key | null,
+  ) => void;
   // The sheet's key, for the chord input's suggestions.
   sheetKey?: Key | null;
   // Shows the sheet without letting it change: no caret, no chord input, no
@@ -162,8 +173,11 @@ export function SheetEditor({
       if (!view) throw new Error("The editor is not ready");
       return handBackSheet(view.state.doc);
     },
-    transpose: (move) => {
-      run(transposeChords(move));
+    transpose: (move, to) => {
+      run(transposeChords(move, to));
+    },
+    setKey: (key) => {
+      run(setKey(key));
     },
     undo: () => {
       run(undo);
@@ -341,14 +355,17 @@ export function SheetEditor({
 
     const loaded = docFromSheet(sheetRef.current);
     let edited = false;
-    // The chords as last reported, to report only when they change.
+    // The chords and the keys as last reported, to report only when they
+    // change.
     let reported = "";
     function reportChords(doc: typeof loaded) {
       const chords = chordsIn(doc);
-      const now = JSON.stringify(chords);
+      const key = keyOf(doc);
+      const original = originalKeyOf(doc);
+      const now = JSON.stringify([chords, key, original]);
       if (now === reported) return;
       reported = now;
-      onChordsChangeRef.current?.(chords);
+      onChordsChangeRef.current?.(chords, key, original);
     }
     const view = new EditorView(mount, {
       state: createEditorState(loaded, {

@@ -194,6 +194,25 @@ describe("Checking a sheet", () => {
     expect(checkSheet(sheet(labeled("a".repeat(40), line("b"))))).toEqual([]);
   });
 
+  it("allows a set key", () => {
+    const content = {
+      ...sheet(section(line("a"))),
+      key: { tonic: "E", minor: true },
+    };
+    expect(checkSheet(content)).toEqual([]);
+  });
+
+  it("rejects a key that isn't valid", () => {
+    const content = (key: unknown) => ({ ...sheet(section(line("a"))), key });
+    expect(messages(content({ tonic: "H", minor: false }))).toEqual([
+      "Key tonic is not a note",
+    ]);
+    expect(messages(content({ tonic: "E" }))).toEqual([
+      "Key doesn't say whether it is minor",
+    ]);
+    expect(messages(content("Em"))).toEqual(["Key is not an object"]);
+  });
+
   it("rejects a section without lines", () => {
     expect(checkSheet(sheet(section()))).toEqual([
       { message: "Section has no lines", section: 0 },

@@ -14,6 +14,7 @@ import {
   type Chord,
   chordMark,
   chordsOn,
+  keyOf,
   labelOf,
   newChordId,
   schema,
@@ -28,7 +29,7 @@ export function docFromSheet(sheet: ChordSheet): Node {
   const sections = sheet.sections.map(sectionToEditor);
   // The editor needs one section to type in, even for an empty sheet.
   return schema.nodes.doc.create(
-    null,
+    { key: sheet.key ?? null, original: sheet.key ?? null },
     sections.length > 0 ? sections : [emptySection()],
   );
 }
@@ -72,7 +73,13 @@ export function handBackSheet(doc: Node): HandBack {
     const section = sectionFromEditor(node);
     if (section) sections.push(section);
   });
-  const sheet: ChordSheet = { format: FORMAT, version: VERSION, sections };
+  const key = keyOf(doc);
+  const sheet: ChordSheet = {
+    format: FORMAT,
+    version: VERSION,
+    ...(key === null ? {} : { key }),
+    sections,
+  };
   const problems = checkSheet(sheet);
   return problems.length > 0 ? { ok: false, problems } : { ok: true, sheet };
 }

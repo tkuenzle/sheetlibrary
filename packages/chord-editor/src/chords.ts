@@ -1,4 +1,4 @@
-import type { MarkedChord } from "chordsheet";
+import { type Key, type MarkedChord, sameKey } from "chordsheet";
 import type { Node } from "prosemirror-model";
 import {
   type Command,
@@ -13,7 +13,9 @@ import {
   type Chord,
   chordMark,
   chordsOn,
+  keyOf,
   newChordId,
+  originalKeyOf,
   schema,
   symbolOf,
 } from "./schema";
@@ -147,13 +149,39 @@ function sameChord(a: Chord, b: Chord | undefined): boolean {
   );
 }
 
-// Moves every chord with `move`, such as to another key.
+// Moves every chord with `move` to the key `to`. A set key moves to `to`
+// in the same step, so it stays true.
 export function transposeChords(
   move: (chord: MarkedChord) => MarkedChord,
+  to: Key,
 ): Command {
   return (state, dispatch) => {
-    const tr = replaceChords(state, (chord) => move(symbolOf(chord)));
-    if (tr) dispatch?.(tr);
+    const tr =
+      replaceChords(state, (chord) => move(symbolOf(chord))) ?? state.tr;
+    const key = keyOf(state.doc);
+    if (key && !sameKey(key, to)) tr.setDocAttribute("key", to);
+    if (tr.docChanged) dispatch?.(tr);
+    return true;
+  };
+}
+
+// Sets the sheet's key and makes it the original key, in one step. No
+// chord moves.
+export function setKey(key: Key): Command {
+  return (state, dispatch) => {
+    const current = keyOf(state.doc);
+    const original = originalKeyOf(state.doc);
+    if (
+      current &&
+      original &&
+      sameKey(current, key) &&
+      sameKey(original, key)
+    ) {
+      return true;
+    }
+    dispatch?.(
+      state.tr.setDocAttribute("key", key).setDocAttribute("original", key),
+    );
     return true;
   };
 }

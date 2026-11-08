@@ -1,4 +1,5 @@
 import type { MarkedChord } from "./chord-mark";
+import type { Key } from "./keys";
 
 // The stored content of a chord sheet, version 1. Metadata such as the title
 // belongs to the sheet around it and is not part of this model.
@@ -9,6 +10,9 @@ export const VERSION = 1;
 export interface ChordSheet {
   format: typeof FORMAT;
   version: typeof VERSION;
+  // The key the person set. Left out when none is set: the key is then
+  // guessed from the chords.
+  key?: Key;
   sections: Section[];
 }
 
