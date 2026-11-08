@@ -8,7 +8,7 @@ A sheet's key is guessed from its chords each time (#58). The guess can be wrong
 
 - A chord sheet's content can hold its key: a tonic, and major or minor. A sheet without one keeps working as today: its key is guessed from the chords.
 - Once a key is set, it is the sheet's key. It is not guessed again after edits.
-- The key panel names the original key. Next to it, "Change" lists the major and minor keys. Picking one sets the sheet's key and moves no chord.
+- The key panel has two parts: "Song key", which shows the sheet's key and whether it is guessed, and "Transpose to". "Change" beside the song key lists the major and minor keys, and names the guess. Picking one sets the sheet's key and moves no chord.
 - Transposing still moves the chords, as today. A set key moves with them, so it stays true.
 - On the sheet page, a set key saves like any other edit. On `/editor` it is kept until the page is left, like everything else there.
 - Not in this change: a key for a single section (split off from #58 into its own issue), showing the key in the library, and taking a key from an import.

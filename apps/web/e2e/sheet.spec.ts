@@ -90,19 +90,18 @@ test("saves a set key, and a reload shows it", async ({ page }) => {
   const keyButton = page.getByRole("button", { name: /^Key / });
   await expect(keyButton).toHaveText("Key G");
   await keyButton.click();
-  await page.getByRole("button", { name: "Change the song's key" }).click();
-  await page
-    .getByRole("dialog", { name: "This song is in" })
-    .getByRole("button", { name: "E minor" })
-    .click();
+  const songKey = page
+    .getByRole("dialog", { name: "Key" })
+    .getByRole("region", { name: "Song key" });
+  await page.getByRole("button", { name: "Change the song key" }).click();
+  await songKey.getByRole("button", { name: "E minor" }).click();
   await expect(keyButton).toHaveText("Key Em");
   await expect(status(page)).toHaveText("Saved");
   await page.reload();
   await expect(keyButton).toHaveText("Key Em");
   await keyButton.click();
-  const panel = page.getByRole("dialog", { name: "Transpose to" });
-  await expect(panel).toContainText("The original key is Em.");
-  await expect(panel).not.toContainText("guessed");
+  await expect(songKey).toContainText("Em");
+  await expect(songKey).not.toContainText("Guessed");
 });
 
 // Scenario "Slow save".

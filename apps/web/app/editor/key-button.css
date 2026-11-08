@@ -73,7 +73,7 @@
   gap: var(--space-xs);
 }
 
-.key-panel-header h2 {
+.key-panel h2 {
   margin: 0;
   font: 700 var(--font-size-label) / 1.3 var(--font);
 }
@@ -85,20 +85,64 @@
   color: var(--text-dimmed);
 }
 
-/* The original key, with "Change" at the end of the line. */
-.key-panel-original {
+/* The song's key, large, with "Change" at the end of its line. */
+.key-panel-song {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-s);
 }
 
-.key-panel-original > p {
+.key-panel-song > .key-panel-header {
   flex: 1;
+}
+
+.key-panel .key-panel-song-key {
+  font: 700 28px / 1.2 var(--font);
+  color: var(--text);
 }
 
 .key-panel-change {
   flex: none;
-  margin-right: -12px;
+  margin: -6px -12px 0 0;
+}
+
+/* Transposing, below a line, and the song's keys when changing it. */
+.key-panel-transpose,
+.key-panel-song-keys {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.key-panel-transpose {
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--border);
+}
+
+/* The dot on the key guessed from the chords, and beside its name. */
+.key-panel-key[data-guess] {
+  position: relative;
+}
+
+.key-panel-key[data-guess]::after,
+.key-panel-guess-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.key-panel-key[data-guess]::after {
+  content: "";
+  position: absolute;
+  bottom: 7px;
+  left: calc(50% - 3px);
+}
+
+.key-panel-guess-dot {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: 2px;
 }
 
 /* The major and the minor keys, when changing the song's key. */

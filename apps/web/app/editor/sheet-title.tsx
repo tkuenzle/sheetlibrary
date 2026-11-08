@@ -26,8 +26,10 @@ export interface SheetKeyState {
   // Where "Back" goes: the set key the sheet was loaded with, or the last
   // one set since. Without one, the first key guessed.
   original: Key | null;
-  // Whether the original key was guessed rather than set.
+  // Whether `key` is guessed, since no key is set.
   guessed: boolean;
+  // The key guessed from the chords now, also when a key is set.
+  guess: Key | null;
   // The first key guessed from the chords.
   firstGuess: Key | null;
 }
@@ -42,9 +44,15 @@ export type SheetKeyAction =
   | { type: "reset"; sheet: ChordSheet };
 
 export function loadSheetKey(sheet: ChordSheet): SheetKeyState {
-  const firstGuess = guessKey(chordsOf(sheet));
-  const key = sheet.key ?? firstGuess;
-  return { key, original: key, guessed: !sheet.key, firstGuess };
+  const guess = guessKey(chordsOf(sheet));
+  const key = sheet.key ?? guess;
+  return {
+    key,
+    original: key,
+    guessed: !sheet.key,
+    guess,
+    firstGuess: guess,
+  };
 }
 
 export function sheetKeyReducer(
@@ -58,7 +66,8 @@ export function sheetKeyReducer(
       return {
         key: action.key ?? guess,
         original: action.original ?? firstGuess,
-        guessed: action.original === null,
+        guessed: action.key === null,
+        guess,
         firstGuess,
       };
     }
@@ -99,7 +108,7 @@ export function useSheetKey(sheet: ChordSheet): SheetKey {
 // button or field that renames it.
 export function SheetTitle({
   title,
-  sheetKey: { key, original, guessed },
+  sheetKey: { key, original, guessed, guess },
   editor,
   readOnly = false,
   children,
@@ -124,6 +133,7 @@ export function SheetTitle({
           current={key}
           original={original}
           guessed={guessed}
+          guess={guess}
           onPick={moveTo}
           onSet={(to) => {
             editor.current?.setKey(to);

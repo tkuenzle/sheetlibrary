@@ -17,7 +17,7 @@ function panel(current: Key, original: Key = current, guessed = true) {
       current={current}
       original={original}
       guessed={guessed}
-      titleId="title"
+      guess={current}
       onPick={nothing}
       onSet={nothing}
       onStep={nothing}
@@ -46,6 +46,7 @@ describe("KeyButton", () => {
         current={major("G")}
         original={major("G")}
         guessed
+        guess={major("G")}
         onPick={nothing}
         onSet={nothing}
         onStep={nothing}
@@ -58,6 +59,7 @@ describe("KeyButton", () => {
     expect(html).toContain('aria-label="Key G"');
     expect(html).toContain("Key <!-- -->G");
     expect(html).toContain("data-keeps-editing");
+    expect(html).toContain('aria-label="Key"');
     expect(html).not.toContain("Transpose to");
   });
 });
@@ -82,9 +84,6 @@ describe("KeyPanel", () => {
     ]);
     expect(html).toContain('aria-label="F sharp or G flat"');
     expect(pressed(html)).toEqual(["G"]);
-    expect(html).toContain(
-      "The original key, <!-- -->G<!-- -->, is guessed from the chords.",
-    );
   });
 
   it("lists the minor keys for a minor sheet", () => {
@@ -112,22 +111,20 @@ describe("KeyPanel", () => {
     expect(pressed(panel(major("Gb")))).toEqual(["Gb"]);
   });
 
-  it("names the original key, not the current one", () => {
-    expect(panel(major("A"), major("G"))).toContain(
-      "The original key, <!-- -->G<!-- -->, is guessed",
-    );
+  it("has the song key, then the keys to transpose to", () => {
+    const html = panel(major("G"));
+    expect(html.indexOf("Song key")).toBeLessThan(html.indexOf("Transpose to"));
+    expect(html).toContain('<p class="key-panel-song-key">G</p>');
   });
 
-  it("says the original key was guessed only when it was", () => {
-    expect(panel(major("G"), major("G"), false)).toContain(
-      "The original key is <!-- -->G<!-- -->.",
-    );
-    expect(panel(major("G"), major("G"), false)).not.toContain("guessed");
+  it("says the song key is guessed only while none is set", () => {
+    expect(panel(major("G"))).toContain("Guessed from the chords");
+    expect(panel(major("G"), major("G"), false)).not.toContain("Guessed");
   });
 
-  it("offers to change the song's key", () => {
+  it("offers to change the song key", () => {
     expect(panel(major("G"))).toMatch(
-      /<button[^>]*aria-label="Change the song&#x27;s key"[^>]*>Change<\/button>/,
+      /<button[^>]*aria-label="Change the song key"[^>]*>Change<\/button>/,
     );
   });
 
@@ -146,11 +143,11 @@ describe("KeyPanel", () => {
 });
 
 describe("SongKeyPanel", () => {
-  function songKeys(current: Key) {
+  function songKeys(current: Key, guess: Key | null = current) {
     return renderToString(
       <SongKeyPanel
         current={current}
-        titleId="title"
+        guess={guess}
         onSet={nothing}
         onCancel={nothing}
       />,
@@ -159,7 +156,8 @@ describe("SongKeyPanel", () => {
 
   it("lists the major and then the minor keys", () => {
     const html = songKeys(major("G"));
-    expect(html).toContain("This song is in");
+    expect(html).toContain("Pick the key the song is in.");
+    expect(html).toContain("The chords stay as they are.");
     expect(keys(html)).toEqual([
       ...["C", "Db", "D", "Eb", "E", "F", "F#", "Gb", "G", "Ab", "A", "Bb"],
       ...["B", "Cm", "C#m", "Dm", "D#m", "Ebm", "Em", "Fm", "F#m", "Gm"],
@@ -171,5 +169,24 @@ describe("SongKeyPanel", () => {
   it("marks the sheet's key, in its own mode only", () => {
     expect(pressed(songKeys(major("G")))).toEqual(["G"]);
     expect(pressed(songKeys(minor("E")))).toEqual(["Em"]);
+  });
+
+  // The keys with a dot, as shown.
+  function dotted(html: string) {
+    return [...html.matchAll(/data-guess="true"[^>]*>([^<]+)</g)].map(
+      (match) => match[1],
+    );
+  }
+
+  it("names the guess, and dots it when it isn't the song key", () => {
+    const html = songKeys(minor("E"), major("G"));
+    expect(html).toContain("Guessed from the chords: <!-- -->G");
+    expect(dotted(html)).toEqual(["G"]);
+    expect(pressed(html)).toEqual(["Em"]);
+    expect(dotted(songKeys(major("G")))).toEqual([]);
+  });
+
+  it("names no guess without chords", () => {
+    expect(songKeys(minor("E"), null)).not.toContain("Guessed");
   });
 });

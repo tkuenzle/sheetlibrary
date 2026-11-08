@@ -65,7 +65,12 @@ describe("the sheet's key", () => {
       key: null,
       original: null,
     });
-    expect(state).toMatchObject({ key: A, original: G, guessed: true });
+    expect(state).toMatchObject({
+      key: A,
+      original: G,
+      guessed: true,
+      guess: A,
+    });
   });
 
   it("stays the set key when the chords change", () => {
@@ -87,7 +92,12 @@ describe("the sheet's key", () => {
       key: Em,
       original: Em,
     });
-    expect(state).toMatchObject({ key: Em, original: Em, guessed: false });
+    expect(state).toMatchObject({
+      key: Em,
+      original: Em,
+      guessed: false,
+      guess: G,
+    });
     // Undoing the set key brings back the guess, and "Back" goes there.
     state = sheetKeyReducer(state, {
       type: "chords",

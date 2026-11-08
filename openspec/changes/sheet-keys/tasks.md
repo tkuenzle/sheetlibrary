@@ -27,6 +27,13 @@
 - [x] 4.1 Run `just check`; verify it passes. One photo-import dialog test failed once with an error page on `/sheets`, then passed 6 times on its own and in a second full `just e2e` run
 - [x] 4.2 With the browser-check skill, on `/editor` and on a stored sheet: set a key, transpose, undo, and "Back"; verify the button and the panel follow each step. Checked by hand on `/editor` at desktop width and on a Pixel 7. The stored sheet only through its e2e test: the saved e2e session wasn't accepted by a separate preview. This check found that undoing a set key left the old original key behind, fixed by keeping the original key in the document (design.md)
 
+## 5. A clearer panel
+
+- [x] 5.1 Split the panel into "Song key", with the sheet's key and "Guessed from the chords" while none is set, and "Transpose to" below a divider; name the dialog "Key". Verify with `key-button.test.tsx`
+- [x] 5.2 In the Change view, say "Pick the key the song is in." and "The chords stay as they are.", and name the key guessed from the chords now, also once a key is set; mark the guessed key in the grid when it isn't the sheet's key. Verify with `key-button.test.tsx` and `sheet-title.test.tsx`
+- [x] 5.3 Update `docs/ui-text.md` and the e2e tests for the new names, and add one for the guess after setting; verify `just check` passes. A photo-import test failed once with an HTML error page from the API, then passed 4 times on its own and in a second full `just e2e` run
+- [x] 5.4 Check the panel and the Change view in the browser at desktop width and on a phone; verify they read as two different things
+
 ## Workflow follow-up
 
 - Open an issue for a key per section, split off from #58, in M6 or later.

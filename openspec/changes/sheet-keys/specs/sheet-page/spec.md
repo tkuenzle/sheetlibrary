@@ -15,4 +15,4 @@ Edits SHALL save on their own, shortly after the person stops typing. While the 
 
 #### Scenario: Reload after setting the key
 - **WHEN** the owner sets the key of a sheet guessed as G to Em, waits until it is saved and reloads
-- **THEN** the key button reads "Key Em", and the panel doesn't say the key was guessed
+- **THEN** the key button reads "Key Em", and the panel doesn't say the key is guessed
