@@ -92,12 +92,12 @@
   padding: 56px var(--space-2xl) var(--space-3xl);
   border-radius: var(--corner-large);
   background: var(--surface-active);
-  text-align: center;
 }
 
-.library-empty h2 {
+.library-empty > h2 {
   margin: 0;
   font: 700 var(--font-size-heading) / 1.2 var(--font);
+  text-align: center;
 }
 
 /* The passkey offer after an email sign-in, in the note colors. */
