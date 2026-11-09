@@ -124,6 +124,26 @@ test("doesn't save a transpose", async ({ page }) => {
   await expect(keyButton).toHaveText("Key G");
 });
 
+// Scenario "Capo isn't saved".
+test("doesn't save a capo", async ({ page }) => {
+  const id = await createSheet(page);
+  await openSheet(page, id);
+  const capoButton = page.getByRole("button", { name: /^Capo/ });
+  await capoButton.click();
+  await page
+    .getByRole("dialog", { name: "Capo" })
+    .getByRole("button", { name: "Capo 2, F shapes" })
+    .click();
+  await expect(page.locator(".chord-label")).toHaveText(["F"]);
+  await expect(page).toHaveURL(/\?capo=2$/);
+  await expect(status(page)).toHaveText("Saved");
+  const stored = await page.request.get(`/api/sheets/${id}`);
+  expect(JSON.stringify(await stored.json())).toContain('"root":"G"');
+  await openSheet(page, id);
+  await expect(capoButton).toHaveText("Capo");
+  await expect(page.locator(".chord-label")).toHaveText(["G"]);
+});
+
 // Scenario "Reload after making the song key".
 test("saves the shown key made the song key", async ({ page }) => {
   await openSheet(page, await createSheet(page));

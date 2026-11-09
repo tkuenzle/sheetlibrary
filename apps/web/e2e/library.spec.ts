@@ -187,6 +187,22 @@ test.describe("the import", () => {
     await expect(page.locator(".chord-label")).toHaveText(["C", "G"]);
   });
 
+  // Scenario "Importing with a capo".
+  test("opens a sheet written for a capo with it", async ({ page }) => {
+    await pasteAndImport(page, ["Capo: 2nd fret", verse].join("\n"));
+    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\?capo=2$/);
+    await page.keyboard.press("Escape");
+    const capoButton = page.getByRole("button", { name: /^Capo/ });
+    await expect(capoButton).toHaveText("Capo 2");
+    await expect(page.locator(".chord-label")).toHaveText(["C", "G"]);
+
+    // It is stored as it sounds, and opens so from the library.
+    const id = /\/sheets\/([\w-]{12})/.exec(page.url())?.[1] ?? "";
+    await page.goto(`/sheets/${id}`);
+    await expect(capoButton).toHaveText("Capo");
+    await expect(page.locator(".chord-label")).toHaveText(["D", "A"]);
+  });
+
   // Scenario "Cancelling".
   test("cancels without a new sheet", async ({ page }) => {
     const posts: string[] = [];

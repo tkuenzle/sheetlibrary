@@ -7,6 +7,7 @@ import { eastAsianWidth } from "get-east-asian-width";
 import type { MarkedChord } from "./chord-mark";
 import { type ChordSymbol, readChord } from "./chord-symbol";
 import { cleanUpLabel, cleanUpSection, cutLabel } from "./clean-up";
+import { guessKey, keyAbove, readCapo, transposeChord } from "./keys";
 import {
   type ChordSheet,
   FORMAT,
@@ -49,6 +50,41 @@ export function readUltimateGuitar(text: string): ChordSheet {
     .map(classify);
   markBracketed(lines);
   return { format: FORMAT, version: VERSION, sections: group(lines) };
+}
+
+// A line that gives a capo: "Capo: 2nd fret", "Capo 2" or "Capo: 2".
+const CAPO = /^\s*capo\s*:?\s*(\d+)(?:st|nd|rd|th)?(?:\s+fret)?\s*$/i;
+
+// The capo the text's chords are written for, from its first capo line: a
+// fret from 1 to MAX_CAPO, or null. The chords stay as they are.
+export function readUltimateGuitarCapo(text: string): number | null {
+  for (const line of text.normalize("NFC").split(/\r\n?|\n/)) {
+    const fret = CAPO.exec(line)?.[1];
+    if (fret !== undefined) return readCapo(fret);
+  }
+  return null;
+}
+
+// The sheet as it sounds, for chords written as the shapes for a capo on
+// `capo`: each chord moved up from the key guessed from them. Without a
+// capo or a key to guess, the sheet stays as it is.
+export function soundingSheet(sheet: ChordSheet, capo: number): ChordSheet {
+  const chords = sheet.sections.flatMap((s) =>
+    s.lines.flatMap((l) => l.chords),
+  );
+  const from = guessKey(chords);
+  if (!capo || !from) return sheet;
+  const to = keyAbove(from, capo);
+  return {
+    ...sheet,
+    sections: sheet.sections.map((section) => ({
+      ...section,
+      lines: section.lines.map((line) => ({
+        ...line,
+        chords: line.chords.map((chord) => transposeChord(chord, from, to)),
+      })),
+    })),
+  };
 }
 
 function classify(line: string): UgLine {

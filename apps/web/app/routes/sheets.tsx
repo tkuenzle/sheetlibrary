@@ -157,10 +157,10 @@ function LibraryImport({ size }: { size?: "large" }) {
       <ImportDialog
         open={dialog === "ultimate-guitar"}
         onClose={closed}
-        onImport={async (sheet) => {
+        onImport={async (sheet, capo) => {
           const result = await importSheet(sheet);
           if ("error" in result) return result.error;
-          void navigate(importedSheetPath(result.id));
+          void navigate(importedSheetPath(result.id, { capo }));
           return undefined;
         }}
       />
@@ -170,7 +170,7 @@ function LibraryImport({ size }: { size?: "large" }) {
         onRead={async ({ content, title, artist }) => {
           const result = await importSheet(content, { title, artist });
           if ("error" in result) return false;
-          void navigate(importedSheetPath(result.id, title));
+          void navigate(importedSheetPath(result.id, { title }));
           return true;
         }}
       />

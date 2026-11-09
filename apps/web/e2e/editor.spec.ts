@@ -317,12 +317,18 @@ test.describe("the key", () => {
     await expect(songKey(page)).toContainText("The chords stay as they are.");
   }
 
-  test("sits beside the title", async ({ page }) => {
+  // With the capo button, it wraps below the title on a phone.
+  test("sits beside the title", async ({ page }, testInfo) => {
     await expect(keyButton(page)).toHaveText("Key G");
     const title = await box(page.getByRole("heading", { level: 1 }));
     const key = await box(keyButton(page));
-    expect(key.y).toBeLessThan(title.y + title.height);
-    expect(key.y + key.height).toBeGreaterThan(title.y);
+    if (isPhone(testInfo)) {
+      expect(key.y).toBeGreaterThanOrEqual(title.y + title.height);
+      expect(key.x).toBeLessThan(title.x + 1);
+    } else {
+      expect(key.y).toBeLessThan(title.y + title.height);
+      expect(key.y + key.height).toBeGreaterThan(title.y);
+    }
   });
 
   async function pick(page: Page, name: string) {
@@ -600,6 +606,117 @@ test.describe("the key", () => {
   });
 });
 
+test.describe("the capo", () => {
+  // The first chords, as shown.
+  async function chords(page: Page) {
+    return (await page.locator(".chord-label").allTextContents()).slice(0, 4);
+  }
+
+  function capoButton(page: Page) {
+    return page.getByRole("button", { name: /^Capo/ });
+  }
+
+  function keyButton(page: Page) {
+    return page.getByRole("button", { name: /^Key / });
+  }
+
+  async function pickCapo(page: Page, name: string) {
+    await capoButton(page).click();
+    const list = page.getByRole("dialog", { name: "Capo" });
+    await list.getByRole("button", { name }).click();
+    await expect(list).toBeHidden();
+  }
+
+  async function pickKey(page: Page, name: string) {
+    await keyButton(page).click();
+    const panel = page.getByRole("dialog", { name: "Key" });
+    await panel.getByRole("button", { name, exact: true }).click();
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+  }
+
+  // Scenario "No capo".
+  test("sits beside the key button", async ({ page }) => {
+    await expect(capoButton(page)).toHaveText("Capo");
+    const key = await box(keyButton(page));
+    const capo = await box(capoButton(page));
+    expect(capo.x).toBeGreaterThan(key.x);
+    expect(capo.y).toBeLessThan(key.y + key.height);
+  });
+
+  // Scenario "Capo 5".
+  test("shows the shapes for a capo", async ({ page }) => {
+    await capoButton(page).click();
+    const list = page.getByRole("dialog", { name: "Capo" });
+    await expect(list.getByRole("button")).toHaveCount(10);
+    await expect(
+      list.getByRole("button", { name: "No capo, G shapes" }),
+    ).toBeFocused();
+    await list.getByRole("button", { name: "Capo 5, D shapes" }).click();
+    await expect(list).toBeHidden();
+    expect(await chords(page)).toEqual(["D", "D7", "G", "D"]);
+    await expect(capoButton(page)).toHaveText("Capo 5");
+    await expect(keyButton(page)).toHaveText("Key G");
+    await expect(page).toHaveURL(/\/editor\?capo=5$/);
+  });
+
+  // Scenario "Capo after a transpose".
+  test("shows the shapes for the shown key", async ({ page }) => {
+    await pickKey(page, "B flat");
+    await pickCapo(page, "Capo 3, G shapes");
+    expect(await chords(page)).toEqual(["G", "G7", "C", "G"]);
+    await expect(keyButton(page)).toHaveText("Key Bb · +3");
+  });
+
+  // Scenario "Singer needs C".
+  test("keeps the shapes on a transpose", async ({ page }) => {
+    await pickKey(page, "B flat");
+    await pickCapo(page, "Capo 3, G shapes");
+    await pickKey(page, "C");
+    expect(await chords(page)).toEqual(["G", "G7", "C", "G"]);
+    await expect(capoButton(page)).toHaveText("Capo 5");
+  });
+
+  // Scenario "Shapes too far".
+  test("stays when the shapes would need fret 10", async ({ page }) => {
+    await pickCapo(page, "Capo 3, E shapes");
+    expect(await chords(page)).toEqual(["E", "E7", "A", "E"]);
+    await pickKey(page, "D");
+    await expect(capoButton(page)).toHaveText("Capo 3");
+    expect(await chords(page)).toEqual(["B", "B7", "E", "B"]);
+  });
+
+  // Scenario "Reload with capo 5".
+  test("keeps the capo after a reload", async ({ page }) => {
+    await pickCapo(page, "Capo 5, D shapes");
+    await page.reload();
+    await expect(capoButton(page)).toHaveText("Capo 5");
+    expect(await chords(page)).toEqual(["D", "D7", "G", "D"]);
+  });
+
+  // Scenario "Capo that doesn't fit".
+  test("leaves out a capo that doesn't fit", async ({ page }) => {
+    await page.goto("/editor?capo=12");
+    await expect(capoButton(page)).toHaveText("Capo");
+    await expect(page).toHaveURL(/\/editor$/);
+  });
+
+  // Scenario "Adding a chord with capo 5".
+  test("takes a chord as a shape", async ({ page }) => {
+    await pickCapo(page, "Capo 5, D shapes");
+    await firstLine(page).click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("ControlOrMeta+k");
+    await page.keyboard.type("A7sus4");
+    await page.keyboard.press("Enter");
+    const added = (name: string) =>
+      page.locator(".chord-label").filter({ hasText: new RegExp(`^${name}$`) });
+    await expect(added("A7sus4")).toHaveCount(1);
+    await pickCapo(page, "No capo, G shapes");
+    await expect(added("D7sus4")).toHaveCount(1);
+  });
+});
+
 test.describe("the import", () => {
   const verse = ["[Verse 1]", "C     G", "Hello world"].join("\n");
 
@@ -670,6 +787,45 @@ test.describe("the import", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Amazing Grace",
     );
+  });
+
+  // Scenario "Capo in the text".
+  test("finds the capo in the text, and lets it be changed", async ({
+    page,
+  }) => {
+    await importButton(page).click();
+    const capo = dialog(page).getByLabel("Written for");
+    await expect(capo).toHaveValue("0");
+    const field = dialog(page).getByLabel("Chords and lyrics");
+    await field.fill(["Capo: 2nd fret", verse].join("\n"));
+    await expect(capo).toHaveValue("2");
+    await expect(capo).toHaveAccessibleDescription(
+      "Set from the capo line in the text",
+    );
+    await capo.selectOption("No capo");
+    await field.fill(["Capo: 3rd fret", verse].join("\n"));
+    await expect(capo).toHaveValue("0");
+  });
+
+  // Scenario "Importing with capo 2".
+  test("stores the chords as they sound, and shows the shapes", async ({
+    page,
+  }) => {
+    await importButton(page).click();
+    await dialog(page).getByLabel("Chords and lyrics").fill(verse);
+    await dialog(page).getByLabel("Written for").selectOption("Capo 2");
+    await dialog(page)
+      .getByRole("button", { name: "Import", exact: true })
+      .click();
+    await expect(dialog(page)).toBeHidden();
+    await expect(page.locator(".chord-label")).toHaveText(["C", "G"]);
+    await expect(page.getByRole("button", { name: /^Capo/ })).toHaveText(
+      "Capo 2",
+    );
+    await expect(page.getByRole("button", { name: /^Key / })).toHaveText(
+      "Key D",
+    );
+    await expect(page).toHaveURL(/\/editor\?capo=2$/);
   });
 
   test("asks before leaving after an import", async ({ page }) => {

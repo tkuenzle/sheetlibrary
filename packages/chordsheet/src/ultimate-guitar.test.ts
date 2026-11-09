@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import { checkSheet } from "./check";
 import { LABEL_MAX } from "./sheet";
 import { labeled, line, section, sheet } from "./test-helpers";
-import { readUltimateGuitar } from "./ultimate-guitar";
+import {
+  readUltimateGuitar,
+  readUltimateGuitarCapo,
+  soundingSheet,
+} from "./ultimate-guitar";
 
 function read(...lines: string[]) {
   return readUltimateGuitar(lines.join("\n"));
@@ -50,6 +54,58 @@ describe("Reading Ultimate Guitar lines", () => {
     expect(read("Hello [Verse 1]")).toEqual(
       sheet(section(line("Hello [Verse 1]"))),
     );
+  });
+});
+
+describe("Reading the capo", () => {
+  it("reads the capo lines Ultimate Guitar writes", () => {
+    expect(readUltimateGuitarCapo("Capo: 2nd fret")).toBe(2);
+    expect(readUltimateGuitarCapo("Capo 2")).toBe(2);
+    expect(readUltimateGuitarCapo("Capo: 2")).toBe(2);
+    expect(readUltimateGuitarCapo("capo: 1st fret")).toBe(1);
+    expect(readUltimateGuitarCapo("  Capo: 3rd fret  ")).toBe(3);
+  });
+
+  it("reads the first capo line among other lines", () => {
+    expect(readUltimateGuitarCapo(amazingGrace)).toBe(2);
+  });
+
+  it("reads no capo without a capo line", () => {
+    expect(readUltimateGuitarCapo("[Verse 1]\nG  C\nHello world")).toBeNull();
+    expect(readUltimateGuitarCapo("Capo: no capo")).toBeNull();
+    expect(readUltimateGuitarCapo("Put a capo on 2")).toBeNull();
+  });
+
+  it("reads no capo above fret 9", () => {
+    expect(readUltimateGuitarCapo("Capo: 11th fret")).toBeNull();
+    expect(readUltimateGuitarCapo("Capo: 0")).toBeNull();
+  });
+
+  it("moves no chord", () => {
+    expect(read("Capo: 2nd fret", "G  C", "Hello")).toEqual(
+      sheet(section(line("Capo: 2nd fret"), line("Hello", [0, "G"], [3, "C"]))),
+    );
+  });
+});
+
+describe("The sheet as it sounds", () => {
+  it("moves the shapes up by the capo", () => {
+    expect(soundingSheet(read("G  C  D/F#", "Hello world"), 2)).toEqual(
+      sheet(section(line("Hello world", [0, "A"], [3, "D"], [6, "E/G#"]))),
+    );
+  });
+
+  it("spells the moved chords as the new key does", () => {
+    expect(soundingSheet(read("G  C  D", "Hello world"), 3)).toEqual(
+      sheet(section(line("Hello world", [0, "Bb"], [3, "Eb"], [6, "F"]))),
+    );
+  });
+
+  it("stays as it is without a capo or chords", () => {
+    const shapes = read("G  C", "Hello");
+    expect(soundingSheet(shapes, 0)).toBe(shapes);
+    const lyrics = read("Hello");
+    expect(soundingSheet(lyrics, 2)).toBe(lyrics);
   });
 });
 
