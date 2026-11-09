@@ -185,7 +185,7 @@ describe("SheetTitle", () => {
         editor={createRef<SheetEditorHandle>()}
       />,
     );
-    expect(html).toContain('aria-label="Key A"');
+    expect(html).toContain('aria-label="Key A, 2 semitones up"');
   });
 
   it("has no key button without chords and without a set key", () => {
