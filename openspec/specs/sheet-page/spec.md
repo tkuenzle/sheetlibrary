@@ -7,7 +7,7 @@ The page where a signed-in person edits one of their stored sheets. Edits save o
 ## Requirements
 
 ### Requirement: Stored sheet in the editor
-The page at `/sheets/:id` SHALL show the owner's sheet in the chord editor, with its title as the heading and in the browser tab, its artist below the title, the key button and the help, as on `/editor`. It SHALL NOT show the prototype notice or the Ultimate Guitar import.
+The page at `/sheets/:id` SHALL show the owner's sheet in the chord editor, with its title as the heading and in the browser tab, its artist below the title, the key button, the capo button and the help, as on `/editor`. It SHALL NOT show the prototype notice or the Ultimate Guitar import.
 
 #### Scenario: Opening a sheet
 - **WHEN** the owner opens `/sheets/:id` for their sheet "Amazing Grace" by Chris Tomlin
@@ -25,7 +25,7 @@ A visitor who isn't signed in SHALL be sent to the sign-in page. A signed-in per
 - **THEN** they see a "not found" page
 
 ### Requirement: Edits save on their own
-Edits SHALL save on their own, shortly after the person stops typing. While the person keeps typing, the edits SHALL still save at least every 5 seconds. Setting the sheet's key, and making the shown key the song key, SHALL save like any other edit. A transpose SHALL NOT save, and SHALL NOT count as an edit. A reload after a save SHALL show the saved sheet.
+Edits SHALL save on their own, shortly after the person stops typing. While the person keeps typing, the edits SHALL still save at least every 5 seconds. Setting the sheet's key, and making the shown key the song key, SHALL save like any other edit. A transpose or a capo SHALL NOT save, and SHALL NOT count as an edit. A reload after a save SHALL show the saved sheet.
 
 #### Scenario: Reload after editing
 - **WHEN** the owner changes a chord, waits until it is saved and reloads
@@ -42,6 +42,10 @@ Edits SHALL save on their own, shortly after the person stops typing. While the 
 #### Scenario: Transpose isn't saved
 - **WHEN** the owner moves a saved sheet in G to A and then opens it from the library
 - **THEN** the save state said "Saved" throughout, and the sheet opens in G
+
+#### Scenario: Capo isn't saved
+- **WHEN** the owner picks capo 2 on a saved sheet and then opens it from the library
+- **THEN** the save state said "Saved" throughout, and the sheet opens without a capo
 
 #### Scenario: Reload after making the song key
 - **WHEN** the owner moves a sheet in G to A, picks "Make A the song key", waits until it is saved and reloads

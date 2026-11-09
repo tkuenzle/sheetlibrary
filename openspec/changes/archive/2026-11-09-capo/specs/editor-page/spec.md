@@ -49,6 +49,13 @@ With a capo, the chord input SHALL show, take and suggest chords as the shapes. 
 - **WHEN** a visitor picks capo 5, adds the chord A and picks "No capo"
 - **THEN** the new chord reads D
 
+### Requirement: Written for in the import
+Below the pasted text, the import SHALL offer "Written for", from "No capo" to "Capo 9", for the capo the chords are written for. It SHALL show the capo the pasted text gives, and the person SHALL be able to change it.
+
+#### Scenario: Capo in the text
+- **WHEN** a visitor opens the import and pastes text with the line `Capo: 2nd fret`
+- **THEN** "Written for" shows "Capo 2"
+
 ## MODIFIED Requirements
 
 ### Requirement: Key beside the title
@@ -65,17 +72,6 @@ The page SHALL show the key the sheet is shown in on a button beside the heading
 #### Scenario: No chords
 - **WHEN** a visitor removes every chord of the seed song
 - **THEN** the key button is gone, and it comes back with the first new chord
-
-### Requirement: Import from Ultimate Guitar
-The top bar SHALL have an "Import from Ultimate Guitar" button at every width. It SHALL open a modal dialog with a field to paste text copied from an Ultimate Guitar page, and say that importing replaces the sheet on this page. Below the field, "Written for" SHALL offer "No capo" to "Capo 9", for the capo the chords are written for. It SHALL show the capo the pasted text gives, and the person SHALL be able to change it. Cancel, Escape or a click outside SHALL close it without a change, and focus SHALL go back to the button.
-
-#### Scenario: Cancelling
-- **WHEN** a visitor opens the import, pastes text and presses Escape
-- **THEN** the dialog closes, the seed song is unchanged, and focus is on the import button
-
-#### Scenario: Capo in the text
-- **WHEN** a visitor opens the import and pastes text with the line `Capo: 2nd fret`
-- **THEN** "Written for" shows "Capo 2"
 
 ### Requirement: Imported sheet replaces the song
 Importing SHALL replace the sheet on the page with the one read from the pasted text, and close the dialog. With a capo under "Written for", the chords SHALL be moved up to what sounds, and the sheet shown with that capo. The key button SHALL follow the new sheet, and its original key SHALL be the one guessed from the imported chords. The heading SHALL stay as it is.
