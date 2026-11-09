@@ -25,7 +25,7 @@ A visitor who isn't signed in SHALL be sent to the sign-in page. A signed-in per
 - **THEN** they see a "not found" page
 
 ### Requirement: Edits save on their own
-Edits SHALL save on their own, shortly after the person stops typing. While the person keeps typing, the edits SHALL still save at least every 5 seconds. A transpose, and setting the sheet's key, SHALL save like any other edit. A reload after a save SHALL show the saved sheet.
+Edits SHALL save on their own, shortly after the person stops typing. While the person keeps typing, the edits SHALL still save at least every 5 seconds. Setting the sheet's key, and making the shown key the song key, SHALL save like any other edit. A transpose SHALL NOT save, and SHALL NOT count as an edit. A reload after a save SHALL show the saved sheet.
 
 #### Scenario: Reload after editing
 - **WHEN** the owner changes a chord, waits until it is saved and reloads
@@ -38,6 +38,14 @@ Edits SHALL save on their own, shortly after the person stops typing. While the 
 #### Scenario: Reload after setting the key
 - **WHEN** the owner sets the key of a sheet guessed as G to Em, waits until it is saved and reloads
 - **THEN** the key button reads "Key Em", and the panel doesn't say the key is guessed
+
+#### Scenario: Transpose isn't saved
+- **WHEN** the owner moves a saved sheet in G to A and then opens it from the library
+- **THEN** the save state said "Saved" throughout, and the sheet opens in G
+
+#### Scenario: Reload after making the song key
+- **WHEN** the owner moves a sheet in G to A, picks "Make A the song key", waits until it is saved and reloads
+- **THEN** the chords are in A, and the panel shows the song key A
 
 ### Requirement: Save state
 The page SHALL show whether the edits are saved. Once everything has stayed saved for a moment, it SHALL say "Saved". When a save takes longer than a moment, it SHALL say "Saving…". While edits wait for their save, it SHALL say nothing, without moving the page. When a save fails because the network or server can't be reached, the page SHALL say at once that it is not saved, keep the editor editable and keep trying.
@@ -143,3 +151,9 @@ When a save finds that the sheet was deleted, the page SHALL stop saving, make t
 #### Scenario: Deleted in another tab
 - **WHEN** the same sheet is open in two tabs, the first deletes it and then the second tries to save an edit
 - **THEN** the second tab becomes read-only, shows the note with the link to the library and keeps its edits on screen
+### Requirement: Transposing a read-only sheet
+After the sheet changed in another tab or was deleted, the key button SHALL still show the sheet in another key. "Change" and "Make … the song key" SHALL be disabled.
+
+#### Scenario: Transposing after a conflict
+- **WHEN** the sheet has become read-only because it changed in another tab, and the owner picks A in the key panel
+- **THEN** the chords read in A, and "Change" is disabled
