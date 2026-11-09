@@ -117,6 +117,23 @@ export function readKey(text: string, minor: boolean): Key | null {
     : null;
 }
 
+// The highest fret a capo goes on. Fret 0 is no capo.
+export const MAX_CAPO = 9;
+
+// Reads a capo as written, "3", if it is a fret from 1 to MAX_CAPO.
+// Anything else is null.
+export function readCapo(text: string): number | null {
+  if (!/^[1-9]\d*$/.test(text)) return null;
+  const fret = Number(text);
+  return fret <= MAX_CAPO ? fret : null;
+}
+
+// The key of the shapes to play with a capo on `capo` for a sheet that
+// sounds in `key`, spelled as listed.
+export function shapesKey(key: Key, capo: number): Key {
+  return keyAbove(key, -capo);
+}
+
 // How many sharps (positive) or flats (negative) a key has.
 function signature(key: Key): number {
   const { letter, accidental } = parseNote(key.tonic);

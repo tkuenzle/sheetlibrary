@@ -44,13 +44,17 @@ export default function EditorPage() {
   const [edited, setEdited] = useState(false);
   const editor = useRef<SheetEditorHandle>(null);
   const [searchParams] = useSearchParams();
-  const sheetKey = useSheetKey(seedSong, searchParams.get("key"));
+  const sheetKey = useSheetKey(
+    seedSong,
+    searchParams.get("key"),
+    searchParams.get("capo"),
+  );
 
   // Uses the import right away, so the dialog closes (see ImportButton).
-  function load(sheet: ChordSheet): undefined {
+  function load(sheet: ChordSheet, capo: number): undefined {
     setLoaded(({ imports }) => ({ sheet, imports: imports + 1 }));
     setEdited(false);
-    sheetKey.reset(sheet);
+    sheetKey.reset(sheet, capo);
   }
 
   // An imported sheet differs from the seed song, even before it is edited.
@@ -94,7 +98,7 @@ export default function EditorPage() {
             ref={editor}
             sheet={loaded.sheet}
             sheetKey={sheetKey.key}
-            shownKey={sheetKey.shown}
+            shownKey={sheetKey.drawn}
             onEditedChange={setEdited}
             onChordsChange={sheetKey.onChordsChange}
           />

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SheetEditorHandle } from "./sheet-editor";
 import {
+  drawnKey,
   loadSheetKey,
   type SheetKey,
   type SheetKeyState,
@@ -139,8 +140,110 @@ describe("the shown key", () => {
     const state = sheetKeyReducer(loadSheetKey(amazingGrace(), "A"), {
       type: "reset",
       sheet: amazingGrace(),
+      capo: 0,
     });
     expect(state.shown).toBeNull();
+  });
+});
+
+describe("the capo", () => {
+  const Bb: Key = { tonic: "Bb", minor: false };
+  const C: Key = { tonic: "C", minor: false };
+  const D: Key = { tonic: "D", minor: false };
+  const E: Key = { tonic: "E", minor: false };
+
+  it("is read from the address", () => {
+    expect(loadSheetKey(amazingGrace(), null, "5").capo).toBe(5);
+    expect(loadSheetKey(amazingGrace(), null, "12").capo).toBe(0);
+    expect(loadSheetKey(amazingGrace(), null, "x").capo).toBe(0);
+    expect(loadSheetKey(amazingGrace(), null, null).capo).toBe(0);
+  });
+
+  // Scenario "Capo 5": the chords are drawn as D shapes.
+  it("draws the chords as the shapes", () => {
+    const state = loadSheetKey(amazingGrace(), null, "5");
+    expect(drawnKey(state)).toEqual(D);
+    expect(drawnKey(loadSheetKey(amazingGrace()))).toBeNull();
+  });
+
+  // Scenario "Capo after a transpose".
+  it("draws the shapes for the shown key", () => {
+    const state = loadSheetKey(amazingGrace(), "Bb", "3");
+    expect(drawnKey(state)).toBeNull();
+    expect(state).toMatchObject({ shown: Bb, capo: 3 });
+  });
+
+  // Scenario "Singer needs C".
+  it("moves to keep the shapes on a transpose", () => {
+    const state = sheetKeyReducer(loadSheetKey(amazingGrace(), "Bb", "3"), {
+      type: "show",
+      key: C,
+    });
+    expect(state).toMatchObject({ shown: C, capo: 5 });
+    expect(drawnKey(state)).toBeNull();
+  });
+
+  // Scenario "Shapes too far".
+  it("stays when keeping the shapes would take fret 10 or 11", () => {
+    const state = sheetKeyReducer(loadSheetKey(amazingGrace(), null, "3"), {
+      type: "show",
+      key: D,
+    });
+    expect(state).toMatchObject({ shown: D, capo: 3 });
+    expect(drawnKey(state)).toEqual({ tonic: "B", minor: false });
+  });
+
+  it("is gone where the shapes are the new key", () => {
+    const state = sheetKeyReducer(loadSheetKey(amazingGrace(), "Bb", "3"), {
+      type: "show",
+      key: null,
+    });
+    expect(state).toMatchObject({ shown: null, capo: 0 });
+  });
+
+  it("isn't added by a transpose", () => {
+    const state = sheetKeyReducer(loadSheetKey(amazingGrace()), {
+      type: "show",
+      key: E,
+    });
+    expect(state.capo).toBe(0);
+  });
+
+  it("stays when the shown key becomes the song key", () => {
+    const state = sheetKeyReducer(loadSheetKey(amazingGrace(), "A", "2"), {
+      type: "show",
+      key: null,
+      keepCapo: true,
+    });
+    expect(state).toMatchObject({ shown: null, capo: 2 });
+  });
+
+  it("stays when the song key is set", () => {
+    const chords = [{ root: "G" }, { root: "C" }, { root: "D" }];
+    const state = sheetKeyReducer(loadSheetKey(amazingGrace(), "A", "2"), {
+      type: "chords",
+      chords,
+      key: Em,
+    });
+    expect(state.capo).toBe(2);
+  });
+
+  it("is gone with the chords", () => {
+    const state = sheetKeyReducer(loadSheetKey(amazingGrace(), null, "2"), {
+      type: "chords",
+      chords: [],
+      key: null,
+    });
+    expect(state.capo).toBe(0);
+  });
+
+  it("comes with an imported sheet", () => {
+    const state = sheetKeyReducer(loadSheetKey(amazingGrace()), {
+      type: "reset",
+      sheet: amazingGrace(),
+      capo: 2,
+    });
+    expect(state.capo).toBe(2);
   });
 });
 
@@ -150,7 +253,9 @@ describe("SheetTitle", () => {
       ...loadSheetKey(sheet),
       onChordsChange: () => undefined,
       show: () => undefined,
+      setCapo: () => undefined,
       reset: () => undefined,
+      drawn: null,
     };
     return renderToString(
       <SheetTitle
@@ -180,7 +285,9 @@ describe("SheetTitle", () => {
           ...loadSheetKey(amazingGrace(), "A"),
           onChordsChange: () => undefined,
           show: () => undefined,
+          setCapo: () => undefined,
           reset: () => undefined,
+          drawn: null,
         }}
         editor={createRef<SheetEditorHandle>()}
       />,
@@ -190,5 +297,12 @@ describe("SheetTitle", () => {
 
   it("has no key button without chords and without a set key", () => {
     expect(title(withoutChords())).not.toContain("key-button");
+  });
+
+  // Scenario "No capo".
+  it("shows the capo button beside the key button", () => {
+    const html = title(amazingGrace());
+    expect(html).toContain('aria-label="Key G"');
+    expect(html).toMatch(/aria-label="Capo"[^>]*data-none="true"/);
   });
 });

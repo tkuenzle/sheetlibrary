@@ -57,6 +57,19 @@ describe("ImportForm", () => {
     expect(html).toMatch(/<textarea [^>]*wrap="off"/);
   });
 
+  it("asks what capo the chords are written for, from none to 9", () => {
+    expect(html).toMatch(/<label for="([^"]+)">Written for<\/label>/);
+    const options = [...html.matchAll(/<option [^>]*>([^<]+)<\/option>/g)].map(
+      (match) => match[1],
+    );
+    expect(options).toEqual([
+      "No capo",
+      ...Array.from({ length: 9 }, (_, i) => `Capo ${String(i + 1)}`),
+    ]);
+    expect(html).toMatch(/<option value="0" selected="">No capo/);
+    expect(html).not.toContain("Set from the capo line");
+  });
+
   it("shows the note it is given", () => {
     expect(html).toContain(replaces);
   });

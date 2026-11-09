@@ -1,9 +1,16 @@
 import "./import-button.css";
 
-import { type ChordSheet, readUltimateGuitar } from "chordsheet";
+import {
+  type ChordSheet,
+  MAX_CAPO,
+  readUltimateGuitar,
+  readUltimateGuitarCapo,
+  soundingSheet,
+} from "chordsheet";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../ui/button";
+import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 
 const name = "Import from Ultimate Guitar";
@@ -64,9 +71,12 @@ export function ImportButton({
 // promise. While that runs, the buttons are disabled and Escape and the
 // backdrop do nothing. A message it resolves to shows in the dialog, with
 // the text kept, and the buttons work again. Resolving to nothing means the
-// page is going, so the dialog stays as it is until it does.
+// page is going, so the dialog stays as it is until it does. The sheet's
+// chords are as they sound; `capo` is the fret they were written for, 0 for
+// none, to show them with.
 export type ImportHandler = (
   sheet: ChordSheet,
+  capo: number,
 ) => Promise<string | undefined> | undefined;
 
 // The modal dialog to paste text from Ultimate Guitar into, open while
@@ -99,8 +109,8 @@ export function ImportDialog({
     if (!busy) dialog.current?.close();
   }
 
-  function importSheet(sheet: ChordSheet) {
-    const result = onImport(sheet);
+  function importSheet(sheet: ChordSheet, capo: number) {
+    const result = onImport(sheet, capo);
     if (!result) {
       dialog.current?.close();
       return;
@@ -162,11 +172,17 @@ export function ImportForm({
   busy?: boolean;
   failure?: string;
   onCancel: () => void;
-  onImport: (sheet: ChordSheet) => void;
+  onImport: (sheet: ChordSheet, capo: number) => void;
 }) {
   const [text, setText] = useState("");
+  // The capo the person picked, or null to follow the text.
+  const [picked, setPicked] = useState<number | null>(null);
+  const found = readUltimateGuitarCapo(text);
+  const capo = picked ?? found ?? 0;
   const fieldId = useId();
   const hintId = useId();
+  const capoId = useId();
+  const capoHintId = useId();
 
   return (
     <form
@@ -174,7 +190,7 @@ export function ImportForm({
       onSubmit={(event) => {
         event.preventDefault();
         if (busy || text.trim() === "") return;
-        onImport(readUltimateGuitar(text));
+        onImport(soundingSheet(readUltimateGuitar(text), capo), capo);
       }}
     >
       <h2 id={titleId}>{name}</h2>
@@ -196,6 +212,30 @@ export function ImportForm({
             setText(event.target.value);
           }}
         />
+      </div>
+      <div className="import-field">
+        <label htmlFor={capoId}>Written for</label>
+        <div className="import-capo">
+          <select
+            id={capoId}
+            aria-describedby={picked === null && found ? capoHintId : undefined}
+            value={capo}
+            disabled={busy}
+            onChange={(event) => {
+              setPicked(Number(event.target.value));
+            }}
+          >
+            {Array.from({ length: MAX_CAPO + 1 }, (_, fret) => (
+              <option key={fret} value={fret}>
+                {fret ? `Capo ${String(fret)}` : "No capo"}
+              </option>
+            ))}
+          </select>
+          <Icon name="expandMore" size={24} />
+        </div>
+        {picked === null && found !== null && (
+          <p id={capoHintId}>Set from the capo line in the text</p>
+        )}
       </div>
       {note && <Note>{note}</Note>}
       {failure && <Note>{failure}</Note>}

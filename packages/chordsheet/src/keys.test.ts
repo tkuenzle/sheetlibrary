@@ -7,8 +7,10 @@ import {
   type Key,
   keyAbove,
   keysToMoveTo,
+  readCapo,
   readKey,
   semitonesBetween,
+  shapesKey,
   stepKey,
   transposeChord,
 } from "./keys";
@@ -180,6 +182,36 @@ describe("Reading a key", () => {
     expect(readKey("G#", false)).toBeNull();
     expect(readKey("H", false)).toBeNull();
     expect(readKey("", false)).toBeNull();
+  });
+});
+
+describe("Reading a capo", () => {
+  it("reads a fret from 1 to 9", () => {
+    expect(readCapo("3")).toBe(3);
+    expect(readCapo("9")).toBe(9);
+  });
+
+  it("reads nothing else", () => {
+    expect(readCapo("0")).toBeNull();
+    expect(readCapo("10")).toBeNull();
+    expect(readCapo("12")).toBeNull();
+    expect(readCapo("x")).toBeNull();
+    expect(readCapo("03")).toBeNull();
+    expect(readCapo("")).toBeNull();
+  });
+});
+
+describe("Shapes for a capo", () => {
+  it("moves down by the frets", () => {
+    expect(shapesKey(major("Bb"), 3)).toEqual(major("G"));
+    expect(
+      moved(major("Bb"), shapesKey(major("Bb"), 3), "Bb", "Eb", "F"),
+    ).toEqual(["G", "C", "D"]);
+  });
+
+  it("lands on the tie as a step does", () => {
+    expect(shapesKey(major("Bb"), 4)).toEqual(major("F#"));
+    expect(shapesKey(minor("F"), 2)).toEqual(minor("Eb"));
   });
 });
 

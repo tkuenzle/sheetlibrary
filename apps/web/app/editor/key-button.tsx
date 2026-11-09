@@ -7,11 +7,11 @@ import {
   sameKey,
   semitonesBetween,
 } from "chordsheet";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
-import { phone } from "../breakpoints";
 import { Button, IconButton } from "../ui/button";
 import { Icon } from "../ui/icon";
+import { usePanel } from "./panel";
 
 // The key as written: "G", "Em".
 export function keyName(key: Key): string {
@@ -19,7 +19,7 @@ export function keyName(key: Key): string {
 }
 
 // The key as read out: "F sharp", "E minor".
-function spokenKey(key: Key): string {
+export function spokenKey(key: Key): string {
   const accidental = { "#": " sharp", b: " flat" }[key.tonic.charAt(1)] ?? "";
   return `${key.tonic.charAt(0)}${accidental}${key.minor ? " minor" : ""}`;
 }
@@ -81,93 +81,21 @@ export function KeyButton({
   onUndo: () => void;
   onRedo: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const { open, dialog, wrapperProps, toggleProps, dialogProps } = usePanel();
   const transposed = !sameKey(current, song);
   const distance = distanceText(semitonesFrom(song, current));
-  const wrapper = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
-
-  // As a sheet, the panel slides out before it closes, since a dialog leaves
-  // the page at once when it closes. With reduced motion there is no
-  // animation to wait for, so it closes at once.
-  function close() {
-    const panel = dialog.current;
-    if (!panel?.open || panel.hasAttribute("data-closing")) return;
-    if (!panel.matches(":modal")) {
-      panel.close();
-      return;
-    }
-    panel.setAttribute("data-closing", "");
-    void Promise.allSettled(
-      panel.getAnimations({ subtree: true }).map((a) => a.finished),
-    ).then(() => {
-      panel.removeAttribute("data-closing");
-      panel.close();
-    });
-  }
-
-  useEffect(() => {
-    const panel = dialog.current;
-    if (!open || !panel) return;
-    const sheet = window.matchMedia(phone);
-    panel.style.left = "";
-    if (sheet.matches) panel.showModal();
-    else {
-      panel.show();
-      // Moved left if it would stick out of the window.
-      const gutter = 16;
-      const box = panel.getBoundingClientRect();
-      const over = box.right - (document.documentElement.clientWidth - gutter);
-      if (over > 0) {
-        const left = Math.max(gutter - box.left, -over);
-        panel.style.left = `${String(left)}px`;
-      }
-    }
-    panel.querySelector<HTMLElement>("[aria-pressed=true]")?.focus();
-
-    // A click outside closes the panel. Below a phone's width the backdrop
-    // takes the click (see onClick on the dialog).
-    function onPointerDown(event: PointerEvent) {
-      if (!wrapper.current?.contains(event.target as globalThis.Node)) close();
-    }
-    // Escape closes the panel wherever the focus is.
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      close();
-    }
-    // The panel is a sheet only on a phone.
-    function onChange() {
-      close();
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    sheet.addEventListener("change", onChange);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-      sheet.removeEventListener("change", onChange);
-    };
-  }, [open]);
 
   return (
     // Opening the panel doesn't stop editing (see SheetEditor).
-    <div className="key-button" ref={wrapper} data-keeps-editing>
+    <div className="key-button" {...wrapperProps} data-keeps-editing>
       <button
-        ref={button}
+        {...toggleProps}
         type="button"
         className="key-button-toggle"
-        aria-haspopup="dialog"
-        aria-expanded={open}
         aria-label={[`Key ${spokenKey(current)}`, distance.spoken]
           .filter(Boolean)
           .join(", ")}
         data-transposed={transposed || undefined}
-        onClick={() => {
-          if (open) close();
-          else setOpen(true);
-        }}
       >
         Key {keyName(current)}
         {distance.written && (
@@ -179,13 +107,9 @@ export function KeyButton({
         <Icon name="expandMore" size={22} />
       </button>
       <dialog
-        ref={dialog}
+        {...dialogProps}
         className="key-panel"
         aria-label="Key"
-        onClose={() => {
-          setOpen(false);
-          button.current?.focus();
-        }}
         onKeyDown={(event) => {
           // Undo and redo reach the sheet from here.
           if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
@@ -194,11 +118,6 @@ export function KeyButton({
           else if ((key === "z" && event.shiftKey) || key === "y") onRedo();
           else return;
           event.preventDefault();
-        }}
-        // As a sheet, the dialog fills its box, so a click on it itself was
-        // on the backdrop.
-        onClick={(event) => {
-          if (event.target === event.currentTarget) close();
         }}
       >
         {open && (

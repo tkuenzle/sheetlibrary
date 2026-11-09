@@ -1,0 +1,98 @@
+/*
+  The capo beside the key button. It shares the key button's look and its
+  panel (key-button.css). Without a capo, it is a quiet text button.
+*/
+.capo-button-toggle[data-none] {
+  padding: 0 8px 0 12px;
+  background: transparent;
+  color: var(--accent);
+}
+
+.capo-button-toggle[data-none][aria-expanded="true"] {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.capo-panel {
+  width: 260px;
+}
+
+.capo-panel .key-panel-content {
+  gap: var(--space-m);
+  padding: var(--space-l) var(--space-m) var(--space-m);
+}
+
+.capo-panel .key-panel-header {
+  padding: 0 var(--space-s);
+}
+
+.capo-panel-frets {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.capo-panel-fret {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-m);
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--corner-small);
+  background: transparent;
+  color: var(--text);
+  font: 600 var(--font-size-label) / 1 var(--font);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.capo-panel-shapes {
+  font-weight: 500;
+  color: var(--text-dimmed);
+}
+
+.capo-panel-fret:hover {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.capo-panel-fret:hover > .capo-panel-shapes {
+  color: inherit;
+}
+
+.capo-panel-fret[aria-pressed="true"] {
+  background: var(--surface-active);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  color: var(--accent);
+}
+
+.capo-panel-fret[aria-pressed="true"] > .capo-panel-shapes {
+  color: var(--accent);
+}
+
+.capo-panel-fret:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* On a phone: the key panel's bottom sheet, with larger rows. */
+@media (max-width: 640px) {
+  .capo-panel {
+    width: 100%;
+  }
+
+  .capo-panel .key-panel-content {
+    padding: var(--space-xl) var(--space-xl)
+      calc(var(--space-2xl) + env(safe-area-inset-bottom));
+  }
+
+  .capo-panel-fret {
+    height: 44px;
+    background: var(--page);
+  }
+}
