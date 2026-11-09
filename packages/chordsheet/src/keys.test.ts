@@ -5,9 +5,12 @@ import {
   chordsOfKey,
   guessKey,
   type Key,
+  keyAbove,
   keysToMoveTo,
-  transposeChord,
+  readKey,
+  semitonesBetween,
   stepKey,
+  transposeChord,
 } from "./keys";
 import { read } from "./test-helpers";
 
@@ -144,6 +147,39 @@ describe("Stepping by a semitone", () => {
     expect(stepKey(major("F"), 1)).toEqual(major("F#"));
     expect(stepKey(minor("E"), -1)).toEqual(minor("Eb"));
     expect(stepKey(minor("D"), 1)).toEqual(minor("Eb"));
+  });
+});
+
+describe("Keys at a distance", () => {
+  it("lands on the listed key", () => {
+    expect(keyAbove(major("G"), 2)).toEqual(major("A"));
+    expect(keyAbove(minor("E"), 2)).toEqual(minor("F#"));
+    expect(keyAbove(major("A"), -3)).toEqual(major("F#"));
+  });
+
+  it("counts semitones up", () => {
+    expect(semitonesBetween(major("G"), major("A"))).toBe(2);
+    expect(semitonesBetween(major("A"), major("G"))).toBe(10);
+    expect(semitonesBetween(major("G#"), major("Ab"))).toBe(0);
+  });
+});
+
+describe("Reading a key", () => {
+  it("reads a key to move to", () => {
+    expect(readKey("A", false)).toEqual(major("A"));
+    expect(readKey("F#m", true)).toEqual(minor("F#"));
+    expect(readKey("Gb", false)).toEqual(major("Gb"));
+  });
+
+  it("reads nothing in the other mode", () => {
+    expect(readKey("Am", false)).toBeNull();
+    expect(readKey("A", true)).toBeNull();
+  });
+
+  it("reads nothing that isn't listed", () => {
+    expect(readKey("G#", false)).toBeNull();
+    expect(readKey("H", false)).toBeNull();
+    expect(readKey("", false)).toBeNull();
   });
 });
 

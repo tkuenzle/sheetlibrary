@@ -29,7 +29,7 @@ export function docFromSheet(sheet: ChordSheet): Node {
   const sections = sheet.sections.map(sectionToEditor);
   // The editor needs one section to type in, even for an empty sheet.
   return schema.nodes.doc.create(
-    { key: sheet.key ?? null, original: sheet.key ?? null },
+    { key: sheet.key ?? null },
     sections.length > 0 ? sections : [emptySection()],
   );
 }

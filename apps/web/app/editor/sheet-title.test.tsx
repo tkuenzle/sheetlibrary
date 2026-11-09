@@ -45,15 +45,14 @@ describe("the sheet's key", () => {
   it("is guessed from the chords without a set key", () => {
     expect(loadSheetKey(amazingGrace())).toMatchObject({
       key: G,
-      original: G,
       guessed: true,
+      shown: null,
     });
   });
 
   it("is the set key, before the guess", () => {
     expect(loadSheetKey(amazingGrace(Em))).toMatchObject({
       key: Em,
-      original: Em,
       guessed: false,
     });
   });
@@ -63,14 +62,8 @@ describe("the sheet's key", () => {
       type: "chords",
       chords: chordsInA,
       key: null,
-      original: null,
     });
-    expect(state).toMatchObject({
-      key: A,
-      original: G,
-      guessed: true,
-      guess: A,
-    });
+    expect(state).toMatchObject({ key: A, guessed: true, guess: A });
   });
 
   it("stays the set key when the chords change", () => {
@@ -78,34 +71,76 @@ describe("the sheet's key", () => {
       type: "chords",
       chords: chordsInA,
       key: G,
-      original: G,
     });
     expect(state.key).toEqual(G);
   });
 
-  it("takes the original from the editor once a key is set", () => {
+  it("brings back the guess when the set key is undone", () => {
     const chords = [{ root: "G" }, { root: "C" }, { root: "D" }];
     let state: SheetKeyState = loadSheetKey(amazingGrace());
+    state = sheetKeyReducer(state, { type: "chords", chords, key: Em });
+    expect(state).toMatchObject({ key: Em, guessed: false, guess: G });
+    state = sheetKeyReducer(state, { type: "chords", chords, key: null });
+    expect(state).toMatchObject({ key: G, guessed: true });
+  });
+});
+
+describe("the shown key", () => {
+  const chords = [{ root: "G" }, { root: "C" }, { root: "D" }];
+  const FsharpMinor: Key = { tonic: "F#", minor: true };
+
+  it("is read from the address", () => {
+    expect(loadSheetKey(amazingGrace(), "A").shown).toEqual(A);
+    expect(loadSheetKey(amazingGrace(Em), "F#m").shown).toEqual(FsharpMinor);
+  });
+
+  it("isn't read when it doesn't fit the song", () => {
+    expect(loadSheetKey(amazingGrace(), "Am").shown).toBeNull();
+    expect(loadSheetKey(amazingGrace(), "H").shown).toBeNull();
+    expect(loadSheetKey(amazingGrace(), "G").shown).toBeNull();
+  });
+
+  it("is none in the song key", () => {
+    let state = sheetKeyReducer(loadSheetKey(amazingGrace()), {
+      type: "show",
+      key: A,
+    });
+    expect(state.shown).toEqual(A);
+    state = sheetKeyReducer(state, { type: "show", key: G });
+    expect(state.shown).toBeNull();
+  });
+
+  it("keeps its distance when the song key is set", () => {
+    let state = loadSheetKey(amazingGrace(), "A");
+    state = sheetKeyReducer(state, { type: "chords", chords, key: Em });
+    expect(state).toMatchObject({ key: Em, shown: FsharpMinor });
+  });
+
+  it("keeps its distance when the guess changes", () => {
+    let state = loadSheetKey(amazingGrace(), "A");
     state = sheetKeyReducer(state, {
       type: "chords",
-      chords,
-      key: Em,
-      original: Em,
+      chords: chordsInA,
+      key: null,
     });
     expect(state).toMatchObject({
-      key: Em,
-      original: Em,
-      guessed: false,
-      guess: G,
+      key: A,
+      shown: { tonic: "B", minor: false },
     });
-    // Undoing the set key brings back the guess, and "Back" goes there.
-    state = sheetKeyReducer(state, {
-      type: "chords",
-      chords,
-      key: null,
-      original: null,
+  });
+
+  it("is gone with the chords", () => {
+    let state = loadSheetKey(amazingGrace(), "A");
+    state = sheetKeyReducer(state, { type: "chords", chords: [], key: null });
+    expect(state).toMatchObject({ key: null, shown: null });
+  });
+
+  it("is dropped by a new sheet", () => {
+    const state = sheetKeyReducer(loadSheetKey(amazingGrace(), "A"), {
+      type: "reset",
+      sheet: amazingGrace(),
     });
-    expect(state).toMatchObject({ key: G, original: G, guessed: true });
+    expect(state.shown).toBeNull();
   });
 });
 
@@ -114,6 +149,7 @@ describe("SheetTitle", () => {
     const sheetKey: SheetKey = {
       ...loadSheetKey(sheet),
       onChordsChange: () => undefined,
+      show: () => undefined,
       reset: () => undefined,
     };
     return renderToString(
@@ -134,6 +170,22 @@ describe("SheetTitle", () => {
 
   it("shows the key button without chords when a key is set", () => {
     expect(title(withoutChords(Em))).toContain('aria-label="Key E minor"');
+  });
+
+  it("shows the key the sheet is shown in", () => {
+    const html = renderToString(
+      <SheetTitle
+        title="Amazing Grace"
+        sheetKey={{
+          ...loadSheetKey(amazingGrace(), "A"),
+          onChordsChange: () => undefined,
+          show: () => undefined,
+          reset: () => undefined,
+        }}
+        editor={createRef<SheetEditorHandle>()}
+      />,
+    );
+    expect(html).toContain('aria-label="Key A, 2 semitones up"');
   });
 
   it("has no key button without chords and without a set key", () => {

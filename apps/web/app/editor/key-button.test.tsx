@@ -11,17 +11,23 @@ function nothing() {
 const major = (tonic: string): Key => ({ tonic, minor: false });
 const minor = (tonic: string): Key => ({ tonic, minor: true });
 
-function panel(current: Key, original: Key = current, guessed = true) {
+function panel(
+  current: Key,
+  song: Key = current,
+  { guessed = true, readOnly = false } = {},
+) {
   return renderToString(
     <KeyPanel
       current={current}
-      original={original}
+      song={song}
       guessed={guessed}
-      guess={current}
+      guess={song}
+      readOnly={readOnly}
       onPick={nothing}
       onSet={nothing}
       onStep={nothing}
       onBack={nothing}
+      onMake={nothing}
     />,
   );
 }
@@ -39,18 +45,67 @@ function pressed(html: string) {
   );
 }
 
+function keyButton(current: Key, song: Key = current) {
+  return renderToString(
+    <KeyButton
+      current={current}
+      song={song}
+      guessed
+      guess={song}
+      onPick={nothing}
+      onSet={nothing}
+      onStep={nothing}
+      onBack={nothing}
+      onMake={nothing}
+      onUndo={nothing}
+      onRedo={nothing}
+    />,
+  );
+}
+
 describe("KeyButton", () => {
+  it("isn't filled in the song key", () => {
+    const html = keyButton(major("G"));
+    expect(html).not.toContain("data-transposed");
+    expect(html).not.toContain("key-button-distance");
+  });
+
+  // Scenario "Transposed".
+  it("is filled and names the distance while transposed", () => {
+    const up = keyButton(major("A"), major("G"));
+    expect(up).toContain('data-transposed="true"');
+    expect(up).toContain('aria-label="Key A, 2 semitones up"');
+    expect(up).toMatch(
+      /<span class="key-button-distance"> · <!-- -->\+2<\/span>/,
+    );
+    const down = keyButton(major("F#"), major("G"));
+    expect(down).toContain("−1");
+    expect(down).toContain('aria-label="Key F sharp, 1 semitone down"');
+  });
+
+  it("counts the shorter way, up to a tritone up", () => {
+    expect(keyButton(major("Db"), major("G"))).toContain("+6");
+    expect(keyButton(major("D"), major("G"))).toContain("−5");
+  });
+
+  it("is filled without a number for a respelling", () => {
+    const html = keyButton(major("Ab"), major("G#"));
+    expect(html).toContain('data-transposed="true"');
+    expect(html).not.toContain("key-button-distance");
+  });
+
   it("shows the key, with the panel closed", () => {
     const html = renderToString(
       <KeyButton
         current={major("G")}
-        original={major("G")}
+        song={major("G")}
         guessed
         guess={major("G")}
         onPick={nothing}
         onSet={nothing}
         onStep={nothing}
         onBack={nothing}
+        onMake={nothing}
         onUndo={nothing}
         onRedo={nothing}
       />,
@@ -117,9 +172,17 @@ describe("KeyPanel", () => {
     expect(html).toContain('<p class="key-panel-song-key">G</p>');
   });
 
+  it("shows the song key while the sheet is shown in another", () => {
+    const html = panel(major("A"), major("G"));
+    expect(html).toContain('<p class="key-panel-song-key">G</p>');
+    expect(pressed(html)).toEqual(["A"]);
+  });
+
   it("says the song key is guessed only while none is set", () => {
     expect(panel(major("G"))).toContain("Guessed from the chords");
-    expect(panel(major("G"), major("G"), false)).not.toContain("Guessed");
+    expect(panel(major("G"), major("G"), { guessed: false })).not.toContain(
+      "Guessed",
+    );
   });
 
   it("offers to change the song key", () => {
@@ -128,11 +191,27 @@ describe("KeyPanel", () => {
     );
   });
 
-  it("always shows the way back, disabled in the original key", () => {
+  it("always shows the way back, disabled in the song key", () => {
     const back = (html: string) =>
       /<button[^>]*>Back to <!-- -->G<\/button>/.exec(html)?.[0];
     expect(back(panel(major("G")))).toContain("disabled");
     expect(back(panel(major("A"), major("G")))).not.toContain("disabled");
+  });
+
+  it("offers to make the shown key the song key only while transposed", () => {
+    const make = (html: string) =>
+      /<button[^>]*>Make <!-- -->A<!-- --> the song key<\/button>/.exec(
+        html,
+      )?.[0];
+    expect(make(panel(major("A"), major("G")))).not.toContain("disabled");
+    expect(panel(major("G"))).not.toContain("the song key</button>");
+  });
+
+  it("changes nothing in a read-only sheet, but still transposes", () => {
+    const html = panel(major("A"), major("G"), { readOnly: true });
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Change<\/button>/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Make /);
+    expect(html).not.toMatch(/class="key-panel-key"[^>]*disabled/);
   });
 
   it("has steps of a semitone", () => {

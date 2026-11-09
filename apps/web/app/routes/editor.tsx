@@ -2,6 +2,7 @@ import "./editor.css";
 
 import type { ChordSheet } from "chordsheet";
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 
 import { EditorHelp } from "../editor/help";
 import { ImportButton } from "../editor/import-button";
@@ -42,7 +43,8 @@ export default function EditorPage() {
   const [loaded, setLoaded] = useState({ sheet: seedSong, imports: 0 });
   const [edited, setEdited] = useState(false);
   const editor = useRef<SheetEditorHandle>(null);
-  const sheetKey = useSheetKey(seedSong);
+  const [searchParams] = useSearchParams();
+  const sheetKey = useSheetKey(seedSong, searchParams.get("key"));
 
   // Uses the import right away, so the dialog closes (see ImportButton).
   function load(sheet: ChordSheet): undefined {
@@ -92,6 +94,7 @@ export default function EditorPage() {
             ref={editor}
             sheet={loaded.sheet}
             sheetKey={sheetKey.key}
+            shownKey={sheetKey.shown}
             onEditedChange={setEdited}
             onChordsChange={sheetKey.onChordsChange}
           />

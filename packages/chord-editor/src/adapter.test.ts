@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { docFromSheet, handBackSheet } from "./adapter";
 import { insertChord, moveChord } from "./chords";
 import { createEditorState } from "./editor";
-import { chordsOn, keyOf, originalKeyOf } from "./schema";
+import { chordsOn, keyOf } from "./schema";
 import {
   at,
   chord,
@@ -110,7 +110,6 @@ describe("editing a sheet", () => {
     };
     const state = load(stored);
     expect(keyOf(state.doc)).toEqual({ tonic: "E", minor: true });
-    expect(originalKeyOf(state.doc)).toEqual({ tonic: "E", minor: true });
     expect(handBack(state)).toEqual({ ok: true, sheet: stored });
   });
 

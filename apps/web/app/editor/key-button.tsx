@@ -1,6 +1,12 @@
 import "./key-button.css";
 
-import { type Key, keysToMoveTo, pitchOf, sameKey } from "chordsheet";
+import {
+  type Key,
+  keysToMoveTo,
+  pitchOf,
+  sameKey,
+  semitonesBetween,
+} from "chordsheet";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { phone } from "../breakpoints";
@@ -18,39 +24,66 @@ function spokenKey(key: Key): string {
   return `${key.tonic.charAt(0)}${accidental}${key.minor ? " minor" : ""}`;
 }
 
-// The sheet's key beside its title. It opens a panel, under the button or
-// as a bottom sheet on a phone, in two parts: the song's key, which
-// "Change" sets without moving a chord, and the keys to transpose to, with
-// steps of a semitone and a way back to the original key. The panel stays
-// open after a pick.
+// The semitones from `from` up to `to`, the shorter way: -5 to 6.
+export function semitonesFrom(from: Key, to: Key): number {
+  const up = semitonesBetween(from, to);
+  return up > 6 ? up - 12 : up;
+}
+
+// The distance as written on the key button, "+2" or "−1", and as read
+// out, "2 semitones up". Nothing for no distance.
+function distanceText(semitones: number): { written: string; spoken: string } {
+  if (semitones === 0) return { written: "", spoken: "" };
+  const size = Math.abs(semitones);
+  const up = semitones > 0;
+  return {
+    written: `${up ? "+" : "−"}${String(size)}`,
+    spoken: `${String(size)} semitone${size === 1 ? "" : "s"} ${up ? "up" : "down"}`,
+  };
+}
+
+// The key the sheet is shown in, beside its title. It opens a panel, under
+// the button or as a bottom sheet on a phone, in two parts: the song's key,
+// which "Change" sets without moving a chord, and the keys to show the sheet
+// in, with steps of a semitone, a way back to the song key, and a way to
+// make the shown key the song key. The panel stays open after a pick.
 export function KeyButton({
   current,
-  original,
+  song,
   guessed,
   guess,
+  readOnly = false,
   onPick,
   onSet,
   onStep,
   onBack,
+  onMake,
   onUndo,
   onRedo,
 }: {
+  // The key the sheet is shown in.
   current: Key;
-  // The key the sheet was in when it was loaded, or the key set since.
-  original: Key;
-  // Whether the current key is guessed, since no key is set.
+  // The song's key: the set key, or the guess.
+  song: Key;
+  // Whether the song key is guessed, since no key is set.
   guessed: boolean;
   // The key guessed from the chords now, also when a key is set.
   guess: Key | null;
+  // The sheet can be shown in another key, but not changed.
+  readOnly?: boolean;
   onPick: (key: Key) => void;
   // Sets the song's key, without moving a chord.
   onSet: (key: Key) => void;
   onStep: (step: 1 | -1) => void;
   onBack: () => void;
+  // Moves the chords to the shown key, which becomes the song key.
+  onMake: () => void;
   onUndo: () => void;
   onRedo: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const transposed = !sameKey(current, song);
+  const distance = distanceText(semitonesFrom(song, current));
   const wrapper = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -127,13 +160,22 @@ export function KeyButton({
         className="key-button-toggle"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Key ${spokenKey(current)}`}
+        aria-label={[`Key ${spokenKey(current)}`, distance.spoken]
+          .filter(Boolean)
+          .join(", ")}
+        data-transposed={transposed || undefined}
         onClick={() => {
           if (open) close();
           else setOpen(true);
         }}
       >
         Key {keyName(current)}
+        {distance.written && (
+          <span className="key-button-distance">
+            {" · "}
+            {distance.written}
+          </span>
+        )}
         <Icon name="expandMore" size={22} />
       </button>
       <dialog
@@ -162,21 +204,22 @@ export function KeyButton({
         {open && (
           <KeyPanel
             current={current}
-            original={original}
+            song={song}
             guessed={guessed}
             guess={guess}
+            readOnly={readOnly}
             onPick={onPick}
             onSet={onSet}
             onStep={onStep}
+            // "Back" is disabled and "Make" goes away with the change, so the
+            // focus moves to the marked key.
             onBack={() => {
               onBack();
-              // "Back" goes away with the change, so the focus moves to the
-              // key it went back to.
-              requestAnimationFrame(() => {
-                dialog.current
-                  ?.querySelector<HTMLElement>("[aria-pressed=true]")
-                  ?.focus();
-              });
+              focusMarked(dialog.current);
+            }}
+            onMake={() => {
+              onMake();
+              focusMarked(dialog.current);
             }}
           />
         )}
@@ -197,32 +240,38 @@ function focusMarked(content: HTMLElement | null, fallback = "button") {
 }
 
 // What the panel holds: the song's key with "Change", then the keys to
-// move to, the steps, and "Back" to the original key. "Back" is always
-// there, so nothing moves when the key changes. "Change" turns the panel
-// into the list of keys the song can be in, until one is picked or Cancel.
+// show the sheet in, the steps, "Back" to the song key and, while the sheet
+// is shown in another key, "Make … the song key". "Back" is always there,
+// so nothing moves when the key changes. "Change" turns the panel into the
+// list of keys the song can be in, until one is picked or Cancel.
 export function KeyPanel({
   current,
-  original,
+  song,
   guessed,
   guess,
+  readOnly = false,
   onPick,
   onSet,
   onStep,
   onBack,
+  onMake,
 }: {
   current: Key;
-  original: Key;
+  song: Key;
   guessed: boolean;
   guess: Key | null;
+  readOnly?: boolean;
   onPick: (key: Key) => void;
   onSet: (key: Key) => void;
   onStep: (step: 1 | -1) => void;
   onBack: () => void;
+  onMake: () => void;
 }) {
   const [changing, setChanging] = useState(false);
   const content = useRef<HTMLDivElement>(null);
   const songId = useId();
   const transposeId = useId();
+  const transposed = !sameKey(current, song);
 
   function stopChanging() {
     setChanging(false);
@@ -233,7 +282,7 @@ export function KeyPanel({
     return (
       <div className="key-panel-content" ref={content}>
         <SongKeyPanel
-          current={current}
+          current={song}
           guess={guess}
           onSet={(key) => {
             onSet(key);
@@ -250,7 +299,7 @@ export function KeyPanel({
       <section className="key-panel-song" aria-labelledby={songId}>
         <div className="key-panel-header">
           <h2 id={songId}>Song key</h2>
-          <p className="key-panel-song-key">{keyName(current)}</p>
+          <p className="key-panel-song-key">{keyName(song)}</p>
           {guessed && <p>Guessed from the chords</p>}
         </div>
         <Button
@@ -258,6 +307,7 @@ export function KeyPanel({
           size="small"
           className="key-panel-change"
           aria-label="Change the song key"
+          disabled={readOnly}
           onClick={() => {
             setChanging(true);
             focusMarked(content.current);
@@ -269,7 +319,7 @@ export function KeyPanel({
       <section className="key-panel-transpose" aria-labelledby={transposeId}>
         <h2 id={transposeId}>Transpose to</h2>
         <KeyGrid
-          keys={keysToMoveTo(current.minor)}
+          keys={keysToMoveTo(song.minor)}
           current={current}
           onPick={onPick}
         />
@@ -292,14 +342,26 @@ export function KeyPanel({
             }}
           />
         </div>
-        <Button
-          variant="text"
-          className="key-panel-back"
-          disabled={sameKey(current, original)}
-          onClick={onBack}
-        >
-          Back to {keyName(original)}
-        </Button>
+        <div className="key-panel-ways">
+          <Button
+            variant="text"
+            className="key-panel-back"
+            disabled={!transposed}
+            onClick={onBack}
+          >
+            Back to {keyName(song)}
+          </Button>
+          {transposed && (
+            <Button
+              variant="text"
+              className="key-panel-make"
+              disabled={readOnly}
+              onClick={onMake}
+            >
+              Make {keyName(current)} the song key
+            </Button>
+          )}
+        </div>
       </section>
     </div>
   );

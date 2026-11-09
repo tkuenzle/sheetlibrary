@@ -11,3 +11,4 @@ export * from "./schema";
 export * from "./section-labels";
 export * from "./section-toolbar";
 export * from "./sections";
+export * from "./shown-key";

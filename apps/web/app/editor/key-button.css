@@ -30,6 +30,17 @@
   color: var(--on-accent-soft);
 }
 
+/* Shown in another key than the song's: filled, with the distance. */
+.key-button-toggle[data-transposed] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.key-button-distance {
+  margin-left: 0.3em;
+  font-weight: 500;
+}
+
 .key-button-toggle[aria-expanded="true"] > .icon {
   rotate: 180deg;
 }
@@ -238,6 +249,17 @@
 .key-panel-back {
   align-self: flex-start;
   margin: calc(-1 * var(--space-s)) 0 0 calc(-1 * var(--space-l));
+}
+
+/* "Back" and "Make … the song key", side by side while they fit. */
+.key-panel-ways {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.key-panel-ways .key-panel-make {
+  margin: calc(-1 * var(--space-s)) calc(-1 * var(--space-l)) 0 0;
 }
 
 /* On a phone: a sheet from the bottom, over a scrim. */

@@ -17,6 +17,7 @@ import {
 } from "./section-labels";
 import { sectionToolbar, type SectionToolbarOptions } from "./section-toolbar";
 import { joinWithPrevious, sectionBreaks, splitOnEmptyLine } from "./sections";
+import { shownKey } from "./shown-key";
 
 export interface EditorOptions
   extends ChordLayerOptions, SectionToolbarOptions, SectionLabelOptions {
@@ -35,6 +36,7 @@ export function createEditorState(doc: Node, options: EditorOptions = {}) {
       chordRescue(),
       activeSection(),
       selectedChord(),
+      shownKey(),
       freshIdsOnPaste(),
       sectionBreaks(),
       history(),

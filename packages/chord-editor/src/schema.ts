@@ -34,10 +34,8 @@ export const schema = new Schema({
   nodes: {
     doc: {
       // The key the person set, or null: the key is then guessed from the
-      // chords. `original` is the set key the sheet was loaded with, or the
-      // last one set, where "Back" goes; it isn't handed back. Attributes,
-      // so undo covers them.
-      attrs: { key: { default: null }, original: { default: null } },
+      // chords. An attribute, so undo covers it.
+      attrs: { key: { default: null } },
       content: "section+",
     },
     section: {
@@ -82,12 +80,6 @@ export const schema = new Schema({
 // The sheet's set key, or null when none is set.
 export function keyOf(doc: Node): Key | null {
   return (doc.attrs as { key: Key | null }).key;
-}
-
-// The sheet's original key, if one was set: the set key it was loaded
-// with, or the last one set since.
-export function originalKeyOf(doc: Node): Key | null {
-  return (doc.attrs as { original: Key | null }).original;
 }
 
 // The section's label, or null when it has none.

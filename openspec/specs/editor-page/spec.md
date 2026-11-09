@@ -101,7 +101,7 @@ When the song differs from the seed song, leaving the page SHALL first ask the v
 - **THEN** the browser asks whether to leave
 
 ### Requirement: Key beside the title
-The page SHALL show the sheet's key on a button beside the heading, at every width. The key is the set key, or, without one, the key guessed from the chords. The button SHALL follow the sheet: after an edit or a transpose, it shows the sheet's key then. A sheet without chords and without a set key SHALL have no key button.
+The page SHALL show the key the sheet is shown in on a button beside the heading, at every width. Without a transpose, that is the sheet's key: the set key, or, without one, the key guessed from the chords. The button SHALL follow the sheet: after an edit or a transpose, it shows the key then. A sheet without chords and without a set key SHALL have no key button.
 
 #### Scenario: Seed song's key
 - **WHEN** a visitor opens `/editor`
@@ -112,32 +112,25 @@ The page SHALL show the sheet's key on a button beside the heading, at every wid
 - **THEN** the key button is gone, and it comes back with the first new chord
 
 ### Requirement: Transposing from the key button
-The key button SHALL open a panel in two parts. "Song key" SHALL show the sheet's key, and say it is guessed from the chords while no key is set. "Transpose to" SHALL hold the keys to move to, with the current key marked, and a step down and a step up by one semitone. On a phone, the panel SHALL be a bottom sheet. Picking a key or a step SHALL move the chords right away and keep the panel open. Escape, a click outside or the key button SHALL close it.
+The key button SHALL open a panel in two parts. "Song key" SHALL show the sheet's key, and say it is guessed from the chords while no key is set. "Transpose to" SHALL hold the keys to move to, with the shown key marked, and a step down and a step up by one semitone. On a phone, the panel SHALL be a bottom sheet. Picking a key or a step SHALL show the chords in that key right away, without changing the sheet, and keep the panel open. Escape, a click outside or the key button SHALL close it.
 
 #### Scenario: Picking a key
 - **WHEN** a visitor opens the key button and picks A
-- **THEN** the seed song's G, C and D read A, D and E, the button reads "Key A", and the panel is still open, with the song key A, guessed from the chords, and "Back to G"
+- **THEN** the seed song's G, C and D read A, D and E, the button reads "Key A", and the panel is still open, with the song key G, guessed from the chords, and "Back to G"
 
 #### Scenario: Stepping
 - **WHEN** a visitor opens the key button and steps up twice
 - **THEN** the button reads "Key A"
 
-### Requirement: Undoing a transpose
-A transpose SHALL be one step to undo, like any other edit. Ctrl Z and ⌘ Z SHALL undo while the panel is open too.
-
-#### Scenario: Undo
-- **WHEN** a visitor moves the seed song to A and then presses Ctrl Z in the panel
-- **THEN** the chords and the button are back in G
-
-### Requirement: Back to the original key
-The panel SHALL always show a button back to the sheet's original key, such as "Back to G", and disable it while the sheet is in that key. It SHALL move the chords to the original key, as one step to undo.
+### Requirement: Back to the song key
+The panel SHALL always show a button back to the sheet's song key, such as "Back to G", and disable it while the sheet is shown in that key. It SHALL show the chords in the song key again, without changing the sheet.
 
 #### Scenario: Back to G after reopening
 - **WHEN** a visitor steps the seed song up three times, closes the panel, opens it again and picks "Back to G"
 - **THEN** the chords are as before, the button reads "Key G", and "Back to G" is disabled
 
 ### Requirement: Setting the song's key
-Beside the song key, the panel SHALL offer "Change". It SHALL say that the chords stay as they are, name the key guessed from the chords when the sheet has chords, and list the major and the minor keys, with the sheet's key marked. Picking one SHALL set it as the sheet's key and as the original key, the one "Back" goes to, without moving any chord. Cancel SHALL keep the key as it was.
+Beside the song key, the panel SHALL offer "Change". It SHALL say that the chords stay as they are, name the key guessed from the chords when the sheet has chords, and list the major and the minor keys, with the sheet's key marked. Picking one SHALL set it as the sheet's key without moving any chord. While the sheet is shown in another key, the shown key SHALL keep its distance from the song key, so no chord reads differently. Cancel SHALL keep the key as it was.
 
 #### Scenario: Seed song in E minor
 - **WHEN** a visitor opens the key button, selects "Change" and picks Em
@@ -150,6 +143,10 @@ Beside the song key, the panel SHALL offer "Change". It SHALL say that the chord
 #### Scenario: Edits after setting
 - **WHEN** a visitor sets the seed song's key to Em and then removes every chord
 - **THEN** the button still reads "Key Em"
+
+#### Scenario: Setting the key while transposed
+- **WHEN** a visitor moves the seed song to A, then selects "Change" and picks Em
+- **THEN** the chords still read A, D and E, the button reads "Key F#m", and the song key is Em
 
 ### Requirement: Import from Ultimate Guitar
 The top bar SHALL have an "Import from Ultimate Guitar" button at every width. It SHALL open a modal dialog with a field to paste text copied from an Ultimate Guitar page, and say that importing replaces the sheet on this page. Cancel, Escape or a click outside SHALL close it without a change, and focus SHALL go back to the button.
@@ -164,3 +161,49 @@ Importing SHALL replace the sheet on the page with the one read from the pasted 
 #### Scenario: Importing a verse
 - **WHEN** a visitor pastes `[Verse 1]`, `C     G` and `Hello world` and imports
 - **THEN** the sheet has one section "Verse 1" with "Hello world", C on "H" and G on "w", and the key button reads "Key C"
+### Requirement: Key button while transposed
+While the sheet is shown in another key, the key button SHALL be filled with the accent colour. It SHALL add how many semitones up or down the shown key is from the song key, the shorter way, such as "Key A · +2".
+
+#### Scenario: Transposed
+- **WHEN** a visitor moves the seed song to A, and then to F#
+- **THEN** the button is filled and reads "Key A · +2", then "Key F# · −1"
+
+### Requirement: Undo in the key panel
+A transpose SHALL NOT be a step to undo. Setting the song key, and making the shown key the song key, SHALL each be one step to undo. Ctrl Z and ⌘ Z SHALL undo while the panel is open too.
+
+#### Scenario: Undo after a transpose
+- **WHEN** a visitor types a word, moves the seed song to A and then presses Ctrl Z in the panel
+- **THEN** the word is gone, and the chords still read in A
+
+#### Scenario: Undo setting the song key
+- **WHEN** a visitor sets the seed song's key to Em and then presses Ctrl Z in the panel
+- **THEN** the button reads "Key G"
+
+### Requirement: Shown key in the address
+The page's address SHALL hold the shown key as `key`, spelled as the panel spells it and encoded, such as `?key=F%23m`. Opening the address SHALL show the sheet in that key. A transpose SHALL replace the address, not add to the browser's history. In the song key, the address SHALL have no `key`. A `key` that isn't a key to move to for the song SHALL be removed, and the sheet shown in its song key.
+
+#### Scenario: Reload in A
+- **WHEN** a visitor moves the seed song to A and reloads
+- **THEN** the chords read A, D and E, and the button reads "Key A"
+
+#### Scenario: Leaving after steps
+- **WHEN** a visitor opens `/editor` from the home page, steps up three times and goes back in the browser
+- **THEN** the home page shows
+
+#### Scenario: Key that doesn't fit
+- **WHEN** a visitor opens `/editor?key=Am`
+- **THEN** the button reads "Key G", and the address has no `key`
+
+### Requirement: Chords edited while transposed
+While the sheet is shown in another key, the chord input SHALL show, take and suggest chords in the shown key. A chord added or changed SHALL be stored moved back to the song key.
+
+#### Scenario: Adding a chord in A
+- **WHEN** a visitor moves the seed song to A, adds the chord E and picks "Back to G"
+- **THEN** the new chord reads D
+
+### Requirement: Making the shown key the song key
+Next to "Back", while the sheet is shown in another key, the panel SHALL offer to make it the song key, such as "Make A the song key". It SHALL move the chords to that key as one step to undo, with a set key moving too, and then show the sheet in its song key.
+
+#### Scenario: Making A the song key
+- **WHEN** a visitor moves the seed song to A and picks "Make A the song key"
+- **THEN** the chords read A, D and E, the button reads "Key A", the song key is A, guessed from the chords, "Back to A" is disabled, and the address has no `key`
