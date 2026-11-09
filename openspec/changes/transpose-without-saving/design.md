@@ -32,6 +32,10 @@ Why not `setSearchParams`: a router navigation runs the sheet page's loader agai
 
 `SheetEditor` gets the shown key as a prop and passes it to the layer. When the chord input opens, it gets the chord being edited, the sheet's chords and the key, all moved to the shown key. On commit, the chord is moved back with `transposeChord(chord, shown, song)`.
 
+### The distance on the key button
+
+The button counts semitones from the song key to the shown key the shorter way, from −5 to +6, with a minus sign for down. It is read out as "2 semitones up". A respelling, such as G# shown as Ab, is 0 semitones: the button is filled but shows no number.
+
 ### Read-only sheets keep the key button
 
 `SheetTitle` no longer hides the key button when the sheet is read-only. It disables "Change" and "Make … the song key" instead.

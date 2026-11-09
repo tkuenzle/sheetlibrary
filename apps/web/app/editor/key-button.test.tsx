@@ -45,7 +45,55 @@ function pressed(html: string) {
   );
 }
 
+function keyButton(current: Key, song: Key = current) {
+  return renderToString(
+    <KeyButton
+      current={current}
+      song={song}
+      guessed
+      guess={song}
+      onPick={nothing}
+      onSet={nothing}
+      onStep={nothing}
+      onBack={nothing}
+      onMake={nothing}
+      onUndo={nothing}
+      onRedo={nothing}
+    />,
+  );
+}
+
 describe("KeyButton", () => {
+  it("isn't filled in the song key", () => {
+    const html = keyButton(major("G"));
+    expect(html).not.toContain("data-transposed");
+    expect(html).not.toContain("key-button-distance");
+  });
+
+  // Scenario "Transposed".
+  it("is filled and names the distance while transposed", () => {
+    const up = keyButton(major("A"), major("G"));
+    expect(up).toContain('data-transposed="true"');
+    expect(up).toContain('aria-label="Key A, 2 semitones up"');
+    expect(up).toMatch(
+      /<span class="key-button-distance"> · <!-- -->\+2<\/span>/,
+    );
+    const down = keyButton(major("F#"), major("G"));
+    expect(down).toContain("−1");
+    expect(down).toContain('aria-label="Key F sharp, 1 semitone down"');
+  });
+
+  it("counts the shorter way, up to a tritone up", () => {
+    expect(keyButton(major("Db"), major("G"))).toContain("+6");
+    expect(keyButton(major("D"), major("G"))).toContain("−5");
+  });
+
+  it("is filled without a number for a respelling", () => {
+    const html = keyButton(major("Ab"), major("G#"));
+    expect(html).toContain('data-transposed="true"');
+    expect(html).not.toContain("key-button-distance");
+  });
+
   it("shows the key, with the panel closed", () => {
     const html = renderToString(
       <KeyButton

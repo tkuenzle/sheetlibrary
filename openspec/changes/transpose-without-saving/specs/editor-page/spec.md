@@ -8,11 +8,15 @@
 ## MODIFIED Requirements
 
 ### Requirement: Key beside the title
-The page SHALL show the key the sheet is shown in on a button beside the heading, at every width. Without a transpose, that is the sheet's key: the set key, or, without one, the key guessed from the chords. The button SHALL follow the sheet: after an edit or a transpose, it shows the key then. A sheet without chords and without a set key SHALL have no key button.
+The page SHALL show the key the sheet is shown in on a button beside the heading, at every width. Without a transpose, that is the sheet's key: the set key, or, without one, the key guessed from the chords. The button SHALL follow the sheet: after an edit or a transpose, it shows the key then. While the sheet is shown in another key, the button SHALL be filled with the accent colour and SHALL add how many semitones up or down it is from the song key, the shorter way, such as "Key A · +2". A sheet without chords and without a set key SHALL have no key button.
 
 #### Scenario: Seed song's key
 - **WHEN** a visitor opens `/editor`
 - **THEN** a button reading "Key G" sits beside the heading "Amazing Grace"
+
+#### Scenario: Transposed
+- **WHEN** a visitor moves the seed song to A, and then to F#
+- **THEN** the button is filled and reads "Key A · +2", then "Key F# · −1"
 
 #### Scenario: No chords
 - **WHEN** a visitor removes every chord of the seed song

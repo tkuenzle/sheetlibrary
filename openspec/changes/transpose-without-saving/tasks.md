@@ -16,6 +16,8 @@
 - [x] 3.3 In `KeyButton`/`KeyPanel`: picks, steps and "Back" set the shown key. Add "Make A the song key" next to "Back". Disable "Change" and "Make" when read-only. Verify with `key-button.test.tsx`.
 - [x] 3.4 In `sheet.tsx` and `editor.tsx`, read `?key` once, write it with `history.replaceState`, and remove a key that doesn't fit. Keep the key button on a read-only sheet. Verify with e2e tests for reload in A, leaving after steps, and `?key=Am`.
 
+- [x] 3.5 While transposed, fill the key button with the accent colour and add the distance, such as "Key A · +2", read as "Key A, 2 semitones up". Verify with `key-button.test.tsx` and an e2e test for "Transposed".
+
 ## 4. Saving
 
 - [x] 4.1 Verify in `e2e/sheet.spec.ts` that a transpose keeps "Saved" and the sheet opens from the library in G, that "Make A the song key" saves, and that a sheet read-only after a conflict still transposes.

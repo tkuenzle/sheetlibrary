@@ -30,6 +30,17 @@
   color: var(--on-accent-soft);
 }
 
+/* Shown in another key than the song's: filled, with the distance. */
+.key-button-toggle[data-transposed] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.key-button-distance {
+  margin-left: 0.3em;
+  font-weight: 500;
+}
+
 .key-button-toggle[aria-expanded="true"] > .icon {
   rotate: 180deg;
 }

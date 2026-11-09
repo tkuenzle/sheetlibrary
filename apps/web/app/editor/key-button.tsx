@@ -1,6 +1,12 @@
 import "./key-button.css";
 
-import { type Key, keysToMoveTo, pitchOf, sameKey } from "chordsheet";
+import {
+  type Key,
+  keysToMoveTo,
+  pitchOf,
+  sameKey,
+  semitonesBetween,
+} from "chordsheet";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { phone } from "../breakpoints";
@@ -16,6 +22,24 @@ export function keyName(key: Key): string {
 function spokenKey(key: Key): string {
   const accidental = { "#": " sharp", b: " flat" }[key.tonic.charAt(1)] ?? "";
   return `${key.tonic.charAt(0)}${accidental}${key.minor ? " minor" : ""}`;
+}
+
+// The semitones from `from` up to `to`, the shorter way: -5 to 6.
+export function semitonesFrom(from: Key, to: Key): number {
+  const up = semitonesBetween(from, to);
+  return up > 6 ? up - 12 : up;
+}
+
+// The distance as written on the key button, "+2" or "−1", and as read
+// out, "2 semitones up". Nothing for no distance.
+function distanceText(semitones: number): { written: string; spoken: string } {
+  if (semitones === 0) return { written: "", spoken: "" };
+  const size = Math.abs(semitones);
+  const up = semitones > 0;
+  return {
+    written: `${up ? "+" : "−"}${String(size)}`,
+    spoken: `${String(size)} semitone${size === 1 ? "" : "s"} ${up ? "up" : "down"}`,
+  };
 }
 
 // The key the sheet is shown in, beside its title. It opens a panel, under
@@ -58,6 +82,8 @@ export function KeyButton({
   onRedo: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const transposed = !sameKey(current, song);
+  const distance = distanceText(semitonesFrom(song, current));
   const wrapper = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -134,13 +160,22 @@ export function KeyButton({
         className="key-button-toggle"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Key ${spokenKey(current)}`}
+        aria-label={[`Key ${spokenKey(current)}`, distance.spoken]
+          .filter(Boolean)
+          .join(", ")}
+        data-transposed={transposed || undefined}
         onClick={() => {
           if (open) close();
           else setOpen(true);
         }}
       >
         Key {keyName(current)}
+        {distance.written && (
+          <span className="key-button-distance">
+            {" · "}
+            {distance.written}
+          </span>
+        )}
         <Icon name="expandMore" size={22} />
       </button>
       <dialog

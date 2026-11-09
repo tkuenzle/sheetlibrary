@@ -337,7 +337,8 @@ test.describe("the key", () => {
     await expect(songKey(page)).toContainText("Guessed from the chords");
     await pick(page, "A");
     expect(await chords(page)).toEqual(["A", "A7", "D", "A"]);
-    await expect(keyButton(page)).toHaveText("Key A");
+    await expect(keyButton(page)).toHaveText("Key A · +2");
+    await expect(keyButton(page)).toHaveAttribute("data-transposed", "true");
     await expect(songKey(page).locator(".key-panel-song-key")).toHaveText("G");
     await expect(songKey(page)).toContainText("Guessed from the chords");
     await expect(
@@ -353,7 +354,7 @@ test.describe("the key", () => {
     await pick(page, "F sharp");
     await expect(page).toHaveURL(/\?key=F%23$/);
     await page.reload();
-    await expect(keyButton(page)).toHaveText("Key F#");
+    await expect(keyButton(page)).toHaveText("Key F# · −1");
     await expect(page.locator(".chord-label").first()).toHaveText("F#");
   });
 
@@ -364,7 +365,7 @@ test.describe("the key", () => {
     await keyButton(page).click();
     const up = panel(page).getByRole("button", { name: "Up a semitone" });
     for (let i = 0; i < 3; i++) await up.click();
-    await expect(keyButton(page)).toHaveText("Key Bb");
+    await expect(keyButton(page)).toHaveText("Key Bb · +3");
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
   });
@@ -381,9 +382,9 @@ test.describe("the key", () => {
     const up = panel(page).getByRole("button", { name: "Up a semitone" });
     await up.click();
     await up.click();
-    await expect(keyButton(page)).toHaveText("Key A");
+    await expect(keyButton(page)).toHaveText("Key A · +2");
     await up.click();
-    await expect(keyButton(page)).toHaveText("Key Bb");
+    await expect(keyButton(page)).toHaveText("Key Bb · +3");
     expect(await chords(page)).toEqual(["Bb", "Bb7", "Eb", "Bb"]);
   });
 
@@ -396,7 +397,7 @@ test.describe("the key", () => {
     await pick(page, "A");
     await page.keyboard.press("ControlOrMeta+z");
     await expect(firstLine(page)).not.toContainText("again");
-    await expect(keyButton(page)).toHaveText("Key A");
+    await expect(keyButton(page)).toHaveText("Key A · +2");
     expect(await chords(page)).toEqual(["A", "A7", "D", "A"]);
     await expect(panel(page)).toBeVisible();
   });
@@ -424,11 +425,12 @@ test.describe("the key", () => {
     await expect(back).toBeDisabled();
     const up = panel(page).getByRole("button", { name: "Up a semitone" });
     for (let i = 0; i < 3; i++) await up.click();
-    await expect(keyButton(page)).toHaveText("Key Bb");
+    await expect(keyButton(page)).toHaveText("Key Bb · +3");
     await page.keyboard.press("Escape");
     await keyButton(page).click();
     await back.click();
     await expect(keyButton(page)).toHaveText("Key G");
+    await expect(keyButton(page)).not.toHaveAttribute("data-transposed");
     expect(await chords(page)).toEqual(["G", "G7", "C", "G"]);
     await expect(back).toBeDisabled();
   });
@@ -464,7 +466,7 @@ test.describe("the key", () => {
     await changeSongKey(page);
     await songKey(page).getByRole("button", { name: "E minor" }).click();
     expect(await chords(page)).toEqual(["A", "A7", "D", "A"]);
-    await expect(keyButton(page)).toHaveText("Key F#m");
+    await expect(keyButton(page)).toHaveText("Key F#m · +2");
     await expect(songKey(page).locator(".key-panel-song-key")).toHaveText("Em");
     await expect(page).toHaveURL(/\?key=F%23m$/);
   });

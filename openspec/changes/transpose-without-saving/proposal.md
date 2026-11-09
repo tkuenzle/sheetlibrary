@@ -11,6 +11,7 @@ Picking another key is often about playing the sheet, for example for another si
 - A `?key` that isn't a key the sheet can be shown in is left out, and the sheet shows in its song key.
 - A chord added or edited while transposed is stored moved back to the song key.
 - **BREAKING** Undo no longer covers a transpose.
+- While transposed, the key button is filled with the accent colour and adds the distance from the song key in semitones, such as "Key A · +2".
 - "Back to G" goes back to the song key.
 - New: "Make A the song key", next to "Back to G", moves the stored chords to the shown key, as one edit to undo, and leaves the song key shown.
 - Setting the song key with "Change" while transposed keeps the distance between the song key and the shown key, so no label changes.
@@ -37,7 +38,6 @@ None.
 
 ## Open Questions
 
-- Should the key button show that it isn't the song key, for example "Key A · song in G"?
 - When the guessed song key changes after an edit, should the shown key keep its distance too, as with "Change"?
 - Does an Ultimate Guitar import on `/editor` drop `?key`?
 - Is "Make A the song key" always there and disabled in the song key, like "Back", or only shown while transposed?
