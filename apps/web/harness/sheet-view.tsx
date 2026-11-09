@@ -5,7 +5,11 @@ import { createRoot } from "react-dom/client";
 import { seedSong } from "../app/editor/seed-song";
 import { SheetView } from "../app/sheet-view/sheet-view";
 import { awkwardSheet } from "../app/sheet-view/test-sheets";
-import { lyricsFontWidths, widthOf } from "../app/sheet-view/widths";
+import {
+  lyricsFontWidths,
+  type Weight,
+  widthOf,
+} from "../app/sheet-view/widths";
 
 // The page the sheet view's Playwright tests run against
 // (e2e/sheet-view.spec.ts). Built with the editor's harness and never
@@ -13,12 +17,12 @@ import { lyricsFontWidths, widthOf } from "../app/sheet-view/widths";
 
 declare global {
   interface Window {
-    // How wide the layout takes lyrics to be, in em, for the tests to
-    // compare with what the browser draws.
-    lyricsWidth: (text: string) => number;
+    // How wide the layout takes text to be, in em, for the tests to compare
+    // with what the browser draws.
+    textWidth: (text: string, weight: Weight) => number;
   }
 }
-window.lyricsWidth = (text) => widthOf(text, 400, lyricsFontWidths);
+window.textWidth = (text, weight) => widthOf(text, weight, lyricsFontWidths);
 
 const song = new URLSearchParams(location.search).get("song");
 const root = document.getElementById("root");

@@ -22,10 +22,6 @@ function measure(page: Page) {
     const view = document.querySelector<HTMLElement>(".sheet-view");
     if (!view) throw new Error("No sheet view");
     const em = parseFloat(getComputedStyle(view).fontSize);
-    // Set by the harness page.
-    const { lyricsWidth } = window as unknown as {
-      lyricsWidth: (text: string) => number;
-    };
     const sameRow = (a: DOMRect, b: DOMRect) => Math.abs(a.top - b.top) < 2;
     const isLetter = (char: string | undefined) =>
       char !== undefined && /[\p{L}\p{M}\p{N}'’]/u.test(char);
@@ -33,7 +29,6 @@ function measure(page: Page) {
     const extraSpace: string[] = [];
     const narrowDashes: string[] = [];
     const gapsWithoutDash: string[] = [];
-    const tableOff: string[] = [];
 
     for (const line of document.querySelectorAll(".sheet-view-line")) {
       const where = line.textContent.slice(0, 24);
@@ -56,13 +51,6 @@ function measure(page: Page) {
         const box = piece.getBoundingClientRect();
         const textBox = text.getBoundingClientRect();
         const gap = (box.width - textBox.width) / em;
-
-        const drawn = textBox.width / em;
-        if (Math.abs(drawn - lyricsWidth(words)) > 0.1) {
-          tableOff.push(
-            `"${words}": ${drawn.toFixed(3)} drawn, ${lyricsWidth(words).toFixed(3)} in the table`,
-          );
-        }
 
         const next = pieces[i + 1];
         const nextText = next?.querySelector(".sheet-view-text")?.textContent;
@@ -89,7 +77,6 @@ function measure(page: Page) {
       extraSpace,
       narrowDashes,
       gapsWithoutDash,
-      tableOff,
       scrollsSideways: document.documentElement.scrollWidth > window.innerWidth,
     };
   });
@@ -105,11 +92,72 @@ for (const width of [320, 480, 800]) {
       extraSpace: [],
       narrowDashes: [],
       gapsWithoutDash: [],
-      tableOff: [],
       scrollsSideways: false,
     });
   });
 }
+
+// The width table has to fit the font, the weights and the chords' size.
+// Words are drawn a little narrower than the table: it leaves out kerning,
+// and browsers on Linux fit letters to whole pixels. The layout's margin
+// covers that. Each letter on its own, at 200px, has neither, so a
+// difference is a font or a style that changed without running the
+// font-widths script.
+test("draws each letter as wide as the width table says", async ({ page }) => {
+  await open(page, 800);
+  const off = await page.evaluate(() => {
+    const view = document.querySelector<HTMLElement>(".sheet-view");
+    if (!view) throw new Error("No sheet view");
+    view.style.setProperty("--sheet-view-font-size", "200px");
+    const em = 200;
+    const chordSize = parseFloat(
+      getComputedStyle(view).getPropertyValue("--sheet-view-chord-size"),
+    );
+    // Set by the harness page.
+    const { textWidth } = window as unknown as {
+      textWidth: (text: string, weight: 400 | 700) => number;
+    };
+    const letters = new Set(
+      [
+        ...document.querySelectorAll(".sheet-view-text, .sheet-view-chord"),
+      ].flatMap((element) => Array.from(element.textContent)),
+    );
+    const probe = (className: string) => {
+      const span = document.createElement("span");
+      span.className = className;
+      span.style.whiteSpace = "pre";
+      view.append(span);
+      return span;
+    };
+    const lyric = probe("");
+    const chord = probe("sheet-view-chord");
+    const space = parseFloat(getComputedStyle(chord).paddingRight);
+    const off: string[] = [];
+    const compare = (what: string, drawn: number, expected: number) => {
+      if (Math.abs(drawn - expected) > 0.01) {
+        off.push(
+          `${what}: ${drawn.toFixed(3)} drawn, ${expected.toFixed(3)} in the table`,
+        );
+      }
+    };
+    for (const letter of letters) {
+      lyric.textContent = letter;
+      chord.textContent = letter;
+      compare(
+        `"${letter}"`,
+        lyric.getBoundingClientRect().width / em,
+        textWidth(letter, 400),
+      );
+      compare(
+        `"${letter}" in a chord`,
+        (chord.getBoundingClientRect().width - space) / em,
+        textWidth(letter, 700) * chordSize,
+      );
+    }
+    return off;
+  });
+  expect(off).toEqual([]);
+});
 
 test("keeps every row of lyrics the same distance apart", async ({ page }) => {
   await open(page, 800);
