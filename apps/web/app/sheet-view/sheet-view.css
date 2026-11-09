@@ -1,0 +1,91 @@
+/*
+  The sheet view. Its layout (layout.ts) works out where chords need room
+  from the font's widths, for the font, weights and sizes set here: change
+  them together, and run the font-widths script after a font update.
+
+  Sizes are in em of the lyrics, so the view can take any font size.
+*/
+.sheet-view {
+  color: var(--text);
+  font: 400 var(--sheet-view-font-size, var(--font-size-lyrics)) var(--font);
+}
+
+.sheet-view-section + .sheet-view-section {
+  margin-top: 1em;
+}
+
+/* The row keeps its height without a label, as every line keeps its chords. */
+.sheet-view-label {
+  display: flex;
+  align-items: end;
+  height: 1.6em;
+  color: var(--text-muted);
+  font-size: 0.7em;
+  font-weight: 700;
+  line-height: 1;
+  /* A label stays on the page of its first line. */
+  break-after: avoid;
+}
+
+.sheet-view-line {
+  margin: 0;
+  /* A line and its chords stay on one page. */
+  break-inside: avoid;
+}
+
+/* A line wraps only between units. */
+.sheet-view-unit {
+  display: inline-flex;
+  vertical-align: top;
+  white-space: pre;
+}
+
+/* Chords over lyrics, as wide as the wider of the two. */
+.sheet-view-piece {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+/* Every row of lyrics has a chord row, with or without chords. */
+.sheet-view-chords {
+  display: flex;
+  align-items: end;
+  height: 1.2em;
+}
+
+.sheet-view-chord {
+  padding-right: var(--sheet-view-chord-space);
+  color: var(--chord);
+  font-size: var(--sheet-view-chord-size);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sheet-view-lyrics {
+  display: flex;
+  min-height: 1.5em;
+  line-height: 1.5;
+}
+
+.is-chords-only .sheet-view-lyrics {
+  display: none;
+}
+
+/* The room after a piece's text, where its chords push the next letter. */
+.sheet-view-dash {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+  A border, not a background: browsers leave backgrounds out when printing.
+  A space the layout didn't expect, a hair wide in some browser, stays blank.
+*/
+.has-dash .sheet-view-dash::after {
+  content: "";
+  width: clamp(0px, calc(100% - 0.24em), 1.2em);
+  border-top: 1.5px solid currentColor;
+  translate: 0 0.12em;
+}

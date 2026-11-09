@@ -1,40 +1,20 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { pieces, SampleSheet, sampleLines } from "./sample-sheet";
+import { seedSong } from "../editor/seed-song";
+import { SampleSheet, sampleSheet } from "./sample-sheet";
 
 describe("SampleSheet", () => {
-  it("only takes lines the static layout gets right", () => {
-    expect(sampleLines).toHaveLength(3);
-    for (const line of sampleLines) {
-      const spots = line.chords.map((chord) => chord.at);
-      expect(new Set(spots).size).toBe(spots.length);
-      for (const at of spots) expect(line.text[at]).not.toBe(" ");
-    }
+  it("is the seed song's first section", () => {
+    expect(sampleSheet.sections).toEqual([seedSong.sections[0]]);
+    expect(sampleSheet.sections[0]?.label).toBe("Verse 1");
   });
 
-  it("puts each chord above the lyrics from its letter", () => {
-    expect(
-      pieces({
-        text: "That saved a wretch like me",
-        chords: [{ at: 25, root: "D" }],
-      }),
-    ).toEqual([
-      { chord: "", text: "That saved a wretch like " },
-      { chord: "D", text: "me" },
-    ]);
-  });
-
-  it("writes each chord in its canonical form", () => {
-    expect(
-      pieces({ text: "Amazing", chords: [{ at: 0, root: "G", suffix: "7" }] }),
-    ).toEqual([{ chord: "G7", text: "Amazing" }]);
-  });
-
-  it("writes a chord's mark", () => {
-    expect(
-      pieces({ text: "Amazing", chords: [{ at: 0, root: "G", mark: "held" }] }),
-    ).toEqual([{ chord: "(G)", text: "Amazing" }]);
+  it("shows it in the sheet view, with its label", () => {
+    const html = renderToString(<SampleSheet />);
+    expect(html).toContain('<div class="sheet-view"');
+    expect(html).toContain('<div class="sheet-view-label">Verse 1</div>');
+    expect(html).not.toContain("Verse 2");
   });
 
   it("is hidden from screen readers", () => {
