@@ -240,6 +240,17 @@
   margin: calc(-1 * var(--space-s)) 0 0 calc(-1 * var(--space-l));
 }
 
+/* "Back" and "Make … the song key", side by side while they fit. */
+.key-panel-ways {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.key-panel-ways .key-panel-make {
+  margin: calc(-1 * var(--space-s)) calc(-1 * var(--space-l)) 0 0;
+}
+
 /* On a phone: a sheet from the bottom, over a scrim. */
 @media (max-width: 640px) {
   .key-panel {

@@ -104,6 +104,43 @@ test("saves a set key, and a reload shows it", async ({ page }) => {
   await expect(songKey).not.toContainText("Guessed");
 });
 
+function keyPanel(page: Page) {
+  return page.getByRole("dialog", { name: "Key" });
+}
+
+// Scenario "Transpose isn't saved".
+test("doesn't save a transpose", async ({ page }) => {
+  const id = await createSheet(page);
+  await openSheet(page, id);
+  const keyButton = page.getByRole("button", { name: /^Key / });
+  await keyButton.click();
+  await keyPanel(page).getByRole("button", { name: "A", exact: true }).click();
+  await expect(page.locator(".chord-label")).toHaveText(["A"]);
+  await expect(page).toHaveURL(/\?key=A$/);
+  await expect(status(page)).toHaveText("Saved");
+  const stored = await page.request.get(`/api/sheets/${id}`);
+  expect(JSON.stringify(await stored.json())).toContain('"root":"G"');
+  await openSheet(page, id);
+  await expect(keyButton).toHaveText("Key G");
+});
+
+// Scenario "Reload after making the song key".
+test("saves the shown key made the song key", async ({ page }) => {
+  await openSheet(page, await createSheet(page));
+  const keyButton = page.getByRole("button", { name: /^Key / });
+  await keyButton.click();
+  await keyPanel(page).getByRole("button", { name: "A", exact: true }).click();
+  await keyPanel(page)
+    .getByRole("button", { name: "Make A the song key" })
+    .click();
+  await expect(page).not.toHaveURL(/key=/);
+  await expect(status(page)).toHaveText("Saved");
+  await page.reload();
+  await expect(page.locator(".chord-label")).toHaveText(["A"]);
+  await keyButton.click();
+  await expect(keyPanel(page).locator(".key-panel-song-key")).toHaveText("A");
+});
+
 // Scenario "Slow save".
 test("says Saving… while a save takes a while", async ({ page }) => {
   await openSheet(page, await createSheet(page));
@@ -175,6 +212,18 @@ test("stops saving when the sheet changed in another tab", async ({
   );
   await menuButton(other).click();
   await expect(other.getByRole("menuitem", { name: "Rename" })).toBeDisabled();
+  await other.keyboard.press("Escape");
+
+  // Scenario "Transposing after a conflict".
+  await other.getByRole("button", { name: /^Key / }).click();
+  await keyPanel(other).getByRole("button", { name: "A", exact: true }).click();
+  await expect(other.locator(".chord-label")).toHaveText(["A"]);
+  await expect(
+    keyPanel(other).getByRole("button", { name: "Change the song key" }),
+  ).toBeDisabled();
+  await expect(
+    keyPanel(other).getByRole("button", { name: "Make A the song key" }),
+  ).toBeDisabled();
 });
 
 function heading(page: Page) {

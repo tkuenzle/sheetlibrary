@@ -6,6 +6,7 @@ import { getActiveSection } from "./active-section";
 import { findChord, getSelectedChord, moveChord } from "./chords";
 import { type Anchor, anchorAt, letterAt } from "./letter";
 import { type Chord, chordsOf, chordsOn } from "./schema";
+import { getShownKey, shownChord } from "./shown-key";
 
 // Chord labels live in a layer on top of the editor, outside the editable
 // text. The text holds only letters, so phone keyboards never see chords,
@@ -138,6 +139,7 @@ class ChordLayerView {
     if (
       view.state.doc !== previous.doc ||
       getSelectedChord(view.state) !== getSelectedChord(previous) ||
+      getShownKey(view.state) !== getShownKey(previous) ||
       getActiveSection(view.state) !== getActiveSection(previous)
     ) {
       this.render();
@@ -386,7 +388,7 @@ class ChordLayerView {
       .filter(Boolean)
       .join(" ");
     if (label.className !== name) label.className = name;
-    const text = writeMarkedChord(chord);
+    const text = writeMarkedChord(shownChord(this.view.state, chord));
     if (label.textContent !== text) label.textContent = text;
     if (label.style.transform) label.style.transform = "";
     return label;

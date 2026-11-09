@@ -15,10 +15,10 @@ import {
   chordsOn,
   keyOf,
   newChordId,
-  originalKeyOf,
   schema,
   symbolOf,
 } from "./schema";
+import { setShownKey } from "./shown-key";
 
 const deletedMeta = "chordsDeleted";
 
@@ -149,8 +149,10 @@ function sameChord(a: Chord, b: Chord | undefined): boolean {
   );
 }
 
-// Moves every chord with `move` to the key `to`. A set key moves to `to`
-// in the same step, so it stays true.
+// Moves every chord with `move` to the key `to`, and shows the sheet in its
+// own key again. A set key moves to `to` in the same step, so it stays true.
+// Showing the key in the same step means the moved chords are never shown
+// moved again.
 export function transposeChords(
   move: (chord: MarkedChord) => MarkedChord,
   to: Key,
@@ -160,28 +162,17 @@ export function transposeChords(
       replaceChords(state, (chord) => move(symbolOf(chord))) ?? state.tr;
     const key = keyOf(state.doc);
     if (key && !sameKey(key, to)) tr.setDocAttribute("key", to);
-    if (tr.docChanged) dispatch?.(tr);
+    if (tr.docChanged) dispatch?.(setShownKey(tr, null));
     return true;
   };
 }
 
-// Sets the sheet's key and makes it the original key, in one step. No
-// chord moves.
+// Sets the sheet's key, in one step. No chord moves.
 export function setKey(key: Key): Command {
   return (state, dispatch) => {
     const current = keyOf(state.doc);
-    const original = originalKeyOf(state.doc);
-    if (
-      current &&
-      original &&
-      sameKey(current, key) &&
-      sameKey(original, key)
-    ) {
-      return true;
-    }
-    dispatch?.(
-      state.tr.setDocAttribute("key", key).setDocAttribute("original", key),
-    );
+    if (current && sameKey(current, key)) return true;
+    dispatch?.(state.tr.setDocAttribute("key", key));
     return true;
   };
 }

@@ -90,10 +90,31 @@ function listedTonic(pitch: number, minor: boolean): string {
 
 // The key one semitone up (1) or down (-1), as listed.
 export function stepKey(key: Key, step: 1 | -1): Key {
+  return keyAbove(key, step);
+}
+
+// The listed key some semitones above `key`, or below it when negative.
+export function keyAbove(key: Key, semitones: number): Key {
   return {
-    tonic: listedTonic(pitchOf(key.tonic) + step, key.minor),
+    tonic: listedTonic(pitchOf(key.tonic) + semitones, key.minor),
     minor: key.minor,
   };
+}
+
+// Semitones up from one key's tonic to another's, 0 to 11.
+export function semitonesBetween(from: Key, to: Key): number {
+  return mod(pitchOf(to.tonic) - pitchOf(from.tonic), 12);
+}
+
+// Reads a key as written, "A" or "F#m", if it is one of the keys to move to
+// in the given mode. Anything else is null.
+export function readKey(text: string, minor: boolean): Key | null {
+  const isMinor = text.endsWith("m");
+  if (isMinor !== minor) return null;
+  const key = { tonic: isMinor ? text.slice(0, -1) : text, minor };
+  return keysToMoveTo(minor).some((cell) => cell.some((k) => sameKey(k, key)))
+    ? key
+    : null;
 }
 
 // How many sharps (positive) or flats (negative) a key has.
@@ -127,7 +148,7 @@ export function transposeChord<T extends ChordSymbol>(
   const start = parseNote(from.tonic);
   const end = parseNote(to.tonic);
   const letters = mod(end.letter - start.letter, 7);
-  const semitones = mod(pitchOf(to.tonic) - pitchOf(from.tonic), 12);
+  const semitones = semitonesBetween(from, to);
   const flats = signature(to) < 0;
 
   function move(note: string): string {

@@ -325,19 +325,55 @@ test.describe("the key", () => {
     expect(key.y + key.height).toBeGreaterThan(title.y);
   });
 
-  test("moves the chords to a picked key, and stays open", async ({ page }) => {
+  async function pick(page: Page, name: string) {
+    await panel(page).getByRole("button", { name, exact: true }).click();
+  }
+
+  // Scenario "Picking a key".
+  test("shows the chords in a picked key, and stays open", async ({ page }) => {
     await keyButton(page).click();
     await expect(panel(page)).toBeVisible();
     await expect(songKey(page)).toContainText("G");
     await expect(songKey(page)).toContainText("Guessed from the chords");
-    await panel(page).getByRole("button", { name: "A", exact: true }).click();
+    await pick(page, "A");
     expect(await chords(page)).toEqual(["A", "A7", "D", "A"]);
     await expect(keyButton(page)).toHaveText("Key A");
-    await expect(songKey(page)).toContainText("A");
+    await expect(songKey(page).locator(".key-panel-song-key")).toHaveText("G");
+    await expect(songKey(page)).toContainText("Guessed from the chords");
     await expect(
       panel(page).getByRole("button", { name: "Back to G" }),
     ).toBeEnabled();
     await expect(panel(page)).toBeVisible();
+    await expect(page).toHaveURL(/\/editor\?key=A$/);
+  });
+
+  // Scenario "Reload in A".
+  test("keeps the shown key after a reload", async ({ page }) => {
+    await keyButton(page).click();
+    await pick(page, "F sharp");
+    await expect(page).toHaveURL(/\?key=F%23$/);
+    await page.reload();
+    await expect(keyButton(page)).toHaveText("Key F#");
+    await expect(page.locator(".chord-label").first()).toHaveText("F#");
+  });
+
+  // Scenario "Leaving after steps".
+  test("adds no steps to the browser's history", async ({ page }) => {
+    await page.goto("/");
+    await page.goto("/editor");
+    await keyButton(page).click();
+    const up = panel(page).getByRole("button", { name: "Up a semitone" });
+    for (let i = 0; i < 3; i++) await up.click();
+    await expect(keyButton(page)).toHaveText("Key Bb");
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  // Scenario "Key that doesn't fit".
+  test("leaves out a key that doesn't fit", async ({ page }) => {
+    await page.goto("/editor?key=Am");
+    await expect(keyButton(page)).toHaveText("Key G");
+    await expect(page).toHaveURL(/\/editor$/);
   });
 
   test("steps by a semitone, spelled in the new key", async ({ page }) => {
@@ -351,18 +387,38 @@ test.describe("the key", () => {
     expect(await chords(page)).toEqual(["Bb", "Bb7", "Eb", "Bb"]);
   });
 
-  test("undoes in the panel with Ctrl Z", async ({ page }) => {
+  // Scenario "Undo after a transpose".
+  test("doesn't undo a transpose", async ({ page }) => {
+    await firstLine(page).click();
+    await page.keyboard.type(" again");
+    await expect(firstLine(page)).toContainText("again");
     await keyButton(page).click();
-    await panel(page).getByRole("button", { name: "A", exact: true }).click();
+    await pick(page, "A");
     await page.keyboard.press("ControlOrMeta+z");
-    await expect(keyButton(page)).toHaveText("Key G");
-    expect(await chords(page)).toEqual(["G", "G7", "C", "G"]);
+    await expect(firstLine(page)).not.toContainText("again");
+    await expect(keyButton(page)).toHaveText("Key A");
+    expect(await chords(page)).toEqual(["A", "A7", "D", "A"]);
     await expect(panel(page)).toBeVisible();
   });
 
-  test("goes back to the original key, also after reopening", async ({
+  // Scenario "Undo setting the song key".
+  test("undoes setting the song key in the panel with Ctrl Z", async ({
     page,
   }) => {
+    await keyButton(page).click();
+    await changeSongKey(page);
+    await songKey(page).getByRole("button", { name: "E minor" }).click();
+    await expect(keyButton(page)).toHaveText("Key Em");
+    await expect(
+      panel(page).getByRole("button", { name: "E minor" }),
+    ).toBeFocused();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(keyButton(page)).toHaveText("Key G");
+    await expect(panel(page)).toBeVisible();
+  });
+
+  // Scenario "Back to G after reopening".
+  test("goes back to the song key, also after reopening", async ({ page }) => {
     await keyButton(page).click();
     const back = panel(page).getByRole("button", { name: "Back to G" });
     await expect(back).toBeDisabled();
@@ -397,6 +453,64 @@ test.describe("the key", () => {
     await expect(
       panel(page).getByRole("button", { name: "E minor" }),
     ).toBeFocused();
+  });
+
+  // Scenario "Setting the key while transposed".
+  test("keeps the chords as shown when the song key is set", async ({
+    page,
+  }) => {
+    await keyButton(page).click();
+    await pick(page, "A");
+    await changeSongKey(page);
+    await songKey(page).getByRole("button", { name: "E minor" }).click();
+    expect(await chords(page)).toEqual(["A", "A7", "D", "A"]);
+    await expect(keyButton(page)).toHaveText("Key F#m");
+    await expect(songKey(page).locator(".key-panel-song-key")).toHaveText("Em");
+    await expect(page).toHaveURL(/\?key=F%23m$/);
+  });
+
+  // Scenario "Adding a chord in A".
+  test("takes a chord in the shown key", async ({ page }) => {
+    await keyButton(page).click();
+    await pick(page, "A");
+    await page.keyboard.press("Escape");
+    await firstLine(page).click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("ControlOrMeta+k");
+    await page.keyboard.type("E7sus4");
+    await page.keyboard.press("Enter");
+    const added = (name: string) =>
+      page.locator(".chord-label").filter({ hasText: new RegExp(`^${name}$`) });
+    await expect(added("E7sus4")).toHaveCount(1);
+    await keyButton(page).click();
+    await panel(page).getByRole("button", { name: "Back to G" }).click();
+    await expect(added("D7sus4")).toHaveCount(1);
+  });
+
+  // Scenario "Making A the song key".
+  test("makes the shown key the song key", async ({ page }) => {
+    await keyButton(page).click();
+    await expect(
+      panel(page).getByRole("button", { name: /^Make / }),
+    ).toHaveCount(0);
+    await pick(page, "A");
+    await panel(page)
+      .getByRole("button", { name: "Make A the song key" })
+      .click();
+    expect(await chords(page)).toEqual(["A", "A7", "D", "A"]);
+    await expect(keyButton(page)).toHaveText("Key A");
+    await expect(songKey(page).locator(".key-panel-song-key")).toHaveText("A");
+    await expect(songKey(page)).toContainText("Guessed from the chords");
+    await expect(
+      panel(page).getByRole("button", { name: "Back to A" }),
+    ).toBeDisabled();
+    await expect(page).toHaveURL(/\/editor$/);
+    await expect(
+      panel(page).getByRole("button", { name: "A", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(keyButton(page)).toHaveText("Key G");
+    expect(await chords(page)).toEqual(["G", "G7", "C", "G"]);
   });
 
   test("still names the guess once the key is set", async ({ page }) => {

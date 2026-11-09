@@ -10,7 +10,8 @@ import {
   setKey,
   transposeChords,
 } from "./chords";
-import { keyOf, originalKeyOf } from "./schema";
+import { keyOf } from "./schema";
+import { getShownKey, showKey } from "./shown-key";
 import {
   at,
   chord,
@@ -138,10 +139,19 @@ describe("transposing", () => {
     const next = exec(state, toA);
     expect(notation(next)).toBe("[A]Amazing [D]grace");
     expect(keyOf(next.doc)).toEqual(A);
-    expect(originalKeyOf(next.doc)).toEqual(G);
     const undone = exec(next, undo);
     expect(notation(undone)).toBe("[G]Amazing [C]grace");
     expect(keyOf(undone.doc)).toEqual(G);
+  });
+
+  it("shows the sheet in its own key, as one step to undo", () => {
+    const shown = exec(
+      song("[G]Amazing [C]grace"),
+      showKey({ from: G, to: A }),
+    );
+    const next = exec(shown, toA);
+    expect(getShownKey(next)).toBeNull();
+    expect(notation(exec(next, undo))).toBe("[G]Amazing [C]grace");
   });
 
   it("sets no key when none is set", () => {
@@ -154,7 +164,6 @@ describe("setting the key", () => {
     const state = song("[G]Amazing [C]grace\n\n[D]me");
     const next = exec(state, setKey(Em));
     expect(keyOf(next.doc)).toEqual(Em);
-    expect(originalKeyOf(next.doc)).toEqual(Em);
     expect(notation(next)).toBe(notation(state));
     expect(chordsIn(next.doc)).toEqual(chordsIn(state.doc));
   });
@@ -163,10 +172,8 @@ describe("setting the key", () => {
     const state = exec(song("[G]Amazing grace"), setKey(G));
     const undone = exec(exec(state, setKey(Em)), undo);
     expect(keyOf(undone.doc)).toEqual(G);
-    expect(originalKeyOf(undone.doc)).toEqual(G);
     const redone = exec(undone, redo);
     expect(keyOf(redone.doc)).toEqual(Em);
-    expect(originalKeyOf(redone.doc)).toEqual(Em);
   });
 
   it("changes nothing when the key is already set", () => {

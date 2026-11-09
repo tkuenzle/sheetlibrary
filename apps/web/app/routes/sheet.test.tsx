@@ -58,13 +58,21 @@ describe("sheet page loader", () => {
 
   // Scenario "Opening a sheet".
   it("gives the owner their sheet", async () => {
-    expect(await load("ana")).toEqual({ sheet, isNew: false });
+    expect(await load("ana")).toEqual({ sheet, isNew: false, shownKey: null });
   });
 
   it("says when the sheet was just made with New sheet", async () => {
     expect(await load("ana", sheet.id, "?new")).toEqual({
       sheet,
       isNew: true,
+      shownKey: null,
+    });
+  });
+
+  // Scenario "Reload in A".
+  it("passes on the key to show the sheet in", async () => {
+    expect(await load("ana", sheet.id, "?key=F%23m")).toMatchObject({
+      shownKey: "F#m",
     });
   });
 

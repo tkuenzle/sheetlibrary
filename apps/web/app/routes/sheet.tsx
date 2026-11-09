@@ -39,23 +39,30 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 // Only the owner gets the sheet. Anyone else gets the same "not found" as
 // for an id that doesn't exist, with a 404 status. "New sheet" adds `?new`,
-// which opens the title field.
+// which opens the title field. `?key` shows the sheet in another key.
 export async function loader({ context, params, url }: Route.LoaderArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
   const sheet = await readSheet(env.DB, session.user.id, params.id);
-  if (!sheet) return data({ sheet: null, isNew: false }, { status: 404 });
-  return { sheet, isNew: url.searchParams.has("new") };
+  if (!sheet) {
+    return data({ sheet: null, isNew: false, shownKey: null }, { status: 404 });
+  }
+  return {
+    sheet,
+    isNew: url.searchParams.has("new"),
+    shownKey: url.searchParams.get("key"),
+  };
 }
 
 export default function SheetPage({ loaderData }: Route.ComponentProps) {
-  const { sheet, isNew } = loaderData;
+  const { sheet, isNew, shownKey } = loaderData;
   const navigate = useNavigate();
   return sheet ? (
     <SheetView
       sheet={sheet}
       isNew={isNew}
+      shownKey={shownKey}
       onDeleted={() => void navigate("/sheets")}
     />
   ) : (
@@ -69,16 +76,19 @@ type Editing = "title" | "artist" | null;
 export function SheetView({
   sheet,
   isNew = false,
+  shownKey = null,
   onDeleted = () => undefined,
 }: {
   sheet: Sheet;
   // Opened from "New sheet": the title field starts open.
   isNew?: boolean;
+  // The key to show the sheet in, as the address writes it, such as "F#m".
+  shownKey?: string | null;
   // Called once the sheet is deleted, to leave the page.
   onDeleted?: () => void;
 }) {
   const editor = useRef<SheetEditorHandle>(null);
-  const sheetKey = useSheetKey(sheet.content);
+  const sheetKey = useSheetKey(sheet.content, shownKey);
   const [title, setTitle] = useState(sheet.title);
   const [artist, setArtist] = useState(sheet.artist);
   const [editing, setEditing] = useState<Editing>(isNew ? "title" : null);
@@ -224,6 +234,7 @@ export function SheetView({
             ref={editor}
             sheet={sheet.content}
             sheetKey={sheetKey.key}
+            shownKey={sheetKey.shown}
             readOnly={readOnly}
             onChange={autosave.edited}
             onChordsChange={sheetKey.onChordsChange}
