@@ -7,7 +7,7 @@ import { eastAsianWidth } from "get-east-asian-width";
 import type { MarkedChord } from "./chord-mark";
 import { type ChordSymbol, readChord } from "./chord-symbol";
 import { cleanUpLabel, cleanUpSection, cutLabel } from "./clean-up";
-import { guessKey, keyAbove, readCapo, transposeChord } from "./keys";
+import { guessKey, keyAbove, readCapo, transposeSheet } from "./keys";
 import {
   type ChordSheet,
   FORMAT,
@@ -74,17 +74,7 @@ export function soundingSheet(sheet: ChordSheet, capo: number): ChordSheet {
   );
   const from = guessKey(chords);
   if (!capo || !from) return sheet;
-  const to = keyAbove(from, capo);
-  return {
-    ...sheet,
-    sections: sheet.sections.map((section) => ({
-      ...section,
-      lines: section.lines.map((line) => ({
-        ...line,
-        chords: line.chords.map((chord) => transposeChord(chord, from, to)),
-      })),
-    })),
-  };
+  return transposeSheet(sheet, from, keyAbove(from, capo));
 }
 
 function classify(line: string): UgLine {

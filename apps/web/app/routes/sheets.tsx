@@ -56,7 +56,7 @@ export async function action({ context }: Route.ActionArgs) {
     title: UNTITLED,
     content: { format: "chordsheet", version: 1, sections: [] },
   });
-  return redirect(`/sheets/${sheet.id}?new`);
+  return redirect(`/sheets/${sheet.id}/edit?new`);
 }
 
 export default function Library({ loaderData }: Route.ComponentProps) {

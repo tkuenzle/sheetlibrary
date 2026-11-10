@@ -101,7 +101,7 @@ describe("library loader and action", () => {
   it("creates an Untitled sheet and opens it, to be named", async () => {
     const response = await post("ana");
     expect(response.status).toBe(302);
-    const id = /^\/sheets\/([\w-]+)\?new$/.exec(
+    const id = /^\/sheets\/([\w-]+)\/edit\?new$/.exec(
       response.headers.get("Location") ?? "",
     )?.[1];
     expect(await readSheet(test.env.DB, "ana", id ?? "")).toMatchObject({

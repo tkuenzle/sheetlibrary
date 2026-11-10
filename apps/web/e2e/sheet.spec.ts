@@ -32,7 +32,7 @@ async function createSheet(page: Page, artist?: string): Promise<string> {
 }
 
 async function openSheet(page: Page, id: string) {
-  await page.goto(`/sheets/${id}`);
+  await page.goto(`/sheets/${id}/edit`);
   await expect(page.locator(".chord-label")).toHaveCount(1);
 }
 
@@ -378,7 +378,7 @@ test("undo in the editor leaves a rename alone", async ({ page }) => {
 // Scenario "Someone else's sheet": an id the person doesn't own answers as
 // one that doesn't exist.
 test("says when the sheet isn't found", async ({ page }) => {
-  const response = await page.goto("/sheets/AAAAAAAAAAAA");
+  const response = await page.goto("/sheets/AAAAAAAAAAAA/edit");
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Sheet not found",
@@ -390,7 +390,7 @@ test.describe("not signed in", () => {
 
   // Scenario "Not signed in".
   test("sends visitors to sign-in", async ({ page }) => {
-    await page.goto("/sheets/AAAAAAAAAAAA");
+    await page.goto("/sheets/AAAAAAAAAAAA/edit");
     await expect(page).toHaveURL("/sign-in");
   });
 
@@ -480,7 +480,7 @@ test("keeps the dialog open when the delete doesn't get through", async ({
   await expect(dialog).toContainText(
     "The sheet couldn’t be deleted. Try again.",
   );
-  await expect(page).toHaveURL(`/sheets/${id}`);
+  await expect(page).toHaveURL(`/sheets/${id}/edit`);
 
   await page.unroute("**/api/sheets/*");
   await dialog.getByRole("button", { name: "Delete" }).click();

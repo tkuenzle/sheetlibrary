@@ -2,6 +2,7 @@
 // from one key to another, spelled as the new key spells them.
 
 import type { ChordSymbol } from "./chord-symbol";
+import type { ChordSheet } from "./sheet";
 
 export interface Key {
   // A spelled note, like a chord's root: "G", "Bb", "F#".
@@ -187,6 +188,26 @@ export function transposeChord<T extends ChordSymbol>(
     root,
     ...(moved !== undefined && moved !== root ? { bass: moved } : {}),
   } as T;
+}
+
+// Moves every chord of a sheet from one key to another. A set key moves
+// with the chords; a sheet without one still has none.
+export function transposeSheet(
+  sheet: ChordSheet,
+  from: Key,
+  to: Key,
+): ChordSheet {
+  return {
+    ...sheet,
+    ...(sheet.key ? { key: to } : {}),
+    sections: sheet.sections.map((section) => ({
+      ...section,
+      lines: section.lines.map((line) => ({
+        ...line,
+        chords: line.chords.map((chord) => transposeChord(chord, from, to)),
+      })),
+    })),
+  };
 }
 
 // The chords of C major and A minor, in the key's order. The fifth of a

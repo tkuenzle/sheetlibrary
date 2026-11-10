@@ -7,7 +7,7 @@ The library at `/sheets`: where a signed-in person finds their sheets and starts
 ## Requirements
 
 ### Requirement: My sheets
-The page at `/sheets` SHALL list the signed-in person's sheets and no one else's, the most recently edited first. Each row SHALL show the sheet's title, its artist if it has one, and when it was last edited. A row SHALL open the sheet at `/sheets/:id`.
+The page at `/sheets` SHALL list the signed-in person's sheets and no one else's, the most recently edited first. Each row SHALL show the sheet's title, its artist if it has one, and when it was last edited. A row SHALL open the sheet to play at `/sheets/:id`.
 
 #### Scenario: Newest edit first
 - **WHEN** a person has the sheets "Amazing Grace" and "Hallelujah", and last edited "Hallelujah"
@@ -17,6 +17,10 @@ The page at `/sheets` SHALL list the signed-in person's sheets and no one else's
 - **WHEN** another person has a sheet "Shenandoah"
 - **THEN** it doesn't appear in this person's library
 
+#### Scenario: Opening a sheet
+- **WHEN** a person selects the row "Amazing Grace"
+- **THEN** the play view of "Amazing Grace" opens, not the editor
+
 ### Requirement: When a sheet was last edited
 A row SHALL say "Today" or "Yesterday" for a sheet last edited on those days, in the viewer's time zone. Otherwise it SHALL show the day and month, such as "28 Oct", and the year too when it isn't the current year.
 
@@ -25,11 +29,11 @@ A row SHALL say "Today" or "Yesterday" for a sheet last edited on those days, in
 - **THEN** its row says "28 Oct"
 
 ### Requirement: New sheet
-"New sheet" SHALL create a sheet titled "Untitled" with no lyrics, and open it at `/sheets/:id` with the title field open and "Untitled" selected. A reload of that sheet SHALL NOT open the field again.
+"New sheet" SHALL create a sheet titled "Untitled" with no lyrics, and open it in the editor at `/sheets/:id/edit` with the title field open and "Untitled" selected. A reload of that sheet SHALL NOT open the field again.
 
 #### Scenario: Starting a sheet
 - **WHEN** a person selects "New sheet"
-- **THEN** the sheet page opens with the heading "Untitled", and the library lists "Untitled" first
+- **THEN** the editor opens with the heading "Untitled", and the library lists "Untitled" first
 
 #### Scenario: Naming a new sheet
 - **WHEN** a person selects "New sheet", types "Amazing Grace" and presses Enter
@@ -43,11 +47,11 @@ A person without sheets SHALL see "No sheets yet", "Import" and "New sheet" inst
 - **THEN** the page says "No sheets yet" and offers "Import" and "New sheet"
 
 ### Requirement: Import from Ultimate Guitar
-"Import" SHALL sit beside "New sheet" and open a menu with "From photos…" and "From Ultimate Guitar…". "From Ultimate Guitar…" SHALL open a dialog to paste text copied from Ultimate Guitar. Importing SHALL read the text as the import on `/editor` does, create a sheet titled "Untitled" with what it read, and open it at `/sheets/:id` with the title field open and "Untitled" selected. The dialog SHALL NOT say that a sheet is replaced.
+"Import" SHALL sit beside "New sheet" and open a menu with "From photos…" and "From Ultimate Guitar…". "From Ultimate Guitar…" SHALL open a dialog to paste text copied from Ultimate Guitar. Importing SHALL read the text as the import on `/editor` does, create a sheet titled "Untitled" with what it read, and open it in the editor at `/sheets/:id/edit` with the title field open and "Untitled" selected. The dialog SHALL NOT say that a sheet is replaced.
 
 #### Scenario: Importing a song
 - **WHEN** a person selects "Import", then "From Ultimate Guitar…", pastes the chords and lyrics of "Amazing Grace" and selects "Import" in the dialog
-- **THEN** a sheet opens with those chords and lyrics, the heading "Untitled" and the title field open, and the library lists "Untitled" first
+- **THEN** the editor opens with those chords and lyrics, the heading "Untitled" and the title field open, and the library lists "Untitled" first
 
 #### Scenario: Cancelling
 - **WHEN** a person selects "Import", then "From Ultimate Guitar…", pastes text and selects "Cancel"
@@ -68,11 +72,11 @@ A visitor who isn't signed in SHALL be sent to the sign-in page. The page SHALL 
 - **THEN** they are sent to the sign-in page
 
 ### Requirement: Import from photos
-"From photos…" SHALL open a dialog to take or pick a photo of each page of a song. Importing SHALL read the photos, create a sheet with what was read, and open it at `/sheets/:id`. The photos SHALL NOT be kept.
+"From photos…" SHALL open a dialog to take or pick a photo of each page of a song. Importing SHALL read the photos, create a sheet with what was read, and open it in the editor at `/sheets/:id/edit`. The photos SHALL NOT be kept.
 
 #### Scenario: Importing photos
 - **WHEN** a person selects "Import", then "From photos…", adds two photos of "Amazing Grace" and selects "Import"
-- **THEN** a sheet opens with the chords and lyrics read from the photos, and the library lists it first
+- **THEN** the editor opens with the chords and lyrics read from the photos, and the library lists it first
 
 ### Requirement: The photos in the dialog
 The dialog SHALL list the photos as pages, in the order they were added. "Pick photos" SHALL add more at the end, up to 10 pages, and each page SHALL have a button to remove it. Import SHALL be disabled while there is no page.

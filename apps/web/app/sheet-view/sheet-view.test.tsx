@@ -21,6 +21,16 @@ describe("SheetView", () => {
     );
   });
 
+  it("takes a font size, which every other size follows", () => {
+    const html = renderToString(
+      <SheetView sheet={seedSong} fontSize="calc(24px * 1.15)" />,
+    );
+    expect(html).toContain("--sheet-view-font-size:calc(24px * 1.15)");
+    expect(renderToString(<SheetView sheet={seedSong} />)).not.toContain(
+      "--sheet-view-font-size",
+    );
+  });
+
   it("marks a line of chords only", () => {
     const html = renderToString(
       <SheetView sheet={sheet(["Intro", "[G][C]", "Amazing"])} />,

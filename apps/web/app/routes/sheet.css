@@ -1,70 +1,84 @@
-/* A stored sheet. The editor's layout is shared with /editor (editor.css). */
+/*
+  A stored sheet to play or print. The lyrics are larger than in the editor
+  (--font-size-lyrics). The widths are listed in app/breakpoints.ts.
+*/
+.play-page {
+  --play-text-base: 24px;
 
-.sheet-not-found {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
-  max-width: 560px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: var(--space-3xl) var(--space-l);
+  padding: var(--space-xl) var(--space-2xl) 80px;
 }
 
-.sheet-not-found h1 {
+.play-heading {
+  margin-bottom: var(--space-xl);
+}
+
+/* The key and the capo wrap together after the title, as in the editor. */
+.play-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-m) var(--space-l);
+}
+
+.play-keys {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+/* The text size and Print: in the top bar, or on a phone in the menu. */
+.play-actions {
+  display: flex;
+  align-items: center;
+}
+
+.play-more {
+  display: none;
+}
+
+.play-heading h1 {
   margin: 0;
   font: 800 var(--font-size-title) / 1.05 var(--font);
   letter-spacing: -0.035em;
 }
 
-.sheet-not-found p {
-  margin: 0;
+.play-artist {
+  margin: var(--space-xs) 0 0;
+  color: var(--text-muted);
+  font: 500 17px / 1.4 var(--font);
 }
 
-/*
-  The title's line and the artist on the left, and the sheet's menu at the
-  top right. The title wraps beside the menu, so the menu stays in its place
-  at every width. The heading takes over the title's padding from
-  editor.css, so the menu sits inside it.
-*/
-.sheet-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--space-s);
-  padding: 0 var(--space-s);
-}
+@media (max-width: 640px) {
+  .play-page {
+    --play-text-base: 20px;
 
-.sheet-heading .editor-title {
-  padding: 0;
-}
+    padding: var(--space-s) var(--space-l) 64px;
+  }
 
-.sheet-heading h1 {
-  min-width: 0;
-}
+  .play-actions {
+    display: none;
+  }
 
-.sheet-heading-main {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  min-width: 0;
-}
-
-@media not ((pointer: coarse) or (max-width: 640px)) {
-  .sheet-heading {
-    padding: 0 28px;
+  .play-more {
+    display: block;
   }
 }
 
-/* Quiet, after the title and the key. It keeps its line while empty, so
-   nothing moves when it wraps on a phone. */
-.save-status {
-  min-height: 1lh;
-  margin: 0;
-  color: var(--text-muted);
-  font: 400 var(--font-size-small) / 1.4 var(--font);
-}
+/*
+  On paper, or in a PDF: the title, the artist and the sheet as shown, without
+  the top bar or any button. The sheet view keeps each line with its chords.
+*/
+@media print {
+  /* The play view's top bar, which outweighs top-bar.css. */
+  .top-bar:has(~ .play-page),
+  .play-page button {
+    display: none;
+  }
 
-.save-status[data-state="failed"],
-.save-status[data-state="conflict"] {
-  color: var(--text);
+  .play-page {
+    max-width: none;
+    padding: 0;
+  }
 }

@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { SheetEditorHandle } from "./sheet-editor";
 import {
   drawnKey,
+  keyQuery,
   loadSheetKey,
   type SheetKey,
   type SheetKeyState,
@@ -41,6 +42,17 @@ function amazingGrace(key?: Key): ChordSheet {
 }
 
 const chordsInA = [{ root: "A" }, { root: "D" }, { root: "E" }];
+
+describe("keyQuery", () => {
+  it("writes the shown key and the capo as the address does", () => {
+    expect(keyQuery({ shown: A, capo: 2 })).toBe("key=A&capo=2");
+    expect(keyQuery({ shown: { tonic: "F#", minor: true }, capo: 0 })).toBe(
+      "key=F%23m",
+    );
+    expect(keyQuery({ shown: null, capo: 3 })).toBe("capo=3");
+    expect(keyQuery({ shown: null, capo: 0 })).toBe("");
+  });
+});
 
 describe("the sheet's key", () => {
   it("is guessed from the chords without a set key", () => {

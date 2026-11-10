@@ -93,18 +93,20 @@ describe("importedSheetPath", () => {
   // Scenarios "Title read" and "No title read".
   it("opens the sheet to be named only without a title", () => {
     expect(importedSheetPath("abcdefghijkl", { title: "Amazing Grace" })).toBe(
-      "/sheets/abcdefghijkl",
+      "/sheets/abcdefghijkl/edit",
     );
-    expect(importedSheetPath("abcdefghijkl")).toBe("/sheets/abcdefghijkl?new");
+    expect(importedSheetPath("abcdefghijkl")).toBe(
+      "/sheets/abcdefghijkl/edit?new",
+    );
   });
 
   // Scenario "Importing with a capo".
   it("opens the sheet with the capo it was written for", () => {
     expect(importedSheetPath("abcdefghijkl", { capo: 2 })).toBe(
-      "/sheets/abcdefghijkl?new&capo=2",
+      "/sheets/abcdefghijkl/edit?new&capo=2",
     );
     expect(importedSheetPath("abcdefghijkl", { capo: 0 })).toBe(
-      "/sheets/abcdefghijkl?new",
+      "/sheets/abcdefghijkl/edit?new",
     );
   });
 });

@@ -46,20 +46,23 @@ function distanceText(semitones: number): { written: string; spoken: string } {
 // the button or as a bottom sheet on a phone, in two parts: the song's key,
 // which "Change" sets without moving a chord, and the keys to show the sheet
 // in, with steps of a semitone, a way back to the song key, and a way to
-// make the shown key the song key. The panel stays open after a pick.
+// make the shown key the song key. The panel stays open after a pick. To
+// view only, it has neither "Change" nor the way to make the shown key the
+// song key, and no undo.
 export function KeyButton({
   current,
   song,
   guessed,
   guess,
   readOnly = false,
+  viewOnly = false,
   onPick,
-  onSet,
+  onSet = noop,
   onStep,
   onBack,
-  onMake,
-  onUndo,
-  onRedo,
+  onMake = noop,
+  onUndo = noop,
+  onRedo = noop,
 }: {
   // The key the sheet is shown in.
   current: Key;
@@ -71,15 +74,17 @@ export function KeyButton({
   guess: Key | null;
   // The sheet can be shown in another key, but not changed.
   readOnly?: boolean;
+  // Only for showing the sheet in another key: nothing to change is offered.
+  viewOnly?: boolean;
   onPick: (key: Key) => void;
   // Sets the song's key, without moving a chord.
-  onSet: (key: Key) => void;
+  onSet?: (key: Key) => void;
   onStep: (step: 1 | -1) => void;
   onBack: () => void;
   // Moves the chords to the shown key, which becomes the song key.
-  onMake: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
+  onMake?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }) {
   const { open, dialog, wrapperProps, toggleProps, dialogProps } = usePanel();
   const transposed = !sameKey(current, song);
@@ -112,6 +117,7 @@ export function KeyButton({
         aria-label="Key"
         onKeyDown={(event) => {
           // Undo and redo reach the sheet from here.
+          if (viewOnly) return;
           if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
           const key = event.key.toLowerCase();
           if (key === "z" && !event.shiftKey) onUndo();
@@ -127,6 +133,7 @@ export function KeyButton({
             guessed={guessed}
             guess={guess}
             readOnly={readOnly}
+            viewOnly={viewOnly}
             onPick={onPick}
             onSet={onSet}
             onStep={onStep}
@@ -162,13 +169,15 @@ function focusMarked(content: HTMLElement | null, fallback = "button") {
 // show the sheet in, the steps, "Back" to the song key and, while the sheet
 // is shown in another key, "Make … the song key". "Back" is always there,
 // so nothing moves when the key changes. "Change" turns the panel into the
-// list of keys the song can be in, until one is picked or Cancel.
+// list of keys the song can be in, until one is picked or Cancel. To view
+// only, neither "Change" nor "Make … the song key" is there.
 export function KeyPanel({
   current,
   song,
   guessed,
   guess,
   readOnly = false,
+  viewOnly = false,
   onPick,
   onSet,
   onStep,
@@ -180,6 +189,7 @@ export function KeyPanel({
   guessed: boolean;
   guess: Key | null;
   readOnly?: boolean;
+  viewOnly?: boolean;
   onPick: (key: Key) => void;
   onSet: (key: Key) => void;
   onStep: (step: 1 | -1) => void;
@@ -221,19 +231,21 @@ export function KeyPanel({
           <p className="key-panel-song-key">{keyName(song)}</p>
           {guessed && <p>Guessed from the chords</p>}
         </div>
-        <Button
-          variant="text"
-          size="small"
-          className="key-panel-change"
-          aria-label="Change the song key"
-          disabled={readOnly}
-          onClick={() => {
-            setChanging(true);
-            focusMarked(content.current);
-          }}
-        >
-          Change
-        </Button>
+        {!viewOnly && (
+          <Button
+            variant="text"
+            size="small"
+            className="key-panel-change"
+            aria-label="Change the song key"
+            disabled={readOnly}
+            onClick={() => {
+              setChanging(true);
+              focusMarked(content.current);
+            }}
+          >
+            Change
+          </Button>
+        )}
       </section>
       <section className="key-panel-transpose" aria-labelledby={transposeId}>
         <h2 id={transposeId}>Transpose to</h2>
@@ -270,7 +282,7 @@ export function KeyPanel({
           >
             Back to {keyName(song)}
           </Button>
-          {transposed && (
+          {transposed && !viewOnly && (
             <Button
               variant="text"
               className="key-panel-make"
@@ -397,4 +409,8 @@ function KeyGrid({
       })}
     </div>
   );
+}
+
+function noop() {
+  // Nothing to do: the panel doesn't offer it.
 }

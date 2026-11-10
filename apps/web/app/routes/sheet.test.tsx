@@ -6,29 +6,20 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
-import type { SaveState } from "../sheets/autosave";
 import { createSheet } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheet";
-import {
-  ConflictNote,
-  DeletedNote,
-  loader,
-  meta,
-  NotFound,
-  SaveStatus,
-  SheetView,
-  sheetMenuItems,
-} from "./sheet";
+import { loader, meta, PlayView } from "./sheet";
 
 const amazingGrace: Sheet = {
   id: "abcdefghijkl",
   revision: 1,
   title: "Amazing Grace",
+  artist: "John Newton",
   content: seedSong,
 };
 
-describe("sheet page loader", () => {
+describe("play view loader", () => {
   let test: Awaited<ReturnType<typeof testEnv>>;
   let sheet: Sheet;
   beforeEach(async () => {
@@ -42,55 +33,44 @@ describe("sheet page loader", () => {
   });
   afterEach(() => test.dispose());
 
-  function load(userId: string | null, id = sheet.id, search = "") {
+  function load(
+    userId: string | null,
+    id = sheet.id,
+    search = "",
+    cookie = "",
+  ) {
     const context = new RouterContextProvider();
     context.set(cloudflareContext, { env: test.env });
     // Only the user's id matters here.
     const session = { user: { id: userId }, session: {} } as never;
     context.set(sessionContext, userId ? session : null);
     const url = new URL(`https://sheetlibrary.test/sheets/${id}${search}`);
+    const request = new Request(url, { headers: { Cookie: cookie } });
     return loader({
       context,
       params: { id },
+      request,
       url,
     } as unknown as Route.LoaderArgs);
   }
 
   // Scenario "Opening a sheet".
-  it("gives the owner their sheet", async () => {
-    expect(await load("ana")).toEqual({
+  it("gives the owner their sheet, with the key and capo to show", async () => {
+    expect(await load("ana", sheet.id, "?key=A&capo=2")).toEqual({
       sheet,
-      isNew: false,
-      shownKey: null,
-      capo: null,
-    });
-  });
-
-  it("says when the sheet was just made with New sheet", async () => {
-    expect(await load("ana", sheet.id, "?new")).toEqual({
-      sheet,
-      isNew: true,
-      shownKey: null,
-      capo: null,
-    });
-  });
-
-  // Scenario "Reload in A".
-  it("passes on the key to show the sheet in", async () => {
-    expect(await load("ana", sheet.id, "?key=F%23m")).toMatchObject({
-      shownKey: "F#m",
-    });
-  });
-
-  // Scenario "Reload with capo 5".
-  it("passes on the capo", async () => {
-    expect(await load("ana", sheet.id, "?key=A&capo=5")).toMatchObject({
       shownKey: "A",
-      capo: "5",
+      capo: "2",
+      textStep: 0,
     });
   });
 
-  // Scenario "Not signed in".
+  // Scenario "Larger on this device".
+  it("passes on this device's text size", async () => {
+    expect(await load("ana", sheet.id, "", "play-text-size=2")).toMatchObject({
+      textStep: 2,
+    });
+  });
+
   it("sends visitors who aren't signed in to sign-in", async () => {
     const response = (await load(null)) as Response;
     expect(response.status).toBe(302);
@@ -111,125 +91,129 @@ describe("sheet page loader", () => {
   });
 });
 
-describe("sheet page", () => {
-  it("shows the sheet's title as the heading, with the key and the help", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} />);
-    expect(html).toMatch(/<h1><button [^>]*>Amazing Grace<\/button><\/h1>/);
-    expect(html).toContain("Key G");
-    expect(html).toContain("How to edit");
-  });
-
+describe("play view", () => {
   // Scenario "Opening a sheet".
-  it("shows the artist below the title", () => {
+  it("shows the title, the artist and the sheet", () => {
+    const html = renderToString(<PlayView sheet={amazingGrace} />);
+    expect(html).toContain("<h1>Amazing Grace</h1>");
+    expect(html).toContain('<p class="play-artist">John Newton</p>');
+    expect(html).toContain('<div class="sheet-view-label">Verse 1</div>');
+  });
+
+  it("has no editor, save state or help", () => {
+    const html = renderToString(<PlayView sheet={amazingGrace} />);
+    expect(html).not.toContain("contenteditable");
+    expect(html).not.toContain('role="status"');
+    expect(html).not.toContain("How to edit");
+  });
+
+  it("shows the lyrics larger than the editor", () => {
+    const html = renderToString(<PlayView sheet={amazingGrace} />);
+    expect(html).toContain("--sheet-view-font-size:var(--play-text-base)");
+  });
+
+  it("shows the sheet in the key the address holds", () => {
+    const html = renderToString(<PlayView sheet={amazingGrace} shownKey="A" />);
+    expect(html).toContain('<span class="sheet-view-chord">A7</span>');
+    expect(html).not.toContain('<span class="sheet-view-chord">G7</span>');
+    expect(html).toMatch(/Key <!-- -->A/);
+  });
+
+  it("shows the shapes for the capo the address holds", () => {
+    const html = renderToString(<PlayView sheet={amazingGrace} capo="2" />);
+    expect(html).toContain('<span class="sheet-view-chord">F7</span>');
+    expect(html).toContain('<span class="sheet-view-chord">Bb</span>');
+  });
+
+  // Scenario "Opened in another key": in A with capo 2, the shapes are G.
+  it("shows a key and a capo together", () => {
     const html = renderToString(
-      <SheetView sheet={{ ...amazingGrace, artist: "Chris Tomlin" }} />,
+      <PlayView sheet={amazingGrace} shownKey="A" capo="2" />,
     );
-    expect(html).toMatch(/<\/h1>.*>Chris Tomlin<\/button>/s);
-    expect(html).not.toContain("Add artist");
+    expect(html).toContain('aria-label="Key A, 2 semitones up"');
+    expect(html).toContain("Capo 2, G shapes");
+    expect(html).toContain('<span class="sheet-view-chord">G7</span>');
   });
 
-  it("offers to add an artist when there is none", () => {
-    expect(renderToString(<SheetView sheet={amazingGrace} />)).toContain(
-      "Add artist",
-    );
+  // Scenario "Transposing to play".
+  it("offers the key panel to view only", () => {
+    const html = renderToString(<PlayView sheet={amazingGrace} />);
+    expect(html).toContain('class="key-button-toggle"');
+    expect(html).toContain("Capo");
   });
 
-  it("has the sheet's menu", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} />);
-    expect(html).toContain('aria-label="More for this sheet"');
-    expect(html).toContain('aria-haspopup="menu"');
-  });
-
-  it("has Rename and Delete in the sheet's menu", () => {
-    const items = (state: SaveState) =>
-      sheetMenuItems({
-        state,
-        onRename: () => undefined,
-        onDelete: () => undefined,
-      }).map(({ label, disabled }) => [label, disabled]);
-    expect(items("saved")).toEqual([
-      ["Rename", false],
-      ["Delete", false],
-    ]);
-    expect(items("conflict")).toEqual([
-      ["Rename", true],
-      ["Delete", false],
-    ]);
-    // Scenario "Deleted in another tab".
-    expect(items("deleted")).toEqual([
-      ["Rename", true],
-      ["Delete", true],
-    ]);
-  });
-
-  it("has the delete dialog, closed", () => {
-    expect(renderToString(<SheetView sheet={amazingGrace} />)).toMatch(
-      /<dialog [^>]*role="alertdialog"[^>]*><\/dialog>/,
+  it("has no key or capo for a sheet without chords", () => {
+    const empty = {
+      ...amazingGrace,
+      content: { ...seedSong, sections: [{ lines: [] }] },
+    };
+    expect(renderToString(<PlayView sheet={empty} />)).not.toContain(
+      "key-button",
     );
   });
 
-  it("opens the title field for a new sheet", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} isNew />);
-    expect(html).toMatch(/<h1><input [^>]*aria-label="Title"/);
-    expect(html).toContain('value="Amazing Grace"');
-  });
-
-  // Scenario "Help on the sheet page".
-  it("says how to rename in the help", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} />);
-    expect(html).toContain("Click the title to rename the sheet");
-    expect(html).toContain("Tap the title to rename the sheet");
-  });
-
-  it("has no prototype notice and no import", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} />);
-    expect(html).not.toContain("prototype");
-    expect(html).not.toContain("Import");
-  });
-
-  it("starts out saved", () => {
-    expect(renderToString(<SheetView sheet={amazingGrace} />)).toMatch(
-      /<p class="save-status" role="status" data-state="saved">Saved<\/p>/,
+  // Scenario "From playing to editing" (site-layout).
+  it("has the switch, with Play marked and the key and capo carried", () => {
+    const html = renderToString(
+      <PlayView sheet={amazingGrace} shownKey="F#" capo="1" />,
+    );
+    expect(html).toMatch(/aria-label="Play" aria-current="page"/);
+    expect(html).toContain(
+      'href="/sheets/abcdefghijkl/edit?key=F%23&amp;capo=1"',
     );
   });
 
-  it("says whether the edits are saved", () => {
-    const text = (shown: Parameters<typeof SaveStatus>[0]["shown"]) =>
-      renderToString(<SaveStatus shown={shown} />);
-    expect(text("saved")).toContain("Saved");
-    expect(text("saving")).toContain("Saving…");
-    expect(text("failed")).toContain("Not saved yet. Trying again…");
-    expect(text("conflict")).toContain("Not saved");
-    expect(text("deleted")).toContain("Not saved");
-    // Scenario "Typing": nothing while edits wait.
-    expect(text(null)).toBe('<p class="save-status" role="status"></p>');
-  });
-
-  it("says to reload when the sheet changed in another tab", () => {
-    expect(renderToString(<ConflictNote />)).toContain(
-      "This sheet changed in another tab. Reload to see it.",
+  it("shows the text size this device keeps", () => {
+    const html = renderToString(<PlayView sheet={amazingGrace} textStep={1} />);
+    expect(html).toContain(
+      "--sheet-view-font-size:calc(var(--play-text-base) * 1.15)",
     );
   });
 
-  // Scenario "Deleted in another tab".
-  it("says the sheet was deleted and links to the library", () => {
-    const html = renderToString(<DeletedNote />);
-    expect(html).toContain("This sheet was deleted.");
-    expect(html).toMatch(/<a href="\/sheets">Back to library<\/a>/);
+  it("disables Smaller text and Larger text at the ends", () => {
+    const button = (html: string, label: string) =>
+      new RegExp(`aria-label="${label}"[^>]*>`).exec(html)?.[0] ?? "";
+    const middle = renderToString(<PlayView sheet={amazingGrace} />);
+    expect(button(middle, "Smaller text")).not.toContain("disabled");
+    expect(button(middle, "Larger text")).not.toContain("disabled");
+    const smallest = renderToString(
+      <PlayView sheet={amazingGrace} textStep={-2} />,
+    );
+    expect(button(smallest, "Smaller text")).toContain("disabled");
+    const largest = renderToString(
+      <PlayView sheet={amazingGrace} textStep={3} />,
+    );
+    expect(button(largest, "Larger text")).toContain("disabled");
   });
 
-  it("sets the page title and asks search engines not to index it", () => {
+  // Scenario "Printing from a phone": the menu shows on a phone only.
+  it("has a menu for the text size and Print, also without chords", () => {
+    const empty = {
+      ...amazingGrace,
+      content: { ...seedSong, sections: [{ lines: [] }] },
+    };
+    for (const sheet of [amazingGrace, empty]) {
+      const html = renderToString(<PlayView sheet={sheet} />);
+      expect(html).toMatch(
+        /<div class="play-more">.*aria-label="More"[^>]*aria-haspopup="menu"/s,
+      );
+    }
+  });
+
+  it("leaves out the artist when there is none", () => {
+    const withoutArtist = { ...amazingGrace, artist: undefined };
+    expect(renderToString(<PlayView sheet={withoutArtist} />)).not.toContain(
+      "play-artist",
+    );
+  });
+
+  it("names the tab after the sheet and asks not to be indexed", () => {
     const tags = meta({
-      loaderData: { sheet: amazingGrace },
+      loaderData: { sheet: amazingGrace, shownKey: null, capo: null },
     } as Route.MetaArgs);
-    expect(tags).toContainEqual({ title: "Amazing Grace | Sheet Library" });
-    expect(tags).toContainEqual({ name: "robots", content: "noindex" });
-  });
-
-  it("says when the sheet isn't found", () => {
-    expect(renderToString(<NotFound />)).toContain("<h1>Sheet not found</h1>");
-    expect(
-      meta({ loaderData: { sheet: null } } as Route.MetaArgs),
-    ).toContainEqual({ title: "Sheet not found | Sheet Library" });
+    expect(tags).toEqual([
+      { title: "Amazing Grace | Sheet Library" },
+      { name: "robots", content: "noindex" },
+    ]);
   });
 });

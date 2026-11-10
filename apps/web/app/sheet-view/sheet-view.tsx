@@ -15,11 +15,20 @@ import { lyricsFontWidths } from "./widths";
 // A sheet to read or print, with chords above the lyrics. It is plain HTML
 // and CSS, laid out on the server, so it needs no JavaScript and the browser
 // can wrap it to any width, also on paper. See openspec/specs/sheet-view.
-export function SheetView({ sheet }: { sheet: ChordSheet }) {
+export function SheetView({
+  sheet,
+  fontSize,
+}: {
+  sheet: ChordSheet;
+  // The lyrics' size as a CSS length, such as "24px". Every other size
+  // follows it. Without it, the view takes the app's lyrics size.
+  fontSize?: string;
+}) {
   // The sizes the layout's widths were worked out for.
   const sizes = {
     "--sheet-view-chord-size": `${String(CHORD_SIZE)}em`,
     "--sheet-view-chord-space": `${String(round(CHORD_SPACE / CHORD_SIZE))}em`,
+    ...(fontSize ? { "--sheet-view-font-size": fontSize } : {}),
   } as CSSProperties;
   return (
     <div className="sheet-view" style={sizes}>
