@@ -73,6 +73,20 @@
   color: var(--text-muted);
 }
 
+/* The check after the name of an item that is on. */
+.menu-item[aria-checked="true"] > .icon:last-child {
+  margin-left: auto;
+  padding-left: var(--space-l);
+  color: var(--accent);
+}
+
+.menu-separator {
+  align-self: stretch;
+  height: 1px;
+  margin: var(--space-xs) 0;
+  background: var(--border);
+}
+
 .menu-item:hover:not(:disabled),
 .menu-item:focus-visible {
   background: var(--page);

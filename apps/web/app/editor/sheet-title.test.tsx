@@ -12,6 +12,7 @@ import {
   type SheetKeyState,
   SheetTitle,
   sheetKeyReducer,
+  withAddressParam,
 } from "./sheet-title";
 
 const G: Key = { tonic: "G", minor: false };
@@ -51,6 +52,34 @@ describe("keyQuery", () => {
     );
     expect(keyQuery({ shown: null, capo: 3 })).toBe("capo=3");
     expect(keyQuery({ shown: null, capo: 0 })).toBe("");
+  });
+});
+
+describe("withAddressParam", () => {
+  const page = "https://example.com/sheets/1";
+
+  it("writes a flag without a value, after the key", () => {
+    expect(withAddressParam(`${page}?key=A`, "lyrics", true)).toBe(
+      `${page}?key=A&lyrics`,
+    );
+  });
+
+  it("takes a flag out", () => {
+    expect(withAddressParam(`${page}?key=A&lyrics`, "lyrics", null)).toBe(
+      `${page}?key=A`,
+    );
+    expect(withAddressParam(`${page}?lyrics`, "lyrics", null)).toBe(page);
+  });
+
+  it("leaves an address that already holds the flag", () => {
+    expect(withAddressParam(`${page}?lyrics=`, "lyrics", true)).toBeNull();
+    expect(withAddressParam(`${page}?key=A`, "lyrics", null)).toBeNull();
+  });
+
+  it("keeps a flag when it writes a value", () => {
+    expect(withAddressParam(`${page}?lyrics&key=A`, "key", "B")).toBe(
+      `${page}?lyrics&key=B`,
+    );
   });
 });
 

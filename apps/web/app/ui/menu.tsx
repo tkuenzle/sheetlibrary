@@ -11,6 +11,10 @@ export interface MenuItem {
   label: string;
   icon: IconName;
   disabled?: boolean;
+  // An item that is on or off, with a check after its name when on.
+  checked?: boolean;
+  // A line after the item, to set it apart from the next ones.
+  separated?: boolean;
   onSelect: () => void;
 }
 
@@ -49,7 +53,7 @@ export function Menu({
   function menuItems() {
     return [
       ...(list.current?.querySelectorAll<HTMLButtonElement>(
-        "[role=menuitem]:not(:disabled)",
+        ":is([role=menuitem], [role=menuitemcheckbox]):not(:disabled)",
       ) ?? []),
     ];
   }
@@ -130,24 +134,46 @@ export function Menu({
           }}
         >
           {items.map((item) => (
-            <button
+            <MenuEntry
               key={item.label}
-              type="button"
-              role="menuitem"
-              tabIndex={-1}
-              className="menu-item"
-              disabled={item.disabled}
-              onClick={() => {
+              item={item}
+              onSelect={() => {
                 setOpen(false);
                 item.onSelect();
               }}
-            >
-              <Icon name={item.icon} />
-              {item.label}
-            </button>
+            />
           ))}
         </Popover>
       )}
     </div>
+  );
+}
+
+// One item of the list, and the line after it if it has one.
+export function MenuEntry({
+  item,
+  onSelect,
+}: {
+  item: MenuItem;
+  onSelect: () => void;
+}) {
+  const checkable = item.checked !== undefined;
+  return (
+    <>
+      <button
+        type="button"
+        role={checkable ? "menuitemcheckbox" : "menuitem"}
+        aria-checked={checkable ? item.checked : undefined}
+        tabIndex={-1}
+        className="menu-item"
+        disabled={item.disabled}
+        onClick={onSelect}
+      >
+        <Icon name={item.icon} />
+        {item.label}
+        {item.checked && <Icon name="check" />}
+      </button>
+      {item.separated && <div role="separator" className="menu-separator" />}
+    </>
   );
 }

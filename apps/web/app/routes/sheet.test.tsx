@@ -60,8 +60,18 @@ describe("play view loader", () => {
       sheet,
       shownKey: "A",
       capo: "2",
+      lyricsOnly: false,
       textStep: 0,
     });
+  });
+
+  // Scenario "Opened with lyrics only".
+  it("passes on lyrics only, with or without a value", async () => {
+    for (const search of ["?lyrics&key=A", "?key=A&lyrics=", "?lyrics=1"]) {
+      expect(await load("ana", sheet.id, search)).toMatchObject({
+        lyricsOnly: true,
+      });
+    }
   });
 
   // Scenario "Larger on this device".
@@ -198,6 +208,61 @@ describe("play view", () => {
         /<div class="play-more">.*aria-label="More"[^>]*aria-haspopup="menu"/s,
       );
     }
+  });
+
+  describe("lyrics only", () => {
+    const toggle = (html: string) =>
+      /<button[^>]*class="[^"]*play-lyrics-toggle"[^>]*>/.exec(html)?.[0] ?? "";
+
+    // Scenario "Opened with lyrics only".
+    it("shows the lyrics without chords or the key and capo buttons", () => {
+      const html = renderToString(
+        <PlayView sheet={amazingGrace} shownKey="A" lyricsOnly />,
+      );
+      expect(html).toContain("sheet-view is-lyrics-only");
+      expect(html).toContain("Amazing grace, how sweet the sound");
+      expect(html).not.toContain('class="sheet-view-chord"');
+      expect(html).not.toContain("key-button");
+      expect(html).not.toContain("Capo");
+    });
+
+    // Scenario "Turning chords off and on": off, nothing changes.
+    it("shows the chords and the key button when off", () => {
+      const html = renderToString(<PlayView sheet={amazingGrace} />);
+      expect(html).toContain('class="sheet-view-chord"');
+      expect(html).toContain("key-button");
+      expect(html).not.toContain("play-lyrics-label");
+    });
+
+    it("has a toggle in the top bar, pressed while on", () => {
+      const off = renderToString(<PlayView sheet={amazingGrace} />);
+      expect(toggle(off)).toContain('aria-pressed="false"');
+      const on = renderToString(<PlayView sheet={amazingGrace} lyricsOnly />);
+      expect(toggle(on)).toContain('aria-pressed="true"');
+      expect(on).toMatch(/play-lyrics-toggle".*?<\/svg>Lyrics only<\/button>/s);
+    });
+
+    it("comes before the text size", () => {
+      const html = renderToString(<PlayView sheet={amazingGrace} />);
+      expect(html.indexOf("play-lyrics-toggle")).toBeLessThan(
+        html.indexOf('aria-label="Smaller text"'),
+      );
+    });
+
+    // Scenario "On a phone": the label shows on a phone only.
+    it("shows a label in place of the key and capo buttons", () => {
+      const html = renderToString(<PlayView sheet={amazingGrace} lyricsOnly />);
+      expect(html).toMatch(
+        /<h1>Amazing Grace<\/h1><div class="play-more"><span class="play-lyrics-label">Lyrics only<\/span>/,
+      );
+    });
+
+    it("isn't carried to the editor, but the key is", () => {
+      const html = renderToString(
+        <PlayView sheet={amazingGrace} shownKey="A" lyricsOnly />,
+      );
+      expect(html).toContain('href="/sheets/abcdefghijkl/edit?key=A"');
+    });
   });
 
   it("leaves out the artist when there is none", () => {

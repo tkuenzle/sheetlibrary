@@ -280,3 +280,85 @@ test("puts the text size and Print in a menu on a phone", async ({ page }) => {
   );
   expect(sideways).toBe(false);
 });
+
+// Picks "Lyrics only": in the top bar, or on a phone in the menu.
+async function toggleLyrics(page: Page) {
+  const more = page.getByRole("button", { name: "More" });
+  if (await more.isVisible()) {
+    await more.click();
+    await page.getByRole("menuitemcheckbox", { name: "Lyrics only" }).click();
+  } else {
+    await page.getByRole("button", { name: "Lyrics only" }).click();
+  }
+}
+
+// Scenarios "Turning chords off and on", "Address follows" and "Printing the
+// lyrics".
+test("shows the lyrics only without a page load, as the address keeps", async ({
+  page,
+}) => {
+  const id = await createSheet(page, "Amazing Grace");
+  await page.goto(`/sheets/${id}?key=A`);
+  await page.evaluate(() => {
+    (window as unknown as { stayed: boolean }).stayed = true;
+  });
+
+  await toggleLyrics(page);
+  await expect(page.locator(".sheet-view.is-lyrics-only")).toBeVisible();
+  await expect(chords(page)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Key / })).toHaveCount(0);
+  await expect(
+    page.getByText("Amazing grace, how sweet the sound"),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\?key=A&lyrics$/);
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { stayed?: boolean }).stayed,
+    ),
+  ).toBe(true);
+
+  // Printed, the lyrics stay without chords.
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByText("I love you")).toBeVisible();
+  await expect(chords(page)).toHaveCount(0);
+  await page.emulateMedia({ media: "screen" });
+
+  // A reload keeps it, and the chords come back in A.
+  await page.reload();
+  await expect(chords(page)).toHaveCount(0);
+  await toggleLyrics(page);
+  await expect(chords(page)).toHaveText(["A", "A7", "D", "F#m7", "A"]);
+  await expect(page.getByRole("button", { name: /^Key / })).toHaveText(
+    "Key A · +2",
+  );
+  await expect(page).toHaveURL(/\?key=A$/);
+});
+
+// Scenario "On a phone".
+test("puts Lyrics only first in the menu on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const id = await createSheet(page, "Amazing Grace");
+  await page.goto(`/sheets/${id}`);
+  await expect(page.getByRole("button", { name: "Lyrics only" })).toBeHidden();
+  const label = page.locator(".play-lyrics-label");
+  await expect(label).toHaveCount(0);
+
+  await page.getByRole("button", { name: "More" }).click();
+  const menu = page.getByRole("menu", { name: "More" });
+  const item = menu.getByRole("menuitemcheckbox", { name: "Lyrics only" });
+  await expect(menu.locator(".menu-item").first()).toHaveText("Lyrics only");
+  await expect(item).toHaveAttribute("aria-checked", "false");
+  await item.click();
+
+  await expect(chords(page)).toHaveCount(0);
+  await expect(label).toHaveText("Lyrics only");
+  await expect(label).toBeVisible();
+  await page.getByRole("button", { name: "More" }).click();
+  await expect(item).toHaveAttribute("aria-checked", "true");
+
+  const sideways = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
+  expect(sideways).toBe(false);
+});

@@ -160,15 +160,31 @@ export function keyQuery({
 }
 
 // Writes a value into the page's address, or, with null, takes it out,
-// without a new entry in the history.
-function useAddressParam(name: string, value: string | null) {
+// without a new entry in the history. `true` writes a flag, such as `lyrics`.
+export function useAddressParam(name: string, value: string | true | null) {
   useEffect(() => {
-    const url = new URL(window.location.href);
-    if (url.searchParams.get(name) === value) return;
-    if (value) url.searchParams.set(name, value);
-    else url.searchParams.delete(name);
-    window.history.replaceState(window.history.state, "", url);
+    const href = withAddressParam(window.location.href, name, value);
+    if (href) window.history.replaceState(window.history.state, "", href);
   }, [name, value]);
+}
+
+// The address with the value written in, or null if it already holds it.
+// Flags, and any other empty value, are written without "=", as in
+// "?key=A&lyrics". They are read with `has`.
+export function withAddressParam(
+  href: string,
+  name: string,
+  value: string | true | null,
+): string | null {
+  const url = new URL(href);
+  const params = url.searchParams;
+  if (value === true ? params.has(name) : params.get(name) === value) {
+    return null;
+  }
+  if (value === null) params.delete(name);
+  else params.set(name, value === true ? "" : value);
+  url.search = params.toString().replace(/(^|&)([^&=]+)=(?=&|$)/g, "$1$2");
+  return url.href;
 }
 
 // The sheet's key: the set key, or else guessed from its chords. Until the

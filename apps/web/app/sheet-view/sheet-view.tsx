@@ -18,11 +18,14 @@ import { lyricsFontWidths } from "./widths";
 export function SheetView({
   sheet,
   fontSize,
+  lyricsOnly = false,
 }: {
   sheet: ChordSheet;
   // The lyrics' size as a CSS length, such as "24px". Every other size
   // follows it. Without it, the view takes the app's lyrics size.
   fontSize?: string;
+  // Only the labels and the lyrics, without chords or chord rows.
+  lyricsOnly?: boolean;
 }) {
   // The sizes the layout's widths were worked out for.
   const sizes = {
@@ -30,6 +33,22 @@ export function SheetView({
     "--sheet-view-chord-space": `${String(round(CHORD_SPACE / CHORD_SIZE))}em`,
     ...(fontSize ? { "--sheet-view-font-size": fontSize } : {}),
   } as CSSProperties;
+  if (lyricsOnly) {
+    return (
+      <div className="sheet-view is-lyrics-only" style={sizes}>
+        {lyricsOf(sheet).map((section, i) => (
+          <section className="sheet-view-section" key={i}>
+            <div className="sheet-view-label">{section.label}</div>
+            {section.lines.map((text, j) => (
+              <p className="sheet-view-line sheet-view-lyrics-line" key={j}>
+                {text}
+              </p>
+            ))}
+          </section>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="sheet-view" style={sizes}>
       {layoutSheet(sheet, lyricsFontWidths).map((section, i) => (
@@ -42,6 +61,19 @@ export function SheetView({
       ))}
     </div>
   );
+}
+
+// Each section's lyrics, without lines of chords only, and without the
+// sections that only had such lines.
+function lyricsOf(sheet: ChordSheet) {
+  return sheet.sections
+    .map((section) => ({
+      label: section.label ?? null,
+      lines: section.lines
+        .map((line) => line.text)
+        .filter((text) => text.trim() !== ""),
+    }))
+    .filter((section) => section.lines.length > 0);
 }
 
 function SheetLine({ line }: { line: LaidOutLine }) {

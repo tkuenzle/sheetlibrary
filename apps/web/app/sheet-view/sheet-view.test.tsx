@@ -47,4 +47,39 @@ describe("SheetView", () => {
       /<span class="sheet-view-piece has-dash" style="min-width:[\d.]+em">/,
     );
   });
+
+  describe("lyrics only", () => {
+    const song = sheet(
+      ["Intro", "[G] [C] [G] [D]"],
+      [
+        "Verse 1",
+        "[G]Amazing [G7]grace",
+        "That saved a [D]wretch",
+        "[C][G][D]",
+      ],
+    );
+
+    it("shows the labels and the lyrics, without chords", () => {
+      const html = renderToString(<SheetView sheet={song} lyricsOnly />);
+      expect(html).toContain('<div class="sheet-view-label">Verse 1</div>');
+      expect(html).toContain(
+        '<p class="sheet-view-line sheet-view-lyrics-line">Amazing grace</p>',
+      );
+      expect(html).not.toContain('class="sheet-view-chord');
+      expect(html).not.toMatch(/>(G7|D)</);
+    });
+
+    it("leaves out lines of chords only, and a section of only such lines", () => {
+      const html = renderToString(<SheetView sheet={song} lyricsOnly />);
+      expect(html).not.toContain("Intro");
+      expect(html.match(/<p /g)).toHaveLength(2);
+    });
+
+    it("keeps the font size", () => {
+      const html = renderToString(
+        <SheetView sheet={song} lyricsOnly fontSize="20px" />,
+      );
+      expect(html).toContain("--sheet-view-font-size:20px");
+    });
+  });
 });
