@@ -26,7 +26,10 @@ test("home page links to the chord editor", async ({ page }) => {
 
 test("shows a sample sheet, hidden from screen readers", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("That saved a wretch like")).toBeVisible();
+  const sample = page.locator(".sample-sheet");
+  await expect(sample.locator(".sheet-view-label")).toHaveText("Verse 1");
+  await expect(sample.locator(".sheet-view-line")).toHaveCount(4);
+  await expect(sample).toContainText("That saved a wretch like");
   const read = await page.getByRole("main").ariaSnapshot();
   expect(read).toContain("A library for your sheet music");
   expect(read).toContain("Try the chord editor");
