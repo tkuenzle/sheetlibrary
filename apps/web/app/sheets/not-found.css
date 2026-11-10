@@ -1,0 +1,20 @@
+/* The page for a sheet that isn't there, or isn't the visitor's. */
+
+.sheet-not-found {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--space-3xl) var(--space-l);
+}
+
+.sheet-not-found h1 {
+  margin: 0;
+  font: 800 var(--font-size-title) / 1.05 var(--font);
+  letter-spacing: -0.035em;
+}
+
+.sheet-not-found p {
+  margin: 0;
+}

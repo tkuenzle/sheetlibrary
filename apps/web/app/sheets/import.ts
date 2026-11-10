@@ -40,9 +40,9 @@ export async function importSheet(
   return { error: NOT_IMPORTED };
 }
 
-// Where an imported sheet opens: with the title field open to name it, as
-// "New sheet" does, unless a title was read, and with the capo its chords
-// were written for.
+// Where an imported sheet opens: in the editor, with the title field open
+// to name it, as "New sheet" does, unless a title was read, and with the
+// capo its chords were written for.
 export function importedSheetPath(
   id: string,
   { title, capo = 0 }: { title?: string; capo?: number } = {},
@@ -50,5 +50,6 @@ export function importedSheetPath(
   const query = [title ? "" : "new", capo ? `capo=${String(capo)}` : ""]
     .filter(Boolean)
     .join("&");
-  return query ? `/sheets/${id}?${query}` : `/sheets/${id}`;
+  const path = `/sheets/${id}/edit`;
+  return query ? `${path}?${query}` : path;
 }

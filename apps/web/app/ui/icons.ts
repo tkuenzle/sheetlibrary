@@ -18,7 +18,11 @@ import moveUp from "./icons/move_up.svg?raw";
 import passkey from "./icons/passkey.svg?raw";
 import photoCamera from "./icons/photo_camera.svg?raw";
 import photoLibrary from "./icons/photo_library.svg?raw";
+import playArrow from "./icons/play_arrow.svg?raw";
+import print from "./icons/print.svg?raw";
 import remove from "./icons/remove.svg?raw";
+import textDecrease from "./icons/text_decrease.svg?raw";
+import textIncrease from "./icons/text_increase.svg?raw";
 
 // The icons the UI uses: Material Symbols Rounded, weight 500, drawn for 24px
 // (Apache License 2.0). Only the icons listed here are bundled. To add one,
@@ -48,7 +52,11 @@ const sources = {
   passkey,
   photoCamera,
   photoLibrary,
+  playArrow,
+  print,
   remove,
+  textDecrease,
+  textIncrease,
 };
 
 export type IconName = keyof typeof sources;

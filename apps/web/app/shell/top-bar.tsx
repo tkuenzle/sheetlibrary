@@ -6,16 +6,20 @@ import { Icon } from "../ui/icon";
 import { type SignedIn, SignedInContext } from "./signed-in";
 
 // The bar at the top of a page: the site's name, linking home or, once
-// signed in, to the library, or "Library" with a back arrow on a sheet. Then
-// the page's actions, and the link to sign in or to the account at the end.
+// signed in, to the library, or "Library" with a back arrow on a sheet,
+// followed by `afterBack`. Then the page's actions, and the link to sign in
+// or to the account at the end.
 // The links load the next page in full, so a page with unsaved edits can warn
 // before they go.
 export function TopBar({
   back = false,
+  afterBack,
   accountPage = false,
   children,
 }: {
   back?: boolean;
+  // On a sheet, after "Library": the switch between playing and editing.
+  afterBack?: ReactNode;
   accountPage?: boolean;
   children?: ReactNode;
 }) {
@@ -32,6 +36,7 @@ export function TopBar({
           Sheet Library
         </a>
       )}
+      {back && afterBack}
       {(children ?? signedIn !== undefined) && (
         <div className="top-bar-actions">
           {children}

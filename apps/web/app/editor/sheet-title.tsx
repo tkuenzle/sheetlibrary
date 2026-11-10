@@ -146,6 +146,19 @@ export interface SheetKey extends SheetKeyState {
   drawn: Key | null;
 }
 
+// The address's query for a key state, such as "key=A&capo=2", or empty in
+// the song key without a capo. It is what the page's address holds, so a
+// link to the sheet's other page can carry it.
+export function keyQuery({
+  shown,
+  capo,
+}: Pick<SheetKeyState, "shown" | "capo">): string {
+  const query = new URLSearchParams();
+  if (shown) query.set("key", keyName(shown));
+  if (capo) query.set("capo", String(capo));
+  return query.toString();
+}
+
 // Writes a value into the page's address, or, with null, takes it out,
 // without a new entry in the history.
 function useAddressParam(name: string, value: string | null) {

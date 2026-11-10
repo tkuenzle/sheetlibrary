@@ -14,7 +14,7 @@ const minor = (tonic: string): Key => ({ tonic, minor: true });
 function panel(
   current: Key,
   song: Key = current,
-  { guessed = true, readOnly = false } = {},
+  { guessed = true, readOnly = false, viewOnly = false } = {},
 ) {
   return renderToString(
     <KeyPanel
@@ -23,6 +23,7 @@ function panel(
       guessed={guessed}
       guess={song}
       readOnly={readOnly}
+      viewOnly={viewOnly}
       onPick={nothing}
       onSet={nothing}
       onStep={nothing}
@@ -212,6 +213,16 @@ describe("KeyPanel", () => {
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Change<\/button>/);
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Make /);
     expect(html).not.toMatch(/class="key-panel-key"[^>]*disabled/);
+  });
+
+  // Scenario "Transposing to play" (play-page).
+  it("only transposes to view, with nothing to change", () => {
+    const html = panel(major("A"), major("G"), { viewOnly: true });
+    expect(html).not.toContain("Change the song key");
+    expect(html).not.toContain("the song key</button>");
+    expect(html).toContain("Song key");
+    expect(html).toContain("key-panel-back");
+    expect(keys(html)).toContain("A");
   });
 
   it("has steps of a semitone", () => {

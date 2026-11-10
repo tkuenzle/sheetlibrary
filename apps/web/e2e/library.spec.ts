@@ -94,7 +94,7 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await expect(passkeyOffer(page)).toHaveCount(0);
 
   await page.getByRole("button", { name: "New sheet" }).click();
-  await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
+  await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit$/);
   await expect(page.getByLabel("Title")).toHaveValue("Untitled");
 
   await page.getByRole("banner").getByRole("link", { name: "Library" }).click();
@@ -147,7 +147,7 @@ test.describe("signed in", () => {
     await page.keyboard.type(title);
     await page.keyboard.press("Enter");
     await expect(heading(page)).toHaveText(title);
-    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
+    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit$/);
 
     // A reload doesn't open the field again.
     await expect(page.getByRole("status")).toHaveText("Saved");
@@ -171,7 +171,7 @@ test.describe("the import", () => {
   test("creates a sheet and opens it, to be named", async ({ page }) => {
     await expect(importButton(page)).toHaveText("Import");
     await pasteAndImport(page, verse);
-    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
+    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit$/);
     await expect(page.getByLabel("Title")).toBeFocused();
     await expect(page.getByLabel("Title")).toHaveValue("Untitled");
     await expect(page.locator(".section-label")).toHaveText(["Verse 1"]);
@@ -190,7 +190,7 @@ test.describe("the import", () => {
   // Scenario "Importing with a capo".
   test("opens a sheet written for a capo with it", async ({ page }) => {
     await pasteAndImport(page, ["Capo: 2nd fret", verse].join("\n"));
-    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\?capo=2$/);
+    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit\?capo=2$/);
     await page.keyboard.press("Escape");
     const capoButton = page.getByRole("button", { name: /^Capo/ });
     await expect(capoButton).toHaveText("Capo 2");
@@ -198,7 +198,7 @@ test.describe("the import", () => {
 
     // It is stored as it sounds, and opens so from the library.
     const id = /\/sheets\/([\w-]{12})/.exec(page.url())?.[1] ?? "";
-    await page.goto(`/sheets/${id}`);
+    await page.goto(`/sheets/${id}/edit`);
     await expect(capoButton).toHaveText("Capo");
     await expect(page.locator(".chord-label")).toHaveText(["D", "A"]);
   });

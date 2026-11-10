@@ -124,7 +124,7 @@ test("reads the photos, shrunk and upright, into a sheet with its title", async 
   );
 
   await importButton(page).click();
-  await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
+  await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit$/);
   // The sideways photo is sent upright, with its pixels turned, not a tag.
   expect(await sentPhotos(page)).toEqual([
     { type: "image/jpeg", size: { width: 2236, height: 1677 } },

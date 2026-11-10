@@ -17,6 +17,7 @@ export default [
   route("account", "routes/account.tsx"),
   route("sheets", "routes/sheets.tsx"),
   route("sheets/:id", "routes/sheet.tsx"),
+  route("sheets/:id/edit", "routes/sheet.edit.tsx"),
   route("api/sheets", "routes/api.sheets.ts"),
   route("api/sheets/:id", "routes/api.sheet.ts"),
   route("api/photo-import", "routes/api.photo-import.ts"),

@@ -13,8 +13,9 @@ import {
   shapesKey,
   stepKey,
   transposeChord,
+  transposeSheet,
 } from "./keys";
-import { read } from "./test-helpers";
+import { line, read, section, sheet } from "./test-helpers";
 
 const major = (tonic: string): Key => ({ tonic, minor: false });
 const minor = (tonic: string): Key => ({ tonic, minor: true });
@@ -133,6 +134,40 @@ describe("Moving chords to a key", () => {
   it("spells sharp keys with sharps", () => {
     expect(moved(major("C"), major("F#"), "C", "F", "G", "Am", "Bdim")).toEqual(
       ["F#", "B", "C#", "D#m", "E#dim"],
+    );
+  });
+});
+
+describe("Moving a sheet to a key", () => {
+  it("moves every chord, the bass too", () => {
+    const amazing = sheet(
+      section(line("Amazing grace", [0, "G"], [8, "G/B"])),
+      section(line("How sweet", [0, "C"], [4, "D7"])),
+    );
+    expect(transposeSheet(amazing, major("G"), major("A"))).toEqual(
+      sheet(
+        section(line("Amazing grace", [0, "A"], [8, "A/C#"])),
+        section(line("How sweet", [0, "D"], [4, "E7"])),
+      ),
+    );
+  });
+
+  it("respells a sheet in the same key spelled another way", () => {
+    expect(
+      transposeSheet(
+        sheet(section(line("Hello", [0, "G#"], [3, "C#"]))),
+        major("G#"),
+        major("Ab"),
+      ),
+    ).toEqual(sheet(section(line("Hello", [0, "Ab"], [3, "Db"]))));
+  });
+
+  it("moves a set key with the chords, and sets none without one", () => {
+    const set = { ...sheet(section(line("Hi", [0, "G"]))), key: major("G") };
+    expect(transposeSheet(set, major("G"), major("A")).key).toEqual(major("A"));
+    const unset = sheet(section(line("Hi", [0, "G"])));
+    expect(transposeSheet(unset, major("G"), major("A"))).not.toHaveProperty(
+      "key",
     );
   });
 });
