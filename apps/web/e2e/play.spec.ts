@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import { authFile } from "./servers";
 
@@ -361,4 +361,197 @@ test("puts Lyrics only first in the menu on a phone", async ({ page }) => {
     () => document.documentElement.scrollWidth > window.innerWidth,
   );
   expect(sideways).toBe(false);
+});
+
+// Versions: a name and a key. See openspec/specs/play-page and
+// openspec/specs/sheet-versions.
+
+async function createVersion(
+  page: Page,
+  sheetId: string,
+  name: string,
+  key: string,
+): Promise<string> {
+  const response = await page.request.post(`/api/sheets/${sheetId}/versions`, {
+    data: { name, key },
+  });
+  expect(response.status()).toBe(201);
+  return ((await response.json()) as { id: string }).id;
+}
+
+async function openKeyPanel(page: Page) {
+  await page.getByRole("button", { name: /^Key / }).click();
+  return page.getByRole("dialog", { name: "Key" });
+}
+
+function artist(page: Page) {
+  return page.locator(".play-artist");
+}
+
+// A row of the list of versions, without its menu button.
+function row(panel: Locator, name: string) {
+  return panel.locator(".versions-pick", { hasText: name });
+}
+
+// Scenarios "No versions yet", "Saving with a name" and "Link to a version".
+test("saves the first version from the song key's menu", async ({ page }) => {
+  const id = await createSheet(page, "Amazing Grace");
+  await page.goto(`/sheets/${id}?key=A`);
+
+  const panel = await openKeyPanel(page);
+  await expect(panel.getByRole("heading", { name: "Song key" })).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Versions" })).toHaveCount(0);
+  await panel.getByRole("button", { name: "Song key: more" }).click();
+  await page.getByRole("menuitem", { name: "Save A as a version…" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Save as a version" });
+  const name = dialog.getByRole("textbox", { name: "Name" });
+  await expect(name).toHaveValue("Key A");
+  await name.fill("Anna's key");
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden();
+
+  await expect(artist(page)).toHaveText("Anna's key");
+  await expect(page).toHaveURL(/\?version=[\w-]{12}$/);
+  await expect(page.getByRole("button", { name: /^Key / })).toHaveText("Key A");
+
+  // Its address opens it again, in its key.
+  await page.reload();
+  await expect(chords(page)).toHaveText(["A", "A7", "D", "F#m7", "A"]);
+  await expect(artist(page)).toHaveText("Anna's key");
+  const list = await openKeyPanel(page);
+  await expect(row(list, "Anna's key")).toHaveAttribute("aria-current", "true");
+});
+
+// Scenarios "Trying another key", "Anna sings higher", "Renaming",
+// "Deleting" and "Bookmark after deleting".
+test("changes, renames and deletes a version", async ({ page }) => {
+  const id = await createSheet(page, "Amazing Grace");
+  const anna = await createVersion(page, id, "Anna's key", "A");
+  await page.goto(`/sheets/${id}?version=${anna}`);
+  await expect(chords(page)).toHaveText(["A", "A7", "D", "F#m7", "A"]);
+
+  // Another key keeps the version open, and "Back" goes to its key.
+  let panel = await openKeyPanel(page);
+  await panel.getByRole("button", { name: "B flat", exact: true }).click();
+  await expect(chords(page)).toHaveText(["Bb", "Bb7", "Eb", "Gm7", "Bb"]);
+  await expect(page).toHaveURL(`/sheets/${id}?version=${anna}&key=Bb`);
+  await expect(artist(page)).toHaveText("Anna's key");
+  await panel.getByRole("button", { name: "Back to A" }).click();
+  await expect(chords(page)).toHaveText(["A", "A7", "D", "F#m7", "A"]);
+  await expect(page).toHaveURL(`/sheets/${id}?version=${anna}`);
+
+  // In its own key, the menu only renames and deletes.
+  await panel.getByRole("button", { name: "Anna's key: more" }).click();
+  await expect(page.getByRole("menuitem")).toHaveText(["Rename…", "Delete…"]);
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeVisible();
+
+  // Making Bb its key stores it.
+  await panel.getByRole("button", { name: "B flat", exact: true }).click();
+  await panel.getByRole("button", { name: "Anna's key: more" }).click();
+  await page.getByRole("menuitem", { name: "Make Bb Anna's key" }).click();
+  await expect(page).toHaveURL(`/sheets/${id}?version=${anna}`);
+  await expect(row(panel, "Anna's key")).toHaveText(/Bb$/);
+  await page.reload();
+  await expect(chords(page)).toHaveText(["Bb", "Bb7", "Eb", "Gm7", "Bb"]);
+
+  // Renaming.
+  panel = await openKeyPanel(page);
+  await panel.getByRole("button", { name: "Anna's key: more" }).click();
+  await page.getByRole("menuitem", { name: "Rename…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Rename version" });
+  await expect(dialog.getByRole("textbox", { name: "Name" })).toHaveValue(
+    "Anna's key",
+  );
+  await dialog.getByRole("textbox", { name: "Name" }).fill("Anna");
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(artist(page)).toHaveText("Anna");
+
+  // Deleting keeps the sheet in the key it was shown in.
+  panel = await openKeyPanel(page);
+  await panel.getByRole("button", { name: "Anna: more" }).click();
+  await page.getByRole("menuitem", { name: "Delete…" }).click();
+  const confirm = page.getByRole("alertdialog", { name: "Delete “Anna”?" });
+  await expect(confirm).toContainText("The sheet stays as it is.");
+  await confirm.getByRole("button", { name: "Delete" }).click();
+  await expect(confirm).toBeHidden();
+  await expect(chords(page)).toHaveText(["Bb", "Bb7", "Eb", "Gm7", "Bb"]);
+  await expect(artist(page)).toHaveCount(0);
+  await expect(page).toHaveURL(`/sheets/${id}?key=Bb`);
+
+  // The old bookmark opens the sheet in its song key.
+  await page.goto(`/sheets/${id}?version=${anna}&key=Bb`);
+  await expect(page).toHaveURL(`/sheets/${id}`);
+  await expect(chords(page)).toHaveText(["G", "G7", "C", "Em7", "G"]);
+});
+
+// Scenarios "Two versions" and "Switching versions".
+test("lists the versions and switches between them", async ({ page }) => {
+  const id = await createSheet(page, "Amazing Grace");
+  await createVersion(page, id, "Anna's key", "A");
+  const band = await createVersion(page, id, "Sunday band", "Bb");
+  await createVersion(page, id, "Youth choir", "F");
+  await page.goto(`/sheets/${id}`);
+  await page.evaluate(() => {
+    (window as unknown as { stayed: boolean }).stayed = true;
+  });
+
+  const panel = await openKeyPanel(page);
+  const rows = panel.locator(".versions-pick");
+  await expect(rows).toHaveText([
+    /^Song key.*G$/,
+    /^Anna's key\s*A$/,
+    /^Sunday band\s*Bb$/,
+    /^Youth choir\s*F$/,
+  ]);
+  await expect(rows.first()).toHaveAttribute("aria-current", "true");
+  await expect(
+    panel.getByRole("button", { name: "Save G as a version…" }),
+  ).toBeVisible();
+
+  await row(panel, "Sunday band").click();
+  await expect(chords(page)).toHaveText(["Bb", "Bb7", "Eb", "Gm7", "Bb"]);
+  await expect(artist(page)).toHaveText("Sunday band");
+  await expect(page).toHaveURL(`/sheets/${id}?version=${band}`);
+
+  await row(panel, "Song key").click();
+  await expect(chords(page)).toHaveText(["G", "G7", "C", "Em7", "G"]);
+  await expect(artist(page)).toHaveCount(0);
+  await expect(page).toHaveURL(`/sheets/${id}`);
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { stayed?: boolean }).stayed,
+    ),
+  ).toBe(true);
+
+  // On a phone, the panel with three versions fits on the screen.
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const sheet = await openKeyPanel(page);
+  for (const name of ["Versions", "Transpose to"]) {
+    await expect(sheet.getByRole("heading", { name })).toBeInViewport();
+  }
+  for (const name of ["Save G as a version…", "Back to G"]) {
+    await expect(sheet.getByRole("button", { name })).toBeInViewport({
+      ratio: 1,
+    });
+  }
+});
+
+test("keeps the dialog open when a version can't be saved", async ({
+  page,
+}) => {
+  const id = await createSheet(page, "Amazing Grace");
+  await page.goto(`/sheets/${id}`);
+  await page.route("**/versions", (route) => route.abort());
+  const panel = await openKeyPanel(page);
+  await panel.getByRole("button", { name: "Song key: more" }).click();
+  await page.getByRole("menuitem", { name: "Save G as a version…" }).click();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Save as a version" });
+  await expect(dialog).toContainText("couldn’t be saved");
+  await expect(dialog.getByRole("textbox", { name: "Name" })).toHaveValue(
+    "Key G",
+  );
 });

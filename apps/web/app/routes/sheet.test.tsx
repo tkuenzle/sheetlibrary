@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
-import { createSheet } from "../sheets/sheets.server";
+import { createSheet, createVersion } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheet";
 import { loader, meta, PlayView } from "./sheet";
@@ -58,6 +58,8 @@ describe("play view loader", () => {
   it("gives the owner their sheet, with the key and capo to show", async () => {
     expect(await load("ana", sheet.id, "?key=A&capo=2")).toEqual({
       sheet,
+      versions: [],
+      versionId: null,
       shownKey: "A",
       capo: "2",
       lyricsOnly: false,
@@ -79,6 +81,41 @@ describe("play view loader", () => {
     expect(await load("ana", sheet.id, "", "play-text-size=2")).toMatchObject({
       textStep: 2,
     });
+  });
+
+  async function saveVersion(name: string, key: string) {
+    const result = await createVersion(test.env.DB, "ana", sheet.id, {
+      name,
+      key,
+    });
+    if (result.kind !== "saved") throw new Error(result.kind);
+    return result.version;
+  }
+
+  // Scenario "Link to a version".
+  it("gives the sheet's versions and the one the address opens", async () => {
+    const anna = await saveVersion("Anna's key", "A");
+    const band = await saveVersion("Sunday band", "Bb");
+    expect(
+      await load("ana", sheet.id, `?version=${anna.id}&key=Bb`),
+    ).toMatchObject({
+      versions: [anna, band],
+      versionId: anna.id,
+      shownKey: "Bb",
+    });
+  });
+
+  // Scenario "Bookmark after deleting".
+  it("leads a version that is gone to the sheet, keeping capo and lyrics", async () => {
+    const response = (await load(
+      "ana",
+      sheet.id,
+      "?version=AAAAAAAAAAAA&key=Bb&capo=2&lyrics",
+    )) as Response;
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Location")).toBe(
+      `/sheets/${sheet.id}?capo=2&lyrics`,
+    );
   });
 
   it("sends visitors who aren't signed in to sign-in", async () => {
@@ -260,6 +297,106 @@ describe("play view", () => {
     it("isn't carried to the editor, but the key is", () => {
       const html = renderToString(
         <PlayView sheet={amazingGrace} shownKey="A" lyricsOnly />,
+      );
+      expect(html).toContain('href="/sheets/abcdefghijkl/edit?key=A"');
+    });
+  });
+
+  describe("versions", () => {
+    const anna = { id: "anna12345678", name: "Anna's key", key: "A" };
+    const band = { id: "band12345678", name: "Sunday band", key: "Bb" };
+    const versions = [anna, band];
+
+    // Scenario "Link to a version".
+    it("shows the sheet in the open version's key", () => {
+      const html = renderToString(
+        <PlayView
+          sheet={amazingGrace}
+          versions={versions}
+          versionId={anna.id}
+        />,
+      );
+      expect(html).toContain('<span class="sheet-view-chord">A7</span>');
+      expect(html).toMatch(/aria-label="Key A"/);
+      expect(html).not.toContain("data-transposed");
+    });
+
+    // Scenario "Version in another key".
+    it("shows another key with the version still open", () => {
+      const html = renderToString(
+        <PlayView
+          sheet={amazingGrace}
+          versions={versions}
+          versionId={anna.id}
+          shownKey="Bb"
+        />,
+      );
+      expect(html).toContain('<span class="sheet-view-chord">Bb7</span>');
+      expect(html).toContain('aria-label="Key B flat, 1 semitone up"');
+      expect(html).toContain("John Newton · Anna&#x27;s key");
+    });
+
+    // Scenario "Name after the artist".
+    it("shows the version's name after the artist, or alone", () => {
+      const html = renderToString(
+        <PlayView
+          sheet={amazingGrace}
+          versions={versions}
+          versionId={anna.id}
+        />,
+      );
+      expect(html).toContain(
+        '<p class="play-artist">John Newton · Anna&#x27;s key</p>',
+      );
+      const alone = renderToString(
+        <PlayView
+          sheet={{ ...amazingGrace, artist: undefined }}
+          versions={versions}
+          versionId={anna.id}
+        />,
+      );
+      expect(alone).toContain('<p class="play-artist">Anna&#x27;s key</p>');
+    });
+
+    it("shows the version's name with lyrics only", () => {
+      const html = renderToString(
+        <PlayView
+          sheet={amazingGrace}
+          versions={versions}
+          versionId={anna.id}
+          lyricsOnly
+        />,
+      );
+      expect(html).toContain("John Newton · Anna&#x27;s key");
+    });
+
+    it("shows no name without an open version", () => {
+      const html = renderToString(
+        <PlayView sheet={amazingGrace} versions={versions} />,
+      );
+      expect(html).toContain('<p class="play-artist">John Newton</p>');
+    });
+
+    // Scenario "Song key set to minor" (sheet-versions).
+    it("shows a major version on a minor sheet in its relative key", () => {
+      const minorSheet = {
+        ...amazingGrace,
+        content: { ...seedSong, key: { tonic: "E", minor: true } },
+      };
+      const html = renderToString(
+        <PlayView sheet={minorSheet} versions={versions} versionId={anna.id} />,
+      );
+      expect(html).toMatch(/aria-label="Key F sharp minor"/);
+    });
+
+    // "Edit" from a version opens the editor in its key.
+    it("carries the version's key to the editor", () => {
+      const html = renderToString(
+        <PlayView
+          sheet={amazingGrace}
+          versions={versions}
+          versionId={anna.id}
+        />,
       );
       expect(html).toContain('href="/sheets/abcdefghijkl/edit?key=A"');
     });

@@ -41,6 +41,9 @@ export interface SheetKeyState {
   // The capo's fret, 0 for none. The chords show the shapes to play with
   // it, and nothing in the sheet changes.
   capo: number;
+  // The key of the open version, which the address and "Back" count from.
+  // None means the song key. See openspec/specs/play-page.
+  home: Key | null;
 }
 
 export type SheetKeyAction =
@@ -48,25 +51,33 @@ export type SheetKeyAction =
   // `keepCapo` is for a move that doesn't change how the sheet sounds.
   | { type: "show"; key: Key | null; keepCapo?: boolean }
   | { type: "capo"; capo: number }
+  // Opens a version in its key, or, with null, the song key. `keepShown`
+  // leaves the sheet in the key it is shown in.
+  | { type: "home"; home: Key | null; keepShown?: boolean }
   | { type: "reset"; sheet: ChordSheet; capo: number };
 
 // The sheet's key as loaded, shown in the key written in `shown`, such as
 // "F#m", if it is a key to move to for the song, with the capo written in
-// `capo`, such as "3", if it is a fret from 1 to MAX_CAPO.
+// `capo`, such as "3", if it is a fret from 1 to MAX_CAPO. With an open
+// version's key as `home`, the sheet is shown in that key unless `shown`
+// says otherwise.
 export function loadSheetKey(
   sheet: ChordSheet,
   shown: string | null = null,
   capo: string | null = null,
+  home: Key | null = null,
 ): SheetKeyState {
   const guess = guessKey(chordsOf(sheet));
   const key = sheet.key ?? guess;
   const read = key && shown !== null ? readKey(shown, key.minor) : null;
+  const homeKey = key ? home : null;
   return {
     key,
     guessed: !sheet.key,
     guess,
-    shown: key && read && !sameKey(read, key) ? read : null,
+    shown: showIn(key, read ?? homeKey),
     capo: key && capo !== null ? (readCapo(capo) ?? 0) : 0,
+    home: homeKey,
   };
 }
 
@@ -115,6 +126,7 @@ export function sheetKeyReducer(
         shown: showIn(key, shown),
         // The shown key keeps its distance, so the shapes stay too.
         capo: key ? state.capo : 0,
+        home: key ? state.home : null,
       };
     }
     case "show": {
@@ -124,6 +136,12 @@ export function sheetKeyReducer(
     }
     case "capo":
       return { ...state, capo: state.key ? action.capo : 0 };
+    case "home": {
+      const home = state.key ? action.home : null;
+      if (action.keepShown) return { ...state, home };
+      const shown = showIn(state.key, home);
+      return { ...state, home, shown, capo: capoAfter(state, shown) };
+    }
     case "reset": {
       const loaded = loadSheetKey(action.sheet);
       return { ...loaded, capo: loaded.key ? action.capo : 0 };
@@ -141,6 +159,10 @@ export interface SheetKey extends SheetKeyState {
   setCapo: (capo: number) => void;
   // Starts over with a newly loaded sheet, in its song key, with a capo.
   reset: (sheet: ChordSheet, capo?: number) => void;
+  // Opens a version in its key, or, with null, the song key. The capo moves
+  // to keep the shapes. `keepShown` leaves the sheet in the key it is shown
+  // in.
+  openHome: (home: Key | null, options?: { keepShown?: boolean }) => void;
   // The key the chords are drawn in, when it isn't the song key. Pass to
   // the editor's shownKey.
   drawn: Key | null;
@@ -157,6 +179,18 @@ export function keyQuery({
   if (shown) query.set("key", keyName(shown));
   if (capo) query.set("capo", String(capo));
   return query.toString();
+}
+
+// The key the address holds as `key`: the key the sheet is shown in, when
+// it isn't the open version's key, or the song key without a version.
+export function addressKey({
+  key,
+  shown,
+  home,
+}: Pick<SheetKeyState, "key" | "shown" | "home">): Key | null {
+  const current = shown ?? key;
+  const from = home ?? key;
+  return current && from && !sameKey(current, from) ? current : null;
 }
 
 // Writes a value into the page's address, or, with null, takes it out,
@@ -190,17 +224,20 @@ export function withAddressParam(
 // The sheet's key: the set key, or else guessed from its chords. Until the
 // editor reports them, it comes from the loaded sheet, so the server
 // renders the button too. `shown` and `capo` are the address's `key` and
-// `capo`, read once; the address then follows them.
+// `capo`, read once; the address then follows them. `home` is the key of
+// the version the page opened with.
 export function useSheetKey(
   sheet: ChordSheet,
   shown: string | null = null,
   capo: string | null = null,
+  home: Key | null = null,
 ): SheetKey {
   const [state, dispatch] = useReducer(sheetKeyReducer, null, () =>
-    loadSheetKey(sheet, shown, capo),
+    loadSheetKey(sheet, shown, capo, home),
   );
 
-  useAddressParam("key", state.shown ? keyName(state.shown) : null);
+  const inAddress = addressKey(state);
+  useAddressParam("key", inAddress ? keyName(inAddress) : null);
   useAddressParam("capo", state.capo ? String(state.capo) : null);
 
   return {
@@ -217,6 +254,9 @@ export function useSheetKey(
     },
     reset: (next, fret = 0) => {
       dispatch({ type: "reset", sheet: next, capo: fret });
+    },
+    openHome: (next, { keepShown = false } = {}) => {
+      dispatch({ type: "home", home: next, keepShown });
     },
   };
 }

@@ -1,18 +1,30 @@
 import "./sheet.css";
 
-import { type Sheet, stepKey, transposeSheet } from "chordsheet";
-import { useState } from "react";
+import {
+  type Key,
+  type Sheet,
+  stepKey,
+  transposeSheet,
+  versionKey,
+} from "chordsheet";
+import { useMemo, useState } from "react";
 import { data, redirect } from "react-router";
 
 import { cloudflareContext, sessionContext } from "../context";
 import { CapoButton } from "../editor/capo-button";
-import { KeyButton } from "../editor/key-button";
-import { keyQuery, useAddressParam, useSheetKey } from "../editor/sheet-title";
+import { KeyButton, keyName } from "../editor/key-button";
+import {
+  keyQuery,
+  loadSheetKey,
+  useAddressParam,
+  useSheetKey,
+  withAddressParam,
+} from "../editor/sheet-title";
 import { PlayEditSwitch } from "../shell/play-edit-switch";
 import { TopBar } from "../shell/top-bar";
 import { SheetView } from "../sheet-view/sheet-view";
 import { NotFound } from "../sheets/not-found";
-import { readSheet } from "../sheets/sheets.server";
+import { readSheetWithVersions } from "../sheets/sheets.server";
 import {
   keepTextStep,
   MAX_TEXT_STEP,
@@ -20,8 +32,19 @@ import {
   readTextStep,
   textSize,
 } from "../sheets/text-size";
+import {
+  changeVersion,
+  deleteVersion,
+  readVersionKey,
+  saveVersion,
+  type SheetVersion,
+  VERSION_NAME_MAX,
+} from "../sheets/versions";
+import { type ListedVersion, VersionsPart } from "../sheets/versions-part";
 import { Button, IconButton } from "../ui/button";
+import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu, type MenuItem } from "../ui/menu";
+import { NameDialog } from "../ui/name-dialog";
 import type { Route } from "./+types/sheet";
 
 // A stored sheet to play or print, at /sheets/:id. See
@@ -38,9 +61,11 @@ export function meta({ loaderData }: Route.MetaArgs) {
   ];
 }
 
-// Only the owner gets the sheet, as in the editor. `?key` shows the sheet in
-// another key, `?capo` with the shapes for a capo, and `?lyrics` without
-// chords. The text size comes from this device's cookie.
+// Only the owner gets the sheet, as in the editor, with its versions.
+// `?version` opens one, `?key` shows the sheet in another key, `?capo` with
+// the shapes for a capo, and `?lyrics` without chords. A version that is gone
+// leads to the sheet in its song key. The text size comes from this device's
+// cookie.
 export async function loader({
   context,
   params,
@@ -50,12 +75,24 @@ export async function loader({
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
-  const sheet = await readSheet(env.DB, session.user.id, params.id);
-  if (!sheet) {
+  const found = await readSheetWithVersions(env.DB, session.user.id, params.id);
+  if (!found) {
     return data({ sheet: null, shownKey: null, capo: null }, { status: 404 });
+  }
+  const { sheet, versions } = found;
+  const versionId = url.searchParams.get("version");
+  if (versionId !== null && !versions.some((v) => v.id === versionId)) {
+    const href = ["version", "key"].reduce(
+      (next, name) => withAddressParam(next, name, null) ?? next,
+      url.href,
+    );
+    const { pathname, search } = new URL(href);
+    return redirect(`${pathname}${search}`);
   }
   return {
     sheet,
+    versions,
+    versionId,
     shownKey: url.searchParams.get("key"),
     capo: url.searchParams.get("capo"),
     lyricsOnly: url.searchParams.has("lyrics"),
@@ -68,6 +105,8 @@ export default function PlayPage({ loaderData }: Route.ComponentProps) {
   return sheet ? (
     <PlayView
       sheet={sheet}
+      versions={loaderData.versions}
+      versionId={loaderData.versionId}
       shownKey={shownKey}
       capo={capo}
       lyricsOnly={loaderData.lyricsOnly}
@@ -78,14 +117,37 @@ export default function PlayPage({ loaderData }: Route.ComponentProps) {
   );
 }
 
+// The versions as the list shows them, each with the key it shows the sheet
+// in for the song key.
+function listed(versions: SheetVersion[], song: Key | null): ListedVersion[] {
+  return versions.flatMap((version) => {
+    const key = readVersionKey(version.key);
+    return key
+      ? [{ ...version, shows: song ? versionKey(key, song) : key }]
+      : [];
+  });
+}
+
+// What a dialog over the page is doing, if one is open.
+type VersionDialog =
+  | { kind: "save"; key: Key }
+  | { kind: "rename"; version: ListedVersion }
+  | { kind: "delete"; version: ListedVersion };
+
 export function PlayView({
   sheet,
+  versions: loadedVersions = [],
+  versionId = null,
   shownKey = null,
   capo = null,
   lyricsOnly = false,
   textStep = 0,
 }: {
   sheet: Sheet;
+  // The sheet's versions, in the order they were saved.
+  versions?: SheetVersion[];
+  // The version the address opens, if any.
+  versionId?: string | null;
   // The key to show the sheet in, as the address writes it, such as "F#m".
   shownKey?: string | null;
   // The capo, as the address writes it, such as "3".
@@ -95,8 +157,23 @@ export function PlayView({
   // The text size this device keeps (see sheets/text-size.ts).
   textStep?: number;
 }) {
+  // The versions are kept here and changed from each answer of the API,
+  // without loading the page again. The address follows the open one.
+  const [savedVersions, setSavedVersions] = useState(loadedVersions);
+  const [openId, setOpenId] = useState(versionId);
+  const [dialog, setDialog] = useState<VersionDialog | null>(null);
+  useAddressParam("version", openId);
+  const songKey = useMemo(
+    () => loadSheetKey(sheet.content).key,
+    [sheet.content],
+  );
+  const versions = listed(savedVersions, songKey);
+  const open = versions.find((version) => version.id === openId) ?? null;
+
   // The key and the capo only change what is shown. The page lays the sheet
   // out again for them, without asking the server, and the address follows.
+  // An open version's key is home: where "Back" goes and the address counts
+  // from.
   const {
     key,
     guessed,
@@ -106,8 +183,23 @@ export function PlayView({
     drawn,
     show,
     setCapo,
-  } = useSheetKey(sheet.content, shownKey, capo);
+    openHome,
+  } = useSheetKey(sheet.content, shownKey, capo, open?.shows ?? null);
   const current = shown ?? key;
+
+  function openVersion(id: string | null) {
+    setOpenId(id);
+    openHome(versions.find((version) => version.id === id)?.shows ?? null);
+  }
+
+  // Keeps a version from the API's answer, in its place in the list.
+  function keep(version: SheetVersion) {
+    setSavedVersions((all) =>
+      all.some((v) => v.id === version.id)
+        ? all.map((v) => (v.id === version.id ? version : v))
+        : [...all, version],
+    );
+  }
   const content =
     key && drawn ? transposeSheet(sheet.content, key, drawn) : sheet.content;
   const [step, setStep] = useState(textStep);
@@ -203,6 +295,43 @@ export function PlayView({
                 <KeyButton
                   current={current}
                   song={key}
+                  home={open?.shows ?? key}
+                  songPart={(closePanel) => (
+                    <VersionsPart
+                      song={key}
+                      guessed={guessed}
+                      current={current}
+                      versions={versions}
+                      openId={open?.id ?? null}
+                      onOpen={openVersion}
+                      onSave={() => {
+                        closePanel();
+                        setDialog({ kind: "save", key: current });
+                      }}
+                      onMake={() => {
+                        if (!open) return;
+                        void changeVersion(sheet.id, open.id, {
+                          key: keyName(current),
+                        })
+                          .then((version) => {
+                            keep(version);
+                            openHome(current);
+                          })
+                          // The version keeps its key; trying again works.
+                          .catch(() => undefined);
+                      }}
+                      onRename={() => {
+                        if (!open) return;
+                        closePanel();
+                        setDialog({ kind: "rename", version: open });
+                      }}
+                      onDelete={() => {
+                        if (!open) return;
+                        closePanel();
+                        setDialog({ kind: "delete", version: open });
+                      }}
+                    />
+                  )}
                   guessed={guessed}
                   guess={guess}
                   viewOnly
@@ -213,7 +342,7 @@ export function PlayView({
                     show(stepKey(current, step));
                   }}
                   onBack={() => {
-                    show(null);
+                    show(open?.shows ?? null);
                   }}
                 />
                 <CapoButton sounding={current} capo={fret} onPick={setCapo} />
@@ -226,7 +355,11 @@ export function PlayView({
               <Menu label="More" items={[lyricsItem, ...actions]} />
             </div>
           </div>
-          {sheet.artist && <p className="play-artist">{sheet.artist}</p>}
+          {(sheet.artist ?? open) && (
+            <p className="play-artist">
+              {[sheet.artist, open?.name].filter(Boolean).join(" · ")}
+            </p>
+          )}
         </div>
         <SheetView
           sheet={content}
@@ -234,6 +367,67 @@ export function PlayView({
           lyricsOnly={lyrics}
         />
       </main>
+      <NameDialog
+        open={dialog?.kind === "save" || dialog?.kind === "rename"}
+        title={
+          dialog?.kind === "rename" ? "Rename version" : "Save as a version"
+        }
+        text={
+          dialog?.kind === "save"
+            ? `Opens “${sheet.title}” in ${keyName(dialog.key)}. Name it for who or what it’s for.`
+            : "Name it for who or what it’s for."
+        }
+        initial={
+          dialog?.kind === "rename"
+            ? dialog.version.name
+            : dialog?.kind === "save"
+              ? `Key ${keyName(dialog.key)}`
+              : ""
+        }
+        maxLength={VERSION_NAME_MAX}
+        failure="The version couldn’t be saved. Try again."
+        onSave={async (name) => {
+          if (dialog?.kind === "save") {
+            const version = await saveVersion(sheet.id, {
+              name,
+              key: keyName(dialog.key),
+            });
+            keep(version);
+            setOpenId(version.id);
+            openHome(dialog.key);
+          } else if (dialog?.kind === "rename") {
+            keep(await changeVersion(sheet.id, dialog.version.id, { name }));
+          }
+          setDialog(null);
+        }}
+        onClose={() => {
+          setDialog(null);
+        }}
+      />
+      <ConfirmDialog
+        open={dialog?.kind === "delete"}
+        title={
+          dialog?.kind === "delete"
+            ? `Delete “${dialog.version.name}”?`
+            : "Delete version?"
+        }
+        text="The sheet stays as it is. This can’t be undone."
+        confirm="Delete"
+        failure="The version couldn’t be deleted. Try again."
+        onConfirm={async () => {
+          if (dialog?.kind !== "delete") return;
+          const { id } = dialog.version;
+          await deleteVersion(sheet.id, id);
+          setSavedVersions((all) => all.filter((v) => v.id !== id));
+          // The sheet stays in the key it is shown in, without a version.
+          setOpenId(null);
+          openHome(null, { keepShown: true });
+          setDialog(null);
+        }}
+        onClose={() => {
+          setDialog(null);
+        }}
+      />
     </>
   );
 }

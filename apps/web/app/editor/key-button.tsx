@@ -7,7 +7,7 @@ import {
   sameKey,
   semitonesBetween,
 } from "chordsheet";
-import { useId, useRef, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
 
 import { Button, IconButton } from "../ui/button";
 import { Icon } from "../ui/icon";
@@ -52,6 +52,8 @@ function distanceText(semitones: number): { written: string; spoken: string } {
 export function KeyButton({
   current,
   song,
+  home = song,
+  songPart,
   guessed,
   guess,
   readOnly = false,
@@ -68,6 +70,12 @@ export function KeyButton({
   current: Key;
   // The song's key: the set key, or the guess.
   song: Key;
+  // The key "Back" returns to and the distance counts from: an open
+  // version's key, or else the song key.
+  home?: Key;
+  // To view only: what shows in place of the song key, such as the list of
+  // versions on the play view. It gets a way to close the panel.
+  songPart?: (close: () => void) => ReactNode;
   // Whether the song key is guessed, since no key is set.
   guessed: boolean;
   // The key guessed from the chords now, also when a key is set.
@@ -86,9 +94,10 @@ export function KeyButton({
   onUndo?: () => void;
   onRedo?: () => void;
 }) {
-  const { open, dialog, wrapperProps, toggleProps, dialogProps } = usePanel();
-  const transposed = !sameKey(current, song);
-  const distance = distanceText(semitonesFrom(song, current));
+  const { open, close, dialog, wrapperProps, toggleProps, dialogProps } =
+    usePanel();
+  const transposed = !sameKey(current, home);
+  const distance = distanceText(semitonesFrom(home, current));
 
   return (
     // Opening the panel doesn't stop editing (see SheetEditor).
@@ -130,6 +139,8 @@ export function KeyButton({
           <KeyPanel
             current={current}
             song={song}
+            home={home}
+            songPart={songPart?.(close)}
             guessed={guessed}
             guess={guess}
             readOnly={readOnly}
@@ -170,10 +181,14 @@ function focusMarked(content: HTMLElement | null, fallback = "button") {
 // is shown in another key, "Make … the song key". "Back" is always there,
 // so nothing moves when the key changes. "Change" turns the panel into the
 // list of keys the song can be in, until one is picked or Cancel. To view
-// only, neither "Change" nor "Make … the song key" is there.
+// only, neither "Change" nor "Make … the song key" is there, and `songPart`
+// can take the song key's place. "Back" goes to `home`, the open version's
+// key on the play view, or else the song key.
 export function KeyPanel({
   current,
   song,
+  home = song,
+  songPart,
   guessed,
   guess,
   readOnly = false,
@@ -186,6 +201,8 @@ export function KeyPanel({
 }: {
   current: Key;
   song: Key;
+  home?: Key;
+  songPart?: ReactNode;
   guessed: boolean;
   guess: Key | null;
   readOnly?: boolean;
@@ -201,6 +218,7 @@ export function KeyPanel({
   const songId = useId();
   const transposeId = useId();
   const transposed = !sameKey(current, song);
+  const away = !sameKey(current, home);
 
   function stopChanging() {
     setChanging(false);
@@ -225,28 +243,32 @@ export function KeyPanel({
 
   return (
     <div className="key-panel-content" ref={content}>
-      <section className="key-panel-song" aria-labelledby={songId}>
-        <div className="key-panel-header">
-          <h2 id={songId}>Song key</h2>
-          <p className="key-panel-song-key">{keyName(song)}</p>
-          {guessed && <p>Guessed from the chords</p>}
-        </div>
-        {!viewOnly && (
-          <Button
-            variant="text"
-            size="small"
-            className="key-panel-change"
-            aria-label="Change the song key"
-            disabled={readOnly}
-            onClick={() => {
-              setChanging(true);
-              focusMarked(content.current);
-            }}
-          >
-            Change
-          </Button>
-        )}
-      </section>
+      {viewOnly && songPart ? (
+        songPart
+      ) : (
+        <section className="key-panel-song" aria-labelledby={songId}>
+          <div className="key-panel-header">
+            <h2 id={songId}>Song key</h2>
+            <p className="key-panel-song-key">{keyName(song)}</p>
+            {guessed && <p>Guessed from the chords</p>}
+          </div>
+          {!viewOnly && (
+            <Button
+              variant="text"
+              size="small"
+              className="key-panel-change"
+              aria-label="Change the song key"
+              disabled={readOnly}
+              onClick={() => {
+                setChanging(true);
+                focusMarked(content.current);
+              }}
+            >
+              Change
+            </Button>
+          )}
+        </section>
+      )}
       <section className="key-panel-transpose" aria-labelledby={transposeId}>
         <h2 id={transposeId}>Transpose to</h2>
         <KeyGrid
@@ -277,10 +299,10 @@ export function KeyPanel({
           <Button
             variant="text"
             className="key-panel-back"
-            disabled={!transposed}
+            disabled={!away}
             onClick={onBack}
           >
-            Back to {keyName(song)}
+            Back to {keyName(home)}
           </Button>
           {transposed && !viewOnly && (
             <Button
