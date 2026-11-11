@@ -38,6 +38,39 @@
   display: none;
 }
 
+/* Lyrics only: outlined while off, tonal with a check while on. */
+.button.play-lyrics-toggle {
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.button.play-lyrics-toggle[aria-pressed="true"] {
+  background-color: var(--accent-soft);
+  color: var(--on-accent-soft);
+  box-shadow: none;
+}
+
+.play-actions-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 var(--space-s);
+  background: var(--border);
+}
+
+/* On a phone, where the toggle is in the menu, a label says why the chords
+   are gone. It sits with the menu, which shows only on a phone. */
+.play-lyrics-label {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 var(--space-m);
+  border-radius: var(--corner-full);
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+  font: 700 var(--font-size-small) / 1 var(--font);
+  white-space: nowrap;
+}
+
 .play-heading h1 {
   margin: 0;
   font: 800 var(--font-size-title) / 1.05 var(--font);
@@ -62,7 +95,10 @@
   }
 
   .play-more {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+    margin-left: auto;
   }
 }
 
@@ -73,7 +109,8 @@
 @media print {
   /* The play view's top bar, which outweighs top-bar.css. */
   .top-bar:has(~ .play-page),
-  .play-page button {
+  .play-page button,
+  .play-lyrics-label {
     display: none;
   }
 

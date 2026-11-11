@@ -19,7 +19,10 @@ async function sheetIds(page: Page) {
   const hrefs = await page
     .getByRole("link")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
-  return hrefs.flatMap((href) => /^\/sheets\/([\w-]+)$/.exec(href ?? "") ?? []);
+  // Only the id, not the whole match.
+  return hrefs.flatMap(
+    (href) => /^\/sheets\/([\w-]+)$/.exec(href ?? "")?.slice(1) ?? [],
+  );
 }
 
 test.describe("signed in", () => {

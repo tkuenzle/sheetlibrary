@@ -89,3 +89,8 @@
   border-top: 1.5px solid currentColor;
   translate: 0 0.12em;
 }
+
+/* Lyrics only: plain lines, which wrap as text, without chord rows. */
+.sheet-view-lyrics-line {
+  line-height: 1.5;
+}

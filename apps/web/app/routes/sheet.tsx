@@ -7,7 +7,7 @@ import { data, redirect } from "react-router";
 import { cloudflareContext, sessionContext } from "../context";
 import { CapoButton } from "../editor/capo-button";
 import { KeyButton } from "../editor/key-button";
-import { keyQuery, useSheetKey } from "../editor/sheet-title";
+import { keyQuery, useAddressParam, useSheetKey } from "../editor/sheet-title";
 import { PlayEditSwitch } from "../shell/play-edit-switch";
 import { TopBar } from "../shell/top-bar";
 import { SheetView } from "../sheet-view/sheet-view";
@@ -20,7 +20,7 @@ import {
   readTextStep,
   textSize,
 } from "../sheets/text-size";
-import { IconButton } from "../ui/button";
+import { Button, IconButton } from "../ui/button";
 import { Menu, type MenuItem } from "../ui/menu";
 import type { Route } from "./+types/sheet";
 
@@ -39,8 +39,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 // Only the owner gets the sheet, as in the editor. `?key` shows the sheet in
-// another key, and `?capo` with the shapes for a capo. The text size comes
-// from this device's cookie.
+// another key, `?capo` with the shapes for a capo, and `?lyrics` without
+// chords. The text size comes from this device's cookie.
 export async function loader({
   context,
   params,
@@ -58,6 +58,7 @@ export async function loader({
     sheet,
     shownKey: url.searchParams.get("key"),
     capo: url.searchParams.get("capo"),
+    lyricsOnly: url.searchParams.has("lyrics"),
     textStep: readTextStep(request.headers.get("Cookie")),
   };
 }
@@ -69,6 +70,7 @@ export default function PlayPage({ loaderData }: Route.ComponentProps) {
       sheet={sheet}
       shownKey={shownKey}
       capo={capo}
+      lyricsOnly={loaderData.lyricsOnly}
       textStep={loaderData.textStep}
     />
   ) : (
@@ -80,6 +82,7 @@ export function PlayView({
   sheet,
   shownKey = null,
   capo = null,
+  lyricsOnly = false,
   textStep = 0,
 }: {
   sheet: Sheet;
@@ -87,6 +90,8 @@ export function PlayView({
   shownKey?: string | null;
   // The capo, as the address writes it, such as "3".
   capo?: string | null;
+  // Whether the address asks for the lyrics only, without chords.
+  lyricsOnly?: boolean;
   // The text size this device keeps (see sheets/text-size.ts).
   textStep?: number;
 }) {
@@ -106,6 +111,10 @@ export function PlayView({
   const content =
     key && drawn ? transposeSheet(sheet.content, key, drawn) : sheet.content;
   const [step, setStep] = useState(textStep);
+  // Lyrics only also changes only what is shown, and the address follows.
+  // It keeps the key and the capo, for when the chords come back.
+  const [lyrics, setLyrics] = useState(lyricsOnly);
+  useAddressParam("lyrics", lyrics ? true : null);
 
   function resize(by: 1 | -1) {
     const next = step + by;
@@ -113,8 +122,17 @@ export function PlayView({
     keepTextStep(next);
   }
 
-  // The text size and Print: in the top bar, or on a phone in a menu after
-  // the key and the capo.
+  // Lyrics only, the text size and Print: in the top bar, or on a phone in a
+  // menu after the key and the capo.
+  const lyricsItem: MenuItem = {
+    label: "Lyrics only",
+    icon: "lyrics",
+    checked: lyrics,
+    separated: true,
+    onSelect: () => {
+      setLyrics(!lyrics);
+    },
+  };
   const actions: MenuItem[] = [
     {
       label: "Smaller text",
@@ -154,6 +172,17 @@ export function PlayView({
         }
       >
         <div className="play-actions">
+          <Button
+            variant="text"
+            size="small"
+            icon={lyrics ? "check" : "lyrics"}
+            className="play-lyrics-toggle"
+            aria-pressed={lyrics}
+            onClick={lyricsItem.onSelect}
+          >
+            Lyrics only
+          </Button>
+          <span className="play-actions-divider" aria-hidden="true" />
           {actions.map((action) => (
             <IconButton
               key={action.label}
@@ -169,7 +198,7 @@ export function PlayView({
         <div className="play-heading">
           <div className="play-title">
             <h1>{sheet.title}</h1>
-            {key && current && (
+            {key && current && !lyrics && (
               <div className="play-keys">
                 <KeyButton
                   current={current}
@@ -190,13 +219,20 @@ export function PlayView({
                 <CapoButton sounding={current} capo={fret} onPick={setCapo} />
               </div>
             )}
+            {/* On a phone, at the end of the row: the label stays with the
+                menu, and the menu has room to open to the left. */}
             <div className="play-more">
-              <Menu label="More" items={actions} />
+              {lyrics && <span className="play-lyrics-label">Lyrics only</span>}
+              <Menu label="More" items={[lyricsItem, ...actions]} />
             </div>
           </div>
           {sheet.artist && <p className="play-artist">{sheet.artist}</p>}
         </div>
-        <SheetView sheet={content} fontSize={textSize(step)} />
+        <SheetView
+          sheet={content}
+          fontSize={textSize(step)}
+          lyricsOnly={lyrics}
+        />
       </main>
     </>
   );
