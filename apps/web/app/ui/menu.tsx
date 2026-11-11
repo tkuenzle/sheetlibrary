@@ -1,6 +1,6 @@
 import "./menu.css";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react";
 
 import { Button, IconButton } from "./button";
 import { Icon } from "./icon";
@@ -28,7 +28,8 @@ export type MenuPlacement = "below-end" | "below-start" | "above-end";
 // It opens with the first item focused; the arrow keys, Home and End move
 // between the items. Escape or a click outside closes it, with the focus back
 // on the button. A picked item closes it and leaves the focus to the item's
-// action.
+// action. With `fixed`, the list is placed against the window where it would
+// open, so a scrolling box around the menu doesn't cut it off.
 export function Menu({
   label,
   icon = "moreVert",
@@ -36,6 +37,7 @@ export function Menu({
   text = false,
   size,
   placement = "below-end",
+  fixed = false,
 }: {
   label: string;
   icon?: IconName;
@@ -44,8 +46,10 @@ export function Menu({
   // Large for the main actions docked at the bottom of a phone.
   size?: "large";
   placement?: MenuPlacement;
+  fixed?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [fixedAt, setFixedAt] = useState<CSSProperties>();
   const wrapper = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -83,7 +87,10 @@ export function Menu({
     "aria-haspopup": "menu",
     "aria-expanded": open,
     "aria-controls": open ? menuId : undefined,
-    onClick: () => {
+    onClick: (event: { currentTarget: HTMLElement }) => {
+      if (fixed && !open) {
+        setFixedAt(fixedPosition(event.currentTarget, placement));
+      }
       setOpen(!open);
     },
   } as const;
@@ -111,6 +118,7 @@ export function Menu({
           role="menu"
           aria-label={label}
           className="menu-list"
+          style={fixed ? fixedAt : undefined}
           tabIndex={-1}
           onKeyDown={(event) => {
             const all = menuItems();
@@ -147,6 +155,29 @@ export function Menu({
       )}
     </div>
   );
+}
+
+// Where a fixed list opens for a placement, against the window, from the
+// button's place. The gaps are the ones in menu.css.
+function fixedPosition(
+  button: HTMLElement,
+  placement: MenuPlacement,
+): CSSProperties {
+  const box = button.getBoundingClientRect();
+  const fromRight = document.documentElement.clientWidth - box.right;
+  const gap = 4;
+  switch (placement) {
+    case "below-end":
+      return { position: "fixed", top: box.bottom + gap, right: fromRight };
+    case "below-start":
+      return { position: "fixed", top: box.bottom + gap, left: box.left };
+    case "above-end":
+      return {
+        position: "fixed",
+        bottom: window.innerHeight - box.top + 12,
+        right: fromRight,
+      };
+  }
 }
 
 // One item of the list, and the line after it if it has one.

@@ -16,20 +16,21 @@ All text is in sentence case.
 
 ## Glossary
 
-| Use     | Not          | For                                                                                                |
-| ------- | ------------ | -------------------------------------------------------------------------------------------------- |
-| sheet   | song         | What the library holds. "Sheet music" is fine for the kind of thing, as on the home page.          |
-| section | verse, block | A group of lines. Its label names the part, such as "Verse 1" or "Chorus".                         |
-| lyrics  | words, text  | The text under the chords.                                                                         |
-| letter  | character    | One spot in the lyrics, where a chord sits.                                                        |
-| cursor  | caret        | Where typing happens.                                                                              |
-| edit    | change       | Working on a section or a chord.                                                                   |
-| Done    | OK           | Closes the chord input and keeps the chord.                                                        |
-| Remove  | Delete       | Takes a chord off its letter. "Delete" is kept for something gone for good, such as a sheet later. |
-| Cancel  |              | Closes the chord input without keeping what was typed. "Stop editing" (Esc) is a different action. |
-| sign in | log in       | Getting into an account, and "sign out" for leaving it. Signing up is the same as signing in.      |
-| link    | magic link   | What the sign-in email holds.                                                                      |
-| passkey | security key | The way back in without an email.                                                                  |
+| Use     | Not           | For                                                                                                |
+| ------- | ------------- | -------------------------------------------------------------------------------------------------- |
+| sheet   | song          | What the library holds. "Sheet music" is fine for the kind of thing, as on the home page.          |
+| section | verse, block  | A group of lines. Its label names the part, such as "Verse 1" or "Chorus".                         |
+| lyrics  | words, text   | The text under the chords.                                                                         |
+| letter  | character     | One spot in the lyrics, where a chord sits.                                                        |
+| cursor  | caret         | Where typing happens.                                                                              |
+| edit    | change        | Working on a section or a chord.                                                                   |
+| Done    | OK            | Closes the chord input and keeps the chord.                                                        |
+| Remove  | Delete        | Takes a chord off its letter. "Delete" is kept for something gone for good, such as a sheet later. |
+| Cancel  |               | Closes the chord input without keeping what was typed. "Stop editing" (Esc) is a different action. |
+| sign in | log in        | Getting into an account, and "sign out" for leaving it. Signing up is the same as signing in.      |
+| link    | magic link    | What the sign-in email holds.                                                                      |
+| passkey | security key  | The way back in without an email.                                                                  |
+| version | copy, variant | A name and a key to play a sheet in, for who or what it's for, such as "Anna's key" in A.          |
 
 ## Names that stay
 
@@ -48,5 +49,6 @@ All text is in sentence case.
 - **Sheet's menu:** the button beside the title is named "More for this sheet", and so is its menu. It holds "Rename" and "Delete". The help on a sheet adds "Click the title to rename the sheet", or "Tap the title to rename the sheet" with touch.
 - **Deleting a sheet:** the dialog asks "Delete “Amazing Grace”?" and says "The sheet is gone for good. This can’t be undone.", with the buttons "Cancel" and "Delete". When the delete didn't get through, the note in it says "The sheet couldn’t be deleted. Try again."
 - **Play view:** a sheet opens to play. The heading is the sheet's title, with the artist below and the key and capo buttons after it, named as in the editor. The key panel only shows the sheet in another key: it has no "Change" and no "Make A the song key". In the top bar, the toggle "Lyrics only" comes first, pressed while on, then the icon buttons "Smaller text", "Larger text" and "Print"; on a phone, they are the items of the menu "More", after the capo button, with "Lyrics only" first and checked while on. While the lyrics show alone, the key and capo buttons are hidden, and on a phone the label "Lyrics only" takes their place.
+- **Versions:** on the play view, without versions, a "…" beside the song key, named "Song key: more", holds "Save A as a version…", named for the key the sheet is shown in. With versions, the panel's first part is "Versions": "Song key" with its key, and "Guessed from the chords" while none is set, then each version's name and key, the open one marked, and "Save A as a version…" at the end. The open version's "…", named "Anna's key: more", holds "Make Bb Anna's key" while the sheet is shown in another key, then "Rename…" and "Delete…". "Back to A" names the version's key, and the key button counts from it. The open version's name follows the artist, as in "John Newton · Anna's key". The dialog "Save as a version" says "Opens “Amazing Grace” in A. Name it for who or what it’s for.", with the field "Name", filled in with "Key A", and "Cancel" and "Save"; "Rename version" says "Name it for who or what it’s for.". When a save didn't get through, the note says "The version couldn’t be saved. Try again." Deleting asks "Delete “Anna's key”?" and says "The sheet stays as it is. This can’t be undone.", with "Cancel" and "Delete", and "The version couldn’t be deleted. Try again." when it didn't get through.
 - **Sheet not found:** the heading "Sheet not found" and "This sheet doesn’t exist, or it belongs to another account."
 - **Keys:** as printed on the key, with a space between keys pressed together: "Ctrl K", "⌘ K", "Ctrl Shift L", "⌘ ⇧ L", "Enter", "Backspace", "Esc". Help names both "Ctrl K" and "⌘ K", and both "Ctrl Shift L" and "⌘ ⇧ L", instead of guessing the platform.

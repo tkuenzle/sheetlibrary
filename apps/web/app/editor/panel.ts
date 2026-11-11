@@ -55,9 +55,10 @@ export function usePanel() {
     function onPointerDown(event: PointerEvent) {
       if (!wrapper.current?.contains(event.target as globalThis.Node)) close();
     }
-    // Escape closes the panel wherever the focus is.
+    // Escape closes the panel wherever the focus is, unless something in it,
+    // such as a menu, took it.
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || event.defaultPrevented) return;
       event.preventDefault();
       close();
     }

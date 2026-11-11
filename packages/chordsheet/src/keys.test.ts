@@ -14,6 +14,7 @@ import {
   stepKey,
   transposeChord,
   transposeSheet,
+  versionKey,
 } from "./keys";
 import { line, read, section, sheet } from "./test-helpers";
 
@@ -198,6 +199,27 @@ describe("Keys at a distance", () => {
     expect(semitonesBetween(major("G"), major("A"))).toBe(2);
     expect(semitonesBetween(major("A"), major("G"))).toBe(10);
     expect(semitonesBetween(major("G#"), major("Ab"))).toBe(0);
+  });
+});
+
+// Scenario "Song key set to minor" (sheet-versions).
+describe("The key of a version", () => {
+  it("keeps its own key in the same mode", () => {
+    expect(versionKey(major("A"), major("G"))).toEqual(major("A"));
+    expect(versionKey(major("Gb"), major("G"))).toEqual(major("Gb"));
+  });
+
+  it("takes the relative key in the other mode", () => {
+    expect(versionKey(major("A"), minor("E"))).toEqual(minor("F#"));
+    expect(versionKey(minor("F#"), major("G"))).toEqual(major("A"));
+    expect(versionKey(major("Bb"), minor("E"))).toEqual(minor("G"));
+  });
+
+  it("keeps the sharp or flat on the tie", () => {
+    expect(versionKey(major("Gb"), minor("E"))).toEqual(minor("Eb"));
+    expect(versionKey(major("F#"), minor("E"))).toEqual(minor("D#"));
+    expect(versionKey(minor("Eb"), major("G"))).toEqual(major("Gb"));
+    expect(versionKey(minor("D#"), major("G"))).toEqual(major("F#"));
   });
 });
 

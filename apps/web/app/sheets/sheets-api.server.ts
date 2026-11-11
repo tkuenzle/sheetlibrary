@@ -6,11 +6,16 @@ import {
 } from "chordsheet";
 
 import {
+  changeVersion,
   createSheet,
+  createVersion,
   deleteSheet,
+  deleteVersion,
   FIRST_REVISION,
+  listVersions,
   readSheet,
   saveSheet,
+  type VersionResult,
 } from "./sheets.server";
 
 // The sheets API under /api/sheets, as plain functions from a request to a
@@ -115,4 +120,91 @@ export async function handleSheet(
     case "not-found":
       return notFound();
   }
+}
+
+// A string field of a JSON body, or undefined if it isn't there. Null if it
+// is there but isn't a string.
+function stringField(value: unknown, name: string): string | null | undefined {
+  if (typeof value !== "object" || value === null || !(name in value)) {
+    return undefined;
+  }
+  const field: unknown = (value as Record<string, unknown>)[name];
+  return typeof field === "string" ? field : null;
+}
+
+const versionNotValid = () => error(400, "Version is not valid");
+const versionNotFound = () => error(404, "Version not found");
+
+function versionAnswer(result: VersionResult, status = 200): Response {
+  switch (result.kind) {
+    case "saved":
+      return Response.json(result.version, { status });
+    case "invalid":
+      return versionNotValid();
+    case "not-found":
+      return versionNotFound();
+  }
+}
+
+// /api/sheets/:id/versions: GET lists the sheet's versions, and POST saves a
+// new one from a name and a key, answering with it. See
+// openspec/specs/sheet-versions.
+export async function handleVersions(
+  request: Request,
+  db: D1Database,
+  userId: string | null,
+  sheetId: string,
+): Promise<Response> {
+  if (!["GET", "POST"].includes(request.method)) return notAllowed();
+  if (!userId) return notSignedIn();
+
+  if (request.method === "GET") {
+    const versions = await listVersions(db, userId, sheetId);
+    return versions ? Response.json(versions) : notFound();
+  }
+
+  const body = await readBody(request);
+  if ("response" in body) return body.response;
+  const name = stringField(body.value, "name");
+  const key = stringField(body.value, "key");
+  if (typeof name !== "string" || typeof key !== "string") {
+    return versionNotValid();
+  }
+  return versionAnswer(
+    await createVersion(db, userId, sheetId, { name, key }),
+    201,
+  );
+}
+
+// /api/sheets/:id/versions/:versionId: PATCH renames a version or gives it
+// another key, and DELETE deletes it.
+export async function handleVersion(
+  request: Request,
+  db: D1Database,
+  userId: string | null,
+  sheetId: string,
+  versionId: string,
+): Promise<Response> {
+  if (!["PATCH", "DELETE"].includes(request.method)) return notAllowed();
+  if (!userId) return notSignedIn();
+
+  if (request.method === "DELETE") {
+    return (await deleteVersion(db, userId, sheetId, versionId))
+      ? new Response(null, { status: 204 })
+      : versionNotFound();
+  }
+
+  const body = await readBody(request);
+  if ("response" in body) return body.response;
+  const name = stringField(body.value, "name");
+  const key = stringField(body.value, "key");
+  if (name === null || key === null || (name ?? key) === undefined) {
+    return versionNotValid();
+  }
+  return versionAnswer(
+    await changeVersion(db, userId, sheetId, versionId, {
+      ...(name === undefined ? {} : { name }),
+      ...(key === undefined ? {} : { key }),
+    }),
+  );
 }

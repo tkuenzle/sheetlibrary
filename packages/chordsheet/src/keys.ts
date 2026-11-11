@@ -102,6 +102,21 @@ export function keyAbove(key: Key, semitones: number): Key {
   };
 }
 
+// The key a version in `key` shows a sheet whose song key is `song` in: its
+// own key, or, when one is major and the other minor, its relative key,
+// three semitones down or up. That is spelled as listed. Where the cell holds
+// two keys, it keeps the sharp or flat of `key`: Gb gives Ebm, F# gives D#m.
+// See openspec/specs/sheet-versions.
+export function versionKey(key: Key, song: Key): Key {
+  if (key.minor === song.minor) return key;
+  const minor = song.minor;
+  const pitch = pitchOf(key.tonic) + (minor ? -3 : 3);
+  const cell = (minor ? MINOR_CELLS : MAJOR_CELLS)[mod(pitch, 12)] ?? [];
+  const sign = key.tonic.charAt(1);
+  const same = cell.find((tonic) => sign !== "" && tonic.charAt(1) === sign);
+  return { tonic: same ?? listedTonic(pitch, minor), minor };
+}
+
 // Semitones up from one key's tonic to another's, 0 to 11.
 export function semitonesBetween(from: Key, to: Key): number {
   return mod(pitchOf(to.tonic) - pitchOf(from.tonic), 12);

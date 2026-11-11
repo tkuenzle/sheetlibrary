@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SheetEditorHandle } from "./sheet-editor";
 import {
+  addressKey,
   drawnKey,
   keyQuery,
   loadSheetKey,
@@ -187,6 +188,48 @@ describe("the shown key", () => {
   });
 });
 
+// See openspec/specs/play-page: an open version's key is home.
+describe("the home key", () => {
+  const Bb: Key = { tonic: "Bb", minor: false };
+
+  // Scenario "Link to a version".
+  it("shows the sheet in the version's key, with no key in the address", () => {
+    const state = loadSheetKey(amazingGrace(), null, null, A);
+    expect(state).toMatchObject({ shown: A, home: A });
+    expect(addressKey(state)).toBeNull();
+  });
+
+  // Scenario "Version in another key".
+  it("lets the address's key win over the version's", () => {
+    const state = loadSheetKey(amazingGrace(), "Bb", null, A);
+    expect(state).toMatchObject({ shown: Bb, home: A });
+    expect(addressKey(state)).toEqual(Bb);
+  });
+
+  it("writes the song key when it isn't home", () => {
+    let state = loadSheetKey(amazingGrace(), null, null, A);
+    state = sheetKeyReducer(state, { type: "show", key: null });
+    expect(state.shown).toBeNull();
+    expect(addressKey(state)).toEqual(G);
+  });
+
+  it("opens another version, or the song key", () => {
+    let state = loadSheetKey(amazingGrace(), "Bb", null, A);
+    state = sheetKeyReducer(state, { type: "home", home: Bb });
+    expect(state).toMatchObject({ shown: Bb, home: Bb });
+    expect(addressKey(state)).toBeNull();
+    state = sheetKeyReducer(state, { type: "home", home: null });
+    expect(state).toMatchObject({ shown: null, home: null });
+    expect(addressKey(state)).toBeNull();
+  });
+
+  it("is none without a version, as in the editor", () => {
+    const state = loadSheetKey(amazingGrace(), "A");
+    expect(state.home).toBeNull();
+    expect(addressKey(state)).toEqual(A);
+  });
+});
+
 describe("the capo", () => {
   const Bb: Key = { tonic: "Bb", minor: false };
   const C: Key = { tonic: "C", minor: false };
@@ -296,6 +339,7 @@ describe("SheetTitle", () => {
       show: () => undefined,
       setCapo: () => undefined,
       reset: () => undefined,
+      openHome: () => undefined,
       drawn: null,
     };
     return renderToString(
@@ -328,6 +372,7 @@ describe("SheetTitle", () => {
           show: () => undefined,
           setCapo: () => undefined,
           reset: () => undefined,
+          openHome: () => undefined,
           drawn: null,
         }}
         editor={createRef<SheetEditorHandle>()}

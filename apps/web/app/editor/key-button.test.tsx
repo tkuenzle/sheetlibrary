@@ -232,6 +232,69 @@ describe("KeyPanel", () => {
   });
 });
 
+// See openspec/specs/play-page: an open version's key is home.
+describe("KeyPanel with a home key", () => {
+  function homePanel(current: Key, home: Key, songPart?: string) {
+    return renderToString(
+      <KeyPanel
+        current={current}
+        song={major("G")}
+        home={home}
+        songPart={songPart && <p>{songPart}</p>}
+        guessed
+        guess={major("G")}
+        viewOnly
+        onPick={nothing}
+        onSet={nothing}
+        onStep={nothing}
+        onBack={nothing}
+        onMake={nothing}
+      />,
+    );
+  }
+
+  // Scenario "Trying another key".
+  it("goes back to the home key", () => {
+    const html = homePanel(major("Bb"), major("A"));
+    expect(html).toMatch(/class="[^"]*key-panel-back"[^>]*>Back to <!-- -->A/);
+    expect(html).not.toMatch(/key-panel-back"[^>]*disabled/);
+  });
+
+  it("disables the way back in the home key", () => {
+    expect(homePanel(major("A"), major("A"))).toMatch(
+      /disabled=""[^>]*>Back to <!-- -->A|key-panel-back"[^>]*disabled/,
+    );
+  });
+
+  it("shows the part passed in place of the song key", () => {
+    const html = homePanel(major("A"), major("A"), "Versions here");
+    expect(html).toContain("<p>Versions here</p>");
+    expect(html).not.toContain("Song key");
+  });
+});
+
+describe("KeyButton with a home key", () => {
+  it("counts the distance from home, and isn't filled there", () => {
+    const at = (current: Key) =>
+      renderToString(
+        <KeyButton
+          current={current}
+          song={major("G")}
+          home={major("A")}
+          guessed
+          guess={major("G")}
+          viewOnly
+          onPick={nothing}
+          onStep={nothing}
+          onBack={nothing}
+        />,
+      );
+    expect(at(major("A"))).toContain('aria-label="Key A"');
+    expect(at(major("A"))).not.toContain("data-transposed");
+    expect(at(major("Bb"))).toContain('aria-label="Key B flat, 1 semitone up"');
+  });
+});
+
 describe("SongKeyPanel", () => {
   function songKeys(current: Key, guess: Key | null = current) {
     return renderToString(
