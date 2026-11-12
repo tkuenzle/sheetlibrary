@@ -1,7 +1,7 @@
 import "../ui/group-list.css";
 import "./sheets.css";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Form, redirect, useNavigate } from "react-router";
 
 import { closeOffer, offerClosed } from "../auth/passkey-offer";
@@ -13,9 +13,14 @@ import { TopBar } from "../shell/top-bar";
 import { editDate, lastEdit } from "../sheets/last-edit";
 import { UNTITLED } from "../sheets/details";
 import { importedSheetPath, importSheet } from "../sheets/import";
+import { isSearch, type TextPart } from "../sheets/search";
+import { SearchField } from "../sheets/search-field";
 import {
   createSheet,
+  hasSheets,
   listSheets,
+  searchSheets,
+  type SearchResult,
   type SheetListItem,
 } from "../sheets/sheets.server";
 import { Button, IconButton } from "../ui/button";
@@ -34,16 +39,29 @@ export function meta() {
 }
 
 // The email link lands on `?passkey`. Only then is a passkey offered, if
-// the account has none and this device didn't close the offer.
+// the account has none and this device didn't close the offer. With `q`
+// long enough to search, the sheets are the results, the best match first.
 export async function loader({ context, request, url }: Route.LoaderArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
+  const userId = session.user.id;
   const offerPasskey =
     url.searchParams.has("passkey") &&
     !offerClosed(request.headers.get("Cookie")) &&
-    !(await hasPasskey(env.DB, session.user.id));
-  return { sheets: await listSheets(env.DB, session.user.id), offerPasskey };
+    !(await hasPasskey(env.DB, userId));
+  const q = url.searchParams.get("q") ?? "";
+  if (!isSearch(q)) {
+    const sheets = await listSheets(env.DB, userId);
+    return { sheets, hasSheets: sheets.length > 0, q, offerPasskey };
+  }
+  const sheets = await searchSheets(env.DB, userId, q);
+  return {
+    sheets,
+    hasSheets: sheets.length > 0 || (await hasSheets(env.DB, userId)),
+    q,
+    offerPasskey,
+  };
 }
 
 // "New sheet". A form on another site can't get here signed in, since the
@@ -74,6 +92,8 @@ export default function Library({ loaderData }: Route.ComponentProps) {
       <TopBar />
       <LibraryView
         sheets={loaderData.sheets}
+        hasSheets={loaderData.hasSheets}
+        q={loaderData.q}
         offerPasskey={loaderData.offerPasskey}
       />
     </>
@@ -190,9 +210,14 @@ function Actions({ size, className }: { size?: "large"; className: string }) {
 
 export function LibraryView({
   sheets,
+  hasSheets = sheets.length > 0,
+  q = "",
   offerPasskey = false,
 }: {
-  sheets: SheetListItem[];
+  // All sheets, or the results of the search in `q`.
+  sheets: (SheetListItem | SearchResult)[];
+  hasSheets?: boolean;
+  q?: string;
   offerPasskey?: boolean;
 }) {
   const [offering, setOffering] = useState(offerPasskey);
@@ -211,11 +236,12 @@ export function LibraryView({
   useEffect(() => {
     setHydrated(true);
   }, []);
+  const searching = isSearch(q);
   const now = Date.now();
   const edited = (at: number) =>
     hydrated ? lastEdit(at, now) : editDate(at, now, "UTC");
 
-  if (sheets.length === 0) {
+  if (!hasSheets) {
     return (
       <main className="library">
         <h1>Library</h1>
@@ -235,40 +261,73 @@ export function LibraryView({
         <Actions className="library-actions library-actions-beside" />
       </div>
       {offer}
-      <div className="library-list">
-        <div className="library-columns library-labels" aria-hidden="true">
-          <span>Title</span>
-          <span>Artist</span>
-          <span>Edited</span>
-        </div>
-        <ul className="group-list">
-          {sheets.map((sheet) => (
-            <li key={sheet.id}>
-              <a className="library-columns" href={`/sheets/${sheet.id}`}>
-                <span className="library-title">{sheet.title}</span>
-                <span className="library-details">
-                  <span>{sheet.artist}</span>
-                  {sheet.artist && (
-                    <span className="library-separator" aria-hidden="true">
-                      {" · "}
+      <SearchField q={q} count={searching ? sheets.length : null} />
+      {searching && sheets.length === 0 ? (
+        <section className="library-empty" aria-labelledby="library-no-results">
+          <h2 id="library-no-results">{`No sheets match “${q.trim()}”`}</h2>
+        </section>
+      ) : (
+        <div className="library-list">
+          <div className="library-columns library-labels" aria-hidden="true">
+            <span>Title</span>
+            <span>Artist</span>
+            <span>Edited</span>
+          </div>
+          <ul className="group-list">
+            {sheets.map((sheet) => (
+              <li key={sheet.id}>
+                <a className="library-columns" href={`/sheets/${sheet.id}`}>
+                  <span className="library-title">
+                    {"titleParts" in sheet ? (
+                      <Marked parts={sheet.titleParts} />
+                    ) : (
+                      sheet.title
+                    )}
+                  </span>
+                  <span className="library-details">
+                    <span>
+                      {"artistParts" in sheet && sheet.artistParts ? (
+                        <Marked parts={sheet.artistParts} />
+                      ) : (
+                        sheet.artist
+                      )}
+                    </span>
+                    {sheet.artist && (
+                      <span className="library-separator" aria-hidden="true">
+                        {" · "}
+                      </span>
+                    )}
+                    <span
+                      className="library-edited"
+                      data-pending={hydrated ? undefined : ""}
+                    >
+                      {edited(sheet.updatedAt)}
+                    </span>
+                  </span>
+                  {"line" in sheet && sheet.line && (
+                    <span className="library-line">
+                      <Marked parts={sheet.line} />
                     </span>
                   )}
-                  <span
-                    className="library-edited"
-                    data-pending={hydrated ? undefined : ""}
-                  >
-                    {edited(sheet.updatedAt)}
-                  </span>
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <Actions
         size="large"
         className="library-actions library-actions-docked"
       />
     </main>
   );
+}
+
+// Text with its matches marked.
+function Marked({ parts }: { parts: TextPart[] }) {
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {part.hit ? <mark>{part.text}</mark> : part.text}
+    </Fragment>
+  ));
 }

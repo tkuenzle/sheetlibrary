@@ -1,0 +1,59 @@
+/* The library's search field: a round bar with the search icon, the count
+   and "Clear search". */
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  min-height: 56px;
+  padding: 0 var(--space-xs) 0 20px;
+  border-radius: var(--corner-full);
+  background: var(--surface-active);
+  color: var(--text-muted);
+  outline: 1px solid transparent;
+}
+
+.search-field:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: 400 17px / 1.3 var(--font);
+  outline: none;
+}
+
+.search-field input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+/* The field has its own "Clear search". */
+.search-field input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search-field-count {
+  font: 600 var(--font-size-small) / 1.2 var(--font);
+  white-space: nowrap;
+}
+
+/* Without "Clear search", the count keeps off the edge. */
+.search-field-count:last-child {
+  margin-right: var(--space-l);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -1,10 +1,30 @@
-import { newSheetId, type Sheet, type SheetContent } from "chordsheet";
+import {
+  newSheetId,
+  plainLines,
+  type Sheet,
+  type SheetContent,
+} from "chordsheet";
 
+import {
+  hasMatch,
+  MARK_END,
+  MARK_START,
+  markedParts,
+  matchingLine,
+  searchQuery,
+  type TextPart,
+} from "./search";
 import { keptVersionName, readVersionKey, type SheetVersion } from "./versions";
 
 // Each person's sheets in D1. Every function takes the owner's user id, and
 // a sheet that belongs to someone else is treated as missing. See
 // openspec/specs/sheet-storage.
+
+// The lyrics as plain text, as the library searches them. The format gives
+// them, so the library never reads the content itself.
+function lyricsOf(content: SheetContent): string {
+  return plainLines(content).join("\n");
+}
 
 // What a new sheet starts with. Storage gives it its id and revision.
 export type NewSheet = Pick<Sheet, "title" | "artist" | "content">;
@@ -52,7 +72,7 @@ export async function createSheet(
   const now = Date.now();
   await db
     .prepare(
-      'INSERT INTO "sheet" ("id", "userId", "revision", "title", "artist", "content", "createdAt", "updatedAt") VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO "sheet" ("id", "userId", "revision", "title", "artist", "content", "lyrics", "createdAt", "updatedAt") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     )
     .bind(
       created.id,
@@ -61,6 +81,7 @@ export async function createSheet(
       created.title,
       created.artist ?? null,
       JSON.stringify(created.content),
+      lyricsOf(created.content),
       now,
       now,
     )
@@ -92,12 +113,13 @@ export async function saveSheet(
 ): Promise<SaveResult> {
   const result = await db
     .prepare(
-      'UPDATE "sheet" SET "revision" = "revision" + 1, "title" = ?, "artist" = ?, "content" = ?, "updatedAt" = ? WHERE "id" = ? AND "userId" = ? AND "revision" = ?',
+      'UPDATE "sheet" SET "revision" = "revision" + 1, "title" = ?, "artist" = ?, "content" = ?, "lyrics" = ?, "updatedAt" = ? WHERE "id" = ? AND "userId" = ? AND "revision" = ?',
     )
     .bind(
       sheet.title,
       sheet.artist ?? null,
       JSON.stringify(sheet.content),
+      lyricsOf(sheet.content),
       Date.now(),
       sheet.id,
       userId,
@@ -147,6 +169,78 @@ export async function listSheets(
     ...(row.artist === null ? {} : { artist: row.artist }),
     updatedAt: row.updatedAt,
   }));
+}
+
+// Whether the person has any sheet.
+export async function hasSheets(
+  db: D1Database,
+  userId: string,
+): Promise<boolean> {
+  const row = await db
+    .prepare('SELECT 1 FROM "sheet" WHERE "userId" = ? LIMIT 1')
+    .bind(userId)
+    .first();
+  return row !== null;
+}
+
+// A sheet found by a search: its row, with the matches marked in the title
+// and the artist, and the line with a match when only the lyrics match.
+export interface SearchResult extends SheetListItem {
+  titleParts: TextPart[];
+  artistParts?: TextPart[];
+  line?: TextPart[];
+}
+
+// How much a match counts in the title, the artist and the lyrics. The
+// title counts most, so a title match comes first even for a common word.
+const WEIGHTS = "20, 5, 1";
+
+// What highlight() puts around a match, as SQL.
+const MARKS = [MARK_START, MARK_END]
+  .map((mark) => `char(${String(mark.charCodeAt(0))})`)
+  .join(", ");
+
+// The person's sheets that match the field's text, the best match first.
+export async function searchSheets(
+  db: D1Database,
+  userId: string,
+  q: string,
+): Promise<SearchResult[]> {
+  const query = searchQuery(q);
+  if (query === null) return [];
+  const mark = (column: string) =>
+    `highlight("sheet_fts", ${column}, ${MARKS})`;
+  const { results } = await db
+    .prepare(
+      `SELECT s."id", s."title", s."artist", s."updatedAt", ${mark("0")} AS "markedTitle", ${mark("1")} AS "markedArtist", ${mark("2")} AS "markedLyrics" FROM "sheet_fts" JOIN "sheet" s ON s."rowid" = "sheet_fts"."rowid" WHERE "sheet_fts" MATCH ? AND s."userId" = ? ORDER BY bm25("sheet_fts", ${WEIGHTS}), s."updatedAt" DESC`,
+    )
+    .bind(query, userId)
+    .all<{
+      id: string;
+      title: string;
+      artist: string | null;
+      updatedAt: number;
+      markedTitle: string;
+      markedArtist: string | null;
+      markedLyrics: string | null;
+    }>();
+  return results.map((row) => {
+    const line =
+      hasMatch(row.markedTitle) || hasMatch(row.markedArtist)
+        ? undefined
+        : matchingLine(row.markedLyrics ?? "");
+    return {
+      id: row.id,
+      title: row.title,
+      ...(row.artist === null ? {} : { artist: row.artist }),
+      updatedAt: row.updatedAt,
+      titleParts: markedParts(row.markedTitle),
+      ...(row.markedArtist === null
+        ? {}
+        : { artistParts: markedParts(row.markedArtist) }),
+      ...(line === undefined ? {} : { line }),
+    };
+  });
 }
 
 // Returns whether a sheet was deleted. Its versions go with it.

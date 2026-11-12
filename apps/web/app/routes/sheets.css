@@ -69,6 +69,29 @@
   font: 700 17px / 1.3 var(--font);
 }
 
+/* A search's matches, marked in the title, the artist and the line. */
+.library-list mark {
+  padding: 0 2px;
+  border-radius: var(--space-xs);
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+/* The line with a match, for a sheet that matches only by its lyrics. Wide,
+   it sits under the title, in the title's column. */
+.library-line {
+  grid-column: 1;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-list a:has(.library-line) {
+  row-gap: 2px;
+  padding-block: 10px;
+}
+
 /* Wide, the artist and the last edit are columns of their own. */
 .library-details {
   display: contents;

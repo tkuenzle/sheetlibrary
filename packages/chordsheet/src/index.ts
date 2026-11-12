@@ -5,6 +5,7 @@ export * from "./clean-up";
 export * from "./keys";
 export * from "./photo-answer";
 export * from "./photo-answer-prompt";
+export * from "./plain-lines";
 export * from "./sheet";
 export * from "./sheet-envelope";
 export * from "./suggestions";

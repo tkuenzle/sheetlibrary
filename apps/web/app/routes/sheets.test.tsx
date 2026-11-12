@@ -9,6 +9,7 @@ import { seedSong } from "../editor/seed-song";
 import {
   createSheet,
   readSheet,
+  type SearchResult,
   type SheetListItem,
 } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
@@ -59,7 +60,61 @@ describe("library loader and action", () => {
           updatedAt: expect.any(Number) as number,
         },
       ],
+      hasSheets: true,
+      q: "",
       offerPasskey: false,
+    });
+  });
+
+  it("searches with q, the best match first", async () => {
+    for (const title of ["Hallelujah", "Amazing Grace"]) {
+      await createSheet(test.env.DB, "ana", { title, content: seedSong });
+    }
+    expect(await load("ana", "?q=grace")).toMatchObject({
+      sheets: [
+        {
+          title: "Amazing Grace",
+          titleParts: [
+            { text: "Amazing ", hit: false },
+            { text: "Grace", hit: true },
+          ],
+        },
+        // The seed song's lyrics are those of Amazing Grace.
+        { title: "Hallelujah", line: expect.any(Array) as unknown },
+      ],
+      hasSheets: true,
+      q: "grace",
+    });
+  });
+
+  // Scenario "One character".
+  it("lists all sheets for a q of one character", async () => {
+    for (const title of ["Hallelujah", "Amazing Grace"]) {
+      await createSheet(test.env.DB, "ana", { title, content: seedSong });
+    }
+    const data = (await load("ana", "?q=a")) as { sheets: SheetListItem[] };
+    expect(data.sheets.map((sheet) => sheet.title)).toEqual([
+      "Amazing Grace",
+      "Hallelujah",
+    ]);
+  });
+
+  it("says the person has sheets when a search finds none", async () => {
+    await createSheet(test.env.DB, "ana", {
+      title: "Amazing Grace",
+      content: seedSong,
+    });
+    expect(await load("ana", "?q=k%C3%B6nigin")).toMatchObject({
+      sheets: [],
+      hasSheets: true,
+      q: "königin",
+    });
+  });
+
+  it("says the person has no sheets", async () => {
+    expect(await load("ana", "?q=grace")).toMatchObject({
+      sheets: [],
+      hasSheets: false,
     });
   });
 
@@ -118,12 +173,16 @@ describe("library loader and action", () => {
 });
 
 // The page needs a router for its form.
-function render(sheets: SheetListItem[], offerPasskey?: boolean) {
+function render(
+  sheets: (SheetListItem | SearchResult)[],
+  offerPasskey?: boolean,
+  search: { q?: string; hasSheets?: boolean } = {},
+) {
   const Stub = createRoutesStub([
     {
       path: "/",
       Component: () => (
-        <LibraryView sheets={sheets} offerPasskey={offerPasskey} />
+        <LibraryView sheets={sheets} offerPasskey={offerPasskey} {...search} />
       ),
     },
   ]);
@@ -224,5 +283,105 @@ describe("library page", () => {
   it("sets the page title and asks search engines not to index it", () => {
     expect(meta()).toContainEqual({ title: "Library | Sheet Library" });
     expect(meta()).toContainEqual({ name: "robots", content: "noindex" });
+  });
+});
+
+describe("library search", () => {
+  const today = Date.now();
+  const grace: SheetListItem = {
+    id: "abcdefghijkl",
+    title: "Amazing Grace",
+    updatedAt: today,
+  };
+
+  it("shows the field below the heading, without a count", () => {
+    const html = render([grace]);
+    expect(html).toMatch(/<\/h1>.*<form[^>]*role="search"/s);
+    expect(html).toMatch(/<form [^>]*method="get"/);
+    expect(html).toContain('aria-label="Search sheets"');
+    expect(html).toContain('placeholder="Search titles, artists and lyrics"');
+    expect(html).toContain('name="q"');
+    expect(html).toMatch(
+      /<span class="search-field-count" role="status"><\/span>/,
+    );
+    expect(html).not.toContain("Clear search");
+  });
+
+  it("hides the field without sheets", () => {
+    expect(render([])).not.toContain('role="search"');
+  });
+
+  // Scenario "Count".
+  it("says how many sheets match, and offers to clear the search", () => {
+    const results = [grace, { ...grace, id: "mnopqrstuvwx" }];
+    const html = render(
+      results.map((sheet) => ({
+        ...sheet,
+        titleParts: [{ text: sheet.title, hit: false }],
+      })),
+      false,
+      { q: "grace", hasSheets: true },
+    );
+    expect(html).toContain('value="grace"');
+    expect(html).toContain('role="status">2 sheets</span>');
+    expect(html).toContain('aria-label="Clear search"');
+    expect(
+      render([{ ...grace, titleParts: [] }], false, { q: "grace" }),
+    ).toContain('role="status">1 sheet</span>');
+  });
+
+  // Scenario "One character".
+  it("shows no count for one character", () => {
+    expect(render([grace], false, { q: "a" })).toMatch(
+      /role="status"><\/span>/,
+    );
+  });
+
+  // Scenarios "Title match" and "Lyrics match".
+  it("marks the matches, with the line for a lyrics match", () => {
+    const html = render(
+      [
+        {
+          id: "abcdefghijkl",
+          title: "Drüü Könige",
+          artist: "Trad.",
+          updatedAt: today,
+          titleParts: [
+            { text: "Drüü ", hit: false },
+            { text: "Könige", hit: true },
+          ],
+          artistParts: [{ text: "Trad.", hit: false }],
+        },
+        {
+          id: "mnopqrstuvwx",
+          title: "Sternsinger",
+          updatedAt: today,
+          titleParts: [{ text: "Sternsinger", hit: false }],
+          line: [
+            { text: "Drei ", hit: false },
+            { text: "Könige", hit: true },
+            { text: " ziehen", hit: false },
+          ],
+        },
+      ],
+      false,
+      { q: "könige", hasSheets: true },
+    );
+    expect(html).toContain(
+      '<span class="library-title">Drüü <mark>Könige</mark></span>',
+    );
+    expect(html).toContain(
+      '<span class="library-line">Drei <mark>Könige</mark> ziehen</span>',
+    );
+    expect(html.match(/library-line/g)).toHaveLength(1);
+  });
+
+  // Scenario "Nothing found".
+  it("says no sheet matches, in place of the list", () => {
+    const html = render([], false, { q: "königin", hasSheets: true });
+    expect(html).toContain("No sheets match “königin”");
+    expect(html).toContain('role="search"');
+    expect(html).not.toContain('class="group-list"');
+    expect(html).not.toContain("No sheets yet");
   });
 });
