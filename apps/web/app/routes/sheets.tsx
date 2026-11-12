@@ -14,7 +14,7 @@ import { editDate, lastEdit } from "../sheets/last-edit";
 import { UNTITLED } from "../sheets/details";
 import { importedSheetPath, importSheet } from "../sheets/import";
 import { isSearch, type TextPart } from "../sheets/search";
-import { SearchField } from "../sheets/search-field";
+import { SearchField, useSearchPending } from "../sheets/search-field";
 import {
   createSheet,
   hasSheets,
@@ -237,6 +237,7 @@ export function LibraryView({
     setHydrated(true);
   }, []);
   const searching = isSearch(q);
+  const pending = useSearchPending();
   const now = Date.now();
   const edited = (at: number) =>
     hydrated ? lastEdit(at, now) : editDate(at, now, "UTC");
@@ -261,13 +262,21 @@ export function LibraryView({
         <Actions className="library-actions library-actions-beside" />
       </div>
       {offer}
-      <SearchField q={q} count={searching ? sheets.length : null} />
+      <SearchField
+        q={q}
+        count={searching ? sheets.length : null}
+        pending={pending}
+      />
       {searching && sheets.length === 0 ? (
-        <section className="library-empty" aria-labelledby="library-no-results">
+        <section
+          className="library-empty"
+          aria-labelledby="library-no-results"
+          aria-busy={pending || undefined}
+        >
           <h2 id="library-no-results">{`No sheets match “${q.trim()}”`}</h2>
         </section>
       ) : (
-        <div className="library-list">
+        <div className="library-list" aria-busy={pending || undefined}>
           <div className="library-columns library-labels" aria-hidden="true">
             <span>Title</span>
             <span>Artist</span>

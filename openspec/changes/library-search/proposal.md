@@ -12,8 +12,9 @@ The library is one list, newest edit first. With many sheets, finding a song is 
 - Results are ordered by how well they match. A match in the title counts most, then the artist, then the lyrics.
 - Matches are marked in the title and the artist. A sheet that matches only by its lyrics shows the line with the match under its title.
 - The field says how many sheets match, such as "4 sheets", and has a button to clear it. When nothing matches, the list gives way to "No sheets match “Königin”".
+- When a search takes more than a moment, the field says "Searching…" and the results shown are dimmed until the new ones arrive.
 - The library may now use the lyrics as plain text, given by the sheet's format. It still never reads the content itself.
-- Not in this change: finding sheets for albums or sets, and searching chords or section labels.
+- Not in this change: finding sheets for albums or sets, searching chords or section labels, and a sign of loading or of a lost connection for the rest of the app (#129).
 
 ## Capabilities
 
@@ -35,7 +36,7 @@ The library is one list, newest edit first. With many sheets, finding a song is 
 - `packages/chordsheet`: the lyrics as plain text.
 - `apps/web/app/routes/sheets.tsx` and `sheets.css`: the field, the results, the marks, the matching line and no results.
 - `apps/web/e2e/library.spec.ts`: searching on a wide screen and a phone.
-- `docs/ui-text.md`: the field's label and placeholder, the count, "Clear search" and no results.
+- `docs/ui-text.md`: the field's label and placeholder, the count, "Searching…", "Clear search" and no results.
 - `wrangler d1 export` can't export a database with an FTS5 table. Nothing uses it today.
 - The design canvas: https://claude.ai/artifact/CfCvVgRudJH6GBu6sx5Xj3
 

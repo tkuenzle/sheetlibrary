@@ -324,6 +324,31 @@ test.describe("search", () => {
     await expect(page.getByRole("search").getByRole("status")).toHaveText("");
   });
 
+  // Scenario "Slow connection".
+  test("says it is searching while results are slow", async ({ page }) => {
+    const tag = word();
+    await addSheet(page, `Amazing ${tag}`);
+    await page.goto(`/sheets?q=${tag}`);
+    await expect(page.getByRole("listitem")).toHaveCount(1);
+    // The page's data for the next search arrives two seconds late.
+    await page.route(/\/sheets\.data\?/, async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await route.continue();
+    });
+    await field(page).fill(`amazing ${tag}`);
+    const status = page.getByRole("search").getByRole("status");
+    await expect(status).toHaveText("Searching…");
+    await expect(page.locator(".library-list")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    await expect(status).toHaveText("1 sheet");
+    await expect(page.locator(".library-list")).not.toHaveAttribute(
+      "aria-busy",
+    );
+    await expect(page).toHaveURL(/q=amazing/);
+  });
+
   // Scenario "Nothing found". Also on a phone, in the phone project.
   test("says when no sheet matches", async ({ page }) => {
     const tag = word();

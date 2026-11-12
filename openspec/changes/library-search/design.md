@@ -82,6 +82,8 @@ For a sheet without a mark in its title or artist, the server finds the first li
 
 The field is a GET `<Form>` with `q`, so Enter works without the scripts. With them, typing submits after a 300 ms pause, with `replace` and `preventScrollReset`. Under 2 characters, it goes to `/sheets` without `q`. "Clear search" does the same and keeps the focus in the field. The count ("4 sheets") is a `role="status"` element inside the field.
 
+While a navigation to `/sheets` is loading (`useNavigation`) for more than 200 ms, the count reads "Searching…", and the list or the no-results card gets `aria-busy` and is dimmed. The delay keeps a fast answer from flickering. React Router cancels a navigation when a newer one starts, so results never arrive out of order. A failed search is #129's, with the rest of the app.
+
 The loader also says whether the person has any sheets, so a search without results still shows the field, and the "No sheets yet" page doesn't.
 
 ## Risks / Trade-offs

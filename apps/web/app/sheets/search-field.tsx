@@ -1,7 +1,7 @@
 import "./search-field.css";
 
 import { useEffect, useRef, useState } from "react";
-import { Form, useLocation, useNavigate } from "react-router";
+import { Form, useLocation, useNavigate, useNavigation } from "react-router";
 
 import { Icon } from "../ui/icon";
 import { IconButton } from "../ui/button";
@@ -10,27 +10,63 @@ import { isSearch } from "./search";
 // How long typing pauses before the results update, in milliseconds.
 export const SEARCH_PAUSE = 300;
 
+// How long a search loads before the page shows it, in milliseconds, so a
+// fast answer doesn't flicker.
+const PENDING_DELAY = 200;
+
+// Whether a search has been loading for more than a moment. A newer search
+// cancels an older one, so results never arrive out of order.
+export function useSearchPending(): boolean {
+  const navigation = useNavigation();
+  const loading =
+    navigation.state === "loading" &&
+    navigation.location.pathname === "/sheets";
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => {
+      setPending(true);
+    }, PENDING_DELAY);
+    return () => {
+      clearTimeout(timer);
+      setPending(false);
+    };
+  }, [loading]);
+  return pending;
+}
+
 // The library's search field: a GET form for `q`, so Enter works before the
 // scripts load. With them, the results update as you type, and each update
 // replaces the address. See openspec/specs/library-search.
 export function SearchField({
   q,
   count,
+  pending = false,
 }: {
   // The search the page shows.
   q: string;
   // How many sheets it found, or null when the page shows no search.
   count: number | null;
+  // Whether a new search is loading.
+  pending?: boolean;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const input = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const [text, setText] = useState(q);
+  // The input is uncontrolled, so what is typed before the scripts load is
+  // kept. This only follows whether it is empty, for "Clear search".
+  const [empty, setEmpty] = useState(q === "");
 
-  // Follow the address, as after Back, unless the person is typing.
+  // Follow the address, as after Back, unless the person is typing. Text
+  // that differs from the address, such as typed before the scripts
+  // loaded, is searched.
   useEffect(() => {
-    if (document.activeElement !== input.current) setText(q);
+    const field = input.current;
+    if (!field) return;
+    if (document.activeElement !== field) field.value = q;
+    setEmpty(field.value === "");
+    if (field.value !== q) schedule(field.value);
   }, [q]);
   useEffect(
     () => () => {
@@ -38,6 +74,15 @@ export function SearchField({
     },
     [],
   );
+
+  // Searches the text after a pause in typing.
+  const schedule = (value: string) => {
+    setEmpty(value === "");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      show(value);
+    }, SEARCH_PAUSE);
+  };
 
   const show = (value: string) => {
     clearTimeout(timer.current);
@@ -59,7 +104,7 @@ export function SearchField({
       className="search-field"
       onSubmit={(event) => {
         event.preventDefault();
-        show(text);
+        show(input.current?.value ?? "");
       }}
     >
       <Icon name="search" />
@@ -70,31 +115,29 @@ export function SearchField({
         aria-label="Search sheets"
         placeholder="Search titles, artists and lyrics"
         autoComplete="off"
-        value={text}
+        defaultValue={q}
         onChange={(event) => {
-          const value = event.target.value;
-          setText(value);
-          clearTimeout(timer.current);
-          timer.current = setTimeout(() => {
-            show(value);
-          }, SEARCH_PAUSE);
+          schedule(event.target.value);
         }}
       />
       {/* Read out when it changes. Without results, the page says so, and
           this only tells screen readers. */}
       <span className="search-field-count" role="status">
-        {count === 0 ? (
+        {pending ? (
+          "Searching…"
+        ) : count === 0 ? (
           <span className="visually-hidden">No sheets match</span>
         ) : (
           countText(count)
         )}
       </span>
-      {text !== "" && (
+      {!empty && (
         <IconButton
           icon="close"
           label="Clear search"
           onClick={() => {
-            setText("");
+            if (input.current) input.current.value = "";
+            setEmpty(true);
             show("");
             input.current?.focus();
           }}

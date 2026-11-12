@@ -22,6 +22,7 @@
 - [x] 4.3 Show the results: `<mark>` on the hit parts in the title and the artist, the matching line under the title for lyrics-only matches, on wide screens and phones, and "No sheets match “…”" in place of the list. Verify with `sheets.test.tsx` cases, and that the line is a third line on a phone, as on the canvas.
 - [x] 4.4 Add the search's words to `docs/ui-text.md`: "Search sheets", "Search titles, artists and lyrics", "4 sheets" and "1 sheet", "Clear search" and "No sheets match “Königin”". Verify they match the page.
 - [x] 4.5 Add e2e tests to `e2e/library.spec.ts`: find a sheet by a line of its lyrics without the umlaut, reload the search's address, go back to the sheet the library was opened from, clear the search, and search with no results on a phone. Verify they pass.
+- [x] 4.6 While a search loads for more than 200 ms, show "Searching…" in the count and dim the list or the no-results card with `aria-busy`. Add "Searching…" to `docs/ui-text.md`. Verify with an e2e test in `e2e/library.spec.ts` that delays the search's request: the field says "Searching…" and the list is busy, then the results show.
 
 ## 5. Checks
 

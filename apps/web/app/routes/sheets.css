@@ -69,6 +69,17 @@
   font: 700 17px / 1.3 var(--font);
 }
 
+/* While a search loads, the results shown are out of date. */
+.library-list,
+.library-empty {
+  transition: opacity 150ms;
+}
+
+.library-list[aria-busy="true"],
+.library-empty[aria-busy="true"] {
+  opacity: 0.5;
+}
+
 /* A search's matches, marked in the title, the artist and the line. */
 .library-list mark {
   padding: 0 2px;

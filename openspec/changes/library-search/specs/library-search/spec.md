@@ -68,6 +68,13 @@ While searching, the field SHALL say how many sheets match, such as "4 sheets" o
 - **WHEN** a person selects "Clear search"
 - **THEN** the field is empty, the address has no `q`, and the library lists all sheets
 
+### Requirement: A slow search
+When a search takes more than a moment, the field SHALL say "Searching…" in place of the count, and the results shown SHALL be dimmed and marked busy until the new ones arrive. Typing SHALL never wait for a search.
+
+#### Scenario: Slow connection
+- **WHEN** a person types "grace" and the results take two seconds to arrive
+- **THEN** the field says "Searching…" and the earlier results are dimmed, until the results for "grace" show
+
 ### Requirement: No results
 When nothing matches, the list SHALL give way to "No sheets match" and the search, such as "No sheets match “Königin”".
 
