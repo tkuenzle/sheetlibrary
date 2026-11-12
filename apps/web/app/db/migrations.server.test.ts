@@ -11,6 +11,26 @@ describe("statements", () => {
       ),
     ).toEqual(["create table a (x)", "create index i on a (x)"]);
   });
+
+  it("keeps a trigger's body whole", () => {
+    expect(
+      statements(
+        "create table a (x);\n" +
+          "create trigger t after insert on a begin\n" +
+          "  insert into b values (new.x);\n" +
+          "  insert into c values (new.x);\n" +
+          "end;\n" +
+          "create index i on a (x);",
+      ),
+    ).toEqual([
+      "create table a (x)",
+      "create trigger t after insert on a begin\n" +
+        "  insert into b values (new.x);\n" +
+        "insert into c values (new.x);\n" +
+        "end",
+      "create index i on a (x)",
+    ]);
+  });
 });
 
 describe("applyMigrations", () => {

@@ -1,6 +1,8 @@
+import { type ChordSheet, plainLines } from "chordsheet";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { testEnv } from "../db/local-env.test-helper";
+import { migrations, statements } from "../db/migrations.server";
 import { seedSong } from "../editor/seed-song";
 import {
   changeVersion,
@@ -13,6 +15,7 @@ import {
   listVersions,
   readSheet,
   saveSheet,
+  searchSheets,
 } from "./sheets.server";
 import { addUser } from "./sheets.test-helper";
 
@@ -256,5 +259,201 @@ describe("version storage", () => {
       .prepare('SELECT count(*) AS n FROM "sheet_version"')
       .first<{ n: number }>();
     expect(left?.n).toBe(0);
+  });
+});
+
+describe("lyrics beside the content", () => {
+  let test: Awaited<ReturnType<typeof testEnv>>;
+  let db: D1Database;
+  beforeEach(async () => {
+    test = await testEnv();
+    db = test.env.DB;
+    await addUser(db, "ana");
+  });
+  afterEach(() => test.dispose());
+
+  const storedLyrics = async (id: string) =>
+    (
+      await db
+        .prepare('SELECT "lyrics" FROM "sheet" WHERE "id" = ?')
+        .bind(id)
+        .first<{ lyrics: string }>()
+    )?.lyrics;
+
+  // Labels, chords and a line with only chords, which the lyrics leave out.
+  const content: ChordSheet = {
+    format: "chordsheet",
+    version: 1,
+    sections: [
+      {
+        label: "Verse",
+        lines: [
+          { text: "", chords: [{ at: 0, root: "G" }] },
+          { text: "Amazing grace", chords: [{ at: 0, root: "G" }] },
+        ],
+      },
+      {
+        lines: [
+          { text: "How sweet the sound", chords: [{ at: 4, root: "C" }] },
+        ],
+      },
+    ],
+  };
+
+  it("writes the lyrics when a sheet is created and saved", async () => {
+    const created = await createSheet(db, "ana", {
+      title: "Amazing Grace",
+      content,
+    });
+    expect(await storedLyrics(created.id)).toBe(
+      "Amazing grace\nHow sweet the sound",
+    );
+    await saveSheet(db, "ana", {
+      ...created,
+      content: {
+        ...content,
+        sections: [{ lines: [{ text: "Was blind", chords: [] }] }],
+      },
+    });
+    expect(await storedLyrics(created.id)).toBe("Was blind");
+  });
+
+  it("fills existing sheets in the migration as plainLines does", async () => {
+    const { id } = await createSheet(db, "ana", {
+      title: "Amazing Grace",
+      content,
+    });
+    await db.prepare('UPDATE "sheet" SET "lyrics" = \'\'').run();
+    const migration = migrations.find(
+      (m) => m.name === "0005_library_search.sql",
+    );
+    const fill = statements(migration?.sql ?? "").find((s) =>
+      s.startsWith('update "sheet"'),
+    );
+    await db.prepare(fill ?? "").run();
+    expect(await storedLyrics(id)).toBe(plainLines(content).join("\n"));
+  });
+});
+
+describe("searching sheets", () => {
+  let test: Awaited<ReturnType<typeof testEnv>>;
+  let db: D1Database;
+  beforeEach(async () => {
+    test = await testEnv();
+    db = test.env.DB;
+    await addUser(db, "ana");
+    await addUser(db, "bo");
+  });
+  afterEach(() => test.dispose());
+
+  const lyrics = (...texts: string[]): ChordSheet => ({
+    format: "chordsheet",
+    version: 1,
+    sections: [{ lines: texts.map((text) => ({ text, chords: [] })) }],
+  });
+  const titles = async (userId: string, q: string) =>
+    (await searchSheets(db, userId, q)).map((result) => result.title);
+
+  it("finds a word without its accents", async () => {
+    await createSheet(db, "ana", { title: "Drüü Könige", content: lyrics() });
+    expect(await titles("ana", "konige")).toEqual(["Drüü Könige"]);
+  });
+
+  it("matches words by their start", async () => {
+    await createSheet(db, "ana", { title: "Amazing Grace", content: lyrics() });
+    expect(await titles("ana", "grac")).toEqual(["Amazing Grace"]);
+    expect(await titles("ana", "race")).toEqual([]);
+  });
+
+  it("finds each word anywhere in the sheet", async () => {
+    await createSheet(db, "ana", {
+      title: "Amazing Grace",
+      artist: "John Newton",
+      content: lyrics("How sweet the sound"),
+    });
+    expect(await titles("ana", "grace newton sound")).toEqual([
+      "Amazing Grace",
+    ]);
+  });
+
+  // Scenario "Title before lyrics".
+  it("lists a title match before a lyrics match", async () => {
+    await createSheet(db, "ana", {
+      title: "Sternsinger",
+      content: lyrics("Drei Könige ziehen durchs Dorf"),
+    });
+    await createSheet(db, "ana", { title: "Drüü Könige", content: lyrics() });
+    expect(await titles("ana", "könige")).toEqual([
+      "Drüü Könige",
+      "Sternsinger",
+    ]);
+  });
+
+  // Scenarios "Title match" and "Lyrics match".
+  it("marks the matches, and the line only for a lyrics match", async () => {
+    await createSheet(db, "ana", { title: "Drüü Könige", content: lyrics() });
+    await createSheet(db, "ana", {
+      title: "Sternsinger",
+      content: lyrics("Stille Nacht", "Drei Könige ziehen durchs Dorf"),
+    });
+    const [title, lyricsOnly] = await searchSheets(db, "ana", "könige");
+    expect(title).toMatchObject({
+      titleParts: [
+        { text: "Drüü ", hit: false },
+        { text: "Könige", hit: true },
+      ],
+    });
+    expect(title).not.toHaveProperty("line");
+    expect(lyricsOnly).toMatchObject({
+      titleParts: [{ text: "Sternsinger", hit: false }],
+      line: [
+        { text: "Drei ", hit: false },
+        { text: "Könige", hit: true },
+        { text: " ziehen durchs Dorf", hit: false },
+      ],
+    });
+  });
+
+  // Scenario "Someone else's sheets".
+  it("doesn't find someone else's sheets", async () => {
+    await createSheet(db, "bo", { title: "Shenandoah", content: lyrics() });
+    expect(await titles("ana", "shenandoah")).toEqual([]);
+  });
+
+  // Scenario "After renaming".
+  it("finds a sheet by its saved title", async () => {
+    const sheet = await createSheet(db, "ana", {
+      title: "Untitled",
+      content: lyrics(),
+    });
+    await saveSheet(db, "ana", { ...sheet, title: "Amazing Grace" });
+    expect(await titles("ana", "amazing")).toEqual(["Amazing Grace"]);
+    expect(await titles("ana", "untitled")).toEqual([]);
+  });
+
+  // Scenario "After deleting", and an account that is deleted.
+  it("finds nothing of a deleted sheet, nor of a deleted owner's", async () => {
+    const { id } = await createSheet(db, "ana", {
+      title: "Amazing Grace",
+      content: lyrics(),
+    });
+    await createSheet(db, "bo", {
+      title: "Shenandoah",
+      content: lyrics("Away you rolling river"),
+    });
+    await deleteSheet(db, "ana", id);
+    await db.prepare('DELETE FROM "user" WHERE "id" = ?').bind("bo").run();
+    expect(await titles("ana", "amazing")).toEqual([]);
+    const left = await db
+      .prepare(
+        'SELECT count(*) AS n FROM "sheet_fts" WHERE "sheet_fts" MATCH \'amazing OR shenandoah OR river\'',
+      )
+      .first<{ n: number }>();
+    expect(left?.n).toBe(0);
+  });
+
+  it("finds nothing when no word is left to search", async () => {
+    await createSheet(db, "ana", { title: "Amazing Grace", content: lyrics() });
+    expect(await titles("ana", '" -')).toEqual([]);
   });
 });

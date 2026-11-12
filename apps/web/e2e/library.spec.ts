@@ -239,6 +239,128 @@ test.describe("the import", () => {
   });
 });
 
+// Scenarios of openspec/specs/library-search. The account is shared with
+// other tests and runs, so each test searches a word of its own.
+test.describe("search", () => {
+  test.use({ storageState: authFile });
+
+  // A word no other sheet holds: letters only, so it is one word.
+  const word = () =>
+    Array.from(crypto.getRandomValues(new Uint8Array(10)), (n) =>
+      String.fromCharCode(97 + (n % 26)),
+    ).join("");
+
+  async function addSheet(page: Page, title: string, ...lines: string[]) {
+    const response = await page.request.post("/api/sheets", {
+      data: {
+        title,
+        content: {
+          format: "chordsheet",
+          version: 1,
+          sections:
+            lines.length === 0
+              ? []
+              : [{ lines: lines.map((text) => ({ text, chords: [] })) }],
+        },
+      },
+    });
+    expect(response.ok()).toBe(true);
+    return ((await response.json()) as { id: string }).id;
+  }
+
+  const field = (page: Page) =>
+    page.getByRole("searchbox", { name: "Search sheets" });
+
+  // Scenarios "Finding by lyrics", "Without the umlaut" and "Lyrics match".
+  test("finds a sheet by a line of its lyrics, without the umlaut", async ({
+    page,
+  }) => {
+    const tag = word();
+    await addSheet(page, "Sternsinger", "Stille Nacht", `Drei Kö${tag} ziehen`);
+    await page.goto("/sheets");
+    await field(page).fill(`ko${tag}`);
+    await expect(page).toHaveURL(`/sheets?q=ko${tag}`);
+    await expect(page.getByRole("search").getByRole("status")).toHaveText(
+      "1 sheet",
+    );
+    const row = page.getByRole("listitem");
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText("Sternsinger");
+    await expect(row).toContainText(`Drei Kö${tag} ziehen`);
+    await expect(row.locator("mark")).toHaveText(`Kö${tag}`);
+
+    // A reload shows the same results.
+    await page.reload();
+    await expect(field(page)).toHaveValue(`ko${tag}`);
+    await expect(page.getByRole("listitem")).toHaveCount(1);
+  });
+
+  // Scenario "Back leaves the library".
+  test("goes back to the sheet the library was opened from", async ({
+    page,
+  }) => {
+    const tag = word();
+    const id = await addSheet(page, `Amazing ${tag}`);
+    await page.goto(`/sheets/${id}`);
+    await expect(heading(page)).toHaveText(`Amazing ${tag}`);
+    await page.getByRole("link", { name: "Library" }).click();
+    await expect(page).toHaveURL("/sheets");
+    await field(page).pressSequentially(tag.slice(0, 5), { delay: 100 });
+    await expect(page).toHaveURL(`/sheets?q=${tag.slice(0, 5)}`);
+    await page.goBack();
+    await expect(page).toHaveURL(`/sheets/${id}`);
+  });
+
+  // Scenario "Clearing".
+  test("clears the search", async ({ page }) => {
+    const tag = word();
+    await addSheet(page, `Amazing ${tag}`);
+    await page.goto(`/sheets?q=${tag}`);
+    await expect(page.getByRole("listitem")).toHaveCount(1);
+    await page.getByRole("button", { name: "Clear search" }).click();
+    await expect(page).toHaveURL("/sheets");
+    await expect(field(page)).toHaveValue("");
+    await expect(field(page)).toBeFocused();
+    await expect(page.getByRole("search").getByRole("status")).toHaveText("");
+  });
+
+  // Scenario "Slow connection".
+  test("says it is searching while results are slow", async ({ page }) => {
+    const tag = word();
+    await addSheet(page, `Amazing ${tag}`);
+    await page.goto(`/sheets?q=${tag}`);
+    await expect(page.getByRole("listitem")).toHaveCount(1);
+    // The page's data for the next search arrives two seconds late.
+    await page.route(/\/sheets\.data\?/, async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await route.continue();
+    });
+    await field(page).fill(`amazing ${tag}`);
+    const status = page.getByRole("search").getByRole("status");
+    await expect(status).toHaveText("Searching…");
+    await expect(page.locator(".library-list")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    await expect(status).toHaveText("1 sheet");
+    await expect(page.locator(".library-list")).not.toHaveAttribute(
+      "aria-busy",
+    );
+    await expect(page).toHaveURL(/q=amazing/);
+  });
+
+  // Scenario "Nothing found". Also on a phone, in the phone project.
+  test("says when no sheet matches", async ({ page }) => {
+    const tag = word();
+    await page.goto(`/sheets?q=${tag}`);
+    await expect(
+      page.getByRole("heading", { name: `No sheets match “${tag}”` }),
+    ).toBeVisible();
+    await expect(page.getByRole("listitem")).toHaveCount(0);
+    await expect(field(page)).toBeVisible();
+  });
+});
+
 test.describe("not signed in", () => {
   // Scenario "Not signed in".
   test("sends visitors to sign-in", async ({ page }) => {

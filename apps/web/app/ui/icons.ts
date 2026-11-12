@@ -23,6 +23,7 @@ import photoLibrary from "./icons/photo_library.svg?raw";
 import playArrow from "./icons/play_arrow.svg?raw";
 import print from "./icons/print.svg?raw";
 import remove from "./icons/remove.svg?raw";
+import search from "./icons/search.svg?raw";
 import textDecrease from "./icons/text_decrease.svg?raw";
 import textIncrease from "./icons/text_increase.svg?raw";
 
@@ -59,6 +60,7 @@ const sources = {
   playArrow,
   print,
   remove,
+  search,
   textDecrease,
   textIncrease,
 };

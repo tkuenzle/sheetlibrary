@@ -7,7 +7,7 @@ The library at `/sheets`: where a signed-in person finds their sheets and starts
 ## Requirements
 
 ### Requirement: My sheets
-The page at `/sheets` SHALL list the signed-in person's sheets and no one else's, the most recently edited first. Each row SHALL show the sheet's title, its artist if it has one, and when it was last edited. A row SHALL open the sheet to play at `/sheets/:id`.
+The page at `/sheets` SHALL list the signed-in person's sheets and no one else's. Without a search, it SHALL list all of them, the most recently edited first; while searching, it SHALL list only the results, as the `library-search` capability says. Each row SHALL show the sheet's title, its artist if it has one, and when it was last edited. A row SHALL open the sheet to play at `/sheets/:id`.
 
 #### Scenario: Newest edit first
 - **WHEN** a person has the sheets "Amazing Grace" and "Hallelujah", and last edited "Hallelujah"
@@ -20,6 +20,10 @@ The page at `/sheets` SHALL list the signed-in person's sheets and no one else's
 #### Scenario: Opening a sheet
 - **WHEN** a person selects the row "Amazing Grace"
 - **THEN** the play view of "Amazing Grace" opens, not the editor
+
+#### Scenario: While searching
+- **WHEN** a person has "Amazing Grace" and "Hallelujah", and searches "grace"
+- **THEN** the library lists only "Amazing Grace"
 
 ### Requirement: When a sheet was last edited
 A row SHALL say "Today" or "Yesterday" for a sheet last edited on those days, in the viewer's time zone. Otherwise it SHALL show the day and month, such as "28 Oct", and the year too when it isn't the current year.

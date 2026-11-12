@@ -26,15 +26,33 @@ const createTable = `CREATE TABLE IF NOT EXISTS d1_migrations(
 )`;
 
 // The statements of a migration file. Its SQL has no semicolons inside
-// strings, so splitting on them is enough.
+// strings, so splitting on them is enough, except inside a trigger's body:
+// a trigger runs on until its `end`.
 export function statements(sql: string): string[] {
-  return sql
+  const parts = sql
     .split("\n")
     .filter((line) => !line.trimStart().startsWith("--"))
     .join("\n")
-    .split(";")
-    .map((statement) => statement.trim())
-    .filter((statement) => statement !== "");
+    .split(";");
+  const result: string[] = [];
+  let trigger: string[] = [];
+  for (const part of parts) {
+    const statement = part.trim();
+    if (
+      trigger.length > 0 ||
+      /^create\s+(temp\s+|temporary\s+)?trigger\b/i.test(statement)
+    ) {
+      trigger.push(statement);
+      if (/\bend$/i.test(statement)) {
+        result.push(trigger.join(";\n"));
+        trigger = [];
+      }
+    } else if (statement !== "") {
+      result.push(statement);
+    }
+  }
+  if (trigger.length > 0) result.push(trigger.join(";\n"));
+  return result;
 }
 
 // Applies the migrations that aren't applied yet, each in one batch, so a
