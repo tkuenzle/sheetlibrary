@@ -24,7 +24,7 @@ The library is one long list. People want to group sheets the way they think of 
 
 - `library-page`: the library gets the Sheets and Collections tabs, and the Collections tab with "New collection".
 - `play-page`: "Choose collections…", in the top bar on a wide screen and in the menu on a phone.
-- `site-layout`: the top bar on a collection's page starts with "Collections" and a back arrow.
+- `site-layout`: on a collection's page, the top bar starts with "Collections" and a back arrow.
 
 ## Impact
 
