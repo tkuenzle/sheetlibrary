@@ -6,8 +6,9 @@ import { Icon } from "../ui/icon";
 import { type SignedIn, SignedInContext } from "./signed-in";
 
 // The bar at the top of a page: the site's name, linking home or, once
-// signed in, to the library, or "Library" with a back arrow on a sheet,
-// followed by `afterBack`. Then the page's actions, and the link to sign in
+// signed in, to the library, or a back arrow instead: "Library" on a sheet,
+// or the page `back` names, such as "Collections" on a collection. On a
+// sheet, it is followed by `afterBack`. Then the page's actions, and the link to sign in
 // or to the account at the end.
 // The links load the next page in full, so a page with unsaved edits can warn
 // before they go.
@@ -17,19 +18,21 @@ export function TopBar({
   accountPage = false,
   children,
 }: {
-  back?: boolean;
+  // True for "Library", or the page to go back to.
+  back?: boolean | { href: string; label: string };
   // On a sheet, after "Library": the switch between playing and editing.
   afterBack?: ReactNode;
   accountPage?: boolean;
   children?: ReactNode;
 }) {
   const signedIn = use(SignedInContext);
+  const backTo = back === true ? { href: "/sheets", label: "Library" } : back;
   return (
     <header className={back ? "top-bar top-bar-with-back" : "top-bar"}>
-      {back ? (
-        <a className="top-bar-back" href="/sheets">
+      {backTo ? (
+        <a className="top-bar-back" href={backTo.href}>
           <Icon name="arrowBack" />
-          Library
+          {backTo.label}
         </a>
       ) : (
         <a className="top-bar-name" href={signedIn ? "/sheets" : "/"}>

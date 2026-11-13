@@ -2,9 +2,12 @@ import add from "./icons/add.svg?raw";
 import addAPhoto from "./icons/add_a_photo.svg?raw";
 import arrowBack from "./icons/arrow_back.svg?raw";
 import check from "./icons/check.svg?raw";
+import chevronRight from "./icons/chevron_right.svg?raw";
 import close from "./icons/close.svg?raw";
+import collectionsBookmark from "./icons/collections_bookmark.svg?raw";
 import contentPasteGo from "./icons/content_paste_go.svg?raw";
 import deleteIcon from "./icons/delete.svg?raw";
+import doNotDisturbOn from "./icons/do_not_disturb_on.svg?raw";
 import edit from "./icons/edit.svg?raw";
 import expandMore from "./icons/expand_more.svg?raw";
 import help from "./icons/help.svg?raw";
@@ -38,10 +41,13 @@ const sources = {
   addAPhoto,
   arrowBack,
   check,
+  chevronRight,
   close,
+  collectionsBookmark,
   contentPasteGo,
   // `delete` is a keyword, so its import has another name.
   delete: deleteIcon,
+  doNotDisturbOn,
   edit,
   expandMore,
   help,

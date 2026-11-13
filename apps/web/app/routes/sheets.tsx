@@ -11,6 +11,7 @@ import { ImportDialog } from "../editor/import-button";
 import { PhotoImportDialog } from "../photos/photo-import-dialog";
 import { TopBar } from "../shell/top-bar";
 import { editDate, lastEdit } from "../sheets/last-edit";
+import { LibraryTabs } from "../sheets/library-tabs";
 import { UNTITLED } from "../sheets/details";
 import { importedSheetPath, importSheet } from "../sheets/import";
 import { isSearch, type TextPart } from "../sheets/search";
@@ -246,6 +247,7 @@ export function LibraryView({
     return (
       <main className="library">
         <h1>Library</h1>
+        <LibraryTabs current="sheets" />
         {offer}
         <section className="library-empty" aria-labelledby="library-empty">
           <h2 id="library-empty">No sheets yet</h2>
@@ -261,6 +263,7 @@ export function LibraryView({
         <h1>Library</h1>
         <Actions className="library-actions library-actions-beside" />
       </div>
+      <LibraryTabs current="sheets" />
       {offer}
       <SearchField
         q={q}

@@ -25,6 +25,13 @@ Every page except the sign-in page and the `/design` page SHALL show a top bar. 
 - **WHEN** a visitor opens the sign-in page
 - **THEN** the page has no top bar, and "Sheet Library" above the sign-in card opens the home page
 
+### Requirement: Back to the collections
+On a collection, at `/collections/:id`, the top bar SHALL start with "Collections" and a back arrow instead of the site's name, as a link to `/collections`.
+
+#### Scenario: Back to the collections
+- **WHEN** a signed-in person on the page of "Christmas" clicks "Collections" in the top bar
+- **THEN** the Collections tab opens
+
 ### Requirement: Account link in the top bar
 The top bar SHALL show a "Sign in" link to the sign-in page when the visitor isn't signed in. When they are signed in, it SHALL show the first letter of their email, in upper case and in a circle, as a link named "Account" to their account page. On the account page, the link SHALL be marked as the current page.
 

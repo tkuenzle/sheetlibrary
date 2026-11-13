@@ -1,7 +1,12 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { NameContent, NameDialog } from "./name-dialog";
+import {
+  failureNote,
+  NameContent,
+  NameDialog,
+  NameRefused,
+} from "./name-dialog";
 
 function nothing() {
   return undefined;
@@ -61,5 +66,16 @@ describe("NameContent", () => {
 
   it("shows no failure before saving", () => {
     expect(render()).not.toContain("couldn’t be saved");
+  });
+});
+
+describe("failureNote", () => {
+  it("shows a refusal's own note, and the failure otherwise", () => {
+    const failure = "The collection couldn’t be saved.";
+    expect(
+      failureNote(new NameRefused("That name is already used."), failure),
+    ).toBe("That name is already used.");
+    expect(failureNote(new Error("offline"), failure)).toBe(failure);
+    expect(failureNote(undefined, failure)).toBe(failure);
   });
 });

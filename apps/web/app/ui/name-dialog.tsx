@@ -10,7 +10,8 @@ import { Note } from "./note";
 // `initial` in it, selected, so typing replaces it and Enter keeps it. Enter
 // or "Save" saves, unless the field is empty once trimmed; "Cancel" or
 // Escape closes it. While `onSave` runs, the buttons are disabled and Escape
-// does nothing. If it fails, `failure` shows and the buttons work again.
+// does nothing. If it fails, `failure` shows and the buttons work again, or
+// the note of a NameRefused it throws, such as "That name is already used".
 // Built like ConfirmDialog.
 export function NameDialog({
   open,
@@ -65,6 +66,15 @@ export function NameDialog({
   );
 }
 
+// A save that the server refused for the name. The dialog shows its message
+// in place of `failure`.
+export class NameRefused extends Error {}
+
+// The note to show after `onSave` threw `error`.
+export function failureNote(error: unknown, failure: string): string {
+  return error instanceof NameRefused ? error.message : failure;
+}
+
 // What the dialog holds: the title, the text, the field, the failure note
 // when saving failed, "Cancel" and "Save".
 export function NameContent({
@@ -88,7 +98,7 @@ export function NameContent({
 }) {
   const [name, setName] = useState(initial);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const field = useRef<HTMLInputElement>(null);
   const fieldId = useId();
   const textId = useId();
@@ -100,11 +110,11 @@ export function NameContent({
   async function save() {
     if (busy || name.trim() === "") return;
     setBusy(true);
-    setFailed(false);
+    setNote(null);
     try {
       await onSave(name);
-    } catch {
-      setFailed(true);
+    } catch (error) {
+      setNote(failureNote(error, failure));
       setBusy(false);
     }
   }
@@ -138,7 +148,7 @@ export function NameContent({
           }}
         />
       </div>
-      {failed && <Note>{failure}</Note>}
+      {note !== null && <Note>{note}</Note>}
       <div className="confirm-actions">
         <Button type="button" variant="text" disabled={busy} onClick={onCancel}>
           Cancel
