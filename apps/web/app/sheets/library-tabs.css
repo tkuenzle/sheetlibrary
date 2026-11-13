@@ -1,0 +1,50 @@
+/* The library's tabs, as on the canvas page "Collections": the open one in
+   the accent color, underlined, on a line across the column. */
+.library-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  border-bottom: 1px solid var(--border);
+}
+
+.library-tabs a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0 var(--space-l);
+  margin-bottom: -1px;
+  border-bottom: 3px solid transparent;
+  color: var(--text-muted);
+  font: 600 var(--font-size-label) / 1 var(--font);
+  text-decoration: none;
+}
+
+.library-tabs a:hover {
+  color: var(--text);
+}
+
+.library-tabs a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+  border-radius: var(--corner-small) var(--corner-small) 0 0;
+}
+
+.library-tabs a[aria-current="page"] {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+
+/* In forced colors, the underline is the only mark. */
+@media (forced-colors: active) {
+  .library-tabs a[aria-current="page"] {
+    border-bottom-color: CanvasText;
+  }
+}
+
+/* Phone-wide (see app/breakpoints.ts): the tabs share the width. */
+@media (max-width: 640px) {
+  .library-tabs a {
+    flex: 1;
+    justify-content: center;
+  }
+}

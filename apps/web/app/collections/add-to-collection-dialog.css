@@ -1,0 +1,93 @@
+/* "Add to collection…", as on the canvas board "Add to collection, from
+   the sheet": the title and the sheet, a tick box per collection, and "New
+   collection" and "Done" under a line. */
+.add-to-collection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  max-height: min(640px, 100dvh - 2 * var(--space-xl));
+  padding: 28px var(--space-l) 20px;
+  box-sizing: border-box;
+}
+
+.add-to-collection-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: 0 var(--space-m);
+}
+
+.add-to-collection-top h2 {
+  margin: 0;
+  font: 700 var(--font-size-heading) / 1.25 var(--font);
+}
+
+.add-to-collection-top p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+  font: 400 var(--font-size-body) / 1.4 var(--font);
+}
+
+/* The list scrolls between the title and the buttons. A fieldset doesn't
+   scroll reliably, so a box around it does. */
+.add-to-collection-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.add-to-collection-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.add-to-collection-list label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-l);
+  min-height: 52px;
+  padding: 0 var(--space-m);
+  border-radius: var(--space-m);
+  color: var(--text);
+  font: 600 16px / 1.3 var(--font);
+  cursor: pointer;
+}
+
+.add-to-collection-list label:hover {
+  background: var(--page);
+}
+
+.add-to-collection-list input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.add-to-collection-list span {
+  overflow-wrap: anywhere;
+}
+
+.add-to-collection-none {
+  margin: 0;
+  padding: var(--space-l) var(--space-m);
+  color: var(--text-muted);
+  font: 400 var(--font-size-body) / 1.5 var(--font);
+}
+
+.add-to-collection > .note {
+  margin: 0 var(--space-m);
+}
+
+.add-to-collection .add-to-collection-actions {
+  justify-content: space-between;
+  margin-top: 0;
+  padding: var(--space-s) var(--space-s) 0;
+  border-top: 1px solid var(--border);
+}

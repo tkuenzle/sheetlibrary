@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { data, redirect } from "react-router";
 
+import { AddToCollectionDialog } from "../collections/add-to-collection-dialog";
 import { cloudflareContext, sessionContext } from "../context";
 import { CapoButton } from "../editor/capo-button";
 import { KeyButton, keyName } from "../editor/key-button";
@@ -128,6 +129,20 @@ function listed(versions: SheetVersion[], song: Key | null): ListedVersion[] {
   });
 }
 
+// The menu on a phone: "Lyrics only" and "Add to collection…", then, after
+// a line, the text size and Print.
+export function phoneMenuItems(
+  lyrics: MenuItem,
+  collect: MenuItem,
+  actions: MenuItem[],
+): MenuItem[] {
+  return [
+    { ...lyrics, separated: false },
+    { ...collect, separated: true },
+    ...actions,
+  ];
+}
+
 // What a dialog over the page is doing, if one is open.
 type VersionDialog =
   | { kind: "save"; key: Key }
@@ -162,6 +177,7 @@ export function PlayView({
   const [savedVersions, setSavedVersions] = useState(loadedVersions);
   const [openId, setOpenId] = useState(versionId);
   const [dialog, setDialog] = useState<VersionDialog | null>(null);
+  const [collecting, setCollecting] = useState(false);
   useAddressParam("version", openId);
   const songKey = useMemo(
     () => loadSheetKey(sheet.content).key,
@@ -225,6 +241,13 @@ export function PlayView({
       setLyrics(!lyrics);
     },
   };
+  const collectItem: MenuItem = {
+    label: "Add to collection…",
+    icon: "libraryAdd",
+    onSelect: () => {
+      setCollecting(true);
+    },
+  };
   const actions: MenuItem[] = [
     {
       label: "Smaller text",
@@ -275,6 +298,13 @@ export function PlayView({
             Lyrics only
           </Button>
           <span className="play-actions-divider" aria-hidden="true" />
+          <IconButton
+            icon="libraryAdd"
+            label="Add to collection"
+            onClick={() => {
+              setCollecting(true);
+            }}
+          />
           {actions.map((action) => (
             <IconButton
               key={action.label}
@@ -352,7 +382,10 @@ export function PlayView({
                 menu, and the menu has room to open to the left. */}
             <div className="play-more">
               {lyrics && <span className="play-lyrics-label">Lyrics only</span>}
-              <Menu label="More" items={[lyricsItem, ...actions]} />
+              <Menu
+                label="More"
+                items={phoneMenuItems(lyricsItem, collectItem, actions)}
+              />
             </div>
           </div>
           {(sheet.artist ?? open) && (
@@ -367,6 +400,13 @@ export function PlayView({
           lyricsOnly={lyrics}
         />
       </main>
+      <AddToCollectionDialog
+        open={collecting}
+        sheet={sheet}
+        onClose={() => {
+          setCollecting(false);
+        }}
+      />
       <NameDialog
         open={dialog?.kind === "save" || dialog?.kind === "rename"}
         title={

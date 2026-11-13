@@ -3,13 +3,14 @@ import { renderToString } from "react-dom/server";
 import { RouterContextProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { CollectionChoices } from "../collections/add-to-collection-dialog";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
 import { createSheet, createVersion } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheet";
-import { loader, meta, PlayView } from "./sheet";
+import { loader, meta, phoneMenuItems, PlayView } from "./sheet";
 
 const amazingGrace: Sheet = {
   id: "abcdefghijkl",
@@ -245,6 +246,73 @@ describe("play view", () => {
         /<div class="play-more">.*aria-label="More"[^>]*aria-haspopup="menu"/s,
       );
     }
+  });
+
+  describe("add to collection", () => {
+    // Scenario "On a wide screen".
+    it("has a button in the top bar before Smaller text", () => {
+      const html = renderToString(<PlayView sheet={amazingGrace} />);
+      expect(html).toMatch(
+        /play-actions-divider.*aria-label="Add to collection".*aria-label="Smaller text"/s,
+      );
+    });
+
+    // Scenario "Adding from a phone".
+    it("is in the phone's menu after Lyrics only, before the text size", () => {
+      const item = (label: string, separated?: boolean) => ({
+        label,
+        icon: "add" as const,
+        ...(separated === undefined ? {} : { separated }),
+        onSelect: () => undefined,
+      });
+      expect(
+        phoneMenuItems(item("Lyrics only", true), item("Add to collection…"), [
+          item("Smaller text"),
+          item("Print"),
+        ]).map((i) => [i.label, i.separated ?? false]),
+      ).toEqual([
+        ["Lyrics only", false],
+        ["Add to collection…", true],
+        ["Smaller text", false],
+        ["Print", false],
+      ]);
+    });
+
+    // Scenario "Already in a collection".
+    it("ticks the collections that hold the sheet", () => {
+      const html = renderToString(
+        <CollectionChoices
+          loaded={{
+            kind: "loaded",
+            collections: [
+              { id: "c1", name: "Christmas", holds: false },
+              { id: "c2", name: "Kinderlieder", holds: true },
+            ],
+          }}
+          onToggle={() => undefined}
+        />,
+      );
+      expect(html).toMatch(
+        /<fieldset[^>]*aria-label="Collections"><label><input type="checkbox"\/><span>Christmas<\/span><\/label><label><input type="checkbox" checked=""\/><span>Kinderlieder<\/span>/,
+      );
+    });
+
+    it("says so when there are no collections or they couldn't load", () => {
+      const none = renderToString(
+        <CollectionChoices
+          loaded={{ kind: "loaded", collections: [] }}
+          onToggle={() => undefined}
+        />,
+      );
+      expect(none).toContain("No collections yet");
+      const failed = renderToString(
+        <CollectionChoices
+          loaded={{ kind: "failed" }}
+          onToggle={() => undefined}
+        />,
+      );
+      expect(failed).toContain("The collections couldn’t be loaded.");
+    });
   });
 
   describe("lyrics only", () => {

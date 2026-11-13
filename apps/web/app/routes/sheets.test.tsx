@@ -230,6 +230,19 @@ describe("library page", () => {
     expect(docked?.[1]).toMatch(/button-filled button-large/);
   });
 
+  // Requirement "Sheets and Collections tabs".
+  it("shows the tabs below the heading, with Sheets marked", () => {
+    for (const sheets of [
+      [{ id: "abcdefghijkl", title: "Hallelujah", updatedAt: today }],
+      [],
+    ]) {
+      const html = render(sheets);
+      expect(html).toMatch(
+        /<\/h1>.*<nav class="library-tabs" aria-label="Library"><a href="\/sheets" aria-current="page">Sheets<\/a><a href="\/collections">Collections<\/a><\/nav>/s,
+      );
+    }
+  });
+
   it("hides the last edit until the viewer's time zone is known", () => {
     const html = render([
       {

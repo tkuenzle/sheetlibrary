@@ -49,6 +49,19 @@ describe("TopBar", () => {
     expect(html).not.toContain("Sheet Library");
   });
 
+  // Scenario "Back to the collections".
+  it("starts with Collections on a collection", () => {
+    const html = renderToString(
+      <SignedInContext value={ana}>
+        <TopBar back={{ href: "/collections", label: "Collections" }} />
+      </SignedInContext>,
+    );
+    expect(html).toMatch(
+      /^<header class="top-bar top-bar-with-back"><a class="top-bar-back" href="\/collections"><svg [^>]*>.*<\/svg>Collections<\/a>/,
+    );
+    expect(html).not.toContain("Sheet Library");
+  });
+
   it("shows the actions only when given", () => {
     expect(renderToString(<TopBar />)).not.toContain("top-bar-actions");
     expect(

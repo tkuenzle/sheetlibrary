@@ -29,20 +29,20 @@ export interface Saved {
   revision: number;
 }
 
-function error(status: number, message: string, problems?: Problem[]) {
+export function error(status: number, message: string, problems?: Problem[]) {
   return Response.json(
     problems ? { error: message, problems } : { error: message },
     { status },
   );
 }
 
-const notSignedIn = () => error(401, "Not signed in");
+export const notSignedIn = () => error(401, "Not signed in");
 const notFound = () => error(404, "Sheet not found");
-const notAllowed = () => error(405, "Method not allowed");
+export const notAllowed = () => error(405, "Method not allowed");
 
 // Reads the body as JSON, or answers why it can't. The body must say it is
 // JSON: a form on another site can't, so it can't create or change a sheet.
-async function readBody(
+export async function readBody(
   request: Request,
 ): Promise<{ value: unknown } | { response: Response }> {
   const type = request.headers.get("Content-Type") ?? "";
@@ -124,7 +124,10 @@ export async function handleSheet(
 
 // A string field of a JSON body, or undefined if it isn't there. Null if it
 // is there but isn't a string.
-function stringField(value: unknown, name: string): string | null | undefined {
+export function stringField(
+  value: unknown,
+  name: string,
+): string | null | undefined {
   if (typeof value !== "object" || value === null || !(name in value)) {
     return undefined;
   }
