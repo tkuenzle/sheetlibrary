@@ -22,8 +22,8 @@
 ## 4. From the play view
 
 - [x] 4.1 Add `/api/sheets/:id/collections` (GET with whether each holds the sheet, POST to make one with the sheet) and `/api/sheets/:id/collections/:collectionId` (PUT, DELETE), answering 401, 404, 400 and 409. Verify with API tests for each method and answer.
-- [x] 4.2 Add the "Add to collection…" dialog: load the list when it opens, tick and untick save at once and undo a failed tick with a note, "New collection" adds it ticked, "Done" and Escape close. Verify with `sheet.test.tsx` cases against a stubbed fetch.
-- [x] 4.3 Put "Add to collection" in the top bar before "Smaller text" on a wide screen, and after "Lyrics only" in the phone's menu. Verify with `sheet.test.tsx` cases for both.
+- [x] 4.2 Add the "Choose collections…" dialog: load the list when it opens, tick and untick save at once and undo a failed tick with a note, "New collection" adds it ticked, "Done" and Escape close. Verify with `sheet.test.tsx` cases against a stubbed fetch.
+- [x] 4.3 Put "Choose collections" in the top bar before "Smaller text" on a wide screen, and after "Lyrics only" in the phone's menu. Verify with `sheet.test.tsx` cases for both.
 
 ## 5. Tests across pages and docs
 

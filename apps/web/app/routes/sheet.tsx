@@ -10,7 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { data, redirect } from "react-router";
 
-import { AddToCollectionDialog } from "../collections/add-to-collection-dialog";
+import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
 import { cloudflareContext, sessionContext } from "../context";
 import { CapoButton } from "../editor/capo-button";
 import { KeyButton, keyName } from "../editor/key-button";
@@ -129,7 +129,7 @@ function listed(versions: SheetVersion[], song: Key | null): ListedVersion[] {
   });
 }
 
-// The menu on a phone: "Lyrics only" and "Add to collection…", then, after
+// The menu on a phone: "Lyrics only" and "Choose collections…", then, after
 // a line, the text size and Print.
 export function phoneMenuItems(
   lyrics: MenuItem,
@@ -242,8 +242,8 @@ export function PlayView({
     },
   };
   const collectItem: MenuItem = {
-    label: "Add to collection…",
-    icon: "libraryAdd",
+    label: "Choose collections…",
+    icon: "collectionsBookmark",
     onSelect: () => {
       setCollecting(true);
     },
@@ -299,8 +299,8 @@ export function PlayView({
           </Button>
           <span className="play-actions-divider" aria-hidden="true" />
           <IconButton
-            icon="libraryAdd"
-            label="Add to collection"
+            icon="collectionsBookmark"
+            label="Choose collections"
             onClick={() => {
               setCollecting(true);
             }}
@@ -400,7 +400,7 @@ export function PlayView({
           lyricsOnly={lyrics}
         />
       </main>
-      <AddToCollectionDialog
+      <ChooseCollectionsDialog
         open={collecting}
         sheet={sheet}
         onClose={() => {

@@ -10,7 +10,7 @@ export interface CollectionListItem {
   count: number;
 }
 
-// A collection as the sheet's "Add to collection…" lists it.
+// A collection as the sheet's "Choose collections…" lists it.
 export interface SheetCollection {
   id: string;
   name: string;

@@ -1,5 +1,5 @@
 import "../ui/confirm-dialog.css";
-import "./add-to-collection-dialog.css";
+import "./choose-collections-dialog.css";
 
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -18,12 +18,12 @@ import {
 } from "./collections-client";
 import { collectionFailure, collectionNameText } from "./new-collection";
 
-// "Add to collection…" on the play view: the person's collections A to Z,
+// "Choose collections…" on the play view: the person's collections A to Z,
 // each ticked when it holds the sheet. A tick adds the sheet at once and an
 // untick takes it out; a change that fails goes back, with a note. "New
 // collection" makes one with the sheet in it. The list loads each time the
 // dialog opens. See openspec/specs/play-page.
-export function AddToCollectionDialog({
+export function ChooseCollectionsDialog({
   open,
   sheet,
   onClose,
@@ -46,7 +46,7 @@ export function AddToCollectionDialog({
   return (
     <dialog
       ref={dialog}
-      className="confirm-dialog add-to-collection-dialog"
+      className="confirm-dialog choose-collections-dialog"
       aria-labelledby={titleId}
       // React passes the "New collection" dialog's close up to this one, so
       // only this dialog's own close counts.
@@ -55,7 +55,7 @@ export function AddToCollectionDialog({
       }}
     >
       {open && (
-        <AddToCollectionContent
+        <ChooseCollectionsContent
           titleId={titleId}
           sheet={sheet}
           onDone={() => dialog.current?.close()}
@@ -70,7 +70,7 @@ export type Loaded =
   | { kind: "failed" }
   | { kind: "loaded"; collections: SheetCollection[] };
 
-function AddToCollectionContent({
+function ChooseCollectionsContent({
   titleId,
   sheet,
   onDone,
@@ -121,14 +121,14 @@ function AddToCollectionContent({
   }
 
   return (
-    <div className="add-to-collection">
-      <div className="add-to-collection-top">
-        <h2 id={titleId}>Add to collection</h2>
+    <div className="choose-collections">
+      <div className="choose-collections-top">
+        <h2 id={titleId}>Choose collections</h2>
         <p>{sheet.title}</p>
       </div>
       <CollectionChoices loaded={loaded} onToggle={toggle} />
       {failed && <Note>The change couldn’t be saved. Try again.</Note>}
-      <div className="confirm-actions add-to-collection-actions">
+      <div className="confirm-actions choose-collections-actions">
         <Button
           variant="text"
           icon="add"
@@ -181,7 +181,7 @@ export function CollectionChoices({
   onToggle: (collection: SheetCollection, holds: boolean) => void;
 }) {
   if (loaded.kind === "loading") {
-    return <p className="add-to-collection-none">Loading collections…</p>;
+    return <p className="choose-collections-none">Loading collections…</p>;
   }
   if (loaded.kind === "failed") {
     return (
@@ -189,11 +189,11 @@ export function CollectionChoices({
     );
   }
   if (loaded.collections.length === 0) {
-    return <p className="add-to-collection-none">No collections yet</p>;
+    return <p className="choose-collections-none">No collections yet</p>;
   }
   return (
-    <div className="add-to-collection-scroll">
-      <fieldset className="add-to-collection-list" aria-label="Collections">
+    <div className="choose-collections-scroll">
+      <fieldset className="choose-collections-list" aria-label="Collections">
         {loaded.collections.map((collection) => (
           <label key={collection.id}>
             <input

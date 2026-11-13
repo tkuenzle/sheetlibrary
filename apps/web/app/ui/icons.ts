@@ -4,6 +4,7 @@ import arrowBack from "./icons/arrow_back.svg?raw";
 import check from "./icons/check.svg?raw";
 import chevronRight from "./icons/chevron_right.svg?raw";
 import close from "./icons/close.svg?raw";
+import collectionsBookmark from "./icons/collections_bookmark.svg?raw";
 import contentPasteGo from "./icons/content_paste_go.svg?raw";
 import deleteIcon from "./icons/delete.svg?raw";
 import doNotDisturbOn from "./icons/do_not_disturb_on.svg?raw";
@@ -12,7 +13,6 @@ import expandMore from "./icons/expand_more.svg?raw";
 import help from "./icons/help.svg?raw";
 import image from "./icons/image.svg?raw";
 import info from "./icons/info.svg?raw";
-import libraryAdd from "./icons/library_add.svg?raw";
 import login from "./icons/login.svg?raw";
 import logout from "./icons/logout.svg?raw";
 import lyrics from "./icons/lyrics.svg?raw";
@@ -43,6 +43,7 @@ const sources = {
   check,
   chevronRight,
   close,
+  collectionsBookmark,
   contentPasteGo,
   // `delete` is a keyword, so its import has another name.
   delete: deleteIcon,
@@ -52,7 +53,6 @@ const sources = {
   help,
   image,
   info,
-  libraryAdd,
   login,
   logout,
   lyrics,

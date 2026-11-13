@@ -1,7 +1,7 @@
-/* "Add to collection…", as on the canvas board "Add to collection, from
+/* "Choose collections…", as on the canvas board "Add to collection, from
    the sheet": the title and the sheet, a tick box per collection, and "New
    collection" and "Done" under a line. */
-.add-to-collection {
+.choose-collections {
   display: flex;
   flex-direction: column;
   gap: var(--space-m);
@@ -10,19 +10,19 @@
   box-sizing: border-box;
 }
 
-.add-to-collection-top {
+.choose-collections-top {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
   padding: 0 var(--space-m);
 }
 
-.add-to-collection-top h2 {
+.choose-collections-top h2 {
   margin: 0;
   font: 700 var(--font-size-heading) / 1.25 var(--font);
 }
 
-.add-to-collection-top p {
+.choose-collections-top p {
   margin: 0;
   overflow-wrap: anywhere;
   color: var(--text-muted);
@@ -31,13 +31,13 @@
 
 /* The list scrolls between the title and the buttons. A fieldset doesn't
    scroll reliably, so a box around it does. */
-.add-to-collection-scroll {
+.choose-collections-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
 
-.add-to-collection-list {
+.choose-collections-list {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -46,7 +46,7 @@
   border: 0;
 }
 
-.add-to-collection-list label {
+.choose-collections-list label {
   display: flex;
   align-items: center;
   gap: var(--space-l);
@@ -58,11 +58,11 @@
   cursor: pointer;
 }
 
-.add-to-collection-list label:hover {
+.choose-collections-list label:hover {
   background: var(--page);
 }
 
-.add-to-collection-list input {
+.choose-collections-list input {
   flex: none;
   width: 20px;
   height: 20px;
@@ -70,22 +70,22 @@
   accent-color: var(--accent);
 }
 
-.add-to-collection-list span {
+.choose-collections-list span {
   overflow-wrap: anywhere;
 }
 
-.add-to-collection-none {
+.choose-collections-none {
   margin: 0;
   padding: var(--space-l) var(--space-m);
   color: var(--text-muted);
   font: 400 var(--font-size-body) / 1.5 var(--font);
 }
 
-.add-to-collection > .note {
+.choose-collections > .note {
   margin: 0 var(--space-m);
 }
 
-.add-to-collection .add-to-collection-actions {
+.choose-collections .choose-collections-actions {
   justify-content: space-between;
   margin-top: 0;
   padding: var(--space-s) var(--space-s) 0;

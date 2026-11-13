@@ -68,8 +68,8 @@ Alternative: a layout route around both. Rejected: the actions and the search di
 
 - `TopBar`'s `back` also takes a link and a label, `{ href: "/collections", label: "Collections" }`. The sheet pages keep passing `true` for the library.
 - `NameDialog`'s `onSave` can reject with the note to show, so "That name is already used" and "Couldn't save" can both show in it. Versions keep passing their one failure.
-- The menu on the play view gets "Add to collection…", and the top bar gets an `IconButton` before "Smaller text".
-- "Add to collection…" holds the "New collection" dialog inside its own. React passes the inner dialog's `close` up to the outer one, so the outer one only acts on its own.
+- The menu on the play view gets "Choose collections…", and the top bar gets an `IconButton` before "Smaller text".
+- "Choose collections…" holds the "New collection" dialog inside its own. React passes the inner dialog's `close` up to the outer one, so the outer one only acts on its own.
 
 ## Risks / Trade-offs
 

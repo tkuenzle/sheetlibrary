@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { authFile } from "./servers";
 
 // Collections: the library's Collections tab, a collection's page, and
-// "Add to collection…" on the play view. See openspec/specs/collections,
+// "Choose collections…" on the play view. See openspec/specs/collections,
 // collection-page and library-page. The tests share one account, and run on
 // both projects at once, so every name carries a mark of its own.
 
@@ -161,16 +161,16 @@ test("goes back to Collections, and doesn't find an unknown collection", async (
   await expect(heading(page)).toHaveText("Collection not found");
 });
 
-async function openAddToCollection(page: Page) {
+async function openChooseCollections(page: Page) {
   if (
-    await page.getByRole("button", { name: "Add to collection" }).isVisible()
+    await page.getByRole("button", { name: "Choose collections" }).isVisible()
   ) {
-    await page.getByRole("button", { name: "Add to collection" }).click();
+    await page.getByRole("button", { name: "Choose collections" }).click();
   } else {
     await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Add to collection…" }).click();
+    await page.getByRole("menuitem", { name: "Choose collections…" }).click();
   }
-  return page.getByRole("dialog", { name: "Add to collection" });
+  return page.getByRole("dialog", { name: "Choose collections" });
 }
 
 // Scenarios "Adding to a collection", "Already in a collection", "First
@@ -195,11 +195,11 @@ test("adds a sheet to collections from the play view", async ({
       "",
     ]);
     await expect(
-      actions.getByRole("button", { name: "Add to collection" }),
+      actions.getByRole("button", { name: "Choose collections" }),
     ).toBeVisible();
   }
 
-  let dialog = await openAddToCollection(page);
+  let dialog = await openChooseCollections(page);
   await expect(dialog).toContainText(title);
   const box = dialog.getByRole("checkbox", { name });
   await expect(box).not.toBeChecked();
@@ -213,7 +213,7 @@ test("adds a sheet to collections from the play view", async ({
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(dialog).toBeHidden();
 
-  dialog = await openAddToCollection(page);
+  dialog = await openChooseCollections(page);
   await expect(dialog.getByRole("checkbox", { name })).toBeChecked();
 
   // "New collection" makes one with the sheet in it, ticked.

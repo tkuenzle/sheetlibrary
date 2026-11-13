@@ -178,7 +178,7 @@ export function CollectionView({
       {count === 0 ? (
         <section className="library-empty" aria-labelledby="collection-empty">
           <h2 id="collection-empty">No sheets in this collection</h2>
-          <p>Add sheets here, or from a sheet with “Add to collection…”.</p>
+          <p>Add sheets here, or from a sheet with “Choose collections…”.</p>
           <div className="library-actions">{addButton()}</div>
         </section>
       ) : (

@@ -3,7 +3,7 @@ import { renderToString } from "react-dom/server";
 import { RouterContextProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { CollectionChoices } from "../collections/add-to-collection-dialog";
+import { CollectionChoices } from "../collections/choose-collections-dialog";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
@@ -248,12 +248,12 @@ describe("play view", () => {
     }
   });
 
-  describe("add to collection", () => {
+  describe("choose collections", () => {
     // Scenario "On a wide screen".
     it("has a button in the top bar before Smaller text", () => {
       const html = renderToString(<PlayView sheet={amazingGrace} />);
       expect(html).toMatch(
-        /play-actions-divider.*aria-label="Add to collection".*aria-label="Smaller text"/s,
+        /play-actions-divider.*aria-label="Choose collections".*aria-label="Smaller text"/s,
       );
     });
 
@@ -266,13 +266,13 @@ describe("play view", () => {
         onSelect: () => undefined,
       });
       expect(
-        phoneMenuItems(item("Lyrics only", true), item("Add to collection…"), [
+        phoneMenuItems(item("Lyrics only", true), item("Choose collections…"), [
           item("Smaller text"),
           item("Print"),
         ]).map((i) => [i.label, i.separated ?? false]),
       ).toEqual([
         ["Lyrics only", false],
-        ["Add to collection…", true],
+        ["Choose collections…", true],
         ["Smaller text", false],
         ["Print", false],
       ]);
