@@ -1,0 +1,163 @@
+/* The shell: the navigation, the search row and the content, as on the
+   canvas page "UX overhaul". The tracks have fixed sizes, so a change of
+   content never moves the navigation or the search row. The document
+   scrolls, not the content. */
+.shell {
+  --shell-bar-height: 0px;
+
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* A short screen has no scrollbar and a long one has. The room for it is
+   kept, so the content doesn't shift between them. */
+html:has(.shell) {
+  scrollbar-gutter: stable;
+}
+
+/* The rail stays in view while the page scrolls. */
+.shell > .nav-rail {
+  position: sticky;
+  top: 0;
+  grid-row: 1 / 3;
+  grid-column: 1;
+  align-self: start;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* One of the three navigations shows: the rail from wide, its compact form
+   in the middle, the bar on a phone (see app/breakpoints.ts). */
+.shell > .nav-rail-compact,
+.shell > .nav-bar,
+.shell-account {
+  display: none;
+}
+
+/* As wide as the library's column, on every screen. */
+.shell-search {
+  display: flex;
+  grid-column: 2;
+  align-items: center;
+  gap: var(--space-s);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-xl) 0;
+}
+
+.shell-search > .search-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.shell-content {
+  grid-column: 2;
+  min-width: 0;
+  padding-bottom: var(--shell-bar-height);
+}
+
+/* It only takes the focus from the skip link. */
+.shell-content:focus {
+  outline: none;
+}
+
+/* "Skip to content" shows only while it has the focus. */
+.shell-skip {
+  position: absolute;
+  top: var(--space-s);
+  left: var(--space-s);
+  z-index: 3;
+  padding: var(--space-m) var(--space-l);
+  border-radius: var(--corner-full);
+  background: var(--surface-active);
+  box-shadow: 0 4px 12px var(--shadow);
+  color: var(--text);
+  font: 600 var(--font-size-label) / 1.2 var(--font);
+  text-decoration: none;
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.shell-skip:not(:focus) {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The account on a phone: its initial at the end of the search row. */
+.shell-account {
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--corner-full);
+  text-decoration: none;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.shell-account[aria-current="page"] {
+  background-color: var(--quiet);
+}
+
+.shell-account:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Middle: the rail shows only icons. */
+@media (max-width: 1023px) {
+  .shell > .nav-rail {
+    display: none;
+  }
+
+  .shell > .nav-rail-compact {
+    display: flex;
+  }
+}
+
+/* Phone-wide: the bar at the bottom of the screen, and the account in the
+   search row. What a screen docks at the bottom sits above the bar. */
+@media (max-width: 640px) {
+  .shell {
+    --shell-bar-height: 80px;
+
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell > .nav-rail-compact {
+    display: none;
+  }
+
+  .shell > .nav-bar {
+    display: grid;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+  }
+
+  .shell-search,
+  .shell-content {
+    grid-column: 1;
+  }
+
+  .shell-search {
+    gap: var(--space-xs);
+    padding: var(--space-s) var(--space-xs) 0 var(--space-m);
+  }
+
+  .shell-account {
+    display: flex;
+  }
+}

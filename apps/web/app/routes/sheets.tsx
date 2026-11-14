@@ -2,20 +2,18 @@ import "../ui/group-list.css";
 import "./sheets.css";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Form, redirect, useNavigate } from "react-router";
+import { Form, Link, redirect, useNavigate } from "react-router";
 
 import { closeOffer, offerClosed } from "../auth/passkey-offer";
 import { hasPasskey } from "../auth/passkeys.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { ImportDialog } from "../editor/import-button";
 import { PhotoImportDialog } from "../photos/photo-import-dialog";
-import { TopBar } from "../shell/top-bar";
 import { editDate, lastEdit } from "../sheets/last-edit";
-import { LibraryTabs } from "../sheets/library-tabs";
 import { UNTITLED } from "../sheets/details";
 import { importedSheetPath, importSheet } from "../sheets/import";
 import { isSearch, type TextPart } from "../sheets/search";
-import { SearchField, useSearchPending } from "../sheets/search-field";
+import { useSearchPending } from "../sheets/search-field";
 import {
   createSheet,
   hasSheets,
@@ -29,12 +27,13 @@ import { Icon } from "../ui/icon";
 import { Menu } from "../ui/menu";
 import type { Route } from "./+types/sheets";
 
-// The library: the signed-in person's sheets, "Import" and "New sheet". See
-// openspec/specs/library-page.
+// The Sheets screen of the library: the signed-in person's sheets, "Import"
+// and "New sheet". It sits in the shell (routes/shell.tsx), which has the
+// search field. See openspec/specs/library-page.
 
 export function meta() {
   return [
-    { title: "Library | Sheet Library" },
+    { title: "Sheets | Sheet Library" },
     { name: "robots", content: "noindex" },
   ];
 }
@@ -89,15 +88,12 @@ export default function Library({ loaderData }: Route.ComponentProps) {
   }, []);
 
   return (
-    <>
-      <TopBar />
-      <LibraryView
-        sheets={loaderData.sheets}
-        hasSheets={loaderData.hasSheets}
-        q={loaderData.q}
-        offerPasskey={loaderData.offerPasskey}
-      />
-    </>
+    <LibraryView
+      sheets={loaderData.sheets}
+      hasSheets={loaderData.hasSheets}
+      q={loaderData.q}
+      offerPasskey={loaderData.offerPasskey}
+    />
   );
 }
 
@@ -110,10 +106,10 @@ function PasskeyOffer({ onClose }: { onClose: () => void }) {
       <p>
         Add a passkey to sign in on this device without waiting for an email.
       </p>
-      <a className="button button-filled passkey-offer-add" href="/account">
+      <Link className="button button-filled passkey-offer-add" to="/account">
         <Icon name="passkey" />
         Add passkey
-      </a>
+      </Link>
       <IconButton
         icon="close"
         label="Close"
@@ -245,31 +241,24 @@ export function LibraryView({
 
   if (!hasSheets) {
     return (
-      <main className="library">
-        <h1>Library</h1>
-        <LibraryTabs current="sheets" />
+      <div className="library">
+        <h1>Sheets</h1>
         {offer}
         <section className="library-empty" aria-labelledby="library-empty">
           <h2 id="library-empty">No sheets yet</h2>
           <Actions className="library-actions" />
         </section>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="library library-with-sheets">
+    <div className="library library-with-sheets">
       <div className="library-heading">
-        <h1>Library</h1>
+        <h1>Sheets</h1>
         <Actions className="library-actions library-actions-beside" />
       </div>
-      <LibraryTabs current="sheets" />
       {offer}
-      <SearchField
-        q={q}
-        count={searching ? sheets.length : null}
-        pending={pending}
-      />
       {searching && sheets.length === 0 ? (
         <section
           className="library-empty"
@@ -288,7 +277,7 @@ export function LibraryView({
           <ul className="group-list">
             {sheets.map((sheet) => (
               <li key={sheet.id}>
-                <a className="library-columns" href={`/sheets/${sheet.id}`}>
+                <Link className="library-columns" to={`/sheets/${sheet.id}`}>
                   <span className="library-title">
                     {"titleParts" in sheet ? (
                       <Marked parts={sheet.titleParts} />
@@ -321,7 +310,7 @@ export function LibraryView({
                       <Marked parts={sheet.line} />
                     </span>
                   )}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
@@ -331,7 +320,7 @@ export function LibraryView({
         size="large"
         className="library-actions library-actions-docked"
       />
-    </main>
+    </div>
   );
 }
 

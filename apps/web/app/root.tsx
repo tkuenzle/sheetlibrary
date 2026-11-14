@@ -13,6 +13,7 @@ import {
 import type { Route } from "./+types/root";
 import { getAuth } from "./auth/auth.server";
 import { cloudflareContext, sessionContext } from "./context";
+import { useFocusOnNavigation } from "./shell/focus";
 import { initialOf, SignedInContext } from "./shell/signed-in";
 
 // The font is served from our own origin (see docs/design-direction.md). The
@@ -73,6 +74,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const { signedIn } = useLoaderData<typeof loader>();
+  useFocusOnNavigation();
   return (
     <SignedInContext value={signedIn}>
       <Outlet />

@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-// What the top bar shows of the signed-in person: only the initial, since
+// What the top bar and the shell show of the signed-in person: only the initial, since
 // the root loader's data is on every page and the email is only needed on
 // the account page.
 export interface SignedIn {

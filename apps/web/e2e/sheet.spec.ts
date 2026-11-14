@@ -457,7 +457,7 @@ test("deletes the sheet after asking, and goes to the library", async ({
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Cancel" })).toBeDisabled();
   await expect(page).toHaveURL("/sheets");
-  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sheets" })).toBeVisible();
   await expect(page.getByRole("link", { name: new RegExp(title) })).toHaveCount(
     0,
   );

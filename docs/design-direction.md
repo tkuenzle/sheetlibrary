@@ -22,12 +22,18 @@ The keeper idea from Margin is the tools beside the section.
 
 ## The signed-in shell
 
-The mockups are on the canvas's "Library and account" page.
+The mockups are on the canvas's "UX overhaul" page, boards "Sheets, desktop", "Sheets, phone", "A collection, with the sheet menu on a row" and "Collections, phone". The first shell, on the "Library and account" page, had a top bar on every page and "Library" as a heading with two tabs.
 
-- **Top bar A.** The library and the account page start with the site's name. On a sheet, the bar starts with "Library" and a back arrow instead, and the sheet's title is only the heading. No page has a breadcrumb: it repeated the heading. Signed in, the bar ends with the account: the email's first letter in a round tonal chip, linking to the account page. Option B, a breadcrumb on every page and a menu behind the initial, was dropped.
+- **One shell for the library and the account.** Sheets, Collections, a collection and the account page sit in a shell that stays on screen while the content changes: the navigation, the search row and the content. A sheet has its own page with a top bar, outside the shell.
+- **A rail that lists the collections.** On a wide screen the navigation is a rail at the left: the site's name, "Sheets", "Collections" with every collection by name and number of sheets, and the account at the bottom. Only the list scrolls. It was chosen over a plain rail of three items, so a collection is one click away from anywhere. On a middle screen the rail shows only icons, and on a phone the navigation is a bar at the bottom, with the account in the search row.
+- **The navigation says where you are.** The open screen is marked in the tonal colors. A collection is marked by its own entry in the rail, and by "Collections" where the collections aren't listed. So a collection has no back link, and no screen in the shell has a top bar.
+- **Search at the top of every screen.** The search field is in the shell, at the same place and width on every screen, also the account page. It finds sheets, so a search from another screen opens Sheets.
+- **A layout that doesn't move.** The rail, the search row and the bar have fixed sizes, and the content keeps its column, so a change of screen moves nothing around it. Transitions and loading states can be added later without moving things.
+- **Moves without a full load.** Links in the shell and rows that open a sheet change the page in place. The focus then goes to the new page's heading, so screen readers read it, and "Skip to content" comes before the navigation. The links in a sheet's top bar still load the page in full, so the editor can ask before unsaved edits are lost.
+- **Top bar A, for a sheet.** On a sheet, the bar starts with "Library" and a back arrow, and the sheet's title is only the heading. No page has a breadcrumb: it repeated the heading. Signed in, the bar ends with the account: the email's first letter in a round tonal chip, linking to the account page. Option B, a breadcrumb on every page and a menu behind the initial, was dropped.
 - **Sign-in B.** The sign-in page has no top bar. The site's name sits above one card in the middle of the page, so nothing competes with the form, and "Check your email" takes the form's place in the card. "Send link" is the main button and "Sign in with a passkey" a tonal one, since everyone's first sign-in is by email. Option A, the card beside the home page's sample sheet, was dropped.
 - **The account page** uses the library's grouped rows: the email is one row, the passkeys a group with "Add passkey" as a tonal button under it, and "Sign out" is its own one-row group with an icon, so it doesn't look like another button.
-- **The passkey offer** is a card in the note colors under the library's heading, above the sheets, so the library still works around it. It shows after an email sign-in when the account has no passkey. "Add passkey" opens the account page, so the library never asks the device itself. "Close" hides it on this device for good. A dialog was dropped: it would cover the library right after sign-in.
+- **The passkey offer** is a card in the note colors under the heading of Sheets, above the list, so the library still works around it. It shows after an email sign-in when the account has no passkey. "Add passkey" opens the account page, so the library never asks the device itself. "Close" hides it on this device for good. A dialog was dropped: it would cover the library right after sign-in.
 
 ## Role tokens
 
@@ -82,9 +88,9 @@ The tokens are in `apps/web/app/ui/tokens.css`. Each color is written as `light-
 
 ## Components
 
-The base components are React components in `apps/web/app/ui/`, each with its own CSS on the role tokens: `Button`, `IconButton`, `Tooltip`, `Toolbar`, `Popover` and `Note`. They keep an outline in forced colors mode. The grouped rows of the library and the account page are a class, `group-list` in `group-list.css`, since their rows hold different things. The `/design` page shows them in both styles. It exists only in pull request previews and the dev server.
+The base components are React components in `apps/web/app/ui/`, each with its own CSS on the role tokens: `Button`, `IconButton`, `Tooltip`, `Toolbar`, `Popover`, `Note`, `NavRail` and `NavBar`. They keep an outline in forced colors mode. `NavRail` is the navigation at the left of a wide screen: the site's name, the items with what they hold listed under them, and the account at the bottom. Its compact form shows only icons, with tooltips. `NavBar` is the navigation at the bottom of a phone. Both mark the open item with the tonal colors. The grouped rows of the library and the account page are a class, `group-list` in `group-list.css`, since their rows hold different things. The `/design` page shows them in both styles. It exists only in pull request previews and the dev server.
 
-The parts of a page are in `apps/web/app/shell/`: `TopBar` and `SidePanel`. Where the side panel sits is decided by CSS, so the server renders the right layout and nothing jumps when the scripts load.
+The shell is the layout route `apps/web/app/routes/shell.tsx`. It renders the rail, its compact form and the bar, and CSS shows the one for the window's width. The parts of a sheet's page are in `apps/web/app/shell/`: `TopBar` and `SidePanel`. Where the side panel sits is decided by CSS, so the server renders the right layout and nothing jumps when the scripts load.
 
 The `chord-editor` package draws what sits on the lyrics: chord labels, the "+", the dash, the drop caret and the row that holds each section's label. The app edits the label in its own field, laid over the label. It keeps the layout the chord layer measures, set through a few `--chord-editor-*` properties such as the font size and line heights. It leaves the looks to the app: colors, backgrounds, corners and shadows. The app styles the state classes and data attributes the package publishes, such as `.section.is-active` or `.chord-label.is-selected`. Its stylesheet lists them all. The app's editor styles are in `apps/web/app/editor/`.
 
@@ -94,9 +100,9 @@ Buttons, icons and UI text belong to the app; the text follows `docs/ui-text.md`
 
 Every layout rule uses the same three widths, listed in `apps/web/app/breakpoints.ts`:
 
-- **Phone, up to 640px:** smaller type, the section toolbar docked, and only the site's name in the top bar. At 640px, the margin beside the sections gets too narrow for the toolbar.
-- **Middle, up to 1023px:** the side panel is behind the help button.
-- **Wide, from 1024px:** the side panel sits beside the editor.
+- **Phone, up to 640px:** smaller type, the section toolbar docked, and only the site's name in the top bar. The shell's navigation is a bar at the bottom. At 640px, the margin beside the sections gets too narrow for the toolbar.
+- **Middle, up to 1023px:** the side panel is behind the help button. The shell's rail shows only icons.
+- **Wide, from 1024px:** the side panel sits beside the editor. The shell's rail lists the collections.
 
 CSS can't use variables in `@media`, so the stylesheets write the same widths. A unit test fails on any other width. On a touch device, the toolbar is docked at any width.
 

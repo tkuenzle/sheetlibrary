@@ -14,14 +14,13 @@ import {
 } from "../auth/auth-client";
 import { getAuth } from "../auth/auth.server";
 import { cloudflareContext, sessionContext } from "../context";
-import { TopBar } from "../shell/top-bar";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 import type { Route } from "./+types/account";
 
-// The signed-in person's email, passkeys and sign-out. See
-// openspec/specs/accounts.
+// The signed-in person's email, passkeys and sign-out. It sits in the shell
+// (routes/shell.tsx). See openspec/specs/accounts.
 
 export function meta() {
   return [
@@ -170,7 +169,7 @@ export function AccountView({
   onSignOut: () => void;
 }) {
   return (
-    <main className="account">
+    <div className="account">
       <h1>Account</h1>
       <section className="account-section" aria-labelledby="account-email">
         <h2 id="account-email">Email</h2>
@@ -224,7 +223,7 @@ export function AccountView({
           </button>
         </li>
       </ul>
-    </main>
+    </div>
   );
 }
 
@@ -234,34 +233,31 @@ export default function Account() {
   const [failed, setFailed] = useState(false);
 
   return (
-    <>
-      <TopBar accountPage />
-      <AccountView
-        email={email}
-        passkeys={passkeys}
-        failed={failed}
-        onAdd={() => {
-          setFailed(false);
-          void addPasskey().then(async (saved) => {
-            if (!saved) {
-              setFailed(true);
-              return;
-            }
-            await revalidator.revalidate();
-          });
-        }}
-        onRename={(id, name) => {
-          void renamePasskey(id, name).then(() => revalidator.revalidate());
-        }}
-        onRemove={(id) => {
-          void removePasskey(id).then(() => revalidator.revalidate());
-        }}
-        onSignOut={() => {
-          void signOut().then(() => {
-            window.location.assign("/");
-          });
-        }}
-      />
-    </>
+    <AccountView
+      email={email}
+      passkeys={passkeys}
+      failed={failed}
+      onAdd={() => {
+        setFailed(false);
+        void addPasskey().then(async (saved) => {
+          if (!saved) {
+            setFailed(true);
+            return;
+          }
+          await revalidator.revalidate();
+        });
+      }}
+      onRename={(id, name) => {
+        void renamePasskey(id, name).then(() => revalidator.revalidate());
+      }}
+      onRemove={(id) => {
+        void removePasskey(id).then(() => revalidator.revalidate());
+      }}
+      onSignOut={() => {
+        void signOut().then(() => {
+          window.location.assign("/");
+        });
+      }}
+    />
   );
 }

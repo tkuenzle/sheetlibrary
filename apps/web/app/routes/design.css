@@ -53,6 +53,21 @@
   gap: var(--space-m);
 }
 
+/* The rail and the bottom bar, each in a frame that stands for the screen. */
+.design-nav {
+  display: flex;
+  min-height: 360px;
+  border-radius: var(--corner-medium);
+  outline: 1px solid var(--border);
+}
+
+.design-nav-bar {
+  display: block;
+  max-width: 390px;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .design-swatches {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

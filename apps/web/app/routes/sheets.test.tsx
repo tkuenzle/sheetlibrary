@@ -203,7 +203,7 @@ describe("library page", () => {
       { id: "mnopqrstuvwx", title: "Amazing Grace", updatedAt: today },
     ]);
     expect(html).toMatch(
-      /<a [^>]*href="\/sheets\/abcdefghijkl">.*Hallelujah.*Leonard Cohen/,
+      /<a [^>]*href="\/sheets\/abcdefghijkl"[^>]*>.*Hallelujah.*Leonard Cohen/,
     );
     expect(html).toContain('href="/sheets/mnopqrstuvwx"');
     expect(html.indexOf("Hallelujah")).toBeLessThan(
@@ -230,16 +230,18 @@ describe("library page", () => {
     expect(docked?.[1]).toMatch(/button-filled button-large/);
   });
 
-  // Requirement "Sheets and Collections tabs".
-  it("shows the tabs below the heading, with Sheets marked", () => {
+  // Scenario "Opening Sheets".
+  it("is headed Sheets, without a Library heading, tabs or a top bar", () => {
     for (const sheets of [
       [{ id: "abcdefghijkl", title: "Hallelujah", updatedAt: today }],
       [],
     ]) {
       const html = render(sheets);
-      expect(html).toMatch(
-        /<\/h1>.*<nav class="library-tabs" aria-label="Library"><a href="\/sheets" aria-current="page">Sheets<\/a><a href="\/collections">Collections<\/a><\/nav>/s,
-      );
+      expect(html).toMatch(/^<div class="library[^"]*">.*<h1>Sheets<\/h1>/s);
+      expect(html).not.toContain("Library</h1>");
+      expect(html).not.toContain("<nav");
+      expect(html).not.toContain("<header");
+      expect(html).not.toContain("<main");
     }
   });
 
@@ -294,61 +296,14 @@ describe("library page", () => {
   });
 
   it("sets the page title and asks search engines not to index it", () => {
-    expect(meta()).toContainEqual({ title: "Library | Sheet Library" });
+    expect(meta()).toContainEqual({ title: "Sheets | Sheet Library" });
     expect(meta()).toContainEqual({ name: "robots", content: "noindex" });
   });
 });
 
+// The search field itself is in the shell (see shell.test.tsx).
 describe("library search", () => {
   const today = Date.now();
-  const grace: SheetListItem = {
-    id: "abcdefghijkl",
-    title: "Amazing Grace",
-    updatedAt: today,
-  };
-
-  it("shows the field below the heading, without a count", () => {
-    const html = render([grace]);
-    expect(html).toMatch(/<\/h1>.*<form[^>]*role="search"/s);
-    expect(html).toMatch(/<form [^>]*method="get"/);
-    expect(html).toContain('aria-label="Search sheets"');
-    expect(html).toContain('placeholder="Search titles, artists and lyrics"');
-    expect(html).toContain('name="q"');
-    expect(html).toMatch(
-      /<span class="search-field-count" role="status"><\/span>/,
-    );
-    expect(html).not.toContain("Clear search");
-  });
-
-  it("hides the field without sheets", () => {
-    expect(render([])).not.toContain('role="search"');
-  });
-
-  // Scenario "Count".
-  it("says how many sheets match, and offers to clear the search", () => {
-    const results = [grace, { ...grace, id: "mnopqrstuvwx" }];
-    const html = render(
-      results.map((sheet) => ({
-        ...sheet,
-        titleParts: [{ text: sheet.title, hit: false }],
-      })),
-      false,
-      { q: "grace", hasSheets: true },
-    );
-    expect(html).toContain('value="grace"');
-    expect(html).toContain('role="status">2 sheets</span>');
-    expect(html).toContain('aria-label="Clear search"');
-    expect(
-      render([{ ...grace, titleParts: [] }], false, { q: "grace" }),
-    ).toContain('role="status">1 sheet</span>');
-  });
-
-  // Scenario "One character".
-  it("shows no count for one character", () => {
-    expect(render([grace], false, { q: "a" })).toMatch(
-      /role="status"><\/span>/,
-    );
-  });
 
   // Scenarios "Title match" and "Lyrics match".
   it("marks the matches, with the line for a lyrics match", () => {
@@ -393,7 +348,6 @@ describe("library search", () => {
   it("says no sheet matches, in place of the list", () => {
     const html = render([], false, { q: "königin", hasSheets: true });
     expect(html).toContain("No sheets match “königin”");
-    expect(html).toContain('role="search"');
     expect(html).not.toContain('class="group-list"');
     expect(html).not.toContain("No sheets yet");
   });

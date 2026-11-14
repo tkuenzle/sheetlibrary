@@ -19,10 +19,6 @@
   overflow-wrap: anywhere;
 }
 
-.collection-title h1:focus {
-  outline: none;
-}
-
 .collection-title p {
   margin: 0;
   color: var(--text-muted);

@@ -1,4 +1,4 @@
-/* The library: one column below the top bar. */
+/* The library's screens: one column in the shell, below its search row. */
 .library {
   display: flex;
   flex-direction: column;
@@ -170,7 +170,8 @@
   gap: var(--space-m);
 }
 
-/* On a phone, they are docked at the bottom right instead. */
+/* On a phone, they are docked at the bottom right instead, above the
+   shell's bar. */
 .library-actions-docked {
   display: none;
 }
@@ -180,7 +181,7 @@
 @media (max-width: 640px) {
   .library {
     gap: var(--space-l);
-    padding: var(--space-m) var(--space-m) var(--space-3xl);
+    padding: var(--space-xl) var(--space-m) var(--space-3xl);
   }
 
   .library h1 {
@@ -200,7 +201,8 @@
     display: flex;
     position: fixed;
     right: var(--space-l);
-    bottom: var(--space-xl);
+    bottom: calc(var(--shell-bar-height, 0px) + var(--space-l));
+    z-index: 1;
   }
 
   /* The Import menu opens above the docked buttons, at their right edge, so

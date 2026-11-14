@@ -5,6 +5,7 @@ import "./collection.css";
 import { useMemo, useRef, useState } from "react";
 import {
   data,
+  Link,
   redirect,
   useFetcher,
   useNavigate,
@@ -28,7 +29,6 @@ import {
   collectionNameText,
 } from "../collections/new-collection";
 import { cloudflareContext, sessionContext } from "../context";
-import { TopBar } from "../shell/top-bar";
 import { NotFound } from "../sheets/not-found";
 import { Button, IconButton } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
@@ -38,7 +38,8 @@ import type { Route } from "./+types/collection";
 
 // One collection, at /collections/:id: its sheets A to Z, "Add sheets", a
 // button on each row to take the sheet out, and the menu with "Rename" and
-// "Delete". See openspec/specs/collection-page.
+// "Delete". It sits in the shell (routes/shell.tsx). See
+// openspec/specs/collection-page.
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [
@@ -92,16 +93,13 @@ export default function CollectionPage({ loaderData }: Route.ComponentProps) {
   const { revalidate } = useRevalidator();
   if (!loaderData.collection) return <NotFound what="collection" />;
   return (
-    <>
-      <TopBar back={{ href: "/collections", label: "Collections" }} />
-      <CollectionView
-        collection={loaderData.collection}
-        onRenamed={revalidate}
-        onDeleted={() => {
-          void navigate("/collections");
-        }}
-      />
-    </>
+    <CollectionView
+      collection={loaderData.collection}
+      onRenamed={revalidate}
+      onDeleted={() => {
+        void navigate("/collections");
+      }}
+    />
   );
 }
 
@@ -142,7 +140,7 @@ export function CollectionView({
   );
 
   return (
-    <main className="library library-with-sheets collection">
+    <div className="library library-with-sheets collection">
       <div className="collection-heading">
         <div className="collection-title">
           <h1 ref={heading} tabIndex={-1}>
@@ -236,7 +234,7 @@ export function CollectionView({
         }}
         onClose={closed}
       />
-    </main>
+    </div>
   );
 }
 
@@ -257,10 +255,10 @@ function SheetRow({
   if (removing) return null;
   return (
     <li className="collection-row">
-      <a className="collection-columns" href={`/sheets/${sheet.id}`}>
+      <Link className="collection-columns" to={`/sheets/${sheet.id}`}>
         <span className="library-title">{sheet.title}</span>
         <span>{sheet.artist}</span>
-      </a>
+      </Link>
       <fetcher.Form
         method="post"
         onSubmit={() => {

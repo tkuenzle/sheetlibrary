@@ -1,0 +1,49 @@
+/* The bottom bar: the navigation on a phone, as on the canvas page "UX
+   overhaul". Its height is fixed; the shell puts it at the bottom of the
+   screen. */
+.nav-bar {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  box-sizing: border-box;
+  height: 80px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.nav-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  color: var(--text-muted);
+  font: 600 var(--font-size-small) / 1.2 var(--font);
+  text-decoration: none;
+}
+
+.nav-bar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 32px;
+  border-radius: var(--corner-full);
+}
+
+/* The open one. The outline shows it in forced colors mode. */
+.nav-bar-item[aria-current] {
+  color: var(--text);
+}
+
+.nav-bar-item[aria-current] > .nav-bar-icon {
+  background-color: var(--accent-soft);
+  color: var(--on-accent-soft);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.nav-bar-item:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}
