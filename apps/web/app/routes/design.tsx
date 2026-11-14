@@ -1,9 +1,11 @@
 import "./design.css";
 
 import { Button, IconButton } from "../ui/button";
+import { LoadingBar } from "../ui/loading-bar";
 import { NavBar } from "../ui/nav-bar";
 import { type NavItem, NavRail } from "../ui/nav-rail";
 import { Note } from "../ui/note";
+import { PageError } from "../ui/page-error";
 import { Popover } from "../ui/popover";
 import { Toolbar } from "../ui/toolbar";
 
@@ -195,6 +197,29 @@ function Style({ theme, name }: { theme: string; name: string }) {
         <h3>Bottom bar</h3>
         <div className="design-nav design-nav-bar">
           <NavBar label="Bottom bar" items={navItems} />
+        </div>
+      </div>
+
+      <div>
+        <h3>Loading bar, standing still</h3>
+        <div className="design-loading">
+          <LoadingBar still />
+        </div>
+      </div>
+
+      <div>
+        <h3>Page errors</h3>
+        <div className="design-row">
+          <div className="design-page-error">
+            <PageError kind="unreachable" heading="h3">
+              <Button icon="refresh">Try again</Button>
+            </PageError>
+          </div>
+          <div className="design-page-error">
+            <PageError kind="failed" heading="h3">
+              <Button icon="refresh">Try again</Button>
+            </PageError>
+          </div>
         </div>
       </div>
 

@@ -25,16 +25,21 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu, type MenuItem } from "../ui/menu";
 import { Note } from "../ui/note";
 import type { Route } from "./+types/sheet.edit";
+import { RouteError } from "../shell/route-error";
 
 // A stored sheet in the editor, at /sheets/:id/edit. See
 // openspec/specs/sheet-page.
 
 export function meta({ loaderData }: Route.MetaArgs) {
+  // Missing when the page couldn't be loaded.
+  const data = loaderData;
   return [
     {
-      title: loaderData.sheet
-        ? `${loaderData.sheet.title} | Sheet Library`
-        : "Sheet not found | Sheet Library",
+      title: !data
+        ? "Sheet Library"
+        : data.sheet
+          ? `${data.sheet.title} | Sheet Library`
+          : "Sheet not found | Sheet Library",
     },
     { name: "robots", content: "noindex" },
   ];
@@ -61,6 +66,19 @@ export async function loader({ context, params, url }: Route.LoaderArgs) {
     shownKey: url.searchParams.get("key"),
     capo: url.searchParams.get("capo"),
   };
+}
+
+// A sheet that can't be loaded shows a note under the top bar. See
+// openspec/specs/site-layout.
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  return (
+    <>
+      <TopBar back />
+      <main>
+        <RouteError error={error} />
+      </main>
+    </>
+  );
 }
 
 export default function SheetPage({ loaderData }: Route.ComponentProps) {

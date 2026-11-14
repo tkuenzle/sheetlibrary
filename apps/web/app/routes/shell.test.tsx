@@ -78,9 +78,14 @@ describe("shell shouldRevalidate", () => {
     );
   });
 
-  it("loads them again after a move, an action and a reload of the data", () => {
-    expect(shouldRevalidate(args("/collections", "/sheets?q=gr"))).toBe(true);
-    expect(shouldRevalidate(args("/collections/a", "/collections"))).toBe(true);
+  it("keeps them on a move between the shell's screens", () => {
+    expect(shouldRevalidate(args("/collections", "/sheets?q=gr"))).toBe(false);
+    expect(shouldRevalidate(args("/collections/a", "/collections"))).toBe(
+      false,
+    );
+  });
+
+  it("loads them again after an action and a reload of the data", () => {
     expect(shouldRevalidate(args("/collections/a", "/collections/a"))).toBe(
       true,
     );

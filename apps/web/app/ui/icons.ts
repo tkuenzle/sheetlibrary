@@ -4,6 +4,7 @@ import arrowBack from "./icons/arrow_back.svg?raw";
 import check from "./icons/check.svg?raw";
 import chevronRight from "./icons/chevron_right.svg?raw";
 import close from "./icons/close.svg?raw";
+import cloudOff from "./icons/cloud_off.svg?raw";
 import collectionsBookmark from "./icons/collections_bookmark.svg?raw";
 import contentPasteGo from "./icons/content_paste_go.svg?raw";
 import deleteIcon from "./icons/delete.svg?raw";
@@ -26,6 +27,7 @@ import photoCamera from "./icons/photo_camera.svg?raw";
 import photoLibrary from "./icons/photo_library.svg?raw";
 import playArrow from "./icons/play_arrow.svg?raw";
 import print from "./icons/print.svg?raw";
+import refresh from "./icons/refresh.svg?raw";
 import remove from "./icons/remove.svg?raw";
 import search from "./icons/search.svg?raw";
 import stacks from "./icons/stacks.svg?raw";
@@ -45,6 +47,7 @@ const sources = {
   check,
   chevronRight,
   close,
+  cloudOff,
   collectionsBookmark,
   contentPasteGo,
   // `delete` is a keyword, so its import has another name.
@@ -68,6 +71,7 @@ const sources = {
   photoLibrary,
   playArrow,
   print,
+  refresh,
   remove,
   search,
   stacks,

@@ -18,6 +18,7 @@ import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 import type { Route } from "./+types/account";
+import { RouteError } from "../shell/route-error";
 
 // The signed-in person's email, passkeys and sign-out. It sits in the shell
 // (routes/shell.tsx). See openspec/specs/accounts.
@@ -225,6 +226,12 @@ export function AccountView({
       </ul>
     </div>
   );
+}
+
+// A page that can't be loaded shows a note in the shell, which stays. See
+// openspec/specs/site-layout.
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  return <RouteError error={error} />;
 }
 
 export default function Account() {

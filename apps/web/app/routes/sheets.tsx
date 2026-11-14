@@ -14,6 +14,7 @@ import { UNTITLED } from "../sheets/details";
 import { importedSheetPath, importSheet } from "../sheets/import";
 import { isSearch, type TextPart } from "../sheets/search";
 import { SearchField, useSearchPending } from "../sheets/search-field";
+import { RouteError } from "../shell/route-error";
 import {
   createSheet,
   hasSheets,
@@ -25,6 +26,7 @@ import {
 import { Button, IconButton } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Menu } from "../ui/menu";
+import { errorKind, isOnline } from "../ui/page-error";
 import type { Route } from "./+types/sheets";
 
 // The Sheets screen of the library: the signed-in person's sheets, the
@@ -77,6 +79,25 @@ export async function action({ context }: Route.ActionArgs) {
   return redirect(`/sheets/${sheet.id}/edit?new`);
 }
 
+// In the browser, a search that can't reach the server doesn't fail the
+// page: the screen keeps the results it shows, and says so. Any other error
+// goes to the boundary below. Not on the first load, which the server
+// renders. See openspec/specs/library-search.
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+  try {
+    return await serverLoader();
+  } catch (error) {
+    if (errorKind(error, isOnline()) !== "unreachable") throw error;
+    return { failed: true as const, error };
+  }
+}
+
+// A page that can't be loaded shows a note in the shell, which stays. See
+// openspec/specs/site-layout.
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  return <RouteError error={error} />;
+}
+
 export default function Library({ loaderData }: Route.ComponentProps) {
   // `?passkey` offers a passkey once. Without it in the URL, a reload
   // doesn't.
@@ -87,14 +108,40 @@ export default function Library({ loaderData }: Route.ComponentProps) {
     window.history.replaceState(window.history.state, "", url);
   }, []);
 
+  const shown = useLastLoaded(loaderData);
   return (
     <LibraryView
-      sheets={loaderData.sheets}
-      hasSheets={loaderData.hasSheets}
-      q={loaderData.q}
-      offerPasskey={loaderData.offerPasskey}
+      sheets={shown.sheets}
+      hasSheets={shown.hasSheets}
+      q={shown.q}
+      offerPasskey={shown.offerPasskey}
+      searchFailed={"failed" in loaderData}
     />
   );
+}
+
+type LibraryData = Exclude<
+  Route.ComponentProps["loaderData"],
+  { failed: true }
+>;
+
+// The last data that loaded, kept while a search can't reach the server.
+// With nothing loaded yet, as when Sheets opens offline, the screen fails
+// and its boundary shows.
+export function useLastLoaded(
+  loaderData: Route.ComponentProps["loaderData"],
+): LibraryData {
+  const [last, setLast] = useState<LibraryData | null>(
+    "failed" in loaderData ? null : loaderData,
+  );
+  if (!("failed" in loaderData) && loaderData !== last) {
+    setLast(loaderData);
+    return loaderData;
+  }
+  if (!last) {
+    throw ("error" in loaderData ? loaderData.error : undefined) as Error;
+  }
+  return last;
 }
 
 // After an email sign-in. The passkey is added on the account page, so the
@@ -210,12 +257,16 @@ export function LibraryView({
   hasSheets = sheets.length > 0,
   q = "",
   offerPasskey = false,
+  searchFailed = false,
 }: {
   // All sheets, or the results of the search in `q`.
   sheets: (SheetListItem | SearchResult)[];
   hasSheets?: boolean;
   q?: string;
   offerPasskey?: boolean;
+  // Whether the latest search couldn't reach the server, so the sheets are
+  // the last results.
+  searchFailed?: boolean;
 }) {
   const [offering, setOffering] = useState(offerPasskey);
   const offer = offering && (
@@ -264,6 +315,12 @@ export function LibraryView({
         count={searching ? sheets.length : null}
         pending={pending}
       />
+      {searchFailed && (
+        <p className="library-search-failed" role="status">
+          <Icon name="cloudOff" size={20} />
+          Couldn’t search. Showing the last results.
+        </p>
+      )}
       {searching && sheets.length === 0 ? (
         <section
           className="library-empty"

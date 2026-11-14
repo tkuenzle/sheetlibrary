@@ -47,16 +47,21 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu, type MenuItem } from "../ui/menu";
 import { NameDialog } from "../ui/name-dialog";
 import type { Route } from "./+types/sheet";
+import { RouteError } from "../shell/route-error";
 
 // A stored sheet to play or print, at /sheets/:id. See
 // openspec/specs/play-page.
 
 export function meta({ loaderData }: Route.MetaArgs) {
+  // Missing when the page couldn't be loaded.
+  const data = loaderData;
   return [
     {
-      title: loaderData.sheet
-        ? `${loaderData.sheet.title} | Sheet Library`
-        : "Sheet not found | Sheet Library",
+      title: !data
+        ? "Sheet Library"
+        : data.sheet
+          ? `${data.sheet.title} | Sheet Library`
+          : "Sheet not found | Sheet Library",
     },
     { name: "robots", content: "noindex" },
   ];
@@ -99,6 +104,19 @@ export async function loader({
     lyricsOnly: url.searchParams.has("lyrics"),
     textStep: readTextStep(request.headers.get("Cookie")),
   };
+}
+
+// A sheet that can't be loaded shows a note under the top bar. See
+// openspec/specs/site-layout.
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  return (
+    <>
+      <TopBar back />
+      <main>
+        <RouteError error={error} />
+      </main>
+    </>
+  );
 }
 
 export default function PlayPage({ loaderData }: Route.ComponentProps) {

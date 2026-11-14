@@ -35,6 +35,7 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu } from "../ui/menu";
 import { NameDialog } from "../ui/name-dialog";
 import type { Route } from "./+types/collection";
+import { RouteError } from "../shell/route-error";
 
 // One collection, at /collections/:id: its sheets A to Z, "Add sheets", a
 // button on each row to take the sheet out, and the menu with "Rename" and
@@ -42,11 +43,15 @@ import type { Route } from "./+types/collection";
 // openspec/specs/collection-page.
 
 export function meta({ loaderData }: Route.MetaArgs) {
+  // Missing when the page couldn't be loaded.
+  const data = loaderData;
   return [
     {
-      title: loaderData.collection
-        ? `${loaderData.collection.name} | Sheet Library`
-        : "Collection not found | Sheet Library",
+      title: !data
+        ? "Sheet Library"
+        : data.collection
+          ? `${data.collection.name} | Sheet Library`
+          : "Collection not found | Sheet Library",
     },
     { name: "robots", content: "noindex" },
   ];
@@ -88,6 +93,12 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   return ok ? { ok } : data({ ok }, { status: 404 });
 }
 
+// A page that can't be loaded shows a note in the shell, which stays. See
+// openspec/specs/site-layout.
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  return <RouteError error={error} />;
+}
+
 export default function CollectionPage({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate();
   const { revalidate } = useRevalidator();
@@ -97,7 +108,9 @@ export default function CollectionPage({ loaderData }: Route.ComponentProps) {
       collection={loaderData.collection}
       onRenamed={revalidate}
       onDeleted={() => {
-        void navigate("/collections");
+        // Deleted with a plain fetch, so the rail is told to drop it
+        // (shell/revalidate.ts).
+        void Promise.resolve(navigate("/collections")).then(revalidate);
       }}
     />
   );

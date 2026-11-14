@@ -2,19 +2,27 @@ import "./app.css";
 
 import lyricsFont from "@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url";
 import {
+  isRouteErrorResponse,
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
+  type ShouldRevalidateFunctionArgs,
   useLoaderData,
 } from "react-router";
 
 import type { Route } from "./+types/root";
 import { getAuth } from "./auth/auth.server";
 import { cloudflareContext, sessionContext } from "./context";
+import { NotFoundView } from "./routes/not-found";
 import { useFocusOnNavigation } from "./shell/focus";
+import { PageLoading } from "./shell/page-loading";
+import { revalidateAfterChanges } from "./shell/revalidate";
 import { initialOf, SignedInContext } from "./shell/signed-in";
+import { TopBar } from "./shell/top-bar";
+import { Button } from "./ui/button";
+import { errorKind, isOnline, PageError } from "./ui/page-error";
 
 // The font is served from our own origin (see docs/design-direction.md). The
 // latin file holds every weight, so preloading it covers the lyrics and the
@@ -49,6 +57,12 @@ export function loader({ context }: Route.LoaderArgs) {
   };
 }
 
+// Who is signed in only changes with a full load: signing in opens a link,
+// and signing out loads the home page. See shell/revalidate.ts.
+export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
+  return revalidateAfterChanges(args);
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -64,11 +78,38 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        <PageLoading />
         {children}
         <ScrollRestoration />
         <Scripts />
       </body>
     </html>
+  );
+}
+
+// The last resort, for an error no route closer to it catches, such as the
+// root's own loader failing. The app may be what broke, so "Try again"
+// loads the page in full, and nothing here reads the root's data: the top
+// bar shows only the site's name. See openspec/specs/site-layout.
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const notFound = isRouteErrorResponse(error) && error.status === 404;
+  if (notFound) return <NotFoundView signedIn={false} />;
+  return (
+    <>
+      <TopBar />
+      <main>
+        <PageError kind={errorKind(error, isOnline())}>
+          <Button
+            icon="refresh"
+            onClick={() => {
+              window.location.reload();
+            }}
+          >
+            Try again
+          </Button>
+        </PageError>
+      </main>
+    </>
   );
 }
 
