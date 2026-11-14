@@ -79,6 +79,29 @@ test("shows the rail, its compact form and the bottom bar", async ({
   expect((await bar.boundingBox())?.height).toBe(80);
 });
 
+// The loading bar stands still here, and the page errors keep their
+// action. See openspec/specs/site-layout.
+test("shows the loading bar and the page errors", async ({ page }) => {
+  for (const theme of ["light", "lamplight"]) {
+    const style = page.locator(`[data-theme="${theme}"]`);
+    const bar = style.locator(".loading-bar");
+    expect((await bar.boundingBox())?.height).toBe(3);
+    const piece = bar.locator("span");
+    expect((await piece.boundingBox())?.width).toBe(
+      (await bar.boundingBox())?.width,
+    );
+    await expect(
+      style.getByRole("heading", { name: "Can’t reach Sheet Library" }),
+    ).toBeVisible();
+    await expect(
+      style.getByRole("heading", { name: "Something went wrong" }),
+    ).toBeVisible();
+    await expect(style.getByRole("button", { name: "Try again" })).toHaveCount(
+      2,
+    );
+  }
+});
+
 test.describe("tooltips", () => {
   test("shows a tooltip after a moment on hover", async ({
     page,
@@ -148,4 +171,12 @@ test("components keep an outline in forced colors mode", async ({ page }) => {
         .filter((outline) => !/solid \d+(\.\d+)?px rgb\(/.test(outline)),
     );
   expect(outlines).toEqual([]);
+
+  // The bar has no outline to keep: its piece takes a system color.
+  const bar = await page
+    .locator('[data-theme="light"] .loading-bar > span')
+    .evaluate((piece) => getComputedStyle(piece).backgroundColor);
+  expect(bar).not.toBe("rgba(0, 0, 0, 0)");
+  // Not the light style's accent, which forced colors would drop.
+  expect(bar).not.toBe("rgb(31, 107, 79)");
 });

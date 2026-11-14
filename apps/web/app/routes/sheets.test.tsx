@@ -14,7 +14,13 @@ import {
 } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheets";
-import { action, LibraryView, loader, meta } from "./sheets";
+import Library, {
+  action,
+  clientLoader,
+  LibraryView,
+  loader,
+  meta,
+} from "./sheets";
 
 describe("library loader and action", () => {
   let test: Awaited<ReturnType<typeof testEnv>>;
@@ -176,7 +182,7 @@ describe("library loader and action", () => {
 function render(
   sheets: (SheetListItem | SearchResult)[],
   offerPasskey?: boolean,
-  search: { q?: string; hasSheets?: boolean } = {},
+  search: { q?: string; hasSheets?: boolean; searchFailed?: boolean } = {},
 ) {
   const Stub = createRoutesStub([
     {
@@ -398,5 +404,70 @@ describe("library search", () => {
     expect(html).toContain('role="search"');
     expect(html).not.toContain('class="group-list"');
     expect(html).not.toContain("No sheets yet");
+  });
+});
+
+describe("a search that doesn't go through", () => {
+  const grace: SheetListItem = {
+    id: "abcdefghijkl",
+    title: "Amazing Grace",
+    updatedAt: Date.now(),
+  };
+  const offline = new TypeError("Failed to fetch");
+  const load = (serverLoader: () => Promise<unknown>) =>
+    clientLoader({ serverLoader } as unknown as Route.ClientLoaderArgs);
+
+  it("doesn't fail the page when the server can't be reached", async () => {
+    const data = await load(() => Promise.reject(offline));
+    expect(data).toEqual({ failed: true, error: offline });
+  });
+
+  it("fails the page for any other error", async () => {
+    const error = new Error("Unexpected Server Error");
+    await expect(load(() => Promise.reject(error))).rejects.toBe(error);
+  });
+
+  it("passes the results on when the search goes through", async () => {
+    const results = { sheets: [grace], hasSheets: true, q: "grace" };
+    expect(await load(() => Promise.resolve(results))).toBe(results);
+  });
+
+  // Scenario "Offline while typing".
+  it("says so below the field, and keeps the results", () => {
+    const html = render([grace], false, {
+      q: "grace",
+      hasSheets: true,
+      searchFailed: true,
+    });
+    expect(html).toMatch(
+      /<\/form><p class="library-search-failed" role="status">.*Couldn’t search\. Showing the last results\.<\/p>/s,
+    );
+    expect(html).toContain("Amazing Grace");
+  });
+
+  it("has no note while searches go through", () => {
+    expect(
+      render([grace], false, { q: "grace", hasSheets: true }),
+    ).not.toContain("library-search-failed");
+  });
+
+  // With nothing loaded yet, the screen throws the error to its boundary.
+  // Boundaries don't catch while rendering to a string, so it shows here.
+  it("fails the screen when there are no results to keep", () => {
+    const Stub = createRoutesStub([
+      {
+        path: "/sheets",
+        Component: () => (
+          <Library
+            {...({
+              loaderData: { failed: true, error: offline },
+            } as unknown as Route.ComponentProps)}
+          />
+        ),
+      },
+    ]);
+    expect(() => renderToString(<Stub initialEntries={["/sheets"]} />)).toThrow(
+      offline,
+    );
   });
 });

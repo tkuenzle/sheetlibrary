@@ -2,7 +2,7 @@ import "../ui/group-list.css";
 import "./sheets.css";
 import "./collections.css";
 
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useRevalidator } from "react-router";
 
 import {
   type CollectionListItem,
@@ -10,6 +10,8 @@ import {
 } from "../collections/collections";
 import { NewCollection } from "../collections/new-collection";
 import { Icon } from "../ui/icon";
+import { RouteError } from "../shell/route-error";
+import type { Route } from "./+types/collections";
 import { useShellCollections } from "./shell";
 
 // The Collections screen of the library: the signed-in person's collections,
@@ -24,13 +26,24 @@ export function meta() {
   ];
 }
 
+// A page that can't be loaded shows a note in the shell, which stays. See
+// openspec/specs/site-layout.
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  return <RouteError error={error} />;
+}
+
 export default function Collections() {
   const navigate = useNavigate();
+  const { revalidate } = useRevalidator();
   return (
     <CollectionsView
       collections={useShellCollections()}
       onCreated={(collection) => {
-        void navigate(`/collections/${collection.id}`);
+        // The shell keeps its data on a move. The collection was made with
+        // a plain fetch, so the rail is told to follow (shell/revalidate.ts).
+        void Promise.resolve(navigate(`/collections/${collection.id}`)).then(
+          revalidate,
+        );
       }}
     />
   );

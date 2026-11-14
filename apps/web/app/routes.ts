@@ -43,4 +43,6 @@ export default [
   route("api/collections/:id", "routes/api.collection.ts"),
   route("api/photo-import", "routes/api.photo-import.ts"),
   ...(withDesignPage ? [route("design", "routes/design.tsx")] : []),
+  // Last, so it only gets what no route above matches.
+  route("*", "routes/not-found.tsx"),
 ] satisfies RouteConfig;

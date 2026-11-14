@@ -68,6 +68,37 @@
   overflow: hidden;
 }
 
+/* The loading bar, in a frame that stands for the top of the window. */
+.design-loading {
+  position: relative;
+  height: 48px;
+  overflow: hidden;
+  border-radius: var(--corner-small);
+  outline: 1px solid var(--border);
+}
+
+.design-loading .loading-bar {
+  position: absolute;
+}
+
+/* A page error, in a frame that stands for the content area. */
+.design-page-error {
+  flex: 1 1 280px;
+  border-radius: var(--corner-medium);
+  outline: 1px solid var(--border);
+}
+
+.design-page-error .page-error {
+  padding: var(--space-xl);
+}
+
+/* Over the design page's own h3 rule. */
+.design-page-error .page-error-title {
+  margin: 0;
+  color: var(--text);
+  font: 800 28px / 1.05 var(--font);
+}
+
 .design-swatches {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

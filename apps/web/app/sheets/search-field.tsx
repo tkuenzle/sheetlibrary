@@ -3,6 +3,7 @@ import "./search-field.css";
 import { useEffect, useRef, useState } from "react";
 import { Form, useLocation, useNavigate, useNavigation } from "react-router";
 
+import { useSlowWait } from "../shell/slow-wait";
 import { Icon } from "../ui/icon";
 import { IconButton } from "../ui/button";
 import { isSearch } from "./search";
@@ -10,29 +11,14 @@ import { isSearch } from "./search";
 // How long typing pauses before the results update, in milliseconds.
 export const SEARCH_PAUSE = 300;
 
-// How long a search loads before the page shows it, in milliseconds, so a
-// fast answer doesn't flicker.
-const PENDING_DELAY = 200;
-
 // Whether a search has been loading for more than a moment. A newer search
 // cancels an older one, so results never arrive out of order.
 export function useSearchPending(): boolean {
   const navigation = useNavigation();
-  const loading =
+  return useSlowWait(
     navigation.state === "loading" &&
-    navigation.location.pathname === "/sheets";
-  const [pending, setPending] = useState(false);
-  useEffect(() => {
-    if (!loading) return;
-    const timer = setTimeout(() => {
-      setPending(true);
-    }, PENDING_DELAY);
-    return () => {
-      clearTimeout(timer);
-      setPending(false);
-    };
-  }, [loading]);
-  return pending;
+      navigation.location.pathname === "/sheets",
+  );
 }
 
 // The search field of the Sheets screen: a GET form for `q`, so Enter works before the

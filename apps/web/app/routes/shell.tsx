@@ -16,6 +16,8 @@ import {
 } from "../collections/collections";
 import { listCollections } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
+import { revalidateAfterChanges } from "../shell/revalidate";
+import { RouteError } from "../shell/route-error";
 import { SignedInContext } from "../shell/signed-in";
 import { NavBar } from "../ui/nav-bar";
 import { type NavItem, NavRail } from "../ui/nav-rail";
@@ -36,23 +38,10 @@ export async function loader({ context }: Route.LoaderArgs) {
   return { collections: await listCollections(env.DB, session.user.id) };
 }
 
-// Every move loads the collections again, so the rail is right after one is
-// made, renamed or deleted. A search on Sheets only changes the address's
-// search, on every pause in typing, and can't change them.
-export function shouldRevalidate({
-  currentUrl,
-  nextUrl,
-  formMethod,
-  defaultShouldRevalidate,
-}: ShouldRevalidateFunctionArgs) {
-  if (
-    !formMethod &&
-    currentUrl.pathname === nextUrl.pathname &&
-    currentUrl.search !== nextUrl.search
-  ) {
-    return false;
-  }
-  return defaultShouldRevalidate;
+// The collections only load again after a change, not on every move. See
+// shell/revalidate.ts.
+export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
+  return revalidateAfterChanges(args);
 }
 
 // The collections the shell loaded, for a screen inside it.
@@ -106,6 +95,23 @@ export default function Shell({ loaderData }: Route.ComponentProps) {
       initial={signedIn?.initial ?? ""}
     >
       <Outlet />
+    </ShellView>
+  );
+}
+
+// The shell's own loader failed, as when it is entered from a sheet without
+// a connection. The navigation still shows, without the collections it
+// couldn't load, and the note takes the content's place.
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const { pathname } = useLocation();
+  const signedIn = use(SignedInContext);
+  return (
+    <ShellView
+      pathname={pathname}
+      collections={[]}
+      initial={signedIn?.initial ?? ""}
+    >
+      <RouteError error={error} />
     </ShellView>
   );
 }
