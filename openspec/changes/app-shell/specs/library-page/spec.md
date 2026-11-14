@@ -36,5 +36,5 @@ A person without collections SHALL see "No collections yet" and "New collection"
 ## REMOVED Requirements
 
 ### Requirement: Sheets and Collections tabs
-**Reason**: The shell's navigation links to Sheets and Collections and marks the open one. The search field shows on every screen in the shell.
+**Reason**: The shell's navigation links to Sheets and Collections and marks the open one.
 **Migration**: See "Navigation in the shell" in `site-layout`, "Search field" in `library-search`, and "Sheets and Collections screens" here.

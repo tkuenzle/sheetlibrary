@@ -301,9 +301,56 @@ describe("library page", () => {
   });
 });
 
-// The search field itself is in the shell (see shell.test.tsx).
 describe("library search", () => {
   const today = Date.now();
+  const grace: SheetListItem = {
+    id: "abcdefghijkl",
+    title: "Amazing Grace",
+    updatedAt: today,
+  };
+
+  it("shows the field below the heading, without a count", () => {
+    const html = render([grace]);
+    expect(html).toMatch(/<\/h1>.*<form[^>]*role="search"/s);
+    expect(html).toMatch(/<form [^>]*method="get"/);
+    expect(html).toContain('aria-label="Search sheets"');
+    expect(html).toContain('placeholder="Search titles, artists and lyrics"');
+    expect(html).toContain('name="q"');
+    expect(html).toMatch(
+      /<span class="search-field-count" role="status"><\/span>/,
+    );
+    expect(html).not.toContain("Clear search");
+  });
+
+  it("hides the field without sheets", () => {
+    expect(render([])).not.toContain('role="search"');
+  });
+
+  // Scenario "Count".
+  it("says how many sheets match, and offers to clear the search", () => {
+    const results = [grace, { ...grace, id: "mnopqrstuvwx" }];
+    const html = render(
+      results.map((sheet) => ({
+        ...sheet,
+        titleParts: [{ text: sheet.title, hit: false }],
+      })),
+      false,
+      { q: "grace", hasSheets: true },
+    );
+    expect(html).toContain('value="grace"');
+    expect(html).toContain('role="status">2 sheets</span>');
+    expect(html).toContain('aria-label="Clear search"');
+    expect(
+      render([{ ...grace, titleParts: [] }], false, { q: "grace" }),
+    ).toContain('role="status">1 sheet</span>');
+  });
+
+  // Scenario "One character".
+  it("shows no count for one character", () => {
+    expect(render([grace], false, { q: "a" })).toMatch(
+      /role="status"><\/span>/,
+    );
+  });
 
   // Scenarios "Title match" and "Lyrics match".
   it("marks the matches, with the line for a lyrics match", () => {
@@ -348,6 +395,7 @@ describe("library search", () => {
   it("says no sheet matches, in place of the list", () => {
     const html = render([], false, { q: "königin", hasSheets: true });
     expect(html).toContain("No sheets match “königin”");
+    expect(html).toContain('role="search"');
     expect(html).not.toContain('class="group-list"');
     expect(html).not.toContain("No sheets yet");
   });

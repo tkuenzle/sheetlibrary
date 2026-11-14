@@ -2,7 +2,6 @@ import "./shell.css";
 
 import { type ReactNode, use } from "react";
 import {
-  Link,
   Outlet,
   redirect,
   type ShouldRevalidateFunctionArgs,
@@ -17,16 +16,13 @@ import {
 import { listCollections } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { SignedInContext } from "../shell/signed-in";
-import { isSearch } from "../sheets/search";
-import { SearchField, useSearchPending } from "../sheets/search-field";
 import { NavBar } from "../ui/nav-bar";
 import { type NavItem, NavRail } from "../ui/nav-rail";
 import type { Route } from "./+types/shell";
-import type { loader as sheetsLoader } from "./sheets";
 
 // The shell around the library's screens and the account page: the
-// navigation, the search field and the screen's content. It stays on screen
-// while the content changes. See openspec/specs/site-layout.
+// navigation and the screen's content. The navigation stays on screen while
+// the content changes. See openspec/specs/site-layout.
 
 // The id React Router gives this route, for the screens that read its data.
 export const shellRouteId = "routes/shell";
@@ -40,8 +36,8 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 
 // Every move loads the collections again, so the rail is right after one is
-// made, renamed or deleted. A search only changes the address's search, on
-// every pause in typing, and can't change them.
+// made, renamed or deleted. A search on Sheets only changes the address's
+// search, on every pause in typing, and can't change them.
 export function shouldRevalidate({
   currentUrl,
   nextUrl,
@@ -107,50 +103,35 @@ export default function Shell({ loaderData }: Route.ComponentProps) {
       pathname={pathname}
       collections={loaderData.collections}
       initial={signedIn?.initial ?? ""}
-      search={<ShellSearch />}
     >
       <Outlet />
     </ShellView>
   );
 }
 
-// The search field shows the search of the Sheets screen, and is empty on
-// the others.
-function ShellSearch() {
-  const sheets = useRouteLoaderData<typeof sheetsLoader>("routes/sheets");
-  const pending = useSearchPending();
-  const q = sheets?.q ?? "";
-  return (
-    <SearchField
-      q={q}
-      count={sheets && isSearch(q) ? sheets.sheets.length : null}
-      pending={pending}
-    />
-  );
-}
-
 // Three navigations are rendered, and CSS shows the one for the window's
 // width: the rail, its compact form, or the bottom bar. So the server
-// renders the right layout, and nothing jumps when the scripts load.
+// renders the right layout, and nothing jumps when the scripts load. The
+// account is at the bottom of the rail, and the last entry of the bar.
 export function ShellView({
   pathname,
   collections,
   initial,
-  search,
   children,
 }: {
   pathname: string;
   collections: CollectionListItem[];
   // The first letter of the person's email.
   initial: string;
-  search: ReactNode;
   children: ReactNode;
 }) {
   const items = navItems(pathname, collections);
-  const onAccount = pathname === "/account";
-  const footer: NavItem[] = [
-    { href: "/account", label: "Account", initial, current: onAccount },
-  ];
+  const account: NavItem = {
+    href: "/account",
+    label: "Account",
+    initial,
+    current: pathname === "/account",
+  };
   return (
     <div className="shell">
       {/* Works as a plain link before the scripts load. With them, it moves
@@ -168,26 +149,13 @@ export function ShellView({
       <NavRail
         name={{ href: "/sheets", label: "Sheet Library" }}
         items={items}
-        footer={footer}
+        footer={[account]}
       />
-      <NavRail compact items={items} footer={footer} />
-      <div className="shell-search">
-        {search}
-        <Link
-          className="shell-account"
-          to="/account"
-          aria-label="Account"
-          aria-current={onAccount ? "page" : undefined}
-        >
-          <span className="nav-avatar" aria-hidden="true">
-            {initial}
-          </span>
-        </Link>
-      </div>
+      <NavRail compact items={items} footer={[account]} />
       <main id="content" className="shell-content" tabIndex={-1}>
         {children}
       </main>
-      <NavBar items={items} />
+      <NavBar items={[...items, account]} />
     </div>
   );
 }

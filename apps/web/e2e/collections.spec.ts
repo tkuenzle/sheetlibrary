@@ -86,7 +86,7 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   await expect(page).toHaveTitle("Collections | Sheet Library");
   await expect(heading(page)).toHaveText("Collections");
   await expect(collectionsLink(page)).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("search")).toBeVisible();
+  await expect(page.getByRole("search")).toHaveCount(0);
   await page.reload();
   await expect(collectionsLink(page)).toHaveAttribute("aria-current", "page");
 

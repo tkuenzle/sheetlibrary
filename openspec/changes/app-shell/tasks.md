@@ -11,17 +11,17 @@
 ## 2. The shell
 
 - [x] 2.1 Add `routes/shell.tsx` as a layout route around `/sheets`, `/collections`, `/collections/:id` and `/account` in `routes.ts`. Its loader redirects a visitor to `/sign-in` and returns the collections, and skips reloading when only the search changes. Verify with loader tests for both, and `react-router typegen` passes.
-- [x] 2.2 Render the shell: the skip link, the rail, its compact form and the bar with "Sheets", "Collections", the collections and the account, the search row with the account's initial for phones, and `<main>` with the outlet. Lay it out as a grid with fixed tracks at the three widths, with the rail sticky and the bar fixed. Verify with unit tests for what is marked on `/sheets`, `/collections`, a collection and `/account`.
+- [x] 2.2 Render the shell: the skip link, the rail, its compact form and the bar with "Sheets", "Collections", the collections and the account, and `<main>` with the outlet. Lay it out as a grid with fixed tracks at the three widths, with the rail sticky and the bar fixed. Verify with unit tests for what is marked on `/sheets`, `/collections`, a collection and `/account`.
 - [x] 2.3 Take `TopBar`, `LibraryTabs` and `<main>` out of the four routes. Head the screens "Sheets" and "Collections", with their buttons as today, and set the tab title "Sheets | Sheet Library". Let `/collections` read the shell's list. Delete `sheets/library-tabs.*`. Verify `sheets.test.tsx`, `collections.test.tsx`, `collection.test.tsx` and `account.test.tsx` pass, updated.
 - [x] 2.4 Show a collection that isn't found inside the shell, without a top bar. Remove `accountPage` and the link form of `back` from `TopBar`. Verify `top-bar.test.tsx` and `collection.test.tsx` pass.
 - [x] 2.5 Put the docked buttons above the bottom bar on phones, and pad the content so the last row clears both. Verify in `e2e` on a phone that "New sheet" and the last row can both be clicked.
 - [x] 2.6 Update `e2e/library.spec.ts`, `collections.spec.ts` and `account.spec.ts` for the shell: the headings, the navigation named "Main", no top bar, the rail listing a new collection and dropping a deleted one, on a wide screen and a phone. Verify they pass.
 - [x] 2.7 Update `docs/ui-text.md`: the entries for the top bar, the library, the tabs, Collections, a collection and the search, and new ones for the navigation and "Skip to content". Update "The signed-in shell" and "Widths" in `docs/design-direction.md` with what was decided. Verify the words match the pages.
 
-## 3. Search in the shell
+## 3. Search on Sheets
 
-- [x] 3.1 Move `SearchField` into the shell's search row. Read `q` from the address on `/sheets` and the count from the Sheets route's data, and show the row with or without sheets. Verify with unit tests for the field on `/collections` and for a person without sheets.
-- [x] 3.2 From another screen, let the first search add to the history and keep the focus; on `/sheets`, replace as today. Verify with an `e2e` case: typing "grace" on `/collections` opens `/sheets?q=grace` with the focus in the field, and Back opens `/collections`. Verify the existing search cases still pass.
+- [x] 3.1 Keep `SearchField` on the Sheets screen, below its heading, and off the other screens. Verify with the search cases in `sheets.test.tsx` and a `shell.test.tsx` case that the shell has no field.
+- [x] 3.2 Verify in `e2e` that Collections and the account page have no search field, and that the existing search cases pass.
 
 ## 4. Links and focus
 

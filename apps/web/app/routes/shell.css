@@ -1,12 +1,10 @@
-/* The shell: the navigation, the search row and the content, as on the
-   canvas page "UX overhaul". The tracks have fixed sizes, so a change of
-   content never moves the navigation or the search row. The document
-   scrolls, not the content. */
+/* The shell: the navigation and the content, as on the canvas page "UX
+   overhaul". The navigation has a fixed size, so a change of content never
+   moves it. The document scrolls, not the content. */
 .shell {
   --shell-bar-height: 0px;
 
   display: grid;
-  grid-template-rows: auto 1fr;
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 100vh;
   min-height: 100dvh;
@@ -22,7 +20,6 @@ html:has(.shell) {
 .shell > .nav-rail {
   position: sticky;
   top: 0;
-  grid-row: 1 / 3;
   grid-column: 1;
   align-self: start;
   height: 100vh;
@@ -32,27 +29,8 @@ html:has(.shell) {
 /* One of the three navigations shows: the rail from wide, its compact form
    in the middle, the bar on a phone (see app/breakpoints.ts). */
 .shell > .nav-rail-compact,
-.shell > .nav-bar,
-.shell-account {
+.shell > .nav-bar {
   display: none;
-}
-
-/* As wide as the library's column, on every screen. */
-.shell-search {
-  display: flex;
-  grid-column: 2;
-  align-items: center;
-  gap: var(--space-s);
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 880px;
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-xl) 0;
-}
-
-.shell-search > .search-field {
-  flex: 1;
-  min-width: 0;
 }
 
 .shell-content {
@@ -92,28 +70,6 @@ html:has(.shell) {
   white-space: nowrap;
 }
 
-/* The account on a phone: its initial at the end of the search row. */
-.shell-account {
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--corner-full);
-  text-decoration: none;
-  outline: 1px solid transparent;
-  outline-offset: -1px;
-}
-
-.shell-account[aria-current="page"] {
-  background-color: var(--quiet);
-}
-
-.shell-account:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-
 /* Middle: the rail shows only icons. */
 @media (max-width: 1023px) {
   .shell > .nav-rail {
@@ -125,9 +81,14 @@ html:has(.shell) {
   }
 }
 
-/* Phone-wide: the bar at the bottom of the screen, and the account in the
-   search row. What a screen docks at the bottom sits above the bar. */
+/* Phone-wide: the bar at the bottom of the screen. What a screen docks at
+   the bottom sits above the bar. */
 @media (max-width: 640px) {
+  /* No room is kept beside the bar: it reaches both edges. */
+  html:has(.shell) {
+    scrollbar-gutter: auto;
+  }
+
   .shell {
     --shell-bar-height: 80px;
 
@@ -147,17 +108,7 @@ html:has(.shell) {
     z-index: 2;
   }
 
-  .shell-search,
   .shell-content {
     grid-column: 1;
-  }
-
-  .shell-search {
-    gap: var(--space-xs);
-    padding: var(--space-s) var(--space-xs) 0 var(--space-m);
-  }
-
-  .shell-account {
-    display: flex;
   }
 }

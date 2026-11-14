@@ -1,5 +1,5 @@
-/* The search field at the top of the shell: a round bar with the search
-   icon, the count and "Clear search". */
+/* The search field of the Sheets screen: a round bar with the search icon, the count
+   and "Clear search". */
 .search-field {
   display: flex;
   align-items: center;
@@ -47,12 +47,4 @@
 /* Without "Clear search", the count keeps off the edge. */
 .search-field-count:last-child {
   margin-right: var(--space-l);
-}
-
-/* Phone-wide (see app/breakpoints.ts): as high as the account beside it. */
-@media (max-width: 640px) {
-  .search-field {
-    min-height: 48px;
-    padding-left: var(--space-l);
-  }
 }

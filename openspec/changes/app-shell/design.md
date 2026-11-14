@@ -13,7 +13,7 @@ Three things in the code shape the approach:
 ## Goals / Non-Goals
 
 **Goals:**
-- One place that owns the navigation, the search row and the content area, so #129, #136 and #137 can add to it without moving things.
+- One place that owns the navigation and the content area, so #129, #136 and #137 can add to it without moving things.
 - The rail's list of collections is never out of date.
 
 **Non-Goals:**
@@ -26,13 +26,13 @@ Three things in the code shape the approach:
 
 `routes.ts` wraps `/sheets`, `/collections`, `/collections/:id` and `/account` in `layout("routes/shell.tsx", […])`. The addresses stay as they are. `/sheets/:id` and `/sheets/:id/edit` stay outside, as siblings.
 
-The shell renders the skip link, the navigation, the search row and one `<main>` with the `<Outlet />`. The four routes drop their `TopBar` and their own `<main>`. A collection that isn't found renders only its heading and text there; `NotFound` keeps its top bar for a sheet.
+The shell renders the skip link, the navigation and one `<main>` with the `<Outlet />`. The four routes drop their `TopBar` and their own `<main>`. A collection that isn't found renders only its heading and text there; `NotFound` keeps its top bar for a sheet.
 
 ### The shell's loader lists the collections
 
 The loader sends a visitor who isn't signed in to `/sign-in` and returns `listCollections`, one small query. Since every matched loader runs again on each move, the rail is right after "New collection" and "Delete", which call the API and then navigate. "Rename" already calls `revalidate()`.
 
-The loader opts out with `shouldRevalidate` when only the search of the address changes, so typing a search doesn't run the query on every pause.
+The loader opts out with `shouldRevalidate` when only the search of the address changes, so typing a search on Sheets doesn't run the query on every pause.
 
 `/collections` reads the same list from the shell's loader and has no query of its own, so the rail and the page can't disagree.
 
@@ -46,19 +46,19 @@ Alternative: one `<nav>` restyled at each width. Rejected: the three forms hold 
 
 Alternative, tried first: one rail whose compact form is picked by a media query. Dropped while building: the compact form marks "Collections" for an open collection and has tooltips, which is markup, not style.
 
-The account's initial is in the rail, and a second time in the search row, shown only on phones.
+The account is at the bottom of both rails, and the last entry of the bar.
 
 New icons: `library_music` for Sheets and `stacks` for Collections, as on the boards.
 
 ### A layout that doesn't move
 
-The shell is a grid with fixed tracks: the rail is 272px wide, or 80px in its compact form, and the search row and the bottom bar have fixed heights. The content column keeps the library's 880px, and the account page its 640px, centred. The document scrolls, not the content area, so `ScrollRestoration` keeps working and a phone's browser bars still hide. The rail is sticky at the full height of the window, and only its list of collections scrolls. The bottom bar is fixed. Its height is a CSS variable that the docked buttons and the content's bottom padding use.
+The rail is 272px wide, or 80px in its compact form, and the bottom bar is 80px high. The content column keeps the library's 880px, and the account page its 640px, centred. The document scrolls, not the content area, so `ScrollRestoration` keeps working and a phone's browser bars still hide. The rail is sticky at the full height of the window, and only its list of collections scrolls. The bottom bar is fixed. Its height is a CSS variable that the docked buttons and the content's bottom padding use.
 
-### The search field belongs to the shell
+### The search field stays on Sheets
 
-`SearchField` moves from `LibraryView` into the search row. It reads `q` and the count from the Sheets route's loader data when that route is matched, and is empty elsewhere. After a move to another screen it follows the address again, even while it has the focus, so going back from a search empties it. From another screen, the first navigation adds to the history, with a state that says to keep the focus; on `/sheets`, updates replace, as today.
+`SearchField` stays in `LibraryView`, below the heading, as before. It finds sheets only, so on Collections, a collection or the account page it would take the person to another screen while they type.
 
-The field can't stay in the Sheets route: it would be torn down when a search opens Sheets from another screen, and lose the focus in the middle of a word.
+Tried first: the field in the shell, at the top of every screen, as on the boards. A search from another screen opened Sheets. Dropped after review: being thrown to another screen in the middle of a word is a surprise, most of all on the account page. It also needed its own rules for the history, the focus and what the field shows after going back. The field can move into the shell once search finds collections too.
 
 ### Which links move without a full load
 
@@ -68,7 +68,7 @@ Alternative: `useBlocker` in the editor, and `<Link>` everywhere. Left for #134,
 
 ### Focus after a move
 
-A hook in `root.tsx` runs when the path changes, not on the first load and not when only the search changes. It focuses the `h1` inside `<main>` with `preventScroll`, and gives it `tabIndex={-1}` if it has none. It does nothing when focus is already inside `<main>`, which covers the new sheet's title field, or when the navigation's state says to keep the focus, which covers the search. It lives in the root so that a sheet opened from a row is covered too.
+A hook in `root.tsx` runs when the path changes, not on the first load and not when only the search changes. It focuses the `h1` inside `<main>` with `preventScroll`, and gives it `tabIndex={-1}` if it has none. It does nothing when focus is already inside `<main>`, which covers the new sheet's title field. A search only changes the search of the address, so it keeps the focus too. It lives in the root so that a sheet opened from a row is covered too.
 
 The skip link targets the shell's `<main>`, which gets `tabIndex={-1}`.
 

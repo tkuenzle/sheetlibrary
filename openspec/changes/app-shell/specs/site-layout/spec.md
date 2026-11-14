@@ -3,11 +3,11 @@
 ## ADDED Requirements
 
 ### Requirement: The shell
-The screens at `/sheets`, `/collections`, `/collections/:id` and `/account` SHALL sit in one shell: the navigation, the search field and the screen's content. A move between them SHALL change only the content, without loading the page in full. The shell's screens SHALL NOT show the top bar.
+The screens at `/sheets`, `/collections`, `/collections/:id` and `/account` SHALL sit in one shell: the navigation and the screen's content. A move between them SHALL change only the content, without loading the page in full. The shell's screens SHALL NOT show the top bar.
 
 #### Scenario: From Sheets to Collections
 - **WHEN** a signed-in person on `/sheets` selects "Collections" in the navigation
-- **THEN** `/collections` opens, and the navigation and the search field stay on screen
+- **THEN** `/collections` opens, and the navigation stays on screen
 
 #### Scenario: No top bar
 - **WHEN** a signed-in person opens `/account`
@@ -50,18 +50,18 @@ In a window from 641px to 1023px wide, the rail SHALL show only icons for "Sheet
 - **THEN** the rail shows three icons, and the link named "Collections" opens `/collections`
 
 ### Requirement: Bottom bar on phones
-In a window up to 640px wide, the navigation SHALL be a bar at the bottom of the screen, with "Sheets" and "Collections", each with its icon and its name. Buttons docked at the bottom of a screen SHALL sit above the bar.
+In a window up to 640px wide, the navigation SHALL be a bar at the bottom of the screen, with "Sheets", "Collections" and the account, each with its icon and its name. Buttons docked at the bottom of a screen SHALL sit above the bar.
 
 #### Scenario: On a phone
 - **WHEN** a person on a phone opens `/sheets`
-- **THEN** the bar at the bottom shows "Sheets", marked, and "Collections", and "New sheet" sits above it
+- **THEN** the bar at the bottom shows "Sheets", marked, "Collections" and "Account", and "New sheet" sits above it
 
 ### Requirement: Account in the shell
-The shell SHALL show the first letter of the person's email, in upper case and in a circle, as a link named "Account" to the account page. It SHALL sit at the bottom of the rail, and in the search row on phones. On the account page, it SHALL be marked as the current page.
+The shell SHALL show the first letter of the person's email, in upper case and in a circle, as a link named "Account" to the account page. It SHALL sit at the bottom of the rail, and at the end of the bottom bar on phones. On the account page, it SHALL be marked as the current page.
 
 #### Scenario: On a phone
 - **WHEN** ana@example.com, signed in on a phone, opens `/sheets`
-- **THEN** the search row ends with "A" as a link named "Account"
+- **THEN** the bottom bar ends with "A" as a link named "Account"
 
 #### Scenario: On the account page
 - **WHEN** a person opens `/account` on a wide screen
@@ -72,7 +72,7 @@ The shell's first link SHALL be "Skip to content". It SHALL show only while it h
 
 #### Scenario: Skipping the rail
 - **WHEN** a person opens `/sheets`, presses Tab once and then Enter
-- **THEN** focus is on the content, past the navigation and the search field
+- **THEN** focus is on the content, past the navigation
 
 ### Requirement: Focus follows the page
 After a move to another page without a full load, focus SHALL be on that page's heading, and the page SHALL NOT scroll for it. A page that places focus itself SHALL keep it.

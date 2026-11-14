@@ -13,7 +13,7 @@ import { editDate, lastEdit } from "../sheets/last-edit";
 import { UNTITLED } from "../sheets/details";
 import { importedSheetPath, importSheet } from "../sheets/import";
 import { isSearch, type TextPart } from "../sheets/search";
-import { useSearchPending } from "../sheets/search-field";
+import { SearchField, useSearchPending } from "../sheets/search-field";
 import {
   createSheet,
   hasSheets,
@@ -27,9 +27,9 @@ import { Icon } from "../ui/icon";
 import { Menu } from "../ui/menu";
 import type { Route } from "./+types/sheets";
 
-// The Sheets screen of the library: the signed-in person's sheets, "Import"
-// and "New sheet". It sits in the shell (routes/shell.tsx), which has the
-// search field. See openspec/specs/library-page.
+// The Sheets screen of the library: the signed-in person's sheets, the
+// search field, "Import" and "New sheet". It sits in the shell
+// (routes/shell.tsx). See openspec/specs/library-page.
 
 export function meta() {
   return [
@@ -259,6 +259,11 @@ export function LibraryView({
         <Actions className="library-actions library-actions-beside" />
       </div>
       {offer}
+      <SearchField
+        q={q}
+        count={searching ? sheets.length : null}
+        pending={pending}
+      />
       {searching && sheets.length === 0 ? (
         <section
           className="library-empty"

@@ -154,12 +154,7 @@ describe("ShellView", () => {
       {
         path: "*",
         Component: () => (
-          <ShellView
-            pathname={pathname}
-            collections={collections}
-            initial="A"
-            search={<form role="search" />}
-          >
+          <ShellView pathname={pathname} collections={collections} initial="A">
             <h1>Screen</h1>
           </ShellView>
         ),
@@ -214,25 +209,30 @@ describe("ShellView", () => {
   });
 
   // Requirement "Bottom bar on phones".
-  it("has Sheets and Collections in the bar, and no account", () => {
+  it("has Sheets, Collections and the account in the bar", () => {
     const [, , bar = ""] = navs(render("/sheets"));
-    expect(bar.match(/<a /g)).toHaveLength(2);
+    expect(bar.match(/<a /g)).toHaveLength(3);
     expect(link(bar, "/sheets")).toContain('aria-current="page"');
-    expect(bar).not.toContain("/account");
+    expect(bar).toMatch(/Sheets<\/a>.*Collections<\/a>.*Account<\/a><\/nav>$/s);
   });
 
   // Requirement "Account in the shell".
-  it("shows the account as its initial in the rails and in the search row", () => {
+  it("shows the account as its initial in the rails and in the bar", () => {
     const html = render("/sheets");
-    const [rail, compact] = navs(html);
+    const [rail, compact, bar] = navs(html);
     expect(rail).toMatch(
       /<span class="nav-avatar" aria-hidden="true">A<\/span>Account<\/a>/,
     );
     expect(link(compact ?? "", "/account")).toContain('aria-label="Account"');
-    expect(html).toMatch(
-      /<div class="shell-search"><form role="search"><\/form><a class="shell-account" [^>]*aria-label="Account"[^>]*><span class="nav-avatar" aria-hidden="true">A<\/span><\/a><\/div>/,
+    expect(bar).toMatch(
+      /<span class="nav-bar-icon"><span class="nav-avatar" aria-hidden="true">A<\/span><\/span>Account<\/a>/,
     );
     expect(html).not.toContain('aria-current="page" href="/account"');
+  });
+
+  // The search field belongs to the Sheets screen.
+  it("has no search field of its own", () => {
+    expect(render("/collections")).not.toContain('role="search"');
   });
 
   // Scenario "On the account page".
@@ -246,23 +246,13 @@ describe("ShellView", () => {
 
 // The whole route, with the screen inside it and its data.
 describe("Shell", () => {
-  function render(
-    path: string,
-    sheets?: { sheets: unknown[]; q: string },
-    Screen = () => <h1>Screen</h1>,
-  ) {
+  function render(path: string, Screen = () => <h1>Screen</h1>) {
     const Stub = createRoutesStub([
       {
         id: "routes/shell",
         Component: Shell as never,
         loader: () => ({ collections }),
         children: [
-          {
-            id: "routes/sheets",
-            path: "/sheets",
-            Component: Screen,
-            loader: () => sheets,
-          },
           { id: "routes/collections", path: "/collections", Component: Screen },
           {
             id: "routes/collection",
@@ -276,53 +266,11 @@ describe("Shell", () => {
       <SignedInContext value={{ initial: "A" }}>
         <Stub
           initialEntries={[path]}
-          hydrationData={{
-            loaderData: {
-              "routes/shell": { collections },
-              ...(sheets && { "routes/sheets": sheets }),
-            },
-          }}
+          hydrationData={{ loaderData: { "routes/shell": { collections } } }}
         />
       </SignedInContext>,
     );
   }
-
-  // Scenario "Without sheets".
-  it("shows the search field on every screen, also without sheets", () => {
-    for (const html of [
-      render("/collections"),
-      render("/sheets", { sheets: [], q: "" }),
-    ]) {
-      expect(html).toMatch(/<form [^>]*role="search"/);
-      expect(html).toMatch(/<form [^>]*method="get"/);
-      expect(html).toMatch(/<form [^>]*action="\/sheets"/);
-      expect(html).toContain('aria-label="Search sheets"');
-      expect(html).toContain('placeholder="Search titles, artists and lyrics"');
-      expect(html).toContain('name="q"');
-      expect(html).toMatch(
-        /<span class="search-field-count" role="status"><\/span>/,
-      );
-      expect(html).not.toContain("Clear search");
-    }
-  });
-
-  // Scenario "Count".
-  it("says how many sheets match, and offers to clear the search", () => {
-    const html = render("/sheets?q=grace", { sheets: [{}, {}], q: "grace" });
-    expect(html).toContain('value="grace"');
-    expect(html).toContain('role="status">2 sheets</span>');
-    expect(html).toContain('aria-label="Clear search"');
-    expect(render("/sheets?q=grace", { sheets: [{}], q: "grace" })).toContain(
-      'role="status">1 sheet</span>',
-    );
-  });
-
-  // Scenario "One character".
-  it("shows no count for one character", () => {
-    expect(render("/sheets?q=a", { sheets: [{}], q: "a" })).toMatch(
-      /role="status"><\/span>/,
-    );
-  });
 
   it("marks the screen that is open, with the person's initial", () => {
     const html = render("/collections");
@@ -333,7 +281,7 @@ describe("Shell", () => {
 
   // A collection that isn't found shows inside the shell, without a top bar.
   it("shows a collection that isn't found in the content", () => {
-    const html = render("/collections/unknown00000", undefined, () => (
+    const html = render("/collections/unknown00000", () => (
       <NotFound what="collection" />
     ));
     expect(html).toMatch(

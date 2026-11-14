@@ -205,7 +205,6 @@ test.describe("the shell", () => {
     });
     await expect(sheets).toHaveAttribute("aria-current", "page");
 
-    const field = page.getByRole("searchbox", { name: "Search sheets" });
     await markDocument(page);
     await collections.click();
     await expect(page).toHaveURL("/collections");
@@ -215,7 +214,8 @@ test.describe("the shell", () => {
     await expect(collections).toHaveAttribute("aria-current", "page");
     await expect(sheets).not.toHaveAttribute("aria-current");
     await expect(page.getByRole("banner")).toHaveCount(0);
-    await expect(field).toBeVisible();
+    // The search field belongs to Sheets.
+    await expect(page.getByRole("search")).toHaveCount(0);
     expect(await sameDocument(page)).toBe(true);
 
     await sheets.click();
@@ -225,17 +225,18 @@ test.describe("the shell", () => {
 
   // Scenarios "On a phone" and "On the account page" (Account in the
   // shell).
-  test("opens the account page from the rail, or from the search row on a phone", async ({
+  test("opens the account page from the rail, or from the bar on a phone", async ({
     page,
   }) => {
     await page.goto("/sheets");
-    const account = page.getByRole("link", { name: "Account" });
+    const account = mainNav(page).getByRole("link", { name: "Account" });
     await expect(account).toHaveCount(1);
-    await expect(account).toHaveText(/^[A-Z]/);
+    await expect(account).toHaveText(/^[A-Z]Account$/);
     if (!wide(page)) {
       await expect(mainNav(page).getByRole("link")).toHaveText([
         "Sheets",
         "Collections",
+        /Account$/,
       ]);
     }
     await account.click();
@@ -245,6 +246,7 @@ test.describe("the shell", () => {
     await expect(account).toHaveAttribute("aria-current", "page");
     await expect(page.locator("[aria-current]:visible")).toHaveCount(1);
     await expect(page.getByRole("banner")).toHaveCount(0);
+    await expect(page.getByRole("search")).toHaveCount(0);
   });
 
   // Requirement "Skip to content".
@@ -482,24 +484,6 @@ test.describe("search", () => {
     await expect(page).toHaveURL(`/sheets?q=${tag.slice(0, 5)}`);
     await page.goBack();
     await expect(page).toHaveURL(`/sheets/${id}`);
-  });
-
-  // Scenarios "From Collections" and "Without sheets": the field is on
-  // every screen, and a search from another one opens Sheets.
-  test("searches from Collections, and goes back to it", async ({ page }) => {
-    const tag = word();
-    await addSheet(page, `Amazing ${tag}`);
-    await page.goto("/collections");
-    await field(page).pressSequentially(tag, { delay: 20 });
-    await expect(page).toHaveURL(`/sheets?q=${tag}`);
-    await expect(heading(page)).toHaveText("Sheets");
-    await expect(field(page)).toBeFocused();
-    await expect(field(page)).toHaveValue(tag);
-    await expect(rows(page)).toHaveCount(1);
-    await page.goBack();
-    await expect(page).toHaveURL("/collections");
-    await expect(heading(page)).toHaveText("Collections");
-    await expect(field(page)).toHaveValue("");
   });
 
   // Scenario "Clearing".

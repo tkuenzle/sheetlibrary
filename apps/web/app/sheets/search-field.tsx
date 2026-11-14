@@ -3,7 +3,6 @@ import "./search-field.css";
 import { useEffect, useRef, useState } from "react";
 import { Form, useLocation, useNavigate, useNavigation } from "react-router";
 
-import { KEEP_FOCUS, keepsFocus } from "../shell/focus";
 import { Icon } from "../ui/icon";
 import { IconButton } from "../ui/button";
 import { isSearch } from "./search";
@@ -36,12 +35,9 @@ export function useSearchPending(): boolean {
   return pending;
 }
 
-// The search field at the top of the shell: a GET form for `q`, so Enter
-// works before the scripts load. With them, the results update as you type.
-// On the Sheets screen, each update replaces the address. From another
-// screen, the first one opens Sheets as a new entry in the history, so going
-// back returns to that screen, and it keeps the focus in the field. See
-// openspec/specs/library-search.
+// The search field of the Sheets screen: a GET form for `q`, so Enter works before the
+// scripts load. With them, the results update as you type, and each update
+// replaces the address. See openspec/specs/library-search.
 export function SearchField({
   q,
   count,
@@ -62,23 +58,16 @@ export function SearchField({
   // kept. This only follows whether it is empty, for "Clear search".
   const [empty, setEmpty] = useState(q === "");
 
-  // Follow the address, unless the person is typing. A move to another
-  // screen that the search didn't make, such as Back, ends the typing, so
-  // the field follows the address then too. Text that differs from the
-  // address, such as typed before the scripts loaded, is searched.
-  const onSheets = location.pathname === "/sheets";
-  const shownPath = useRef(location.pathname);
+  // Follow the address, as after Back, unless the person is typing. Text
+  // that differs from the address, such as typed before the scripts
+  // loaded, is searched.
   useEffect(() => {
     const field = input.current;
     if (!field) return;
-    const moved =
-      shownPath.current !== location.pathname && !keepsFocus(location.state);
-    shownPath.current = location.pathname;
-    const typing = document.activeElement === field && !moved;
-    if (!typing) field.value = q;
+    if (document.activeElement !== field) field.value = q;
     setEmpty(field.value === "");
     if (field.value !== q) schedule(field.value);
-  }, [q, location.pathname, location.state]);
+  }, [q]);
   useEffect(
     () => () => {
       clearTimeout(timer.current);
@@ -100,11 +89,6 @@ export function SearchField({
     const search = isSearch(value)
       ? `?${new URLSearchParams({ q: value }).toString()}`
       : "";
-    if (!onSheets) {
-      if (search !== "")
-        void navigate(`/sheets${search}`, { state: KEEP_FOCUS });
-      return;
-    }
     if (search === location.search) return;
     void navigate(`/sheets${search}`, {
       replace: true,

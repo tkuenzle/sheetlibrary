@@ -136,8 +136,6 @@
   align-items: center;
   width: 80px;
   padding-inline: 0;
-  /* The first icon is level with the search field beside the rail. */
-  padding-top: calc(var(--space-xl) + var(--space-xs));
 }
 
 .nav-rail-compact .nav-rail-items {
