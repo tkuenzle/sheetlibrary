@@ -15,3 +15,19 @@ body {
 a {
   color: var(--accent);
 }
+
+/* A heading only takes the focus after a move to its page, so that screen
+   readers read it (see shell/focus.ts). It shows no ring. */
+h1:focus {
+  outline: none;
+}
+
+/* Text only screen readers read. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -50,6 +50,35 @@ test("shows both styles and asks search engines not to index it", async ({
   expect(await background("lamplight")).toBe("rgb(16, 21, 17)");
 });
 
+// The rail lists the collections, its compact form shows only icons, and
+// the bar marks the item a collection belongs to.
+test("shows the rail, its compact form and the bottom bar", async ({
+  page,
+}) => {
+  const light = page.locator('[data-theme="light"]');
+  const rail = light.getByRole("navigation", { name: "Rail", exact: true });
+  await expect(rail.getByRole("link", { name: "Sheet Library" })).toBeVisible();
+  await expect(rail.getByRole("link", { name: /Christmas/ })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  expect((await rail.boundingBox())?.width).toBe(272);
+
+  const compact = light.getByRole("navigation", { name: "Rail, compact" });
+  await expect(compact.getByRole("link")).toHaveCount(3);
+  await expect(compact.getByRole("link", { name: "Collections" })).toHaveText(
+    "",
+  );
+  expect((await compact.boundingBox())?.width).toBe(80);
+
+  const bar = light.getByRole("navigation", { name: "Bottom bar" });
+  await expect(bar.getByRole("link", { name: "Collections" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  expect((await bar.boundingBox())?.height).toBe(80);
+});
+
 test.describe("tooltips", () => {
   test("shows a tooltip after a moment on hover", async ({
     page,
@@ -97,7 +126,17 @@ test("components keep an outline in forced colors mode", async ({ page }) => {
   const outlines = await page
     .locator('[data-theme="light"]')
     .evaluate((style) =>
-      [".button", ".icon-button", ".toolbar", ".popover", ".note", ".tooltip"]
+      [
+        ".button",
+        ".icon-button",
+        ".toolbar",
+        ".popover",
+        ".note",
+        ".tooltip",
+        ".nav-rail-sub-item[aria-current]",
+        ".nav-rail-compact .nav-rail-item[aria-current]",
+        ".nav-bar-item[aria-current] > .nav-bar-icon",
+      ]
         .map((selector) => {
           const element = style.querySelector<HTMLElement>(selector);
           if (!element) return `${selector}: missing`;

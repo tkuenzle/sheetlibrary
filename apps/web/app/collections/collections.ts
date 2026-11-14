@@ -2,7 +2,7 @@
 // here hold in the browser and on the server. See
 // openspec/specs/collections.
 
-// A collection as the Collections tab lists it.
+// A collection as the Collections screen and the shell's rail list it.
 export interface CollectionListItem {
   id: string;
   name: string;

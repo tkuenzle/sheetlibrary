@@ -49,19 +49,6 @@ describe("TopBar", () => {
     expect(html).not.toContain("Sheet Library");
   });
 
-  // Scenario "Back to the collections".
-  it("starts with Collections on a collection", () => {
-    const html = renderToString(
-      <SignedInContext value={ana}>
-        <TopBar back={{ href: "/collections", label: "Collections" }} />
-      </SignedInContext>,
-    );
-    expect(html).toMatch(
-      /^<header class="top-bar top-bar-with-back"><a class="top-bar-back" href="\/collections"><svg [^>]*>.*<\/svg>Collections<\/a>/,
-    );
-    expect(html).not.toContain("Sheet Library");
-  });
-
   it("shows the actions only when given", () => {
     expect(renderToString(<TopBar />)).not.toContain("top-bar-actions");
     expect(
@@ -96,17 +83,6 @@ describe("TopBar", () => {
     );
     expect(html).not.toContain("Sign in");
     expect(html).not.toContain("aria-current");
-  });
-
-  it("marks the account as the current page on the account page", () => {
-    const html = renderToString(
-      <SignedInContext value={ana}>
-        <TopBar accountPage />
-      </SignedInContext>,
-    );
-    expect(html).toMatch(
-      /<a [^>]*href="\/account" aria-label="Account" aria-current="page">/,
-    );
   });
 
   it("puts the account link after the page's actions", () => {

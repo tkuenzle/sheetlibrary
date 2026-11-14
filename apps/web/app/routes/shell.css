@@ -1,0 +1,150 @@
+/* The shell: the navigation and the content, as on the canvas page "UX
+   overhaul". The navigation has a fixed size, so a change of content never
+   moves it. The document scrolls, not the content. */
+.shell {
+  --shell-bar-height: 0px;
+  --shell-account-room: 0px;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* A short screen has no scrollbar and a long one has. The room for it is
+   kept, so the content doesn't shift between them. */
+html:has(.shell) {
+  scrollbar-gutter: stable;
+}
+
+/* The rail stays in view while the page scrolls. */
+.shell > .nav-rail {
+  position: sticky;
+  top: 0;
+  grid-column: 1;
+  align-self: start;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* One of the three navigations shows: the rail from wide, its compact form
+   in the middle, the bar on a phone (see app/breakpoints.ts). */
+.shell > .nav-rail-compact,
+.shell > .nav-bar,
+.shell-account {
+  display: none;
+}
+
+.shell-content {
+  grid-column: 2;
+  min-width: 0;
+  padding-bottom: var(--shell-bar-height);
+}
+
+/* It only takes the focus from the skip link. */
+.shell-content:focus {
+  outline: none;
+}
+
+/* "Skip to content" shows only while it has the focus. */
+.shell-skip {
+  position: absolute;
+  top: var(--space-s);
+  left: var(--space-s);
+  z-index: 3;
+  padding: var(--space-m) var(--space-l);
+  border-radius: var(--corner-full);
+  background: var(--surface-active);
+  box-shadow: 0 4px 12px var(--shadow);
+  color: var(--text);
+  font: 600 var(--font-size-label) / 1.2 var(--font);
+  text-decoration: none;
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.shell-skip:not(:focus) {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The account on a phone: its initial at the top right, on the line of the
+   screen's heading. It scrolls away with the heading. */
+.shell-account {
+  position: absolute;
+  /* Its circle is level with the heading's text. */
+  top: 20px;
+  right: var(--space-xs);
+  z-index: 1;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--corner-full);
+  text-decoration: none;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.shell-account[aria-current="page"] {
+  background-color: var(--quiet);
+}
+
+.shell-account:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Middle: the rail shows only icons. */
+@media (max-width: 1023px) {
+  .shell > .nav-rail {
+    display: none;
+  }
+
+  .shell > .nav-rail-compact {
+    display: flex;
+  }
+}
+
+/* Phone-wide: the bar at the bottom of the screen, and the account at the
+   top right. What a screen docks at the bottom sits above the bar, and its
+   heading leaves room for the account (--shell-account-room). */
+@media (max-width: 640px) {
+  /* No room is kept beside the bar: it reaches both edges. */
+  html:has(.shell) {
+    scrollbar-gutter: auto;
+  }
+
+  .shell {
+    --shell-bar-height: 80px;
+    --shell-account-room: 44px;
+
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell > .nav-rail-compact {
+    display: none;
+  }
+
+  .shell > .nav-bar {
+    display: grid;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+  }
+
+  .shell-content {
+    grid-column: 1;
+  }
+
+  .shell-account {
+    display: flex;
+  }
+}

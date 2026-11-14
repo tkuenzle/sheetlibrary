@@ -13,6 +13,7 @@ import expandMore from "./icons/expand_more.svg?raw";
 import help from "./icons/help.svg?raw";
 import image from "./icons/image.svg?raw";
 import info from "./icons/info.svg?raw";
+import libraryMusic from "./icons/library_music.svg?raw";
 import login from "./icons/login.svg?raw";
 import logout from "./icons/logout.svg?raw";
 import lyrics from "./icons/lyrics.svg?raw";
@@ -27,6 +28,7 @@ import playArrow from "./icons/play_arrow.svg?raw";
 import print from "./icons/print.svg?raw";
 import remove from "./icons/remove.svg?raw";
 import search from "./icons/search.svg?raw";
+import stacks from "./icons/stacks.svg?raw";
 import textDecrease from "./icons/text_decrease.svg?raw";
 import textIncrease from "./icons/text_increase.svg?raw";
 
@@ -53,6 +55,7 @@ const sources = {
   help,
   image,
   info,
+  libraryMusic,
   login,
   logout,
   lyrics,
@@ -67,6 +70,7 @@ const sources = {
   print,
   remove,
   search,
+  stacks,
   textDecrease,
   textIncrease,
 };

@@ -1,4 +1,4 @@
-/* The library's search field: a round bar with the search icon, the count
+/* The search field of the Sheets screen: a round bar with the search icon, the count
    and "Clear search". */
 .search-field {
   display: flex;
@@ -47,13 +47,4 @@
 /* Without "Clear search", the count keeps off the edge. */
 .search-field-count:last-child {
   margin-right: var(--space-l);
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }

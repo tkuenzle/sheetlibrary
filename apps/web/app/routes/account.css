@@ -1,4 +1,4 @@
-/* The account page: one column below the top bar, in the library's grouped
+/* The account page: one column in the shell, in the library's grouped
    rows (ui/group-list.css). The rename field is styled as sign-in's
    (sign-in.css). */
 .account {
@@ -132,10 +132,12 @@
    name. */
 @media (max-width: 640px) {
   .account {
-    padding: var(--space-m) var(--space-m) 40px;
+    padding: var(--space-xl) var(--space-m) 40px;
   }
 
+  /* The account's initial sits at the end of the heading's line. */
   .account h1 {
+    margin-right: var(--shell-account-room, 0px);
     margin-left: var(--space-s);
   }
 

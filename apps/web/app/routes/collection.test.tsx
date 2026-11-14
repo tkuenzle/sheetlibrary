@@ -168,7 +168,7 @@ describe("collection page", () => {
     const html = render(christmas);
     expect(html).toMatch(/<h1[^>]*>Christmas<\/h1><p>2 sheets<\/p>/);
     expect(html).toMatch(
-      /<a class="collection-columns" href="\/sheets\/drue00000000">.*Drüü Könige.*Trad\./,
+      /<a class="collection-columns" [^>]*href="\/sheets\/drue00000000"[^>]*>.*Drüü Könige.*Trad\./,
     );
     expect(html.indexOf("Drüü Könige")).toBeLessThan(
       html.indexOf("Stille Nacht"),

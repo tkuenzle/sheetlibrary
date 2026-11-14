@@ -35,7 +35,7 @@ export function useSearchPending(): boolean {
   return pending;
 }
 
-// The library's search field: a GET form for `q`, so Enter works before the
+// The search field of the Sheets screen: a GET form for `q`, so Enter works before the
 // scripts load. With them, the results update as you type, and each update
 // replaces the address. See openspec/specs/library-search.
 export function SearchField({

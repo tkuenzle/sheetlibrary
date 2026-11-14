@@ -1,6 +1,8 @@
 import "./design.css";
 
 import { Button, IconButton } from "../ui/button";
+import { NavBar } from "../ui/nav-bar";
+import { type NavItem, NavRail } from "../ui/nav-rail";
 import { Note } from "../ui/note";
 import { Popover } from "../ui/popover";
 import { Toolbar } from "../ui/toolbar";
@@ -38,6 +40,35 @@ const colors = [
   "focus",
   "scrim",
 ];
+
+// The navigation as the library shows it, with a collection open. The links
+// stay on this page.
+const navItems: NavItem[] = [
+  { href: "#sheets", label: "Sheets", icon: "libraryMusic" },
+  {
+    href: "#collections",
+    label: "Collections",
+    icon: "stacks",
+    children: [
+      {
+        href: "#campfire",
+        label: "Campfire",
+        count: { text: "21", label: "21 sheets" },
+      },
+      {
+        href: "#christmas",
+        label: "Christmas",
+        count: { text: "14", label: "14 sheets" },
+        current: true,
+      },
+    ],
+  },
+];
+const navAccount: NavItem = {
+  href: "#account",
+  label: "Account",
+  initial: "A",
+};
 
 const type = [
   { name: "Title", size: "title", weight: 800, sample: "Amazing Grace" },
@@ -135,6 +166,35 @@ function Style({ theme, name }: { theme: string; name: string }) {
           <Button icon="add" size="large">
             Chord
           </Button>
+        </div>
+      </div>
+
+      <div>
+        <h3>Rail, and its compact form</h3>
+        <div className="design-row">
+          <div className="design-nav">
+            <NavRail
+              label="Rail"
+              name={{ href: "#name", label: "Sheet Library" }}
+              items={navItems}
+              footer={[navAccount]}
+            />
+          </div>
+          <div className="design-nav">
+            <NavRail
+              compact
+              label="Rail, compact"
+              items={navItems}
+              footer={[navAccount]}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Bottom bar</h3>
+        <div className="design-nav design-nav-bar">
+          <NavBar label="Bottom bar" items={navItems} />
         </div>
       </div>
 

@@ -80,10 +80,6 @@
   outline-offset: -1px;
 }
 
-.top-bar-account[aria-current="page"] {
-  background-color: var(--quiet);
-}
-
 .top-bar-initial {
   display: flex;
   align-items: center;

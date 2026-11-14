@@ -3,10 +3,31 @@ import { expect, type Page, test } from "@playwright/test";
 import { findLink } from "./emails";
 import { authFile } from "./servers";
 
-// The library at /sheets.
+// The Sheets screen of the library, at /sheets, in the shell.
 
 function heading(page: Page) {
   return page.getByRole("heading", { level: 1 });
+}
+
+// The rows of the list. The shell's rail has list items of its own.
+function rows(page: Page) {
+  return page.getByRole("main").getByRole("listitem");
+}
+
+// The shell's navigation: the rail, or the bar on a phone.
+function mainNav(page: Page) {
+  return page.getByRole("navigation", { name: "Main" });
+}
+
+// A mark on the document. A full load of a page would lose it.
+async function markDocument(page: Page) {
+  await page.evaluate(() => {
+    document.documentElement.dataset.loadedOnce = "";
+  });
+}
+
+function sameDocument(page: Page) {
+  return page.evaluate(() => "loadedOnce" in document.documentElement.dataset);
 }
 
 // The Import menu's button. On a phone, it is the docked one.
@@ -69,8 +90,8 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await expect.poll(async () => (link = await findLink(mark))).toBeDefined();
   await page.goto(link ?? "");
   await expect(page).toHaveURL(/\/sheets\?/);
-  await expect(page).toHaveTitle("Library | Sheet Library");
-  await expect(heading(page)).toHaveText("Library");
+  await expect(page).toHaveTitle("Sheets | Sheet Library");
+  await expect(heading(page)).toHaveText("Sheets");
   await expect(page.getByText("No sheets yet")).toBeVisible();
   await expect(importButton(page)).toBeVisible();
 
@@ -81,7 +102,7 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   );
   await expect(page).not.toHaveURL(/passkey/);
   await page.reload();
-  await expect(heading(page)).toHaveText("Library");
+  await expect(heading(page)).toHaveText("Sheets");
   await expect(passkeyOffer(page)).toHaveCount(0);
   await page.goto("/sheets?passkey");
   await passkeyOffer(page).getByRole("link", { name: "Add passkey" }).click();
@@ -90,7 +111,7 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await passkeyOffer(page).getByRole("button", { name: "Close" }).click();
   await expect(passkeyOffer(page)).toHaveCount(0);
   await page.goto("/sheets?passkey");
-  await expect(heading(page)).toHaveText("Library");
+  await expect(heading(page)).toHaveText("Sheets");
   await expect(passkeyOffer(page)).toHaveCount(0);
 
   await page.getByRole("button", { name: "New sheet" }).click();
@@ -99,9 +120,9 @@ test("a new account signs in to an empty library and starts a sheet", async ({
 
   await page.getByRole("banner").getByRole("link", { name: "Library" }).click();
   await expect(page).toHaveURL("/sheets");
-  await expect(page.getByRole("listitem")).toHaveCount(1);
-  await expect(page.getByRole("listitem")).toContainText("Untitled");
-  await expect(page.getByRole("listitem")).toContainText("Today");
+  await expect(rows(page)).toHaveCount(1);
+  await expect(rows(page)).toContainText("Untitled");
+  await expect(rows(page)).toContainText("Today");
 });
 
 test.describe("signed in", () => {
@@ -111,7 +132,7 @@ test.describe("signed in", () => {
   test("the home page opens the library", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL("/sheets");
-    await expect(heading(page)).toHaveText("Library");
+    await expect(heading(page)).toHaveText("Sheets");
   });
 
   // On a phone, the button is docked at the bottom right.
@@ -133,9 +154,11 @@ test.describe("signed in", () => {
       const box = await button.boundingBox();
       const viewport = page.viewportSize();
       expect(box && viewport).toBeTruthy();
+      // Above the shell's bar, which is 80px high.
       if (box && viewport) {
         expect(box.x + box.width).toBeGreaterThan(viewport.width - 32);
-        expect(box.y + box.height).toBeGreaterThan(viewport.height - 48);
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height - 80);
+        expect(box.y + box.height).toBeGreaterThan(viewport.height - 128);
       }
     }
     await button.click();
@@ -154,6 +177,168 @@ test.describe("signed in", () => {
     await page.reload();
     await expect(heading(page)).toHaveText(title);
     await expect(page.getByLabel("Title")).toHaveCount(0);
+  });
+});
+
+// Scenarios of openspec/specs/site-layout for the shell.
+test.describe("the shell", () => {
+  test.use({ storageState: authFile });
+
+  const wide = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1024;
+
+  // Scenarios "From Sheets to Collections", "The open screen", "No top
+  // bar" and "Opening Collections".
+  test("moves between its screens without loading the page again", async ({
+    page,
+  }) => {
+    await page.goto("/sheets");
+    await expect(page.getByRole("banner")).toHaveCount(0);
+    await expect(mainNav(page)).toHaveCount(1);
+    // Not a collection's "2 sheets" in the rail.
+    const sheets = mainNav(page).getByRole("link", {
+      name: "Sheets",
+      exact: true,
+    });
+    const collections = mainNav(page).getByRole("link", {
+      name: "Collections",
+      exact: true,
+    });
+    await expect(sheets).toHaveAttribute("aria-current", "page");
+
+    await markDocument(page);
+    await collections.click();
+    await expect(page).toHaveURL("/collections");
+    await expect(page).toHaveTitle("Collections | Sheet Library");
+    await expect(heading(page)).toHaveText("Collections");
+    await expect(heading(page)).toBeFocused();
+    await expect(collections).toHaveAttribute("aria-current", "page");
+    await expect(sheets).not.toHaveAttribute("aria-current");
+    await expect(page.getByRole("banner")).toHaveCount(0);
+    // The search field belongs to Sheets.
+    await expect(page.getByRole("search")).toHaveCount(0);
+    expect(await sameDocument(page)).toBe(true);
+
+    await sheets.click();
+    await expect(heading(page)).toHaveText("Sheets");
+    await expect(heading(page)).toBeFocused();
+  });
+
+  // Scenarios "On a phone" and "On the account page" (Account in the
+  // shell).
+  test("opens the account page from the rail, or from the top right on a phone", async ({
+    page,
+  }) => {
+    await page.goto("/sheets");
+    const account = page.getByRole("link", { name: "Account" });
+    await expect(account).toHaveCount(1);
+    await expect(account).toHaveText(/^[A-Z]/);
+    if (!wide(page)) {
+      // The bar holds only the screens. The account is on the heading's
+      // line, at the right edge.
+      await expect(mainNav(page).getByRole("link")).toHaveText([
+        "Sheets",
+        "Collections",
+      ]);
+      const box = await account.boundingBox();
+      const title = await heading(page).boundingBox();
+      const width = page.viewportSize()?.width ?? 0;
+      expect(box && title).toBeTruthy();
+      if (box && title) {
+        expect(box.x + box.width).toBeGreaterThan(width - 16);
+        expect(box.y).toBeLessThan(title.y + title.height);
+        expect(box.x).toBeGreaterThanOrEqual(title.x + title.width);
+      }
+    }
+    await account.click();
+    await expect(page).toHaveURL("/account");
+    await expect(heading(page)).toHaveText("Account");
+    await expect(heading(page)).toBeFocused();
+    await expect(account).toHaveAttribute("aria-current", "page");
+    await expect(page.locator("[aria-current]:visible")).toHaveCount(1);
+    await expect(page.getByRole("banner")).toHaveCount(0);
+    await expect(page.getByRole("search")).toHaveCount(0);
+  });
+
+  // Requirement "Skip to content".
+  test("skips to the content from its first link", async ({
+    page,
+    hasTouch,
+  }) => {
+    test.skip(hasTouch, "No keyboard on touch");
+    await page.goto("/sheets");
+    const skip = page.getByRole("link", { name: "Skip to content" });
+    expect((await skip.boundingBox())?.width).toBeLessThanOrEqual(1);
+    await page.keyboard.press("Tab");
+    await expect(skip).toBeFocused();
+    expect((await skip.boundingBox())?.width).toBeGreaterThan(100);
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("main")).toBeFocused();
+    await expect(page).toHaveURL("/sheets");
+  });
+
+  // Scenario "On a tablet".
+  test("shows the rail as icons in a window of middle width", async ({
+    page,
+    hasTouch,
+  }) => {
+    test.skip(hasTouch, "The phone project stays a phone");
+    await page.setViewportSize({ width: 800, height: 720 });
+    await page.goto("/sheets");
+    const links = mainNav(page).getByRole("link");
+    await expect(links).toHaveCount(3);
+    await expect(links).toHaveText(["", "", /^[A-Z]$/]);
+    expect((await mainNav(page).boundingBox())?.width).toBe(80);
+    await mainNav(page).getByRole("link", { name: "Collections" }).click();
+    await expect(page).toHaveURL("/collections");
+  });
+
+  // Scenarios "Opening a sheet", "Going back" and "On a phone" (Bottom bar):
+  // the last row clears the docked buttons and the bar.
+  test("opens a sheet from a row, and goes back to where the list was", async ({
+    page,
+  }) => {
+    // Enough sheets for the list to scroll.
+    for (let i = 0; i < 14; i++) {
+      await page.request.post("/api/sheets", {
+        data: {
+          title: `Filler ${String(i)}`,
+          content: { format: "chordsheet", version: 1, sections: [] },
+        },
+      });
+    }
+    await page.goto("/sheets");
+    await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+    const last = rows(page).last();
+    const rowBox = await last.boundingBox();
+    const viewport = page.viewportSize();
+    expect(rowBox && viewport).toBeTruthy();
+    if (rowBox && viewport && !wide(page) && viewport.width <= 640) {
+      const button = await page
+        .getByRole("button", { name: "New sheet" })
+        .boundingBox();
+      expect(rowBox.y + rowBox.height).toBeLessThanOrEqual(button?.y ?? 0);
+      expect(rowBox.y + rowBox.height).toBeLessThanOrEqual(
+        viewport.height - 80,
+      );
+    }
+    const scrolled = await page.evaluate(() => window.scrollY);
+    expect(scrolled).toBeGreaterThan(0);
+    const title = (await last.getByRole("link").innerText()).split("\n")[0];
+
+    await markDocument(page);
+    await last.getByRole("link").click();
+    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}$/);
+    await expect(heading(page)).toHaveText(title ?? "");
+    await expect(heading(page)).toBeFocused();
+    expect(await sameDocument(page)).toBe(true);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    await page.goBack();
+    await expect(page).toHaveURL("/sheets");
+    await expect(heading(page)).toHaveText("Sheets");
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrolled);
   });
 });
 
@@ -283,7 +468,7 @@ test.describe("search", () => {
     await expect(page.getByRole("search").getByRole("status")).toHaveText(
       "1 sheet",
     );
-    const row = page.getByRole("listitem");
+    const row = rows(page);
     await expect(row).toHaveCount(1);
     await expect(row).toContainText("Sternsinger");
     await expect(row).toContainText(`Drei Kö${tag} ziehen`);
@@ -292,7 +477,7 @@ test.describe("search", () => {
     // A reload shows the same results.
     await page.reload();
     await expect(field(page)).toHaveValue(`ko${tag}`);
-    await expect(page.getByRole("listitem")).toHaveCount(1);
+    await expect(rows(page)).toHaveCount(1);
   });
 
   // Scenario "Back leaves the library".
@@ -316,7 +501,7 @@ test.describe("search", () => {
     const tag = word();
     await addSheet(page, `Amazing ${tag}`);
     await page.goto(`/sheets?q=${tag}`);
-    await expect(page.getByRole("listitem")).toHaveCount(1);
+    await expect(rows(page)).toHaveCount(1);
     await page.getByRole("button", { name: "Clear search" }).click();
     await expect(page).toHaveURL("/sheets");
     await expect(field(page)).toHaveValue("");
@@ -329,7 +514,7 @@ test.describe("search", () => {
     const tag = word();
     await addSheet(page, `Amazing ${tag}`);
     await page.goto(`/sheets?q=${tag}`);
-    await expect(page.getByRole("listitem")).toHaveCount(1);
+    await expect(rows(page)).toHaveCount(1);
     // The page's data for the next search arrives two seconds late.
     await page.route(/\/sheets\.data\?/, async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -356,7 +541,7 @@ test.describe("search", () => {
     await expect(
       page.getByRole("heading", { name: `No sheets match “${tag}”` }),
     ).toBeVisible();
-    await expect(page.getByRole("listitem")).toHaveCount(0);
+    await expect(rows(page)).toHaveCount(0);
     await expect(field(page)).toBeVisible();
   });
 });

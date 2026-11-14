@@ -203,7 +203,7 @@ describe("library page", () => {
       { id: "mnopqrstuvwx", title: "Amazing Grace", updatedAt: today },
     ]);
     expect(html).toMatch(
-      /<a [^>]*href="\/sheets\/abcdefghijkl">.*Hallelujah.*Leonard Cohen/,
+      /<a [^>]*href="\/sheets\/abcdefghijkl"[^>]*>.*Hallelujah.*Leonard Cohen/,
     );
     expect(html).toContain('href="/sheets/mnopqrstuvwx"');
     expect(html.indexOf("Hallelujah")).toBeLessThan(
@@ -230,16 +230,18 @@ describe("library page", () => {
     expect(docked?.[1]).toMatch(/button-filled button-large/);
   });
 
-  // Requirement "Sheets and Collections tabs".
-  it("shows the tabs below the heading, with Sheets marked", () => {
+  // Scenario "Opening Sheets".
+  it("is headed Sheets, without a Library heading, tabs or a top bar", () => {
     for (const sheets of [
       [{ id: "abcdefghijkl", title: "Hallelujah", updatedAt: today }],
       [],
     ]) {
       const html = render(sheets);
-      expect(html).toMatch(
-        /<\/h1>.*<nav class="library-tabs" aria-label="Library"><a href="\/sheets" aria-current="page">Sheets<\/a><a href="\/collections">Collections<\/a><\/nav>/s,
-      );
+      expect(html).toMatch(/^<div class="library[^"]*">.*<h1>Sheets<\/h1>/s);
+      expect(html).not.toContain("Library</h1>");
+      expect(html).not.toContain("<nav");
+      expect(html).not.toContain("<header");
+      expect(html).not.toContain("<main");
     }
   });
 
@@ -294,7 +296,7 @@ describe("library page", () => {
   });
 
   it("sets the page title and asks search engines not to index it", () => {
-    expect(meta()).toContainEqual({ title: "Library | Sheet Library" });
+    expect(meta()).toContainEqual({ title: "Sheets | Sheet Library" });
     expect(meta()).toContainEqual({ name: "robots", content: "noindex" });
   });
 });

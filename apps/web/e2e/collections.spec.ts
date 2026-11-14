@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { authFile } from "./servers";
 
-// Collections: the library's Collections tab, a collection's page, and
+// Collections: the library's Collections screen, a collection's page, and
 // "Choose collections…" on the play view. See openspec/specs/collections,
 // collection-page and library-page. The tests share one account, and run on
 // both projects at once, so every name carries a mark of its own.
@@ -41,6 +41,23 @@ function heading(page: Page) {
   return page.getByRole("heading", { level: 1 });
 }
 
+// The screen's content. The shell's rail lists the collections too.
+function main(page: Page) {
+  return page.getByRole("main");
+}
+
+// The shell's navigation: the rail, or the bar on a phone.
+function mainNav(page: Page) {
+  return page.getByRole("navigation", { name: "Main" });
+}
+
+function collectionsLink(page: Page) {
+  return mainNav(page).getByRole("link", { name: "Collections", exact: true });
+}
+
+// The rail lists the collections by name. The bar on a phone doesn't.
+const wide = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1024;
+
 function nameDialog(page: Page, title: string) {
   return page.getByRole("dialog", { name: title });
 }
@@ -50,8 +67,9 @@ async function openMenuItem(page: Page, item: string) {
   await page.getByRole("menuitem", { name: item }).click();
 }
 
-// Scenarios "Switching tabs", "Reload", "Making a collection", "Adding two
-// sheets", "Removing", "Renaming", "Name in use" and "Deleting".
+// Scenarios "Opening Collections", "Making a collection", "A new
+// collection" (the rail), "Adding two sheets", "Removing", "Renaming", "Name
+// in use" and "Deleting".
 test("makes a collection, fills it, renames it and deletes it", async ({
   page,
 }) => {
@@ -63,22 +81,14 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   const name = `Christmas ${mark}`;
 
   await page.goto("/sheets");
-  await page
-    .getByRole("navigation", { name: "Library" })
-    .getByRole("link", { name: "Collections" })
-    .click();
+  await collectionsLink(page).click();
   await expect(page).toHaveURL("/collections");
   await expect(page).toHaveTitle("Collections | Sheet Library");
-  await expect(page.getByRole("link", { name: "Collections" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(heading(page)).toHaveText("Collections");
+  await expect(collectionsLink(page)).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("search")).toHaveCount(0);
   await page.reload();
-  await expect(page.getByRole("link", { name: "Collections" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(collectionsLink(page)).toHaveAttribute("aria-current", "page");
 
   // A new collection opens empty.
   await page.getByRole("button", { name: "New collection" }).click();
@@ -90,6 +100,16 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   await expect(heading(page)).toHaveText(name);
   await expect(page).toHaveTitle(`${name} | Sheet Library`);
   await expect(page.getByText("No sheets in this collection")).toBeVisible();
+  // The rail lists it, marked. The bar marks "Collections".
+  if (wide(page)) {
+    await expect(mainNav(page).getByRole("link", { name })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(collectionsLink(page)).not.toHaveAttribute("aria-current");
+  } else {
+    await expect(collectionsLink(page)).toHaveAttribute("aria-current", "true");
+  }
 
   // Adding both sheets with the picker's search.
   await page.getByRole("button", { name: "Add sheets" }).click();
@@ -99,9 +119,14 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   await picker.getByRole("checkbox", { name: drue }).check();
   await picker.getByRole("button", { name: "Add 2 sheets" }).click();
   await expect(picker).toBeHidden();
-  const rows = page.getByRole("listitem").getByRole("link");
+  const rows = main(page).getByRole("listitem").getByRole("link");
   await expect(rows).toHaveText([drue, stille]);
-  await expect(page.getByText("2 sheets", { exact: true })).toBeVisible();
+  await expect(main(page).getByText("2 sheets", { exact: true })).toBeVisible();
+  if (wide(page)) {
+    await expect(mainNav(page).getByRole("link", { name })).toContainText(
+      "2 sheets",
+    );
+  }
 
   // Scenario "Already in the collection".
   await page.getByRole("button", { name: "Add sheets" }).click();
@@ -111,14 +136,19 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   await picker.getByRole("button", { name: "Cancel" }).click();
   await expect(picker).toBeHidden();
 
-  // Removing keeps the sheet in the library.
+  // Removing keeps the sheet in the library. The row goes at once, so the
+  // reload waits for the server's answer.
+  const removed = page.waitForResponse(
+    (response) => response.request().method() === "POST",
+  );
   await page
     .getByRole("button", { name: `Remove ${stille} from ${name}` })
     .click();
   await expect(rows).toHaveText([drue]);
+  expect((await removed).ok()).toBe(true);
   await page.reload();
   await expect(rows).toHaveText([drue]);
-  await expect(page.getByText("1 sheet", { exact: true })).toBeVisible();
+  await expect(main(page).getByText("1 sheet", { exact: true })).toBeVisible();
 
   // A name in use keeps the dialog open.
   const other = `Campfire ${mark}`;
@@ -133,8 +163,15 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   await rename.getByRole("button", { name: "Save" }).click();
   await expect(rename).toBeHidden();
   await expect(heading(page)).toHaveText(`Weihnachten ${mark}`);
+  if (wide(page)) {
+    await expect(
+      mainNav(page).getByRole("link", { name: `Weihnachten ${mark}` }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(mainNav(page).getByRole("link", { name })).toHaveCount(0);
+  }
 
-  // Deleting opens the Collections tab, and the sheets stay.
+  // Deleting opens Collections, without it there or in the rail, and the
+  // sheets stay.
   await openMenuItem(page, "Delete");
   const confirm = page.getByRole("alertdialog", {
     name: `Delete “Weihnachten ${mark}”?`,
@@ -142,23 +179,30 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   await expect(confirm).toContainText("Its sheets stay in the library.");
   await confirm.getByRole("button", { name: "Delete" }).click();
   await expect(page).toHaveURL("/collections");
-  await expect(page.getByRole("link", { name: other })).toBeVisible();
+  await expect(heading(page)).toBeFocused();
+  await expect(main(page).getByRole("link", { name: other })).toBeVisible();
   await expect(page.getByText(`Weihnachten ${mark}`)).toHaveCount(0);
   await page.goto(`/sheets?q=${mark}`);
-  await expect(page.getByText("2 sheets", { exact: true })).toBeVisible();
+  await expect(page.getByRole("search").getByRole("status")).toHaveText(
+    "2 sheets",
+  );
 });
 
-// Scenario "Back to the collections" and "Someone else's collection".
+// Scenario "Someone else's collection". A collection has no top bar: the
+// navigation leads back, and an unknown one shows inside the shell too.
 test("goes back to Collections, and doesn't find an unknown collection", async ({
   page,
 }) => {
   const id = await createCollection(page, `Learning ${newMark()}`);
   await page.goto(`/collections/${id}`);
-  await page.getByRole("link", { name: "Collections" }).click();
+  await expect(page.getByRole("banner")).toHaveCount(0);
+  await collectionsLink(page).click();
   await expect(page).toHaveURL("/collections");
   const response = await page.goto("/collections/nosuchcollect");
   expect(response?.status()).toBe(404);
   await expect(heading(page)).toHaveText("Collection not found");
+  await expect(page.getByRole("banner")).toHaveCount(0);
+  await expect(collectionsLink(page)).toHaveAttribute("aria-current", "page");
 });
 
 async function openChooseCollections(page: Page) {
@@ -236,7 +280,7 @@ test("adds a sheet to collections from the play view", async ({
   await dialog.getByRole("button", { name: "Done" }).click();
 
   await page.goto(`/collections/${collectionId}`);
-  await expect(page.getByRole("listitem").getByRole("link")).toHaveText([
+  await expect(main(page).getByRole("listitem").getByRole("link")).toHaveText([
     title,
   ]);
   const listed = await page.request.get(`/api/sheets/${sheetId}/collections`);

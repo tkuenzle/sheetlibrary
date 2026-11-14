@@ -5,34 +5,32 @@ import { type ReactNode, use } from "react";
 import { Icon } from "../ui/icon";
 import { type SignedIn, SignedInContext } from "./signed-in";
 
-// The bar at the top of a page: the site's name, linking home or, once
-// signed in, to the library, or a back arrow instead: "Library" on a sheet,
-// or the page `back` names, such as "Collections" on a collection. On a
-// sheet, it is followed by `afterBack`. Then the page's actions, and the link to sign in
-// or to the account at the end.
+// The bar at the top of the home page, the prototype editor and a sheet: the
+// site's name, linking home or, once signed in, to the library, or "Library"
+// with a back arrow on a sheet, followed by `afterBack`. Then the page's
+// actions, and the link to sign in or to the account at the end. The
+// library's screens and the account page have the shell instead
+// (routes/shell.tsx).
 // The links load the next page in full, so a page with unsaved edits can warn
 // before they go.
 export function TopBar({
   back = false,
   afterBack,
-  accountPage = false,
   children,
 }: {
-  // True for "Library", or the page to go back to.
-  back?: boolean | { href: string; label: string };
+  // On a sheet: "Library" and a back arrow in place of the site's name.
+  back?: boolean;
   // On a sheet, after "Library": the switch between playing and editing.
   afterBack?: ReactNode;
-  accountPage?: boolean;
   children?: ReactNode;
 }) {
   const signedIn = use(SignedInContext);
-  const backTo = back === true ? { href: "/sheets", label: "Library" } : back;
   return (
     <header className={back ? "top-bar top-bar-with-back" : "top-bar"}>
-      {backTo ? (
-        <a className="top-bar-back" href={backTo.href}>
+      {back ? (
+        <a className="top-bar-back" href="/sheets">
           <Icon name="arrowBack" />
-          {backTo.label}
+          Library
         </a>
       ) : (
         <a className="top-bar-name" href={signedIn ? "/sheets" : "/"}>
@@ -44,9 +42,7 @@ export function TopBar({
         <div className="top-bar-actions">
           {children}
           {signedIn === null && <SignInLink />}
-          {signedIn && (
-            <AccountLink signedIn={signedIn} current={accountPage} />
-          )}
+          {signedIn && <AccountLink signedIn={signedIn} />}
         </div>
       )}
     </header>
@@ -68,20 +64,9 @@ function SignInLink() {
 }
 
 // The account as a round initial.
-function AccountLink({
-  signedIn,
-  current,
-}: {
-  signedIn: SignedIn;
-  current: boolean;
-}) {
+function AccountLink({ signedIn }: { signedIn: SignedIn }) {
   return (
-    <a
-      className="top-bar-account"
-      href="/account"
-      aria-label="Account"
-      aria-current={current ? "page" : undefined}
-    >
+    <a className="top-bar-account" href="/account" aria-label="Account">
       <span className="top-bar-initial" aria-hidden="true">
         {signedIn.initial}
       </span>
