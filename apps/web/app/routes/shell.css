@@ -3,7 +3,9 @@
    moves it. The document scrolls, not the content. */
 .shell {
   --shell-bar-height: 0px;
+  --shell-account-room: 0px;
 
+  position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 100vh;
@@ -29,7 +31,8 @@ html:has(.shell) {
 /* One of the three navigations shows: the rail from wide, its compact form
    in the middle, the bar on a phone (see app/breakpoints.ts). */
 .shell > .nav-rail-compact,
-.shell > .nav-bar {
+.shell > .nav-bar,
+.shell-account {
   display: none;
 }
 
@@ -70,6 +73,33 @@ html:has(.shell) {
   white-space: nowrap;
 }
 
+/* The account on a phone: its initial at the top right, on the line of the
+   screen's heading. It scrolls away with the heading. */
+.shell-account {
+  position: absolute;
+  /* Its circle is level with the heading's text. */
+  top: 20px;
+  right: var(--space-xs);
+  z-index: 1;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--corner-full);
+  text-decoration: none;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.shell-account[aria-current="page"] {
+  background-color: var(--quiet);
+}
+
+.shell-account:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
 /* Middle: the rail shows only icons. */
 @media (max-width: 1023px) {
   .shell > .nav-rail {
@@ -81,8 +111,9 @@ html:has(.shell) {
   }
 }
 
-/* Phone-wide: the bar at the bottom of the screen. What a screen docks at
-   the bottom sits above the bar. */
+/* Phone-wide: the bar at the bottom of the screen, and the account at the
+   top right. What a screen docks at the bottom sits above the bar, and its
+   heading leaves room for the account (--shell-account-room). */
 @media (max-width: 640px) {
   /* No room is kept beside the bar: it reaches both edges. */
   html:has(.shell) {
@@ -91,6 +122,7 @@ html:has(.shell) {
 
   .shell {
     --shell-bar-height: 80px;
+    --shell-account-room: 44px;
 
     grid-template-columns: minmax(0, 1fr);
   }
@@ -110,5 +142,9 @@ html:has(.shell) {
 
   .shell-content {
     grid-column: 1;
+  }
+
+  .shell-account {
+    display: flex;
   }
 }

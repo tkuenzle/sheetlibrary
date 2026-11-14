@@ -18,3 +18,9 @@
 .sheet-not-found p {
   margin: 0;
 }
+
+/* In the shell on a phone, the account sits at the end of the heading's
+   line. */
+.sheet-not-found h1 {
+  margin-right: var(--shell-account-room, 0px);
+}

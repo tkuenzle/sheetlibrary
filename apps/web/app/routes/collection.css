@@ -62,10 +62,18 @@
 
 /* Phone-wide (see app/breakpoints.ts): the artist under the title. */
 @media (max-width: 640px) {
+  /* The menu sits beside the account, which the shell puts at the end of
+     the heading's line. */
   .collection-heading {
     flex-wrap: nowrap;
     align-items: flex-start;
+    margin-right: var(--shell-account-room, 0px);
     padding-left: var(--space-s);
+  }
+
+  /* Level with the account. */
+  .collection-heading > .menu {
+    margin-top: calc(-1 * var(--space-xs));
   }
 
   .collection-title {

@@ -209,23 +209,24 @@ describe("ShellView", () => {
   });
 
   // Requirement "Bottom bar on phones".
-  it("has Sheets, Collections and the account in the bar", () => {
+  it("has Sheets and Collections in the bar, and no account", () => {
     const [, , bar = ""] = navs(render("/sheets"));
-    expect(bar.match(/<a /g)).toHaveLength(3);
+    expect(bar.match(/<a /g)).toHaveLength(2);
     expect(link(bar, "/sheets")).toContain('aria-current="page"');
-    expect(bar).toMatch(/Sheets<\/a>.*Collections<\/a>.*Account<\/a><\/nav>$/s);
+    expect(bar).not.toContain("/account");
   });
 
   // Requirement "Account in the shell".
-  it("shows the account as its initial in the rails and in the bar", () => {
+  it("shows the account as its initial in the rails, and alone for a phone", () => {
     const html = render("/sheets");
-    const [rail, compact, bar] = navs(html);
+    const [rail, compact] = navs(html);
     expect(rail).toMatch(
       /<span class="nav-avatar" aria-hidden="true">A<\/span>Account<\/a>/,
     );
     expect(link(compact ?? "", "/account")).toContain('aria-label="Account"');
-    expect(bar).toMatch(
-      /<span class="nav-bar-icon"><span class="nav-avatar" aria-hidden="true">A<\/span><\/span>Account<\/a>/,
+    // After the rails and before the content, so it comes first on a phone.
+    expect(html).toMatch(
+      /<\/nav><a class="shell-account" [^>]*aria-label="Account"[^>]*><span class="nav-avatar" aria-hidden="true">A<\/span><\/a><main /,
     );
     expect(html).not.toContain('aria-current="page" href="/account"');
   });

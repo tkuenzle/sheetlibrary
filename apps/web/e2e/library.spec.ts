@@ -225,19 +225,29 @@ test.describe("the shell", () => {
 
   // Scenarios "On a phone" and "On the account page" (Account in the
   // shell).
-  test("opens the account page from the rail, or from the bar on a phone", async ({
+  test("opens the account page from the rail, or from the top right on a phone", async ({
     page,
   }) => {
     await page.goto("/sheets");
-    const account = mainNav(page).getByRole("link", { name: "Account" });
+    const account = page.getByRole("link", { name: "Account" });
     await expect(account).toHaveCount(1);
-    await expect(account).toHaveText(/^[A-Z]Account$/);
+    await expect(account).toHaveText(/^[A-Z]/);
     if (!wide(page)) {
+      // The bar holds only the screens. The account is on the heading's
+      // line, at the right edge.
       await expect(mainNav(page).getByRole("link")).toHaveText([
         "Sheets",
         "Collections",
-        /Account$/,
       ]);
+      const box = await account.boundingBox();
+      const title = await heading(page).boundingBox();
+      const width = page.viewportSize()?.width ?? 0;
+      expect(box && title).toBeTruthy();
+      if (box && title) {
+        expect(box.x + box.width).toBeGreaterThan(width - 16);
+        expect(box.y).toBeLessThan(title.y + title.height);
+        expect(box.x).toBeGreaterThanOrEqual(title.x + title.width);
+      }
     }
     await account.click();
     await expect(page).toHaveURL("/account");

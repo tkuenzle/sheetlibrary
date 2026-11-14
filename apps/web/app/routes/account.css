@@ -135,7 +135,9 @@
     padding: var(--space-xl) var(--space-m) 40px;
   }
 
+  /* The account's initial sits at the end of the heading's line. */
   .account h1 {
+    margin-right: var(--shell-account-room, 0px);
     margin-left: var(--space-s);
   }
 

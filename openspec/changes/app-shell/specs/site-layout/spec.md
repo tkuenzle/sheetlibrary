@@ -50,18 +50,18 @@ In a window from 641px to 1023px wide, the rail SHALL show only icons for "Sheet
 - **THEN** the rail shows three icons, and the link named "Collections" opens `/collections`
 
 ### Requirement: Bottom bar on phones
-In a window up to 640px wide, the navigation SHALL be a bar at the bottom of the screen, with "Sheets", "Collections" and the account, each with its icon and its name. Buttons docked at the bottom of a screen SHALL sit above the bar.
+In a window up to 640px wide, the navigation SHALL be a bar at the bottom of the screen, with "Sheets" and "Collections", each with its icon and its name. Buttons docked at the bottom of a screen SHALL sit above the bar.
 
 #### Scenario: On a phone
 - **WHEN** a person on a phone opens `/sheets`
-- **THEN** the bar at the bottom shows "Sheets", marked, "Collections" and "Account", and "New sheet" sits above it
+- **THEN** the bar at the bottom shows "Sheets", marked, and "Collections", and "New sheet" sits above it
 
 ### Requirement: Account in the shell
-The shell SHALL show the first letter of the person's email, in upper case and in a circle, as a link named "Account" to the account page. It SHALL sit at the bottom of the rail, and at the end of the bottom bar on phones. On the account page, it SHALL be marked as the current page.
+The shell SHALL show the first letter of the person's email, in upper case and in a circle, as a link named "Account" to the account page. It SHALL sit at the bottom of the rail, and at the top right of the screen on phones, on the line of the heading. On the account page, it SHALL be marked as the current page.
 
 #### Scenario: On a phone
 - **WHEN** ana@example.com, signed in on a phone, opens `/sheets`
-- **THEN** the bottom bar ends with "A" as a link named "Account"
+- **THEN** "A" shows at the top right, beside the heading "Sheets", as a link named "Account"
 
 #### Scenario: On the account page
 - **WHEN** a person opens `/account` on a wide screen

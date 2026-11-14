@@ -184,8 +184,14 @@
     padding: var(--space-xl) var(--space-m) var(--space-3xl);
   }
 
+  /* In the shell, the account sits at the end of the heading's line. */
   .library h1 {
     padding: 0 var(--space-s);
+  }
+
+  .library-heading,
+  .library > h1 {
+    margin-right: var(--shell-account-room, 0px);
   }
 
   .library-with-sheets {

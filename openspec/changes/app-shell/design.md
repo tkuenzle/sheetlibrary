@@ -46,7 +46,7 @@ Alternative: one `<nav>` restyled at each width. Rejected: the three forms hold 
 
 Alternative, tried first: one rail whose compact form is picked by a media query. Dropped while building: the compact form marks "Collections" for an open collection and has tooltips, which is markup, not style.
 
-The account is at the bottom of both rails, and the last entry of the bar.
+The account is at the bottom of both rails. On phones the shell renders its initial once more, placed at the top right on the heading's line, and the screens' headings leave room for it through a CSS variable. It was the last entry of the bar for one commit; the top right is where people look for an account, and the bar stays for the screens.
 
 New icons: `library_music` for Sheets and `stacks` for Collections, as on the boards.
 

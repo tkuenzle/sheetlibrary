@@ -7,7 +7,7 @@ The app has no navigation. "Library" is a heading with two tabs that are separat
 ## What Changes
 
 - Sheets, Collections, a collection and the account page sit in one shell. It stays on screen while the content changes.
-- On wide screens the shell has a rail: the site's name, "Sheets", "Collections" with every collection by name and sheet count, and the account at the bottom. On middle screens the rail shows icons only. On phones it is a bottom bar with "Sheets", "Collections" and the account.
+- On wide screens the shell has a rail: the site's name, "Sheets", "Collections" with every collection by name and sheet count, and the account at the bottom. On middle screens the rail shows icons only. On phones it is a bottom bar with "Sheets" and "Collections", and the account sits at the top right.
 - The search field stays on the Sheets screen, below its heading. It only finds sheets, so the other screens have none.
 - The "Library" heading and its tabs go away. The screens are headed "Sheets" and "Collections", with their buttons where they are today. On phones the docked buttons sit above the bottom bar.
 - The shell's screens have no top bar. A collection has no back link; the navigation marks where you are. The top bar stays on the home page, `/editor` and a sheet.
@@ -43,10 +43,10 @@ None.
 
 ## Open Questions
 
-- The boards draw the search field on every screen, with the account in it on a phone. Here the field is only on Sheets, and the account is the last entry of the bottom bar. Should the boards follow?
+- The boards draw the search field on every screen, with the account in it on a phone. Here the field is only on Sheets, and the account sits at the top right, on the heading's line. Should the boards follow?
 - On middle screens the rail shows no site name, only the icons. Is that fine?
 - The rail shows each collection's sheet count, as on the boards. Keep it?
-- With sets, the bottom bar will have four entries. Is that fine?
+- The bottom bar has two entries until sets exist. Is that fine?
 - A collection that isn't found shows inside the shell, with "Collections" marked. Is that right?
 - On a sheet, the back link still says "Library" and opens Sheets, and going back loads the page in full. Both stay until #134. Is that fine?
 - There is no board for the middle width, for a collection on a phone, or for the account page in the shell. They are built from the other boards. Should they be drawn first?

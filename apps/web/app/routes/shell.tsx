@@ -2,6 +2,7 @@ import "./shell.css";
 
 import { type ReactNode, use } from "react";
 import {
+  Link,
   Outlet,
   redirect,
   type ShouldRevalidateFunctionArgs,
@@ -112,7 +113,8 @@ export default function Shell({ loaderData }: Route.ComponentProps) {
 // Three navigations are rendered, and CSS shows the one for the window's
 // width: the rail, its compact form, or the bottom bar. So the server
 // renders the right layout, and nothing jumps when the scripts load. The
-// account is at the bottom of the rail, and the last entry of the bar.
+// account is at the bottom of the rail. On a phone it is its initial at the
+// top right, on the heading's line, and the bar holds only the screens.
 export function ShellView({
   pathname,
   collections,
@@ -152,10 +154,20 @@ export function ShellView({
         footer={[account]}
       />
       <NavRail compact items={items} footer={[account]} />
+      <Link
+        className="shell-account"
+        to={account.href}
+        aria-label={account.label}
+        aria-current={account.current ? "page" : undefined}
+      >
+        <span className="nav-avatar" aria-hidden="true">
+          {initial}
+        </span>
+      </Link>
       <main id="content" className="shell-content" tabIndex={-1}>
         {children}
       </main>
-      <NavBar items={[...items, account]} />
+      <NavBar items={items} />
     </div>
   );
 }

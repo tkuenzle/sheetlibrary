@@ -47,14 +47,3 @@
   outline: 3px solid var(--focus);
   outline-offset: -3px;
 }
-
-/* A letter in a circle, as for the account, as large as an icon. */
-.nav-bar-icon > .nav-avatar {
-  width: 24px;
-  height: 24px;
-  font-size: var(--font-size-small);
-}
-
-.nav-bar-item[aria-current] .nav-avatar {
-  background-color: var(--surface-active);
-}
