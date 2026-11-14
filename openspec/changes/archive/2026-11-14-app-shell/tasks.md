@@ -38,5 +38,5 @@
 ## Workflow follow-up
 
 - Ask the user which of the proposal's open questions to keep, and open an issue for a search that finds collections if they want one.
-- At archive, update the Purpose of `site-layout` to name the shell, and of `library-search` to say the field is at the top of the shell's screens.
+- At archive, update the Purpose of `site-layout` to name the shell.
 - #129 follows directly, since moves no longer show the browser's loading sign.

@@ -7,7 +7,7 @@ Finds a signed-in person's sheets by title, artist and lyrics, from a search fie
 ## Requirements
 
 ### Requirement: Search field
-A person with sheets SHALL see a search field below the library's heading. A search SHALL find their sheets whose title, artist or lyrics hold every word typed, and no one else's. Without sheets, the field SHALL NOT show.
+A person with sheets SHALL see a search field below the heading on `/sheets`. The other screens SHALL NOT have one. A search SHALL find their sheets whose title, artist or lyrics hold every word typed, and no one else's. Without sheets, the field SHALL NOT show.
 
 #### Scenario: Finding by lyrics
 - **WHEN** a person has "Amazing Grace", whose lyrics hold "how sweet the sound", and "Hallelujah", and searches "sweet sound"
@@ -16,6 +16,10 @@ A person with sheets SHALL see a search field below the library's heading. A sea
 #### Scenario: Someone else's sheets
 - **WHEN** another person has a sheet "Shenandoah", and this person searches "shenandoah"
 - **THEN** no sheet is found
+
+#### Scenario: On Collections
+- **WHEN** a person with sheets opens `/collections`
+- **THEN** the page has no search field
 
 ### Requirement: Search as you type
 Results SHALL update after a short pause in typing. The search SHALL be in the address as `/sheets?q=…`, so a reload or a shared link shows the same results. Each update SHALL replace the address, not add to the history. A search SHALL start at 2 characters; with fewer, the library SHALL list all sheets.

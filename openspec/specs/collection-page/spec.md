@@ -61,15 +61,15 @@ A button beside the name SHALL open the collection's menu, with "Rename" and "De
 
 #### Scenario: Renaming
 - **WHEN** the owner renames "Christmas" to "Weihnachten"
-- **THEN** the heading reads "Weihnachten", and so does its row on the Collections tab
+- **THEN** the heading reads "Weihnachten", and so do its row on `/collections` and its entry in the rail
 
 #### Scenario: Name in use
 - **WHEN** the owner has "Campfire" and renames "Christmas" to "campfire"
 - **THEN** the dialog stays open and says the name is already used
 
 ### Requirement: Deleting a collection
-"Delete" SHALL first ask to confirm, naming the collection and saying that its sheets stay in the library and that this can't be undone. Confirming SHALL delete the collection and open the Collections tab. "Cancel" SHALL keep it.
+"Delete" SHALL first ask to confirm, naming the collection and saying that its sheets stay in the library and that this can't be undone. Confirming SHALL delete the collection and open `/collections`. "Cancel" SHALL keep it.
 
 #### Scenario: Deleting
 - **WHEN** the owner deletes "Christmas" and confirms
-- **THEN** the Collections tab opens without "Christmas", and its sheets are still in the library
+- **THEN** `/collections` opens without "Christmas", the rail no longer lists it, and its sheets are still in the library
