@@ -66,8 +66,9 @@
   font-weight: 600;
 }
 
-/* Phone-wide (see app/breakpoints.ts): one row that scrolls sideways, from
-   the page's edge. */
+/* Phone-wide (see app/breakpoints.ts): one row that scrolls sideways. Two
+   cards fit, and a slice of the third shows that the row goes on. A title
+   takes up to two lines, so most titles show whole. */
 @media (max-width: 640px) {
   .recent-sheets > h2 {
     padding: 0 var(--space-s);
@@ -83,11 +84,20 @@
 
   .recent-sheets > ul > li {
     flex: none;
-    width: 148px;
+    width: 42%;
     scroll-snap-align: start;
   }
 
   .recent-sheets a {
     padding: 14px var(--space-l);
+  }
+
+  .recent-sheets a > .recent-sheets-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 }

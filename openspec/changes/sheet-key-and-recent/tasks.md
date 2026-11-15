@@ -25,7 +25,7 @@
 ## 5. The Recent row
 
 - [x] 5.1 Return the recent sheets from the Sheets loader without a search, and nothing while searching; verify with route tests
-- [x] 5.2 Show "Recent" between the search field and the list as cards with title, artist and key that only open the sheet, 4 across on wide screens and a sideways row on a phone, hidden while searching or when empty; deleting from a row hides its card at once and brings it back if the delete fails; verify with route tests for shown, searching, nothing opened and deleting
+- [x] 5.2 Show "Recent" between the search field and the list as cards with title, artist and key that only open the sheet, 4 across on wide screens and a sideways row on a phone (two cards and a slice of the third, titles on up to two lines), hidden while searching or when empty; deleting from a row hides its card at once and brings it back if the delete fails; verify with route tests for shown, searching, nothing opened and deleting
 - [x] 5.3 Add "Recent" to the Sheets entry in `docs/ui-text.md` and the cards to `docs/design-direction.md`; verify the wording matches the UI, and add the card to the design page if it becomes a base component
 
 ## 6. End to end
