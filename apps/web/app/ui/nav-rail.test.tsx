@@ -87,6 +87,19 @@ describe("NavRail", () => {
     expect(link(html, "/collections")).not.toContain("aria-current");
   });
 
+  it("puts what it is given beside the name on the name's line", () => {
+    const html = render(
+      <NavRail
+        name={{ href: "/sheets", label: "Sheet Library" }}
+        besideName={<button type="button">Close</button>}
+        items={items("sheets")}
+      />,
+    );
+    expect(html).toMatch(
+      /<div class="nav-rail-head"><a class="nav-rail-name"[^>]*>Sheet Library<\/a><button type="button">Close<\/button><\/div>/,
+    );
+  });
+
   it("ends with the footer's items, with a letter in place of an icon", () => {
     const html = rail("sheets");
     expect(html).toMatch(
@@ -98,13 +111,32 @@ describe("NavRail", () => {
     const compact = (open: Parameters<typeof items>[0]) =>
       render(<NavRail compact items={items(open)} footer={[account]} />);
 
-    it("shows only icons, each named and with a tooltip", () => {
+    // Scenario "On a tablet".
+    it("shows each icon in a pill with its name under it, without tooltips", () => {
       const html = compact("sheets");
       expect(html).toMatch(/^<nav class="nav-rail nav-rail-compact"/);
-      expect(link(html, "/sheets")).toContain('aria-label="Sheets"');
-      expect(link(html, "/account")).toContain('aria-label="Account"');
-      expect(html).toMatch(/<span class="tooltip tooltip-right"[^>]*>Sheets</);
-      expect(html).not.toContain(">Sheets</a>");
+      expect(html).toMatch(
+        /<span class="nav-rail-icon"><svg [^>]*>.*?<\/svg><\/span>Sheets<\/a>/,
+      );
+      expect(html).toMatch(
+        /<span class="nav-rail-icon"><span class="nav-avatar" aria-hidden="true">A<\/span><\/span>Account<\/a>/,
+      );
+      expect(link(html, "/sheets")).not.toContain("aria-label");
+      expect(link(html, "/account")).not.toContain("aria-label");
+      expect(html).not.toContain("tooltip");
+    });
+
+    it("starts with what it is given at the top, before the items", () => {
+      const html = render(
+        <NavRail
+          compact
+          top={<button type="button">Open navigation</button>}
+          items={items("sheets")}
+        />,
+      );
+      expect(html).toMatch(
+        /aria-label="Main"><button type="button">Open navigation<\/button><ul class="nav-rail-items">/,
+      );
     });
 
     it("lists nothing under an item, and has no site name", () => {

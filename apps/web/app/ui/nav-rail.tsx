@@ -1,10 +1,10 @@
 import "./nav-rail.css";
 
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 import { Icon } from "./icon";
 import type { IconName } from "./icons";
-import { Tooltip } from "./tooltip";
 
 // A link under an item of the rail, such as one collection.
 export interface NavSubItem {
@@ -47,31 +47,46 @@ export function NavGlyph({ item }: { item: NavItem }) {
 // The navigation at the left of a wide screen: the site's name, the items
 // with what they hold listed under them, and the footer's items at the
 // bottom. The items scroll on their own, so the name and the footer stay in
-// view. Compact, it shows only the icons, each named for screen readers and
-// in a tooltip, and lists nothing under them.
+// view. Compact, it shows each icon with its name under it, and lists
+// nothing under them.
 export function NavRail({
   label = "Main",
   name,
+  besideName,
+  top,
   items,
   footer = [],
   compact = false,
 }: {
   label?: string;
   name?: { href: string; label: string };
+  // On the line of the site's name, at its end, such as a close button.
+  besideName?: ReactNode;
+  // Before the items, such as the button that opens the full rail.
+  top?: ReactNode;
   items: NavItem[];
   footer?: NavItem[];
   compact?: boolean;
 }) {
+  const nameLink = name && !compact && (
+    <Link className="nav-rail-name" to={name.href}>
+      {name.label}
+    </Link>
+  );
   return (
     <nav
       className={compact ? "nav-rail nav-rail-compact" : "nav-rail"}
       aria-label={label}
     >
-      {name && !compact && (
-        <Link className="nav-rail-name" to={name.href}>
-          {name.label}
-        </Link>
+      {besideName && nameLink ? (
+        <div className="nav-rail-head">
+          {nameLink}
+          {besideName}
+        </div>
+      ) : (
+        nameLink
       )}
+      {top}
       <ul className="nav-rail-items">
         {items.map((item) => (
           <RailItem key={item.href} item={item} compact={compact} />
@@ -92,16 +107,16 @@ function RailItem({ item, compact }: { item: NavItem; compact: boolean }) {
   if (compact) {
     return (
       <li>
-        <Tooltip text={item.label} placement="right">
-          <Link
-            className="nav-rail-item"
-            to={item.href}
-            aria-label={item.label}
-            aria-current={currentOf(item)}
-          >
+        <Link
+          className="nav-rail-item"
+          to={item.href}
+          aria-current={currentOf(item)}
+        >
+          <span className="nav-rail-icon">
             <NavGlyph item={item} />
-          </Link>
-        </Tooltip>
+          </span>
+          {item.label}
+        </Link>
       </li>
     );
   }

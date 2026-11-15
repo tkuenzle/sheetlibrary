@@ -19,6 +19,7 @@ import login from "./icons/login.svg?raw";
 import logout from "./icons/logout.svg?raw";
 import lyrics from "./icons/lyrics.svg?raw";
 import mail from "./icons/mail.svg?raw";
+import menu from "./icons/menu.svg?raw";
 import moreVert from "./icons/more_vert.svg?raw";
 import moveDown from "./icons/move_down.svg?raw";
 import moveUp from "./icons/move_up.svg?raw";
@@ -64,6 +65,7 @@ const sources = {
   logout,
   lyrics,
   mail,
+  menu,
   moreVert,
   moveDown,
   moveUp,

@@ -1,6 +1,6 @@
 import "./shell.css";
 
-import { type ReactNode, use } from "react";
+import { type ReactNode, use, useState } from "react";
 import {
   Link,
   Outlet,
@@ -14,11 +14,14 @@ import {
   type CollectionListItem,
   sheetCount,
 } from "../collections/collections";
+import { phone, wide } from "../breakpoints";
 import { listCollections } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
+import { EdgePanel } from "../shell/edge-panel";
 import { revalidateAfterChanges } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
 import { SignedInContext } from "../shell/signed-in";
+import { IconButton } from "../ui/button";
 import { NavBar } from "../ui/nav-bar";
 import { type NavItem, NavRail } from "../ui/nav-rail";
 import type { Route } from "./+types/shell";
@@ -121,6 +124,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 // renders the right layout, and nothing jumps when the scripts load. The
 // account is at the bottom of the rail. On a phone it is its initial at the
 // top right, on the heading's line, and the bar holds only the screens.
+// The compact rail's menu button opens the full rail over the page. It
+// closes when the window leaves the middle width.
+const outsideMiddle = `${phone}, ${wide}`;
+
 export function ShellView({
   pathname,
   collections,
@@ -133,6 +140,7 @@ export function ShellView({
   initial: string;
   children: ReactNode;
 }) {
+  const [railOpen, setRailOpen] = useState(false);
   const items = navItems(pathname, collections);
   const account: NavItem = {
     href: "/account",
@@ -159,7 +167,22 @@ export function ShellView({
         items={items}
         footer={[account]}
       />
-      <NavRail compact items={items} footer={[account]} />
+      <NavRail
+        compact
+        top={
+          <IconButton
+            icon="menu"
+            label="Open navigation"
+            aria-haspopup="dialog"
+            tooltipPlacement="right"
+            onClick={() => {
+              setRailOpen(true);
+            }}
+          />
+        }
+        items={items}
+        footer={[account]}
+      />
       <Link
         className="shell-account"
         to={account.href}
@@ -174,6 +197,43 @@ export function ShellView({
         {children}
       </main>
       <NavBar items={items} />
+      <EdgePanel
+        side="left"
+        className="shell-rail-panel"
+        open={railOpen}
+        onClosed={() => {
+          setRailOpen(false);
+        }}
+        closeWhen={outsideMiddle}
+        aria-label="Main"
+      >
+        {({ slideOut, close }) => (
+          // Picking a link closes the panel at once, without the slide out:
+          // while the panel is open the page is inert, so the new page's
+          // heading couldn't take the focus (see shell/focus.ts).
+          <div
+            className="shell-rail-panel-content"
+            onClick={(event) => {
+              if (event.target instanceof Element && event.target.closest("a"))
+                close();
+            }}
+          >
+            <NavRail
+              name={{ href: "/sheets", label: "Sheet Library" }}
+              besideName={
+                <IconButton
+                  icon="close"
+                  label="Close"
+                  tooltipPlacement="bottom"
+                  onClick={slideOut}
+                />
+              }
+              items={items}
+              footer={[account]}
+            />
+          </div>
+        )}
+      </EdgePanel>
     </div>
   );
 }

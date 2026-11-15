@@ -100,7 +100,28 @@ html:has(.shell) {
   outline-offset: 2px;
 }
 
-/* Middle: the rail shows only icons. */
+/* The full rail, opened over the page from the compact rail's menu button,
+   as on the canvas board "The rail, opened" (see shell/edge-panel.css). */
+.shell-rail-panel {
+  width: 304px;
+}
+
+.shell-rail-panel-content {
+  height: 100%;
+}
+
+.shell-rail-panel .nav-rail {
+  width: 100%;
+  height: 100%;
+  padding-top: var(--space-l);
+}
+
+/* The close button lines up with the end of the items. */
+.shell-rail-panel .nav-rail-head {
+  margin-right: calc(-1 * var(--space-xs));
+}
+
+/* Middle: the compact rail, with the names under the icons. */
 @media (max-width: 1023px) {
   .shell > .nav-rail {
     display: none;
