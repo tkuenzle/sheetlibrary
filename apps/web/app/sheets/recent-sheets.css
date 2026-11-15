@@ -56,7 +56,14 @@
   white-space: nowrap;
 }
 
-.recent-sheets-title {
+/* A title takes up to two lines, so most titles show whole. */
+.recent-sheets a > .recent-sheets-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  white-space: normal;
   color: var(--text);
   font: 700 16px / 1.3 var(--font);
 }
@@ -67,8 +74,7 @@
 }
 
 /* Phone-wide (see app/breakpoints.ts): one row that scrolls sideways. Two
-   cards fit, and a slice of the third shows that the row goes on. A title
-   takes up to two lines, so most titles show whole. */
+   cards fit, and a slice of the third shows that the row goes on. */
 @media (max-width: 640px) {
   .recent-sheets > h2 {
     padding: 0 var(--space-s);
@@ -90,14 +96,5 @@
 
   .recent-sheets a {
     padding: 14px var(--space-l);
-  }
-
-  .recent-sheets a > .recent-sheets-title {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow-wrap: anywhere;
-    white-space: normal;
   }
 }
