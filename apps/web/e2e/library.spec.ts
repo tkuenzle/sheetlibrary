@@ -116,7 +116,9 @@ test("a new account signs in to an empty library and starts a sheet", async ({
 
   await page.getByRole("button", { name: "New sheet" }).click();
   await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit$/);
-  await expect(page.getByLabel("Title")).toHaveValue("Untitled");
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+    "Untitled",
+  );
 
   await page.getByRole("banner").getByRole("link", { name: "Library" }).click();
   await expect(page).toHaveURL("/sheets");
@@ -166,7 +168,7 @@ test.describe("signed in", () => {
     // Scenario "Naming a new sheet": the title field is open, with
     // "Untitled" selected, so typing replaces it.
     const title = `Sheet ${crypto.randomUUID().slice(0, 8)}`;
-    await expect(page.getByLabel("Title")).toBeFocused();
+    await expect(page.getByLabel("Title", { exact: true })).toBeFocused();
     await page.keyboard.type(title);
     await page.keyboard.press("Enter");
     await expect(heading(page)).toHaveText(title);
@@ -176,7 +178,7 @@ test.describe("signed in", () => {
     await expect(page.getByRole("status")).toHaveText("Saved");
     await page.reload();
     await expect(heading(page)).toHaveText(title);
-    await expect(page.getByLabel("Title")).toHaveCount(0);
+    await expect(page.getByLabel("Title", { exact: true })).toHaveCount(0);
   });
 });
 
@@ -342,6 +344,140 @@ test.describe("the shell", () => {
   });
 });
 
+// Scenarios of openspec/specs/sheet-list on Sheets. The account is shared
+// with other tests, so each test looks only at the sheets it made, found by
+// a mark in their titles.
+test.describe("the sheet list", () => {
+  test.use({ storageState: authFile });
+
+  async function createSheet(page: Page, title: string): Promise<string> {
+    const response = await page.request.post("/api/sheets", {
+      data: {
+        title,
+        content: { format: "chordsheet", version: 1, sections: [] },
+      },
+    });
+    expect(response.status()).toBe(201);
+    return ((await response.json()) as { id: string }).id;
+  }
+
+  function newMark(): string {
+    return `m${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
+  }
+
+  // The titles of this test's rows, in the order shown.
+  function titles(page: Page, mark: string) {
+    return page
+      .getByRole("main")
+      .locator(".library-title")
+      .filter({ hasText: mark });
+  }
+
+  // Scenarios "A to Z by default", "The order is kept" and "Searching".
+  test("sorts A to Z, and keeps the order chosen", async ({ page }) => {
+    const mark = newMark();
+    const grace = `Amazing Grace ${mark}`;
+    const stille = `Stille Nacht ${mark}`;
+    // Stille Nacht is edited last.
+    await createSheet(page, grace);
+    await createSheet(page, stille);
+
+    await page.goto("/sheets");
+    await expect(titles(page, mark)).toHaveText([grace, stille]);
+    await page.getByRole("button", { name: "Title", exact: true }).click();
+    await expect(page.getByRole("menuitemcheckbox")).toHaveText([
+      "Title",
+      "Artist",
+      "Last edited",
+      "Last added",
+    ]);
+    await expect(
+      page.getByRole("menuitemcheckbox", { name: "Title", exact: true }),
+    ).toBeChecked();
+    await page.getByRole("menuitemcheckbox", { name: "Last edited" }).click();
+    await expect(titles(page, mark)).toHaveText([stille, grace]);
+
+    await page.reload();
+    await expect(
+      page.getByRole("button", { name: "Last edited" }),
+    ).toBeVisible();
+    await expect(titles(page, mark)).toHaveText([stille, grace]);
+
+    // While searching, the best match comes first and the control is hidden.
+    await page.goto(`/sheets?q=${mark}`);
+    await expect(page.getByRole("search").getByRole("status")).toHaveText(
+      "2 sheets",
+    );
+    await expect(page.getByRole("button", { name: "Last edited" })).toHaveCount(
+      0,
+    );
+  });
+
+  // Scenarios "On Sheets", "Deleting" and "Cancelling".
+  test("deletes a sheet from its row, after asking", async ({ page }) => {
+    const mark = newMark();
+    const title = `Stille Nacht ${mark}`;
+    await createSheet(page, title);
+    await page.goto("/sheets");
+    const menuButton = page.getByRole("button", { name: `More for ${title}` });
+
+    await menuButton.click();
+    await expect(page.getByRole("menuitem")).toHaveText([
+      "Choose collections…",
+      "Delete",
+    ]);
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    const confirm = page.getByRole("alertdialog", {
+      name: `Delete “${title}”?`,
+    });
+    await expect(confirm).toContainText("This can’t be undone.");
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    await expect(confirm).toBeHidden();
+    await expect(titles(page, mark)).toHaveText([title]);
+    await expect(menuButton).toBeFocused();
+
+    const deleted = page.waitForResponse(
+      (response) => response.request().method() === "POST",
+    );
+    await menuButton.click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await confirm.getByRole("button", { name: "Delete" }).click();
+    await expect(titles(page, mark)).toHaveCount(0);
+    await expect(heading(page)).toBeFocused();
+    expect((await deleted).ok()).toBe(true);
+    await page.reload();
+    await expect(heading(page)).toHaveText("Sheets");
+    await expect(titles(page, mark)).toHaveCount(0);
+  });
+
+  // Scenario "Deleting offline": the row comes back with a note, and the
+  // list and the navigation stay.
+  test("brings the row back when the delete doesn't get through", async ({
+    page,
+    context,
+  }) => {
+    const mark = newMark();
+    const title = `Stille Nacht ${mark}`;
+    await createSheet(page, title);
+    await page.goto("/sheets");
+
+    await context.setOffline(true);
+    await page.getByRole("button", { name: `More for ${title}` }).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await page
+      .getByRole("alertdialog", { name: `Delete “${title}”?` })
+      .getByRole("button", { name: "Delete" })
+      .click();
+    await expect(page.locator(".sheet-list-status")).toHaveText(
+      `“${title}” couldn’t be deleted. Try again.`,
+    );
+    await expect(titles(page, mark)).toHaveText([title]);
+    await expect(heading(page)).toHaveText("Sheets");
+    await expect(mainNav(page)).toBeVisible();
+    await context.setOffline(false);
+  });
+});
+
 test.describe("the import", () => {
   test.use({ storageState: authFile });
 
@@ -357,8 +493,10 @@ test.describe("the import", () => {
     await expect(importButton(page)).toHaveText("Import");
     await pasteAndImport(page, verse);
     await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit$/);
-    await expect(page.getByLabel("Title")).toBeFocused();
-    await expect(page.getByLabel("Title")).toHaveValue("Untitled");
+    await expect(page.getByLabel("Title", { exact: true })).toBeFocused();
+    await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+      "Untitled",
+    );
     await expect(page.locator(".section-label")).toHaveText(["Verse 1"]);
     await expect(page.locator(".ProseMirror .line")).toHaveText([
       "Hello world",

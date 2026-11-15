@@ -16,6 +16,7 @@ import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheets";
 import Library, {
   action,
+  clientAction,
   clientLoader,
   LibraryView,
   loader,
@@ -50,8 +51,18 @@ describe("library loader and action", () => {
       url,
     } as unknown as Route.LoaderArgs);
   };
-  const post = (userId: string | null) =>
-    action({ context: context(userId) } as unknown as Route.ActionArgs);
+  function post(userId: string | null, fields: [string, string][] = []) {
+    const body = new FormData();
+    for (const [name, value] of fields) body.append(name, value);
+    const request = new Request("https://sheetlibrary.com/sheets", {
+      method: "POST",
+      body,
+    });
+    return action({
+      context: context(userId),
+      request,
+    } as unknown as Route.ActionArgs);
+  }
 
   it("gives the person their sheets", async () => {
     const sheet = await createSheet(test.env.DB, "ana", {
@@ -64,11 +75,23 @@ describe("library loader and action", () => {
           id: sheet.id,
           title: "Amazing Grace",
           updatedAt: expect.any(Number) as number,
+          addedAt: expect.any(Number) as number,
         },
       ],
       hasSheets: true,
       q: "",
       offerPasskey: false,
+      order: "title",
+    });
+  });
+
+  // Scenario "From Sheets to a collection".
+  it("gives the order this device keeps", async () => {
+    expect(await load("ana", "", "a=1; sheet-order=added")).toMatchObject({
+      order: "added",
+    });
+    expect(await load("ana", "?q=grace", "sheet-order=artist")).toMatchObject({
+      order: "artist",
     });
   });
 
@@ -160,7 +183,7 @@ describe("library loader and action", () => {
 
   // Scenario "Naming a new sheet": `?new` opens the title field.
   it("creates an Untitled sheet and opens it, to be named", async () => {
-    const response = await post("ana");
+    const response = (await post("ana")) as Response;
     expect(response.status).toBe(302);
     const id = /^\/sheets\/([\w-]+)\/edit\?new$/.exec(
       response.headers.get("Location") ?? "",
@@ -171,8 +194,38 @@ describe("library loader and action", () => {
     });
   });
 
+  // Requirement "Deleting from a row".
+  it("deletes a sheet from its row", async () => {
+    const { id } = await createSheet(test.env.DB, "ana", {
+      title: "Stille Nacht",
+      content: seedSong,
+    });
+    expect(
+      await post("ana", [
+        ["intent", "delete"],
+        ["sheetId", id],
+      ]),
+    ).toEqual({ ok: true, intent: "delete" });
+    expect(await readSheet(test.env.DB, "ana", id)).toBeNull();
+  });
+
+  it("answers 404 for someone else's sheet, and keeps it", async () => {
+    await addUser(test.env.DB, "bo");
+    const { id } = await createSheet(test.env.DB, "bo", {
+      title: "Shenandoah",
+      content: seedSong,
+    });
+    const answer = (await post("ana", [
+      ["intent", "delete"],
+      ["sheetId", id],
+    ])) as unknown as { data: unknown; init: { status: number } };
+    expect(answer.data).toEqual({ ok: false, intent: "delete" });
+    expect(answer.init.status).toBe(404);
+    expect(await readSheet(test.env.DB, "bo", id)).not.toBeNull();
+  });
+
   it("sends a new sheet without a session to sign-in", async () => {
-    const response = await post(null);
+    const response = (await post(null)) as Response;
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe("/sign-in");
   });
@@ -198,30 +251,43 @@ function render(
 describe("library page", () => {
   const today = Date.now();
 
-  it("lists the sheets, each linking to it, with its artist and last edit", () => {
+  // Requirement "My sheets": the rows are the shared list's.
+  it("lists the sheets A to Z, each linking to it, with its artist and last edit", () => {
     const html = render([
       {
         id: "abcdefghijkl",
         title: "Hallelujah",
         artist: "Leonard Cohen",
         updatedAt: today,
+        addedAt: today,
       },
-      { id: "mnopqrstuvwx", title: "Amazing Grace", updatedAt: today },
+      {
+        id: "mnopqrstuvwx",
+        title: "Amazing Grace",
+        updatedAt: today,
+        addedAt: today,
+      },
     ]);
     expect(html).toMatch(
       /<a [^>]*href="\/sheets\/abcdefghijkl"[^>]*>.*Hallelujah.*Leonard Cohen/,
     );
     expect(html).toContain('href="/sheets/mnopqrstuvwx"');
-    expect(html.indexOf("Hallelujah")).toBeLessThan(
-      html.indexOf("Amazing Grace"),
+    expect(html.indexOf("Amazing Grace")).toBeLessThan(
+      html.indexOf("Hallelujah"),
     );
+    expect(html).toContain('aria-label="More for Hallelujah"');
     expect(html).toContain("New sheet");
     expect(html).not.toContain("No sheets yet");
   });
 
   it("offers Import before New sheet, beside the heading and docked", () => {
     const html = render([
-      { id: "abcdefghijkl", title: "Hallelujah", updatedAt: today },
+      {
+        id: "abcdefghijkl",
+        title: "Hallelujah",
+        updatedAt: today,
+        addedAt: today,
+      },
     ]);
     const beside = /library-actions-beside">(.*?)<\/form><\/div>/s.exec(html);
     const docked = /library-actions-docked">(.*?)<\/form><\/div>/s.exec(html);
@@ -239,11 +305,20 @@ describe("library page", () => {
   // Scenario "Opening Sheets".
   it("is headed Sheets, without a Library heading, tabs or a top bar", () => {
     for (const sheets of [
-      [{ id: "abcdefghijkl", title: "Hallelujah", updatedAt: today }],
+      [
+        {
+          id: "abcdefghijkl",
+          title: "Hallelujah",
+          updatedAt: today,
+          addedAt: today,
+        },
+      ],
       [],
     ]) {
       const html = render(sheets);
-      expect(html).toMatch(/^<div class="library[^"]*">.*<h1>Sheets<\/h1>/s);
+      expect(html).toMatch(
+        /^<div class="library[^"]*">.*<h1[^>]*>Sheets<\/h1>/s,
+      );
       expect(html).not.toContain("Library</h1>");
       expect(html).not.toContain("<nav");
       expect(html).not.toContain("<header");
@@ -257,6 +332,7 @@ describe("library page", () => {
         id: "abcdefghijkl",
         title: "Hallelujah",
         updatedAt: Date.UTC(2025, 8, 3, 12),
+        addedAt: Date.UTC(2025, 8, 3, 12),
       },
     ]);
     expect(html).toContain(
@@ -278,7 +354,14 @@ describe("library page", () => {
   // Scenarios "First email sign-in" and "Opening the account page".
   it("offers a passkey under the heading, linking to the account page", () => {
     for (const sheets of [
-      [{ id: "abcdefghijkl", title: "Hallelujah", updatedAt: today }],
+      [
+        {
+          id: "abcdefghijkl",
+          title: "Hallelujah",
+          updatedAt: today,
+          addedAt: today,
+        },
+      ],
       [],
     ]) {
       const html = render(sheets, true);
@@ -294,6 +377,41 @@ describe("library page", () => {
         html.indexOf(sheets.length ? "<ul" : "No sheets yet"),
       );
     }
+  });
+
+  // Scenario "From Sheets to a collection": the list starts in the order
+  // the loader read from the cookie.
+  it("lists the sheets in the order this device keeps", () => {
+    const Stub = createRoutesStub([
+      {
+        path: "/",
+        Component: () => (
+          <LibraryView
+            order="artist"
+            sheets={[
+              {
+                id: "abcdefghijkl",
+                title: "Amazing Grace",
+                updatedAt: today,
+                addedAt: today,
+              },
+              {
+                id: "mnopqrstuvwx",
+                title: "Hallelujah",
+                artist: "Leonard Cohen",
+                updatedAt: today,
+                addedAt: today,
+              },
+            ]}
+          />
+        ),
+      },
+    ]);
+    const html = renderToString(<Stub />);
+    expect(html.indexOf("Hallelujah")).toBeLessThan(
+      html.indexOf("Amazing Grace"),
+    );
+    expect(html).toMatch(/Artist<svg/);
   });
 
   it("offers no passkey without offerPasskey", () => {
@@ -313,6 +431,7 @@ describe("library search", () => {
     id: "abcdefghijkl",
     title: "Amazing Grace",
     updatedAt: today,
+    addedAt: today,
   };
 
   it("shows the field below the heading, without a count", () => {
@@ -367,6 +486,7 @@ describe("library search", () => {
           title: "Drüü Könige",
           artist: "Trad.",
           updatedAt: today,
+          addedAt: today,
           titleParts: [
             { text: "Drüü ", hit: false },
             { text: "Könige", hit: true },
@@ -377,6 +497,7 @@ describe("library search", () => {
           id: "mnopqrstuvwx",
           title: "Sternsinger",
           updatedAt: today,
+          addedAt: today,
           titleParts: [{ text: "Sternsinger", hit: false }],
           line: [
             { text: "Drei ", hit: false },
@@ -412,6 +533,7 @@ describe("a search that doesn't go through", () => {
     id: "abcdefghijkl",
     title: "Amazing Grace",
     updatedAt: Date.now(),
+    addedAt: Date.now(),
   };
   const offline = new TypeError("Failed to fetch");
   const load = (serverLoader: () => Promise<unknown>) =>
@@ -469,5 +591,22 @@ describe("a search that doesn't go through", () => {
     expect(() => renderToString(<Stub initialEntries={["/sheets"]} />)).toThrow(
       offline,
     );
+  });
+});
+
+// Scenario "Deleting offline": the list stays, and the row comes back.
+describe("a row's change that doesn't get through", () => {
+  it("answers { ok: false } rather than failing the page", async () => {
+    const body = new FormData();
+    body.append("intent", "delete");
+    body.append("sheetId", "stille000000");
+    const answer = await clientAction({
+      request: new Request("https://sheetlibrary.com/sheets", {
+        method: "POST",
+        body,
+      }),
+      serverAction: () => Promise.reject(new TypeError("Failed to fetch")),
+    } as unknown as Parameters<typeof clientAction>[0]);
+    expect(answer).toEqual({ ok: false, intent: "delete" });
   });
 });

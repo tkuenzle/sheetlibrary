@@ -22,14 +22,18 @@ import { collectionFailure, collectionNameText } from "./new-collection";
 // each ticked when it holds the sheet. A tick adds the sheet at once and an
 // untick takes it out; a change that fails goes back, with a note. "New
 // collection" makes one with the sheet in it. The list loads each time the
-// dialog opens. See openspec/specs/play-page.
+// dialog opens. `onChange` is told each time a change is saved, so a page
+// that shows the collections can load them again. See
+// openspec/specs/play-page and openspec/specs/sheet-list.
 export function ChooseCollectionsDialog({
   open,
   sheet,
+  onChange,
   onClose,
 }: {
   open: boolean;
   sheet: { id: string; title: string };
+  onChange?: () => void;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -58,6 +62,7 @@ export function ChooseCollectionsDialog({
         <ChooseCollectionsContent
           titleId={titleId}
           sheet={sheet}
+          onChange={onChange}
           onDone={() => dialog.current?.close()}
         />
       )}
@@ -73,10 +78,12 @@ export type Loaded =
 function ChooseCollectionsContent({
   titleId,
   sheet,
+  onChange,
   onDone,
 }: {
   titleId: string;
   sheet: { id: string; title: string };
+  onChange?: () => void;
   onDone: () => void;
 }) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
@@ -114,7 +121,7 @@ function ChooseCollectionsContent({
   function toggle(collection: SheetCollection, holds: boolean) {
     setFailed(false);
     setHolds(collection.id, holds);
-    setInCollection(sheet.id, collection.id, holds).catch(() => {
+    setInCollection(sheet.id, collection.id, holds).then(onChange, () => {
       setHolds(collection.id, !holds);
       setFailed(true);
     });
@@ -150,6 +157,7 @@ function ChooseCollectionsContent({
         failure={collectionFailure}
         onSave={async (name) => {
           const made = await createCollection(name, sheet.id);
+          onChange?.();
           setLoaded((state) =>
             state.kind === "loaded"
               ? {

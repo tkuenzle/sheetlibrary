@@ -110,8 +110,7 @@ describe("sheet storage", () => {
     expect(await readSheet(db, "ana", id)).toBeNull();
   });
 
-  // Scenario "Newest edit first".
-  it("lists a person's sheets, the most recently edited first", async () => {
+  it("lists a person's sheets with when each was edited and made", async () => {
     const now = vi.spyOn(Date, "now");
     now.mockReturnValue(1000);
     const hallelujah = await createSheet(db, "ana", {
@@ -133,8 +132,14 @@ describe("sheet storage", () => {
         title: "Hallelujah",
         artist: "Leonard Cohen",
         updatedAt: 3000,
+        addedAt: 1000,
       },
-      { id: grace.id, title: "Amazing Grace", updatedAt: 2000 },
+      {
+        id: grace.id,
+        title: "Amazing Grace",
+        updatedAt: 2000,
+        addedAt: 2000,
+      },
     ]);
   });
 

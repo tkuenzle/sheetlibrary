@@ -14,7 +14,9 @@ import { loadAgain } from "./route-error";
 import { SignedInContext } from "./signed-in";
 
 const offline = new TypeError("Failed to fetch");
-const collections = [{ id: "christmas000", name: "Christmas", count: 14 }];
+const collections = [
+  { id: "christmas000", name: "Christmas", count: 14, titles: [] },
+];
 
 describe("loadAgain", () => {
   it("loads the same address again, in place of this entry", () => {

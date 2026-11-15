@@ -1,4 +1,3 @@
-import "../ui/group-list.css";
 import "./sheets.css";
 import "./collections.css";
 
@@ -9,13 +8,12 @@ import {
   sheetCount,
 } from "../collections/collections";
 import { NewCollection } from "../collections/new-collection";
-import { Icon } from "../ui/icon";
 import { RouteError } from "../shell/route-error";
 import type { Route } from "./+types/collections";
 import { useShellCollections } from "./shell";
 
 // The Collections screen of the library: the signed-in person's collections,
-// A to Z, and "New collection". The shell (routes/shell.tsx) loads them, for
+// A to Z, as cards with their count and first titles, and "New collection". The shell (routes/shell.tsx) loads them, for
 // its rail and for this screen, and sends a visitor to sign-in. See
 // openspec/specs/library-page.
 
@@ -78,7 +76,7 @@ export function CollectionsView({
           <NewCollection onCreated={onCreated} />
         </div>
       </div>
-      <ul className="group-list collections-list">
+      <ul className="collections-cards">
         {collections.map((collection) => (
           <li key={collection.id}>
             <Link to={`/collections/${collection.id}`}>
@@ -86,7 +84,11 @@ export function CollectionsView({
               <span className="collections-count">
                 {sheetCount(collection.count)}
               </span>
-              <Icon name="chevronRight" />
+              {collection.titles.length > 0 && (
+                <span className="collections-titles">
+                  {collection.titles.join(", ")}
+                </span>
+              )}
             </Link>
           </li>
         ))}

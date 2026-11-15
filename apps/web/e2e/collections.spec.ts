@@ -3,8 +3,8 @@ import { expect, type Page, test } from "@playwright/test";
 import { authFile } from "./servers";
 
 // Collections: the library's Collections screen, a collection's page, and
-// "Choose collections…" on the play view. See openspec/specs/collections,
-// collection-page and library-page. The tests share one account, and run on
+// "Choose collections…" on the play view and from a row. See
+// openspec/specs/collections, collection-page, library-page and sheet-list. The tests share one account, and run on
 // both projects at once, so every name carries a mark of its own.
 
 test.use({ storageState: authFile });
@@ -119,7 +119,8 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   await picker.getByRole("checkbox", { name: drue }).check();
   await picker.getByRole("button", { name: "Add 2 sheets" }).click();
   await expect(picker).toBeHidden();
-  const rows = main(page).getByRole("listitem").getByRole("link");
+  // A row's link holds the title, then the last edit.
+  const rows = main(page).locator(".library-title");
   await expect(rows).toHaveText([drue, stille]);
   await expect(main(page).getByText("2 sheets", { exact: true })).toBeVisible();
   if (wide(page)) {
@@ -136,15 +137,20 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   await picker.getByRole("button", { name: "Cancel" }).click();
   await expect(picker).toBeHidden();
 
-  // Removing keeps the sheet in the library. The row goes at once, so the
-  // reload waits for the server's answer.
+  // Removing, from the row's menu, keeps the sheet in the library. The row
+  // goes at once, so the reload waits for the server's answer.
   const removed = page.waitForResponse(
     (response) => response.request().method() === "POST",
   );
-  await page
-    .getByRole("button", { name: `Remove ${stille} from ${name}` })
-    .click();
+  await page.getByRole("button", { name: `More for ${stille}` }).click();
+  await expect(page.getByRole("menuitem")).toHaveText([
+    "Choose collections…",
+    `Remove from ${name}`,
+    "Delete",
+  ]);
+  await page.getByRole("menuitem", { name: `Remove from ${name}` }).click();
   await expect(rows).toHaveText([drue]);
+  await expect(heading(page)).toBeFocused();
   expect((await removed).ok()).toBe(true);
   await page.reload();
   await expect(rows).toHaveText([drue]);
@@ -180,7 +186,10 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   await confirm.getByRole("button", { name: "Delete" }).click();
   await expect(page).toHaveURL("/collections");
   await expect(heading(page)).toBeFocused();
-  await expect(main(page).getByRole("link", { name: other })).toBeVisible();
+  // Scenario "First titles on a card": Campfire holds nothing.
+  await expect(main(page).getByRole("link", { name: other })).toHaveText(
+    `${other}0 sheets`,
+  );
   await expect(page.getByText(`Weihnachten ${mark}`)).toHaveCount(0);
   await page.goto(`/sheets?q=${mark}`);
   await expect(page.getByRole("search").getByRole("status")).toHaveText(
@@ -280,9 +289,7 @@ test("adds a sheet to collections from the play view", async ({
   await dialog.getByRole("button", { name: "Done" }).click();
 
   await page.goto(`/collections/${collectionId}`);
-  await expect(main(page).getByRole("listitem").getByRole("link")).toHaveText([
-    title,
-  ]);
+  await expect(main(page).locator(".library-title")).toHaveText([title]);
   const listed = await page.request.get(`/api/sheets/${sheetId}/collections`);
   const collections = (await listed.json()) as {
     name: string;
@@ -292,4 +299,84 @@ test("adds a sheet to collections from the play view", async ({
     expect.objectContaining({ name, holds: true }),
     expect.objectContaining({ name: made, holds: true }),
   ]);
+});
+
+// Scenarios "Adding from Sheets" and "First titles on a card".
+test("adds a sheet to a collection from its row on Sheets", async ({
+  page,
+}) => {
+  const mark = newMark();
+  const title = `Stille Nacht ${mark}`;
+  await createSheet(page, title);
+  const name = `Christmas ${mark}`;
+  const collectionId = await createCollection(page, name);
+
+  await page.goto("/sheets");
+  if (wide(page)) {
+    await expect(mainNav(page).getByRole("link", { name })).toContainText(
+      "0 sheets",
+    );
+  }
+  await page.getByRole("button", { name: `More for ${title}` }).click();
+  await page.getByRole("menuitem", { name: "Choose collections…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Choose collections" });
+  await expect(dialog).toContainText(title);
+  const added = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/collections/${collectionId}`) &&
+      response.request().method() === "PUT",
+  );
+  await dialog.getByRole("checkbox", { name }).check();
+  expect((await added).status()).toBe(204);
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: `More for ${title}` }),
+  ).toBeFocused();
+  // The rail follows without a reload.
+  if (wide(page)) {
+    await expect(mainNav(page).getByRole("link", { name })).toContainText(
+      "1 sheet",
+    );
+  }
+
+  await collectionsLink(page).click();
+  await expect(main(page).getByRole("link", { name })).toHaveText(
+    `${name}1 sheet${title}`,
+  );
+});
+
+// Scenario "From Sheets to a collection", in a collection: "Last added" is
+// when a sheet was added to it, newest first.
+test("lists a collection in the order chosen on Sheets", async ({ page }) => {
+  const mark = newMark();
+  const first = `Amazing Grace ${mark}`;
+  const second = `Stille Nacht ${mark}`;
+  const firstId = await createSheet(page, first);
+  const secondId = await createSheet(page, second);
+  const collectionId = await createCollection(page, `Christmas ${mark}`);
+  // Stille Nacht is added last.
+  for (const id of [firstId, secondId]) {
+    const response = await page.request.put(
+      `/api/sheets/${id}/collections/${collectionId}`,
+    );
+    expect(response.status()).toBe(204);
+  }
+  const titles = main(page).locator(".library-title");
+
+  await page.goto(`/collections/${collectionId}`);
+  await expect(titles).toHaveText([first, second]);
+  await page.goto("/sheets");
+  await page.getByRole("button", { name: "Title", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "Last added" }).click();
+  await expect(page.getByRole("button", { name: "Last added" })).toBeVisible();
+
+  await page.goto(`/collections/${collectionId}`);
+  await expect(page.getByRole("button", { name: "Last added" })).toBeVisible();
+  await expect(titles).toHaveText([second, first]);
+  await page.getByRole("button", { name: "Last added" }).click();
+  await page
+    .getByRole("menuitemcheckbox", { name: "Title", exact: true })
+    .click();
+  await expect(titles).toHaveText([first, second]);
 });

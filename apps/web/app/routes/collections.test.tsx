@@ -23,11 +23,13 @@ function render(collections: CollectionListItem[]) {
 }
 
 describe("Collections screen", () => {
-  it("lists each collection with its count, linking to its page", () => {
+  // Requirement "My collections".
+  it("shows each collection as a card with its count, linking to its page", () => {
     const html = render([
-      { id: "abcdefghijkl", name: "Christmas", count: 14 },
-      { id: "mnopqrstuvwx", name: "Learning", count: 1 },
+      { id: "abcdefghijkl", name: "Christmas", count: 14, titles: [] },
+      { id: "mnopqrstuvwx", name: "Learning", count: 1, titles: [] },
     ]);
+    expect(html).toContain('<ul class="collections-cards">');
     expect(html).toMatch(
       /<a [^>]*href="\/collections\/abcdefghijkl"[^>]*>.*Christmas.*14 sheets/,
     );
@@ -37,10 +39,27 @@ describe("Collections screen", () => {
     expect(html.indexOf("Christmas")).toBeLessThan(html.indexOf("Learning"));
   });
 
+  // Scenario "First titles on a card".
+  it("shows a collection's first titles on its card", () => {
+    const html = render([
+      {
+        id: "abcdefghijkl",
+        name: "Christmas",
+        count: 4,
+        titles: ["Die Könige", "Drüü Könige", "O Tannenbaum"],
+      },
+      { id: "mnopqrstuvwx", name: "Campfire", count: 0, titles: [] },
+    ]);
+    expect(html).toContain(
+      '<span class="collections-titles">Die Könige, Drüü Könige, O Tannenbaum</span>',
+    );
+    expect(html.match(/collections-titles/g)).toHaveLength(1);
+  });
+
   // Scenario "Opening Collections".
   it("is headed Collections, with New collection and no Import or New sheet", () => {
     for (const collections of [
-      [{ id: "abcdefghijkl", name: "Christmas", count: 0 }],
+      [{ id: "abcdefghijkl", name: "Christmas", count: 0, titles: [] }],
       [],
     ]) {
       const html = render(collections);
@@ -60,7 +79,7 @@ describe("Collections screen", () => {
     const html = render([]);
     expect(html).toContain("No collections yet");
     expect(html).toMatch(/No collections yet.*New collection/s);
-    expect(html).not.toContain("collections-list");
+    expect(html).not.toContain("collections-cards");
   });
 
   it("sets the page title and asks search engines not to index it", () => {

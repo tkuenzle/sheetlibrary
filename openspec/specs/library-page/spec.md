@@ -7,11 +7,11 @@ The library at `/sheets`: where a signed-in person finds their sheets and starts
 ## Requirements
 
 ### Requirement: My sheets
-The page at `/sheets` SHALL list the signed-in person's sheets and no one else's. Without a search, it SHALL list all of them, the most recently edited first; while searching, it SHALL list only the results, as the `library-search` capability says. Each row SHALL show the sheet's title, its artist if it has one, and when it was last edited. A row SHALL open the sheet to play at `/sheets/:id`.
+The page at `/sheets` SHALL list the signed-in person's sheets and no one else's. Without a search, it SHALL list all of them, in the order the `sheet-list` capability says; while searching, it SHALL list only the results, as the `library-search` capability says. Its rows and their menus SHALL be those of the `sheet-list` capability.
 
 #### Scenario: Newest edit first
-- **WHEN** a person has the sheets "Amazing Grace" and "Hallelujah", and last edited "Hallelujah"
-- **THEN** the library lists "Hallelujah" first, then "Amazing Grace"
+- **WHEN** a person who chose "Last edited" has the sheets "Amazing Grace" and "Hallelujah", and last edited "Amazing Grace"
+- **THEN** the library lists "Amazing Grace" first, then "Hallelujah"
 
 #### Scenario: Someone else's sheets
 - **WHEN** another person has a sheet "Shenandoah"
@@ -37,7 +37,7 @@ A row SHALL say "Today" or "Yesterday" for a sheet last edited on those days, in
 
 #### Scenario: Starting a sheet
 - **WHEN** a person selects "New sheet"
-- **THEN** the editor opens with the heading "Untitled", and the library lists "Untitled" first
+- **THEN** the editor opens with the heading "Untitled", and the library lists "Untitled"
 
 #### Scenario: Naming a new sheet
 - **WHEN** a person selects "New sheet", types "Amazing Grace" and presses Enter
@@ -55,7 +55,7 @@ A person without sheets SHALL see "No sheets yet", "Import" and "New sheet" inst
 
 #### Scenario: Importing a song
 - **WHEN** a person selects "Import", then "From Ultimate Guitar…", pastes the chords and lyrics of "Amazing Grace" and selects "Import" in the dialog
-- **THEN** the editor opens with those chords and lyrics, the heading "Untitled" and the title field open, and the library lists "Untitled" first
+- **THEN** the editor opens with those chords and lyrics, the heading "Untitled" and the title field open, and the library lists "Untitled"
 
 #### Scenario: Cancelling
 - **WHEN** a person selects "Import", then "From Ultimate Guitar…", pastes text and selects "Cancel"
@@ -80,7 +80,7 @@ A visitor who isn't signed in SHALL be sent to the sign-in page. The page SHALL 
 
 #### Scenario: Importing photos
 - **WHEN** a person selects "Import", then "From photos…", adds two photos of "Amazing Grace" and selects "Import"
-- **THEN** the editor opens with the chords and lyrics read from the photos, and the library lists it first
+- **THEN** the editor opens with the chords and lyrics read from the photos, and the library lists it
 
 ### Requirement: The photos in the dialog
 The dialog SHALL list the photos as pages, in the order they were added. "Pick photos" SHALL add more at the end, up to 10 pages, and each page SHALL have a button to remove it. Import SHALL be disabled while there is no page.
@@ -158,11 +158,15 @@ With a capo under "Written for", the imported sheet SHALL open with that capo.
 - **THEN** it first opens with "Capo 2" and the chords as pasted, and from the library it opens in A without a capo
 
 ### Requirement: My collections
-The page at `/collections` SHALL list the signed-in person's collections and no one else's, A to Z by name. Each row SHALL show the name and how many sheets the collection holds, and SHALL open the collection at `/collections/:id`. A visitor who isn't signed in SHALL be sent to the sign-in page, and the page SHALL ask search engines not to index it.
+The page at `/collections` SHALL show the signed-in person's collections and no one else's, A to Z by name. Each collection SHALL show as a card with its name, how many sheets it holds, and the titles of up to three of its sheets, A to Z. A card SHALL open the collection at `/collections/:id`. A visitor who isn't signed in SHALL be sent to the sign-in page, and the page SHALL ask search engines not to index it.
 
 #### Scenario: A to Z
 - **WHEN** a person has the collections "Kinderlieder" with 31 sheets and "Christmas" with 14
-- **THEN** the page lists "Christmas" with "14 sheets", then "Kinderlieder" with "31 sheets"
+- **THEN** the page shows "Christmas" with "14 sheets", then "Kinderlieder" with "31 sheets"
+
+#### Scenario: First titles on a card
+- **WHEN** "Christmas" holds "Stille Nacht", "O Tannenbaum", "Drüü Könige" and "Die Könige"
+- **THEN** its card shows "Die Könige, Drüü Könige, O Tannenbaum"
 
 #### Scenario: Not signed in
 - **WHEN** a visitor who isn't signed in opens `/collections`

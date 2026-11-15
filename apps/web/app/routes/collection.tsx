@@ -1,13 +1,11 @@
-import "../ui/group-list.css";
 import "./sheets.css";
 import "./collection.css";
 
 import { useMemo, useRef, useState } from "react";
 import {
   data,
-  Link,
   redirect,
-  useFetcher,
+  type ShouldRevalidateFunctionArgs,
   useNavigate,
   useRevalidator,
 } from "react-router";
@@ -30,17 +28,22 @@ import {
 } from "../collections/new-collection";
 import { cloudflareContext, sessionContext } from "../context";
 import { NotFound } from "../sheets/not-found";
-import { Button, IconButton } from "../ui/button";
+import { readSheetOrder, type SheetOrder } from "../sheets/order";
+import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
+import { SheetList } from "../sheets/sheet-list";
+import { deleteSheet } from "../sheets/sheets.server";
+import { Button } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu } from "../ui/menu";
 import { NameDialog } from "../ui/name-dialog";
 import type { Route } from "./+types/collection";
+import { revalidateUnlessUnchanged } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
 
-// One collection, at /collections/:id: its sheets A to Z, "Add sheets", a
-// button on each row to take the sheet out, and the menu with "Rename" and
-// "Delete". It sits in the shell (routes/shell.tsx). See
-// openspec/specs/collection-page.
+// One collection, at /collections/:id: its sheets in the shared list, whose
+// row menus add "Remove from …", "Add sheets", and the collection's menu with
+// "Rename" and "Delete". It sits in the shell (routes/shell.tsx). See
+// openspec/specs/collection-page and openspec/specs/sheet-list.
 
 export function meta({ loaderData }: Route.MetaArgs) {
   // Missing when the page couldn't be loaded.
@@ -57,19 +60,20 @@ export function meta({ loaderData }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ context, params }: Route.LoaderArgs) {
+// The collection, and the order this device keeps for the list.
+export async function loader({ context, params, request }: Route.LoaderArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
   const collection = await readCollection(env.DB, session.user.id, params.id);
   return collection
-    ? { collection }
+    ? { collection, order: readSheetOrder(request.headers.get("Cookie")) }
     : data({ collection: null }, { status: 404 });
 }
 
-// Takes a sheet out ("remove") or adds the ticked ones ("add"). A form on
-// another site can't get here signed in, since the session cookie is
-// SameSite=Lax.
+// Takes a sheet out ("remove"), adds the ticked ones ("add"), or deletes a
+// sheet from its row ("delete"). A form on another site can't get here
+// signed in, since the session cookie is SameSite=Lax.
 export async function action({ context, params, request }: Route.ActionArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
@@ -80,8 +84,15 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   let ok: boolean;
   switch (form.get("intent")) {
     case "remove":
-      ok = await removeSheet(env.DB, userId, params.id, sheetIds[0] ?? "");
-      break;
+      return rowAnswer(
+        "remove",
+        await removeSheet(env.DB, userId, params.id, sheetIds[0] ?? ""),
+      );
+    case "delete":
+      return rowAnswer(
+        "delete",
+        await deleteSheet(env.DB, userId, sheetIds[0] ?? ""),
+      );
     case "add":
       ok =
         sheetIds.length > 0 &&
@@ -91,6 +102,19 @@ export async function action({ context, params, request }: Route.ActionArgs) {
       return data({ ok: false }, { status: 400 });
   }
   return ok ? { ok } : data({ ok }, { status: 404 });
+}
+
+// A change from a row that doesn't get through keeps the list on screen.
+export async function clientAction({
+  request,
+  serverAction,
+}: Route.ClientActionArgs) {
+  return keepListOnFailure(request, serverAction);
+}
+
+// A row's change that didn't get through loads nothing again.
+export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
+  return revalidateUnlessUnchanged(args);
 }
 
 // A page that can't be loaded shows a note in the shell, which stays. See
@@ -106,6 +130,7 @@ export default function CollectionPage({ loaderData }: Route.ComponentProps) {
   return (
     <CollectionView
       collection={loaderData.collection}
+      order={loaderData.order}
       onRenamed={revalidate}
       onDeleted={() => {
         // Deleted with a plain fetch, so the rail is told to drop it
@@ -118,10 +143,13 @@ export default function CollectionPage({ loaderData }: Route.ComponentProps) {
 
 export function CollectionView({
   collection,
+  order = "title",
   onRenamed,
   onDeleted,
 }: {
   collection: Collection;
+  // The order this device keeps.
+  order?: SheetOrder;
   onRenamed: () => Promise<void>;
   onDeleted: () => void;
 }) {
@@ -193,22 +221,12 @@ export function CollectionView({
           <div className="library-actions">{addButton()}</div>
         </section>
       ) : (
-        <div className="library-list collection-list">
-          <div className="collection-columns library-labels" aria-hidden="true">
-            <span>Title</span>
-            <span>Artist</span>
-          </div>
-          <ul className="group-list">
-            {collection.sheets.map((sheet) => (
-              <SheetRow
-                key={sheet.id}
-                collection={collection}
-                sheet={sheet}
-                onRemoved={() => heading.current?.focus()}
-              />
-            ))}
-          </ul>
-        </div>
+        <SheetList
+          sheets={collection.sheets}
+          order={order}
+          collection={collection}
+          onGone={() => heading.current?.focus()}
+        />
       )}
       {count > 0 && (
         <div className="library-actions library-actions-docked">
@@ -248,45 +266,5 @@ export function CollectionView({
         onClose={closed}
       />
     </div>
-  );
-}
-
-// A sheet in the collection: its title and artist, opening it to play, and
-// the button that takes it out. The row goes as soon as the button is
-// pressed; if the server refuses, it comes back.
-function SheetRow({
-  collection,
-  sheet,
-  onRemoved,
-}: {
-  collection: Collection;
-  sheet: Collection["sheets"][number];
-  onRemoved: () => void;
-}) {
-  const fetcher = useFetcher<{ ok: boolean }>();
-  const removing = fetcher.state !== "idle" || (fetcher.data?.ok ?? false);
-  if (removing) return null;
-  return (
-    <li className="collection-row">
-      <Link className="collection-columns" to={`/sheets/${sheet.id}`}>
-        <span className="library-title">{sheet.title}</span>
-        <span>{sheet.artist}</span>
-      </Link>
-      <fetcher.Form
-        method="post"
-        onSubmit={() => {
-          onRemoved();
-        }}
-      >
-        <input type="hidden" name="intent" value="remove" />
-        <input type="hidden" name="sheetId" value={sheet.id} />
-        <IconButton
-          type="submit"
-          icon="doNotDisturbOn"
-          label={`Remove ${sheet.title} from ${collection.name}`}
-          tooltipPlacement="left"
-        />
-      </fetcher.Form>
-    </li>
   );
 }
