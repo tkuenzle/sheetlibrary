@@ -184,7 +184,8 @@ test("a new account signs in to an empty library and starts a sheet", async ({
     .click();
   await expect(cards).toHaveText([/^Untitled/]);
   await expect(allSheets).toHaveText("All sheets 1");
-  expect(held).toBe(true);
+  // The request reaches the route a moment after the screen changes.
+  await expect.poll(() => held).toBe(true);
   answer();
   await page.unrouteAll({ behavior: "wait" });
   await expect(allSheets).toHaveText("All sheets 1");
