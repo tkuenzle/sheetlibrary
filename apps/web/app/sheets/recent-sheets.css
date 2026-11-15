@@ -1,0 +1,100 @@
+/* "Recent" on Sheets (recent-sheets.tsx), as on the canvas boards "Sheets,
+   desktop" and "Sheets, phone": four cards across, a row that scrolls
+   sideways on a phone. */
+.recent-sheets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.recent-sheets > h2 {
+  margin: 0;
+  color: var(--text-muted);
+  font: 600 var(--font-size-small) / 1.2 var(--font);
+}
+
+.recent-sheets > ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-m);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Relative, so a key's read-out text (.visually-hidden) stays inside its
+   card, and a card scrolled out of the row doesn't widen the page. */
+.recent-sheets a {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 100%;
+  box-sizing: border-box;
+  padding: var(--space-l) 20px;
+  border-radius: var(--corner-medium);
+  background: var(--surface-active);
+  color: var(--text-muted);
+  font: 400 14px / 1.3 var(--font);
+  text-decoration: none;
+}
+
+.recent-sheets a:hover {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--text) 4%, transparent) 0 0
+  );
+}
+
+.recent-sheets a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.recent-sheets a > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A title takes up to two lines, so most titles show whole. */
+.recent-sheets a > .recent-sheets-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  color: var(--text);
+  font: 700 16px / 1.3 var(--font);
+}
+
+.recent-sheets-key {
+  color: var(--on-accent-soft);
+  font-weight: 600;
+}
+
+/* Phone-wide (see app/breakpoints.ts): one row that scrolls sideways. Two
+   cards fit, and a slice of the third shows that the row goes on. */
+@media (max-width: 640px) {
+  .recent-sheets > h2 {
+    padding: 0 var(--space-s);
+  }
+
+  .recent-sheets > ul {
+    display: flex;
+    gap: var(--space-s);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .recent-sheets > ul > li {
+    flex: none;
+    width: 42%;
+    scroll-snap-align: start;
+  }
+
+  .recent-sheets a {
+    padding: 14px var(--space-l);
+  }
+}

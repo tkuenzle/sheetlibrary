@@ -9,6 +9,7 @@ import {
   sameKey,
   semitonesBetween,
   shapesKey,
+  sheetChords,
   stepKey,
   transposeChord,
 } from "chordsheet";
@@ -20,10 +21,6 @@ import type { SheetEditorHandle } from "./sheet-editor";
 
 // The sheet's heading with its key button, shared by the pages that edit a
 // sheet. See openspec/specs/editor-page.
-
-function chordsOf(sheet: ChordSheet) {
-  return sheet.sections.flatMap((s) => s.lines.flatMap((l) => l.chords));
-}
 
 type Chords = Parameters<typeof guessKey>[0];
 
@@ -67,7 +64,7 @@ export function loadSheetKey(
   capo: string | null = null,
   home: Key | null = null,
 ): SheetKeyState {
-  const guess = guessKey(chordsOf(sheet));
+  const guess = guessKey(sheetChords(sheet));
   const key = sheet.key ?? guess;
   const read = key && shown !== null ? readKey(shown, key.minor) : null;
   const homeKey = key ? home : null;

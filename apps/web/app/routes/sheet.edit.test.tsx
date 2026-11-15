@@ -7,7 +7,7 @@ import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
 import type { SaveState } from "../sheets/autosave";
-import { createSheet } from "../sheets/sheets.server";
+import { createSheet, recentSheets } from "../sheets/sheets.server";
 import { NotFound } from "../sheets/not-found";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheet.edit";
@@ -64,6 +64,12 @@ describe("sheet page loader", () => {
       shownKey: null,
       capo: null,
     });
+  });
+
+  // Scenario "Editing only" (library-page).
+  it("doesn't count as opening the sheet", async () => {
+    await load("ana");
+    expect(await recentSheets(test.env.DB, "ana")).toEqual([]);
   });
 
   it("says when the sheet was just made with New sheet", async () => {

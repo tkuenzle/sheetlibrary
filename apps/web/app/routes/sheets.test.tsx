@@ -9,6 +9,7 @@ import { seedSong } from "../editor/seed-song";
 import {
   createSheet,
   readSheet,
+  recordOpening,
   type SearchResult,
   type SheetListItem,
 } from "../sheets/sheets.server";
@@ -74,15 +75,30 @@ describe("library loader and action", () => {
         {
           id: sheet.id,
           title: "Amazing Grace",
+          key: "G",
           updatedAt: expect.any(Number) as number,
           addedAt: expect.any(Number) as number,
         },
       ],
+      recent: [],
       hasSheets: true,
       q: "",
       offerPasskey: false,
       order: "title",
     });
+  });
+
+  // Requirement "Recent sheets".
+  it("gives the sheets opened last, but not while searching", async () => {
+    const sheet = await createSheet(test.env.DB, "ana", {
+      title: "Amazing Grace",
+      content: seedSong,
+    });
+    await recordOpening(test.env.DB, "ana", sheet.id);
+    expect(await load("ana")).toMatchObject({
+      recent: [{ id: sheet.id, title: "Amazing Grace", key: "G" }],
+    });
+    expect(await load("ana", "?q=grace")).toMatchObject({ recent: [] });
   });
 
   // Scenario "From Sheets to a collection".
@@ -235,7 +251,12 @@ describe("library loader and action", () => {
 function render(
   sheets: (SheetListItem | SearchResult)[],
   offerPasskey?: boolean,
-  search: { q?: string; hasSheets?: boolean; searchFailed?: boolean } = {},
+  search: {
+    q?: string;
+    hasSheets?: boolean;
+    searchFailed?: boolean;
+    recent?: SheetListItem[];
+  } = {},
 ) {
   const Stub = createRoutesStub([
     {
@@ -252,7 +273,7 @@ describe("library page", () => {
   const today = Date.now();
 
   // Requirement "My sheets": the rows are the shared list's.
-  it("lists the sheets A to Z, each linking to it, with its artist and last edit", () => {
+  it("lists the sheets A to Z, each linking to it, with its artist", () => {
     const html = render([
       {
         id: "abcdefghijkl",
@@ -278,6 +299,76 @@ describe("library page", () => {
     expect(html).toContain('aria-label="More for Hallelujah"');
     expect(html).toContain("New sheet");
     expect(html).not.toContain("No sheets yet");
+  });
+
+  // Requirement "All sheets heading".
+  it("heads the list with the number of sheets, but not while searching", () => {
+    const sheet = (id: string, title: string): SheetListItem => ({
+      id,
+      title,
+      updatedAt: today,
+      addedAt: today,
+    });
+    const both = [
+      sheet("grace0000000", "Amazing Grace"),
+      sheet("stille000000", "Stille Nacht"),
+    ];
+    expect(render(both)).toMatch(
+      /<h2 class="sheet-list-heading">All sheets <span class="sheet-list-count">2<\/span><\/h2>/,
+    );
+    expect(render(both, false, { q: "grace" })).not.toContain("All sheets");
+  });
+
+  describe("recent", () => {
+    const stille: SheetListItem = {
+      id: "stille000000",
+      title: "Stille Nacht",
+      artist: "Franz Xaver Gruber",
+      key: "C",
+      updatedAt: today,
+      addedAt: today,
+    };
+    const grace: SheetListItem = {
+      id: "grace0000000",
+      title: "Amazing Grace",
+      key: "G",
+      updatedAt: today,
+      addedAt: today,
+    };
+    const recentPart = (html: string) =>
+      /<section class="recent-sheets".*?<\/section>/.exec(html)?.[0] ?? "";
+
+    // Scenario "Opened last".
+    it("shows the sheets opened last as cards, in that order, between the search and the list", () => {
+      const html = render([grace, stille], false, { recent: [stille, grace] });
+      const part = recentPart(html);
+      expect(part).toMatch(/<h2 id="recent-sheets">Recent<\/h2>/);
+      expect(part).toMatch(
+        /<a [^>]*href="\/sheets\/stille000000"[^>]*><span class="recent-sheets-title">Stille Nacht<\/span><span>Franz Xaver Gruber<\/span><span class="recent-sheets-key"><span aria-hidden="true">C<\/span>/,
+      );
+      expect(part.indexOf("Stille Nacht")).toBeLessThan(
+        part.indexOf("Amazing Grace"),
+      );
+      expect(part).not.toContain("More for");
+      expect(html.indexOf('type="search"')).toBeLessThan(
+        html.indexOf("recent-sheets"),
+      );
+      expect(html.indexOf("recent-sheets")).toBeLessThan(
+        html.indexOf("library-labels"),
+      );
+    });
+
+    // Scenario "Searching".
+    it("is hidden while searching", () => {
+      const html = render([grace], false, { q: "grace", recent: [grace] });
+      expect(html).not.toContain("recent-sheets");
+    });
+
+    it("is hidden when no sheet has been opened", () => {
+      const html = render([grace], false, { recent: [] });
+      expect(html).not.toContain("recent-sheets");
+      expect(html).not.toContain(">Recent<");
+    });
   });
 
   it("offers Import before New sheet, beside the heading and docked", () => {
@@ -324,20 +415,6 @@ describe("library page", () => {
       expect(html).not.toContain("<header");
       expect(html).not.toContain("<main");
     }
-  });
-
-  it("hides the last edit until the viewer's time zone is known", () => {
-    const html = render([
-      {
-        id: "abcdefghijkl",
-        title: "Hallelujah",
-        updatedAt: Date.UTC(2025, 8, 3, 12),
-        addedAt: Date.UTC(2025, 8, 3, 12),
-      },
-    ]);
-    expect(html).toContain(
-      '<span class="library-edited" data-pending="">3 Sep 2025</span>',
-    );
   });
 
   // Scenario "First sign-in".

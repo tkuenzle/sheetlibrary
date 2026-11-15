@@ -6,6 +6,7 @@ import {
   pitchOf,
   sameKey,
   semitonesBetween,
+  writeKey,
 } from "chordsheet";
 import { type ReactNode, useId, useRef, useState } from "react";
 
@@ -14,9 +15,7 @@ import { Icon } from "../ui/icon";
 import { usePanel } from "./panel";
 
 // The key as written: "G", "Em".
-export function keyName(key: Key): string {
-  return `${key.tonic}${key.minor ? "m" : ""}`;
-}
+export const keyName = writeKey;
 
 // The key as read out: "F sharp", "E minor".
 export function spokenKey(key: Key): string {

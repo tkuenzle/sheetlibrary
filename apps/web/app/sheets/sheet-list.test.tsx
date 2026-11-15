@@ -16,6 +16,7 @@ const sheets: ListSheet[] = [
     id: "stille000000",
     title: "Stille Nacht",
     artist: "Franz Xaver Gruber",
+    key: "F#m",
     updatedAt: Date.UTC(2025, 8, 3, 12),
     addedAt: today,
   },
@@ -33,6 +34,7 @@ function render(
     order?: SheetOrder;
     sorted?: boolean;
     collection?: { id: string; name: string };
+    heading?: string;
   } = {},
 ) {
   const Stub = createRoutesStub([
@@ -44,6 +46,7 @@ function render(
           order={props.order ?? "title"}
           sorted={props.sorted}
           collection={props.collection}
+          heading={props.heading}
           onGone={() => undefined}
         />
       ),
@@ -54,13 +57,33 @@ function render(
 
 describe("the sheet list", () => {
   // Requirement "A row in the list".
-  it("shows each sheet's title, artist and last edit, opening it to play", () => {
+  it("shows each sheet's title, artist and key, opening it to play", () => {
     const html = render();
     expect(html).toMatch(
-      /<a class="library-columns" [^>]*href="\/sheets\/stille000000"[^>]*>.*Stille Nacht.*Franz Xaver Gruber.*<span class="library-edited" data-pending="">3 Sep 2025<\/span>/,
+      /<a class="library-columns" [^>]*href="\/sheets\/stille000000"[^>]*>.*Stille Nacht.*Franz Xaver Gruber.*<span class="library-key"><span aria-hidden="true">F#m<\/span><span class="visually-hidden">F sharp minor<\/span><\/span>/,
     );
-    expect(html).toContain('href="/sheets/grace0000000"');
-    expect(html).toMatch(/<span>Title<\/span><span>Artist<\/span><span>Edited/);
+    expect(html).toMatch(/<span>Title<\/span><span>Artist<\/span><span>Key/);
+    expect(html).not.toContain("3 Sep 2025");
+  });
+
+  // Scenario "No chords".
+  it("shows no key, and no separator, for a sheet without one", () => {
+    const html = render();
+    expect(html).toMatch(
+      /href="\/sheets\/grace0000000"[^>]*>.*Amazing Grace.*<span class="library-key"><\/span>/,
+    );
+    expect(html.match(/library-separator/g)).toHaveLength(1);
+  });
+
+  // Requirement "All sheets heading" (library-page).
+  it("heads the list with its count on the order control's line, if given", () => {
+    expect(render({ heading: "All sheets" })).toMatch(
+      /<div class="sheet-list-order"><h2 class="sheet-list-heading">All sheets <span class="sheet-list-count">2<\/span><\/h2>/,
+    );
+    expect(render()).not.toContain("sheet-list-heading");
+    expect(render({ heading: "All sheets", sorted: false })).not.toContain(
+      "All sheets",
+    );
   });
 
   // Scenario "A to Z by default".

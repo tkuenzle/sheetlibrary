@@ -3,6 +3,8 @@ import {
   plainLines,
   type Sheet,
   type SheetContent,
+  songKey,
+  writeKey,
 } from "chordsheet";
 
 import {
@@ -24,6 +26,13 @@ import { keptVersionName, readVersionKey, type SheetVersion } from "./versions";
 // them, so the library never reads the content itself.
 function lyricsOf(content: SheetContent): string {
   return plainLines(content).join("\n");
+}
+
+// The key as the library shows it, such as "F#m": the set key, or else the
+// one guessed from the chords. Null without chords. The format gives it too.
+function keyOf(content: SheetContent): string | null {
+  const key = songKey(content);
+  return key ? writeKey(key) : null;
 }
 
 // What a new sheet starts with. Storage gives it its id and revision.
@@ -72,7 +81,7 @@ export async function createSheet(
   const now = Date.now();
   await db
     .prepare(
-      'INSERT INTO "sheet" ("id", "userId", "revision", "title", "artist", "content", "lyrics", "createdAt", "updatedAt") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO "sheet" ("id", "userId", "revision", "title", "artist", "content", "lyrics", "key", "createdAt", "updatedAt") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     )
     .bind(
       created.id,
@@ -82,6 +91,7 @@ export async function createSheet(
       created.artist ?? null,
       JSON.stringify(created.content),
       lyricsOf(created.content),
+      keyOf(created.content),
       now,
       now,
     )
@@ -113,13 +123,14 @@ export async function saveSheet(
 ): Promise<SaveResult> {
   const result = await db
     .prepare(
-      'UPDATE "sheet" SET "revision" = "revision" + 1, "title" = ?, "artist" = ?, "content" = ?, "lyrics" = ?, "updatedAt" = ? WHERE "id" = ? AND "userId" = ? AND "revision" = ?',
+      'UPDATE "sheet" SET "revision" = "revision" + 1, "title" = ?, "artist" = ?, "content" = ?, "lyrics" = ?, "key" = ?, "updatedAt" = ? WHERE "id" = ? AND "userId" = ? AND "revision" = ?',
     )
     .bind(
       sheet.title,
       sheet.artist ?? null,
       JSON.stringify(sheet.content),
       lyricsOf(sheet.content),
+      keyOf(sheet.content),
       Date.now(),
       sheet.id,
       userId,
@@ -144,9 +155,33 @@ export interface SheetListItem {
   id: string;
   title: string;
   artist?: string;
+  // The sheet's key, such as "F#m". Left out for a sheet without chords, and
+  // for one not saved since keys were stored.
+  key?: string;
   updatedAt: number;
   // When the sheet came into the list: for the library, when it was made.
   addedAt: number;
+}
+
+// A sheet's columns as the library lists them.
+interface ListRow {
+  id: string;
+  title: string;
+  artist: string | null;
+  key: string | null;
+  updatedAt: number;
+  createdAt: number;
+}
+
+function listItem(row: ListRow): SheetListItem {
+  return {
+    id: row.id,
+    title: row.title,
+    ...(row.artist === null ? {} : { artist: row.artist }),
+    ...(row.key === null ? {} : { key: row.key }),
+    updatedAt: row.updatedAt,
+    addedAt: row.createdAt,
+  };
 }
 
 // The person's sheets, the most recently edited first. The page sorts them
@@ -157,23 +192,11 @@ export async function listSheets(
 ): Promise<SheetListItem[]> {
   const { results } = await db
     .prepare(
-      'SELECT "id", "title", "artist", "updatedAt", "createdAt" FROM "sheet" WHERE "userId" = ? ORDER BY "updatedAt" DESC',
+      'SELECT "id", "title", "artist", "key", "updatedAt", "createdAt" FROM "sheet" WHERE "userId" = ? ORDER BY "updatedAt" DESC',
     )
     .bind(userId)
-    .all<{
-      id: string;
-      title: string;
-      artist: string | null;
-      updatedAt: number;
-      createdAt: number;
-    }>();
-  return results.map((row) => ({
-    id: row.id,
-    title: row.title,
-    ...(row.artist === null ? {} : { artist: row.artist }),
-    updatedAt: row.updatedAt,
-    addedAt: row.createdAt,
-  }));
+    .all<ListRow>();
+  return results.map(listItem);
 }
 
 // Whether the person has any sheet.
@@ -217,30 +240,23 @@ export async function searchSheets(
     `highlight("sheet_fts", ${column}, ${MARKS})`;
   const { results } = await db
     .prepare(
-      `SELECT s."id", s."title", s."artist", s."updatedAt", s."createdAt", ${mark("0")} AS "markedTitle", ${mark("1")} AS "markedArtist", ${mark("2")} AS "markedLyrics" FROM "sheet_fts" JOIN "sheet" s ON s."rowid" = "sheet_fts"."rowid" WHERE "sheet_fts" MATCH ? AND s."userId" = ? ORDER BY bm25("sheet_fts", ${WEIGHTS}), s."updatedAt" DESC`,
+      `SELECT s."id", s."title", s."artist", s."key", s."updatedAt", s."createdAt", ${mark("0")} AS "markedTitle", ${mark("1")} AS "markedArtist", ${mark("2")} AS "markedLyrics" FROM "sheet_fts" JOIN "sheet" s ON s."rowid" = "sheet_fts"."rowid" WHERE "sheet_fts" MATCH ? AND s."userId" = ? ORDER BY bm25("sheet_fts", ${WEIGHTS}), s."updatedAt" DESC`,
     )
     .bind(query, userId)
-    .all<{
-      id: string;
-      title: string;
-      artist: string | null;
-      updatedAt: number;
-      createdAt: number;
-      markedTitle: string;
-      markedArtist: string | null;
-      markedLyrics: string | null;
-    }>();
+    .all<
+      ListRow & {
+        markedTitle: string;
+        markedArtist: string | null;
+        markedLyrics: string | null;
+      }
+    >();
   return results.map((row) => {
     const line =
       hasMatch(row.markedTitle) || hasMatch(row.markedArtist)
         ? undefined
         : matchingLine(row.markedLyrics ?? "");
     return {
-      id: row.id,
-      title: row.title,
-      ...(row.artist === null ? {} : { artist: row.artist }),
-      updatedAt: row.updatedAt,
-      addedAt: row.createdAt,
+      ...listItem(row),
       titleParts: markedParts(row.markedTitle),
       ...(row.markedArtist === null
         ? {}
@@ -248,6 +264,39 @@ export async function searchSheets(
       ...(line === undefined ? {} : { line }),
     };
   });
+}
+
+// How many sheets "Recent" shows on Sheets.
+export const RECENT_COUNT = 4;
+
+// Notes that the person opened their sheet to play, now. One row per person
+// and sheet, replaced each time. Nothing is noted for a sheet that isn't the
+// person's. See openspec/specs/library-page.
+export async function recordOpening(
+  db: D1Database,
+  userId: string,
+  sheetId: string,
+): Promise<void> {
+  await db
+    .prepare(
+      'INSERT INTO "sheet_open" ("userId", "sheetId", "openedAt") SELECT ?, "id", ? FROM "sheet" WHERE "id" = ? AND "userId" = ? ON CONFLICT ("userId", "sheetId") DO UPDATE SET "openedAt" = excluded."openedAt"',
+    )
+    .bind(userId, Date.now(), sheetId, userId)
+    .run();
+}
+
+// The person's own sheets they opened last, the last opened first.
+export async function recentSheets(
+  db: D1Database,
+  userId: string,
+): Promise<SheetListItem[]> {
+  const { results } = await db
+    .prepare(
+      'SELECT s."id", s."title", s."artist", s."key", s."updatedAt", s."createdAt" FROM "sheet_open" o JOIN "sheet" s ON s."id" = o."sheetId" WHERE o."userId" = ? AND s."userId" = ? ORDER BY o."openedAt" DESC LIMIT ?',
+    )
+    .bind(userId, userId, RECENT_COUNT)
+    .all<ListRow>();
+  return results.map(listItem);
 }
 
 // Returns whether a sheet was deleted. Its versions go with it.

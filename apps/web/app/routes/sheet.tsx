@@ -25,7 +25,7 @@ import { PlayEditSwitch } from "../shell/play-edit-switch";
 import { TopBar } from "../shell/top-bar";
 import { SheetView } from "../sheet-view/sheet-view";
 import { NotFound } from "../sheets/not-found";
-import { readSheetWithVersions } from "../sheets/sheets.server";
+import { readSheetWithVersions, recordOpening } from "../sheets/sheets.server";
 import {
   keepTextStep,
   MAX_TEXT_STEP,
@@ -71,7 +71,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
 // `?version` opens one, `?key` shows the sheet in another key, `?capo` with
 // the shapes for a capo, and `?lyrics` without chords. A version that is gone
 // leads to the sheet in its song key. The text size comes from this device's
-// cookie.
+// cookie. Opening the sheet here is noted for "Recent" on Sheets; a note that
+// can't be written doesn't keep the sheet from opening.
 export async function loader({
   context,
   params,
@@ -95,6 +96,7 @@ export async function loader({
     const { pathname, search } = new URL(href);
     return redirect(`${pathname}${search}`);
   }
+  await recordOpening(env.DB, session.user.id, sheet.id).catch(() => undefined);
   return {
     sheet,
     versions,

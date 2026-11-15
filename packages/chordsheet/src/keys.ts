@@ -295,6 +295,22 @@ function fits(quality: Quality, wanted: Quality): boolean {
   return quality === "any" || quality === wanted;
 }
 
+// A sheet's chords, in order.
+export function sheetChords(sheet: ChordSheet): ChordSymbol[] {
+  return sheet.sections.flatMap((s) => s.lines.flatMap((l) => l.chords));
+}
+
+// A sheet's key: the key set in it, or else the key guessed from its
+// chords. Null for a sheet with neither.
+export function songKey(sheet: ChordSheet): Key | null {
+  return sheet.key ?? guessKey(sheetChords(sheet));
+}
+
+// A key as written, as chords are: "G", "F#m", "Bbm".
+export function writeKey(key: Key): string {
+  return `${key.tonic}${key.minor ? "m" : ""}`;
+}
+
 // Guesses a sheet's key from its chords, in order, or returns null when
 // there are none. The key that holds the most of the chords wins. A tie goes
 // to the key whose tonic chord starts or ends the sheet, then to the one

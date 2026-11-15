@@ -27,6 +27,8 @@ export interface CollectionSheet {
   id: string;
   title: string;
   artist?: string;
+  // The sheet's key, such as "F#m", as the library lists it.
+  key?: string;
   updatedAt: number;
   // When the sheet was added to this collection.
   addedAt: number;
@@ -112,7 +114,7 @@ export async function readCollection(
       .bind(id, userId),
     db
       .prepare(
-        `SELECT s."id", s."title", s."artist", s."updatedAt", cs."addedAt" FROM "collection_sheet" cs JOIN "sheet" s ON s."id" = cs."sheetId" WHERE ${OWNED_COLLECTION}`,
+        `SELECT s."id", s."title", s."artist", s."key", s."updatedAt", cs."addedAt" FROM "collection_sheet" cs JOIN "sheet" s ON s."id" = cs."sheetId" WHERE ${OWNED_COLLECTION}`,
       )
       .bind(id, userId),
   ]);
@@ -123,6 +125,7 @@ export async function readCollection(
     id: string;
     title: string;
     artist: string | null;
+    key: string | null;
     updatedAt: number;
     addedAt: number;
   }[];
@@ -134,6 +137,7 @@ export async function readCollection(
         id: sheet.id,
         title: sheet.title,
         ...(sheet.artist === null ? {} : { artist: sheet.artist }),
+        ...(sheet.key === null ? {} : { key: sheet.key }),
         updatedAt: sheet.updatedAt,
         addedAt: sheet.addedAt,
       })),

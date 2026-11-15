@@ -14,6 +14,8 @@ import {
   listSheets,
   listVersions,
   readSheet,
+  recentSheets,
+  recordOpening,
   saveSheet,
   searchSheets,
 } from "./sheets.server";
@@ -110,7 +112,7 @@ describe("sheet storage", () => {
     expect(await readSheet(db, "ana", id)).toBeNull();
   });
 
-  it("lists a person's sheets with when each was edited and made", async () => {
+  it("lists a person's sheets with their key and when each was edited and made", async () => {
     const now = vi.spyOn(Date, "now");
     now.mockReturnValue(1000);
     const hallelujah = await createSheet(db, "ana", {
@@ -131,12 +133,14 @@ describe("sheet storage", () => {
         id: hallelujah.id,
         title: "Hallelujah",
         artist: "Leonard Cohen",
+        key: "G",
         updatedAt: 3000,
         addedAt: 1000,
       },
       {
         id: grace.id,
         title: "Amazing Grace",
+        key: "G",
         updatedAt: 2000,
         addedAt: 2000,
       },
@@ -337,6 +341,182 @@ describe("lyrics beside the content", () => {
     );
     await db.prepare(fill ?? "").run();
     expect(await storedLyrics(id)).toBe(plainLines(content).join("\n"));
+  });
+});
+
+describe("key beside the content", () => {
+  let test: Awaited<ReturnType<typeof testEnv>>;
+  let db: D1Database;
+  beforeEach(async () => {
+    test = await testEnv();
+    db = test.env.DB;
+    await addUser(db, "ana");
+  });
+  afterEach(() => test.dispose());
+
+  const storedKey = async (id: string) =>
+    (
+      await db
+        .prepare('SELECT "key" FROM "sheet" WHERE "id" = ?')
+        .bind(id)
+        .first<{ key: string | null }>()
+    )?.key;
+
+  // One line with a chord on each letter.
+  const withChords = (...roots: string[]): ChordSheet => ({
+    format: "chordsheet",
+    version: 1,
+    sections: [
+      {
+        lines: [
+          {
+            text: "x".repeat(roots.length),
+            chords: roots.map((root, at) => ({ at, root })),
+          },
+        ],
+      },
+    ],
+  });
+
+  it("writes the guessed key when a sheet is created", async () => {
+    const { id } = await createSheet(db, "ana", {
+      title: "Amazing Grace",
+      content: withChords("G", "C", "D", "G"),
+    });
+    expect(await storedKey(id)).toBe("G");
+  });
+
+  it("writes the set key before the guess", async () => {
+    const { id } = await createSheet(db, "ana", {
+      title: "Greensleeves",
+      content: {
+        ...withChords("G", "C", "D"),
+        key: { tonic: "F#", minor: true },
+      },
+    });
+    expect(await storedKey(id)).toBe("F#m");
+  });
+
+  it("writes the key again on a save, and none without chords", async () => {
+    const created = await createSheet(db, "ana", {
+      title: "Amazing Grace",
+      content: withChords("G", "C", "D", "G"),
+    });
+    await saveSheet(db, "ana", {
+      ...created,
+      content: withChords("D", "G", "A", "D"),
+    });
+    expect(await storedKey(created.id)).toBe("D");
+    await saveSheet(db, "ana", {
+      ...created,
+      revision: created.revision + 1,
+      content: {
+        format: "chordsheet",
+        version: 1,
+        sections: [{ lines: [{ text: "Was blind", chords: [] }] }],
+      },
+    });
+    expect(await storedKey(created.id)).toBeNull();
+  });
+
+  it("lists the key, and none for a sheet without one", async () => {
+    const { id } = await createSheet(db, "ana", {
+      title: "Amazing Grace",
+      content: withChords("G", "C", "D", "G"),
+    });
+    await db.prepare('UPDATE "sheet" SET "key" = NULL').run();
+    expect((await listSheets(db, "ana"))[0]).not.toHaveProperty("key");
+    await db.prepare('UPDATE "sheet" SET "key" = \'Em\'').run();
+    expect((await listSheets(db, "ana"))[0]).toMatchObject({ id, key: "Em" });
+    expect((await searchSheets(db, "ana", "grace"))[0]).toMatchObject({
+      id,
+      key: "Em",
+    });
+  });
+});
+
+describe("recent sheets", () => {
+  let test: Awaited<ReturnType<typeof testEnv>>;
+  let db: D1Database;
+  beforeEach(async () => {
+    test = await testEnv();
+    db = test.env.DB;
+    await addUser(db, "ana");
+    await addUser(db, "bo");
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    return test.dispose();
+  });
+
+  const add = async (title: string, userId = "ana") =>
+    (await createSheet(db, userId, { title, content: seedSong })).id;
+
+  // Opens each sheet in turn, a second after the one before.
+  let clock = 0;
+  async function open(userId: string, ...ids: string[]) {
+    for (const id of ids) {
+      clock += 1000;
+      vi.spyOn(Date, "now").mockReturnValue(clock);
+      await recordOpening(db, userId, id);
+    }
+  }
+
+  const titles = async (userId = "ana") =>
+    (await recentSheets(db, userId)).map((sheet) => sheet.title);
+
+  it("lists nothing before a sheet is opened", async () => {
+    await add("Amazing Grace");
+    expect(await titles()).toEqual([]);
+  });
+
+  // Scenario "Opened last".
+  it("lists the last opened first, with its key", async () => {
+    const grace = await add("Amazing Grace");
+    const stille = await add("Stille Nacht");
+    await open("ana", grace, stille);
+    expect(await recentSheets(db, "ana")).toMatchObject([
+      { id: stille, title: "Stille Nacht", key: "G" },
+      { id: grace, title: "Amazing Grace", key: "G" },
+    ]);
+  });
+
+  it("moves a sheet opened again to the front, once", async () => {
+    const grace = await add("Amazing Grace");
+    const stille = await add("Stille Nacht");
+    await open("ana", grace, stille, grace);
+    expect(await titles()).toEqual(["Amazing Grace", "Stille Nacht"]);
+  });
+
+  // Scenario "More than 4 opened".
+  it("lists the 4 opened last", async () => {
+    const ids: string[] = [];
+    for (const title of ["A", "B", "C", "D", "E", "F"])
+      ids.push(await add(title));
+    await open("ana", ...ids);
+    expect(await titles()).toEqual(["F", "E", "D", "C"]);
+  });
+
+  it("keeps each person's openings to themselves", async () => {
+    const grace = await add("Amazing Grace");
+    const shenandoah = await add("Shenandoah", "bo");
+    await open("bo", shenandoah);
+    await open("ana", shenandoah);
+    expect(await titles("ana")).toEqual([]);
+    expect(await titles("bo")).toEqual(["Shenandoah"]);
+    await open("bo", grace);
+    expect(await titles("bo")).toEqual(["Shenandoah"]);
+  });
+
+  it("forgets a deleted sheet", async () => {
+    const grace = await add("Amazing Grace");
+    await open("ana", grace);
+    await deleteSheet(db, "ana", grace);
+    expect(await titles()).toEqual([]);
+    const left = await db
+      .prepare('SELECT count(*) AS "n" FROM "sheet_open"')
+      .first<{ n: number }>();
+    expect(left?.n).toBe(0);
   });
 });
 
