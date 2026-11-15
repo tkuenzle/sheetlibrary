@@ -7,10 +7,10 @@ The page of one collection at `/collections/:id`: where its owner sees its sheet
 ## Requirements
 
 ### Requirement: A collection's sheets
-The page at `/collections/:id` SHALL show the collection's name as the heading and in the browser tab, how many sheets it holds, such as "14 sheets" or "1 sheet", and its sheets A to Z by title. Each row SHALL show the sheet's title and its artist if it has one, and SHALL open the sheet to play at `/sheets/:id`.
+The page at `/collections/:id` SHALL show the collection's name as the heading and in the browser tab, how many sheets it holds, such as "14 sheets" or "1 sheet", and its sheets in the order the `sheet-list` capability says. Its rows and their menus SHALL be those of the `sheet-list` capability.
 
 #### Scenario: A to Z
-- **WHEN** "Christmas" holds "Stille Nacht" and "Drüü Könige"
+- **WHEN** "Christmas" holds "Stille Nacht" and "Drüü Könige", and the person hasn't chosen another order
 - **THEN** its page lists "Drüü Könige", then "Stille Nacht", and says "2 sheets"
 
 #### Scenario: Opening a sheet
@@ -32,10 +32,10 @@ A collection without sheets SHALL say "No sheets yet" below its name, and show "
 - **THEN** the page says "No sheets in this collection" and offers "Add sheets"
 
 ### Requirement: Removing a sheet
-Each row SHALL have a button named for the sheet and the collection, such as "Remove Stille Nacht from Christmas". It SHALL take the sheet out of the collection at once. The sheet SHALL stay in the library.
+Each row's menu SHALL hold "Remove from" and the collection's name, such as "Remove from Christmas". It SHALL take the sheet out of the collection at once, without asking. The sheet SHALL stay in the library. Each row SHALL NOT have its own remove button.
 
 #### Scenario: Removing
-- **WHEN** the owner selects "Remove Stille Nacht from Christmas"
+- **WHEN** the owner opens the menu of "Stille Nacht" on "Christmas" and picks "Remove from Christmas"
 - **THEN** the page no longer lists "Stille Nacht", and the library still does
 
 ### Requirement: Adding sheets
@@ -61,7 +61,7 @@ A button beside the name SHALL open the collection's menu, with "Rename" and "De
 
 #### Scenario: Renaming
 - **WHEN** the owner renames "Christmas" to "Weihnachten"
-- **THEN** the heading reads "Weihnachten", and so do its row on `/collections` and its entry in the rail
+- **THEN** the heading reads "Weihnachten", and so do its card on `/collections` and its entry in the rail
 
 #### Scenario: Name in use
 - **WHEN** the owner has "Campfire" and renames "Christmas" to "campfire"
