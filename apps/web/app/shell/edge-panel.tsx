@@ -2,11 +2,9 @@ import "./edge-panel.css";
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-// How the content closes the panel: sliding out, as "Close" does, or at
-// once, as picking a link does.
+// How the content closes the panel, as "Close" does: sliding out.
 export interface EdgePanelControls {
   slideOut: () => void;
-  close: () => void;
 }
 
 // A modal panel the full height of the window, from the left or the right
@@ -71,9 +69,6 @@ export function EdgePanel({
   const controls: EdgePanelControls = {
     slideOut: () => {
       setClosing(true);
-    },
-    close: () => {
-      dialog.current?.close();
     },
   };
 

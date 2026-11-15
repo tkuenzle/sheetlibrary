@@ -2,7 +2,7 @@
 
 ## 1. Shared edge panel
 
-- [x] 1.1 Add `shell/edge-panel.tsx` and `edge-panel.css` with the dialog logic and styles from `SidePanelButton`, taking a side, an open state, an on-closed callback, a closing media query, a name and a way to close at once. A unit test covers what it renders, and `pnpm test` passes. The unit tests have no DOM, so opening, Escape, a backdrop click and the media query are tested in the browser, by the help's e2e cases (1.2) and the rail's (3.3).
+- [x] 1.1 Add `shell/edge-panel.tsx` and `edge-panel.css` with the dialog logic and styles from `SidePanelButton`, taking a side, an open state, an on-closed callback, a closing media query and a name, and a way for the content to slide it out. A unit test covers what it renders, and `pnpm test` passes. The unit tests have no DOM, so opening, Escape, a backdrop click and the media query are tested in the browser, by the help's e2e cases (1.2) and the rail's (3.3).
 - [x] 1.2 Move `SidePanelButton` onto `EdgePanel` (side right, closes at `wide`), and drop the moved CSS from `side-panel.css`. Verify with the help tests in `sheet.edit.test.tsx` and `e2e/editor.spec.ts` ("the help"), unchanged, and by hand on a sheet at 800px.
 
 ## 2. Compact rail with names
@@ -13,7 +13,7 @@
 ## 3. Opening the rail
 
 - [x] 3.1 Add the `menu` icon (Material Symbols Rounded, weight 500, 24px) to `ui/icons/` and `icons.ts`, and verify the icon tests pass.
-- [x] 3.2 In `ShellView`, add the menu button "Open navigation" to the compact rail, and an `EdgePanel` on the left after it, closing at `phone` or `wide`. The panel holds the full rail, 304px wide, with "Close" after "Sheet Library". A click on a link inside closes it at once. Cover it in `shell.test.tsx`, and verify it passes.
+- [x] 3.2 In `ShellView`, add the menu button "Open navigation" to the compact rail, and an `EdgePanel` on the left after it, closing at `phone` or `wide`. The panel holds the full rail, 304px wide, with "Close" after "Sheet Library". A click on a link inside slides it out, and the new page's heading takes the focus once it has closed. Cover it in `shell.test.tsx`, and verify it passes.
 - [x] 3.3 Update the e2e "On a tablet" case in `library.spec.ts`, and add e2e cases for "Opening a collection from the opened rail" and "Closing with Escape": focus moves into the panel, the page is inert, and focus goes back to the menu button or to the new heading. Verify they pass.
 - [x] 3.4 Update the Shell line in `docs/ui-text.md` and the rail on a middle screen in `docs/design-direction.md`. Verify they name "Open navigation", "Close" and the names under the icons.
 

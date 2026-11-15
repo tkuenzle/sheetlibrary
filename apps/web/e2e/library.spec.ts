@@ -404,6 +404,26 @@ test.describe("the shell", () => {
       expect(await sameDocument(page)).toBe(true);
     });
 
+    test("slides out after a pick, and the new page's heading takes the focus", async ({
+      page,
+    }) => {
+      await page.goto("/sheets");
+      // A slide out takes 1.5 seconds at a tenth of the speed, so the new
+      // page comes while the page is still inert behind the rail.
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send("Animation.enable");
+      await cdp.send("Animation.setPlaybackRate", { playbackRate: 0.1 });
+      await menuButton(page).click();
+      await expect(panel(page)).toBeVisible();
+      await panel(page)
+        .getByRole("link", { name: "Collections", exact: true })
+        .click();
+      await expect(heading(page)).toHaveText("Collections");
+      await expect(panel(page)).toHaveAttribute("data-closing");
+      await expect(panel(page)).toBeHidden();
+      await expect(heading(page)).toBeFocused();
+    });
+
     // Scenario "Closing with Escape".
     test("closes with Escape, and gives the focus back", async ({ page }) => {
       await page.goto("/sheets");

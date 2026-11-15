@@ -1,6 +1,6 @@
 import "./shell.css";
 
-import { type ReactNode, use, useState } from "react";
+import { type ReactNode, use, useRef, useState } from "react";
 import {
   Link,
   Outlet,
@@ -18,6 +18,7 @@ import { phone, wide } from "../breakpoints";
 import { listCollections } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { EdgePanel } from "../shell/edge-panel";
+import { focusHeading } from "../shell/focus";
 import { revalidateAfterChanges } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
 import { SignedInContext } from "../shell/signed-in";
@@ -141,6 +142,8 @@ export function ShellView({
   children: ReactNode;
 }) {
   const [railOpen, setRailOpen] = useState(false);
+  // Where a link in the opened rail was picked, until the rail has closed.
+  const pickedOn = useRef<string | null>(null);
   const items = navItems(pathname, collections);
   const account: NavItem = {
     href: "/account",
@@ -203,19 +206,28 @@ export function ShellView({
         open={railOpen}
         onClosed={() => {
           setRailOpen(false);
+          // The new page came while the rail slid out. The page was inert
+          // then, so its heading couldn't take the focus (see
+          // shell/focus.ts), and closing put it back on the menu button.
+          if (pickedOn.current !== null && pickedOn.current !== pathname)
+            focusHeading();
+          pickedOn.current = null;
         }}
         closeWhen={outsideMiddle}
         aria-label="Main"
       >
-        {({ slideOut, close }) => (
-          // Picking a link closes the panel at once, without the slide out:
-          // while the panel is open the page is inert, so the new page's
-          // heading couldn't take the focus (see shell/focus.ts).
+        {({ slideOut }) => (
+          // Picking a link slides the panel out while the new page loads.
           <div
             className="shell-rail-panel-content"
             onClick={(event) => {
-              if (event.target instanceof Element && event.target.closest("a"))
-                close();
+              if (
+                event.target instanceof Element &&
+                event.target.closest("a")
+              ) {
+                pickedOn.current = pathname;
+                slideOut();
+              }
             }}
           >
             <NavRail
