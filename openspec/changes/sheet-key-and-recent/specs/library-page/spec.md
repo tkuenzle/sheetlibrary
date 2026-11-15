@@ -31,6 +31,17 @@ The "Recent" row SHALL be hidden while searching, and when the person hasn't ope
 - **WHEN** a person who has opened "Amazing Grace" searches "grace"
 - **THEN** no "Recent" row is shown, only the results
 
+### Requirement: All sheets heading
+Without a search, the list on Sheets SHALL have the heading "All sheets" with how many sheets the person has, such as "All sheets 48", on the line of the order control. While searching, the heading SHALL be hidden. A sheet deleted from its row SHALL leave the count at once, and come back to it if the delete doesn't get through.
+
+#### Scenario: Counting the sheets
+- **WHEN** a person with 48 sheets opens Sheets
+- **THEN** the list is headed "All sheets 48"
+
+#### Scenario: Deleting a sheet
+- **WHEN** a person with 48 sheets deletes one from its row
+- **THEN** the heading says "All sheets 47" at once
+
 ## REMOVED Requirements
 
 ### Requirement: When a sheet was last edited

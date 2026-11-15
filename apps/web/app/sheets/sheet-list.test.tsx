@@ -34,6 +34,7 @@ function render(
     order?: SheetOrder;
     sorted?: boolean;
     collection?: { id: string; name: string };
+    heading?: string;
   } = {},
 ) {
   const Stub = createRoutesStub([
@@ -45,6 +46,7 @@ function render(
           order={props.order ?? "title"}
           sorted={props.sorted}
           collection={props.collection}
+          heading={props.heading}
           onGone={() => undefined}
         />
       ),
@@ -71,6 +73,17 @@ describe("the sheet list", () => {
       /href="\/sheets\/grace0000000"[^>]*>.*Amazing Grace.*<span class="library-key"><\/span>/,
     );
     expect(html.match(/library-separator/g)).toHaveLength(1);
+  });
+
+  // Requirement "All sheets heading" (library-page).
+  it("heads the list with its count on the order control's line, if given", () => {
+    expect(render({ heading: "All sheets" })).toMatch(
+      /<div class="sheet-list-order"><h2 class="sheet-list-heading">All sheets <span class="sheet-list-count">2<\/span><\/h2>/,
+    );
+    expect(render()).not.toContain("sheet-list-heading");
+    expect(render({ heading: "All sheets", sorted: false })).not.toContain(
+      "All sheets",
+    );
   });
 
   // Scenario "A to Z by default".

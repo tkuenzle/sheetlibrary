@@ -11,6 +11,7 @@ The list on Sheets and in a collection shows when each sheet was last edited. Th
 - The edit date leaves the list. "Last edited" stays as an order.
 - Opening a sheet to play records when the person opened it. Opening Edit doesn't.
 - Sheets shows a "Recent" row with the 4 sheets opened last, as cards with title, artist and key, between the search field and the list. A card only opens the sheet; it has no menu. Deleting a sheet from its row takes its card away at once. The row is hidden while searching and when nothing has been opened yet. On a phone the cards are a row that scrolls sideways.
+- On Sheets, the list gets the heading "All sheets" with how many sheets there are, on the order control's line. It is hidden while searching, where the search field already gives the count. A collection keeps its count under its name.
 - Not in this change: the capo in the list (a capo isn't stored on a sheet), "Last opened" as an order, and a "Recent" row in a collection.
 
 ## Capabilities

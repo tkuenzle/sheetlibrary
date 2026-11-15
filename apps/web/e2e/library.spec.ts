@@ -159,7 +159,23 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await page.getByRole("button", { name: "Clear search" }).click();
   await expect(cards).toHaveCount(2);
 
-  // Scenario "Deleting a recent sheet".
+  // Scenarios "Counting the sheets", "Deleting a recent sheet" and
+  // "Deleting a sheet": the card and the count follow the row at once,
+  // before the server answers.
+  const allSheets = page.getByRole("heading", { name: /^All sheets/ });
+  await expect(allSheets).toHaveText("All sheets 2");
+  let held = false;
+  let answer: () => void = () => undefined;
+  const answered = new Promise<void>((resolve) => {
+    answer = resolve;
+  });
+  await page.route("**/sheets.data*", async (route) => {
+    if (route.request().method() === "POST") {
+      held = true;
+      await answered;
+    }
+    await route.continue();
+  });
   await page.getByRole("button", { name: "More for Stille Nacht" }).click();
   await page.getByRole("menuitem", { name: "Delete" }).click();
   await page
@@ -167,6 +183,12 @@ test("a new account signs in to an empty library and starts a sheet", async ({
     .getByRole("button", { name: "Delete" })
     .click();
   await expect(cards).toHaveText([/^Untitled/]);
+  await expect(allSheets).toHaveText("All sheets 1");
+  expect(held).toBe(true);
+  answer();
+  await page.unrouteAll({ behavior: "wait" });
+  await expect(allSheets).toHaveText("All sheets 1");
+  await expect(rows(page).filter({ hasText: "Stille Nacht" })).toHaveCount(0);
 });
 
 test.describe("signed in", () => {

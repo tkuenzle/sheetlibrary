@@ -301,6 +301,24 @@ describe("library page", () => {
     expect(html).not.toContain("No sheets yet");
   });
 
+  // Requirement "All sheets heading".
+  it("heads the list with the number of sheets, but not while searching", () => {
+    const sheet = (id: string, title: string): SheetListItem => ({
+      id,
+      title,
+      updatedAt: today,
+      addedAt: today,
+    });
+    const both = [
+      sheet("grace0000000", "Amazing Grace"),
+      sheet("stille000000", "Stille Nacht"),
+    ];
+    expect(render(both)).toMatch(
+      /<h2 class="sheet-list-heading">All sheets <span class="sheet-list-count">2<\/span><\/h2>/,
+    );
+    expect(render(both, false, { q: "grace" })).not.toContain("All sheets");
+  });
+
   describe("recent", () => {
     const stille: SheetListItem = {
       id: "stille000000",

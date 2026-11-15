@@ -389,6 +389,7 @@ export function LibraryView({
           order={order}
           sorted={!searching}
           busy={pending}
+          heading="All sheets"
           onGone={() => heading.current?.focus()}
         />
       )}

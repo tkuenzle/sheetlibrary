@@ -2,7 +2,7 @@ import "../ui/group-list.css";
 import "./sheet-list.css";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Link, useFetcher, useRevalidator } from "react-router";
+import { Link, useFetcher, useFetchers, useRevalidator } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
 import { spokenKey } from "../editor/key-button";
@@ -62,6 +62,7 @@ export function SheetList({
   sorted = true,
   collection,
   busy = false,
+  heading,
   onGone,
 }: {
   sheets: ListSheet[];
@@ -74,6 +75,9 @@ export function SheetList({
   collection?: { id: string; name: string };
   // While a search loads, the rows shown are out of date.
   busy?: boolean;
+  // A heading for the list, such as "All sheets", shown with how many rows
+  // it has on the order control's line. Hidden with the control.
+  heading?: string;
   // A row was taken away: the page moves the focus to its heading.
   onGone: () => void;
 }) {
@@ -89,6 +93,11 @@ export function SheetList({
   });
 
   const shown = sorted ? sortSheets(sheets, order) : sheets;
+  // A row whose change is under way is gone already, so it isn't counted.
+  const changing = new Set(useFetchers().map((fetcher) => fetcher.key));
+  const count = sheets.filter(
+    (sheet) => !changing.has(rowKey(sheet.id)),
+  ).length;
 
   // Back on the row's menu button, or on the heading once the row is gone.
   function focusRow(id: string) {
@@ -128,6 +137,12 @@ export function SheetList({
       </div>
       {sorted && (
         <div className="sheet-list-order">
+          {heading && (
+            <h2 className="sheet-list-heading">
+              {`${heading} `}
+              <span className="sheet-list-count">{count}</span>
+            </h2>
+          )}
           <Menu
             label={orderLabel(order)}
             icon="swapVert"
