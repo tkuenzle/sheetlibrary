@@ -164,11 +164,18 @@ test("switches to the editor and back, keeping the key and capo", async ({
   await expect(page.getByRole("button", { name: /^Capo/ })).toHaveText(
     "Capo 2",
   );
+  // "Edit" loads the page in full. The editor draws the chords only once
+  // React has hydrated the page; a click before that does nothing.
+  await expect(page.locator(".chord-label")).toHaveCount(5);
 
   // A rename, saved, shows in the play view.
   await page.getByRole("button", { name: "Amazing Grace" }).click();
   await page.keyboard.type("Grace");
   await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Grace");
+  // "Saved" shows when the page opens too. It goes away with the edit and
+  // comes back once the rename is saved.
+  await expect(page.getByRole("status")).toHaveText("");
   await expect(page.getByRole("status")).toHaveText("Saved");
   await bar.getByRole("link", { name: "Play" }).click();
   await expect(page).toHaveURL(`/sheets/${id}?key=A&capo=2`);
