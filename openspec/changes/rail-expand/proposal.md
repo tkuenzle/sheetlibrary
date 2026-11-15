@@ -9,7 +9,7 @@ In a window from 641 to 1023px wide, the rail shows only icons. Their names show
 - The compact rail shows each name under its icon, with the open screen marked by a pill around the icon, as in the bottom bar. It gets wider, from 80px to 88px. The tooltips go.
 - A menu button "Open navigation" at the top of the compact rail opens the full rail over the dimmed page, with every collection. The full rail is the one wide screens show, with a "Close" button next to "Sheet Library".
 - The opened rail is modal: focus moves into it and goes back to the menu button when it closes, and the page behind it is inert. Picking an entry closes it. So do "Close", Escape, a tap on the dimmed page, and a window that gets wider or narrower than the middle width.
-- It slides in from the left, and slides out when it closes, also when an entry is picked. With reduced motion it doesn't slide.
+- It slides in from the left, and slides out when it closes. After a pick, it slides out once the new page is there. With reduced motion it doesn't slide.
 - The sheet's help panel and the opened rail share one panel that slides in from an edge. The help looks and works as before.
 - Wide screens and phones stay as they are. "New sheet" (#133) and "Sets" (M7) are on the design board but not part of this change.
 

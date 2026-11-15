@@ -424,6 +424,39 @@ test.describe("the shell", () => {
       await expect(heading(page)).toBeFocused();
     });
 
+    test("stays open until the picked page is there, so the old one doesn't show again", async ({
+      page,
+    }) => {
+      const name = `Slow ${crypto.randomUUID().slice(0, 8)}`;
+      const response = await page.request.post("/api/collections", {
+        data: { name },
+      });
+      expect(response.status()).toBe(201);
+      await page.goto("/sheets");
+      await page.waitForLoadState("networkidle");
+      let release = (): void => undefined;
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      await page.route(/\/collections\/[^/]+\.data/, async (route) => {
+        await held;
+        await route.continue();
+      });
+
+      await menuButton(page).click();
+      await panel(page)
+        .getByRole("link", { name: new RegExp(`^${name}`) })
+        .click();
+      // While the collection loads, the rail stays over the old page.
+      await expect(page).toHaveURL("/sheets");
+      await expect(panel(page)).toBeVisible();
+      await expect(panel(page)).not.toHaveAttribute("data-closing");
+      release();
+      await expect(heading(page)).toHaveText(name);
+      await expect(panel(page)).toBeHidden();
+      await expect(heading(page)).toBeFocused();
+    });
+
     // Scenario "Closing with Escape".
     test("closes with Escape, and gives the focus back", async ({ page }) => {
       await page.goto("/sheets");

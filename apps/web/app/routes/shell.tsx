@@ -1,12 +1,13 @@
 import "./shell.css";
 
-import { type ReactNode, use, useRef, useState } from "react";
+import { type ReactNode, use, useEffect, useRef, useState } from "react";
 import {
   Link,
   Outlet,
   redirect,
   type ShouldRevalidateFunctionArgs,
   useLocation,
+  useNavigation,
   useRouteLoaderData,
 } from "react-router";
 
@@ -206,7 +207,7 @@ export function ShellView({
         open={railOpen}
         onClosed={() => {
           setRailOpen(false);
-          // The new page came while the rail slid out. The page was inert
+          // The new page came while the rail was open. The page was inert
           // then, so its heading couldn't take the focus (see
           // shell/focus.ts), and closing put it back on the menu button.
           if (pickedOn.current !== null && pickedOn.current !== pathname)
@@ -217,35 +218,80 @@ export function ShellView({
         aria-label="Main"
       >
         {({ slideOut }) => (
-          // Picking a link slides the panel out while the new page loads.
-          <div
-            className="shell-rail-panel-content"
-            onClick={(event) => {
-              if (
-                event.target instanceof Element &&
-                event.target.closest("a")
-              ) {
-                pickedOn.current = pathname;
-                slideOut();
-              }
+          <OpenedRail
+            pathname={pathname}
+            items={items}
+            account={account}
+            slideOut={slideOut}
+            onPick={() => {
+              pickedOn.current = pathname;
             }}
-          >
-            <NavRail
-              name={{ href: "/sheets", label: "Sheet Library" }}
-              besideName={
-                <IconButton
-                  icon="close"
-                  label="Close"
-                  tooltipPlacement="bottom"
-                  onClick={slideOut}
-                />
-              }
-              items={items}
-              footer={[account]}
-            />
-          </div>
+          />
         )}
       </EdgePanel>
+    </div>
+  );
+}
+
+// The full rail in the opened panel. A picked link keeps the panel open
+// until the new page is there, then slides it out over that page, so the
+// old page doesn't show again in between.
+function OpenedRail({
+  pathname,
+  items,
+  account,
+  slideOut,
+  onPick,
+}: {
+  pathname: string;
+  items: NavItem[];
+  account: NavItem;
+  slideOut: () => void;
+  onPick: () => void;
+}) {
+  const navigation = useNavigation();
+  const [pickedOn, setPickedOn] = useState<string | null>(null);
+  // Whether the move has started. Picking the open page loads it again
+  // without changing the address.
+  const moved = useRef(false);
+
+  useEffect(() => {
+    if (pickedOn === null) return;
+    if (navigation.state !== "idle") {
+      moved.current = true;
+      return;
+    }
+    if (moved.current || pathname !== pickedOn) slideOut();
+  }, [pickedOn, navigation.state, pathname, slideOut]);
+
+  return (
+    <div
+      className="shell-rail-panel-content"
+      onClick={(event) => {
+        // Only a move React Router makes itself: a click that opens a new
+        // tab leaves the rail open.
+        if (
+          !event.defaultPrevented ||
+          !(event.target instanceof Element && event.target.closest("a"))
+        )
+          return;
+        onPick();
+        setPickedOn(pathname);
+      }}
+    >
+      <NavRail
+        name={{ href: "/sheets", label: "Sheet Library" }}
+        besideName={
+          <IconButton
+            icon="close"
+            label="Close"
+            tooltipPlacement="bottom"
+            onClick={slideOut}
+          />
+        }
+        items={items}
+        footer={[account]}
+      />
     </div>
   );
 }

@@ -13,7 +13,7 @@
 ## 3. Opening the rail
 
 - [x] 3.1 Add the `menu` icon (Material Symbols Rounded, weight 500, 24px) to `ui/icons/` and `icons.ts`, and verify the icon tests pass.
-- [x] 3.2 In `ShellView`, add the menu button "Open navigation" to the compact rail, and an `EdgePanel` on the left after it, closing at `phone` or `wide`. The panel holds the full rail, 304px wide, with "Close" after "Sheet Library". A click on a link inside slides it out, and the new page's heading takes the focus once it has closed. Cover it in `shell.test.tsx`, and verify it passes.
+- [x] 3.2 In `ShellView`, add the menu button "Open navigation" to the compact rail, and an `EdgePanel` on the left after it, closing at `phone` or `wide`. The panel holds the full rail, 304px wide, with "Close" after "Sheet Library". A click on a link inside slides it out once the new page is there, and the new page's heading takes the focus once it has closed. Cover it in `shell.test.tsx`, and verify it passes.
 - [x] 3.3 Update the e2e "On a tablet" case in `library.spec.ts`, and add e2e cases for "Opening a collection from the opened rail" and "Closing with Escape": focus moves into the panel, the page is inert, and focus goes back to the menu button or to the new heading. Verify they pass.
 - [x] 3.4 Update the Shell line in `docs/ui-text.md` and the rail on a middle screen in `docs/design-direction.md`. Verify they name "Open navigation", "Close" and the names under the icons.
 
