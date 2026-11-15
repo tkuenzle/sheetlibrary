@@ -1,27 +1,37 @@
-/* The Collections screen: a row per collection, with its name, how many sheets
-   it holds and a chevron. The library's styles (sheets.css) lay out the
+/* The Collections screen: a card per collection, with its name, how many
+   sheets it holds and its first titles, as on the canvas board
+   "Collections, phone". The library's styles (sheets.css) lay out the
    page. */
-.collections-list a {
+.collections-cards {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 24px;
-  align-items: center;
-  gap: var(--space-l);
-  min-height: 64px;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: var(--space-m);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.collections-cards a {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  height: 100%;
   box-sizing: border-box;
-  padding: var(--space-m) var(--space-l) var(--space-m) var(--space-xl);
-  border-radius: inherit;
+  padding: var(--space-l) 20px;
+  border-radius: var(--corner-medium);
+  background: var(--surface-active);
   color: var(--text-muted);
-  font: 400 var(--font-size-body) / 1.3 var(--font);
+  font: 600 14px / 1.3 var(--font);
   text-decoration: none;
 }
 
-.collections-list a:hover {
+.collections-cards a:hover {
   background-image: linear-gradient(
     color-mix(in srgb, var(--text) 4%, transparent) 0 0
   );
 }
 
-.collections-list a:focus-visible {
+.collections-cards a:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
@@ -32,23 +42,18 @@
   font: 700 17px / 1.3 var(--font);
 }
 
-/* Phone-wide (see app/breakpoints.ts): the count under the name. */
+.collections-titles {
+  font: 400 13px / 1.4 var(--font);
+}
+
+/* Phone-wide (see app/breakpoints.ts): two cards side by side. */
 @media (max-width: 640px) {
-  .collections-list a {
-    grid-template-columns: minmax(0, 1fr) 24px;
-    grid-template-rows: auto auto;
-    row-gap: 2px;
-    min-height: 68px;
-    padding: var(--space-s) var(--space-m) var(--space-s) 20px;
-    font-size: 14px;
+  .collections-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-s);
   }
 
-  .collections-count {
-    grid-row: 2;
-  }
-
-  .collections-list .icon {
-    grid-column: 2;
-    grid-row: 1 / 3;
+  .collections-cards a {
+    padding: var(--space-l);
   }
 }

@@ -9,15 +9,40 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 // They load again after a form or a fetcher, after `revalidate()`, and when
 // the same address loads again, as after "Try again". A change made with a
 // plain `fetch`, such as making or deleting a collection, calls
-// `revalidate()` so the rail follows it. See openspec/specs/site-layout.
+// `revalidate()` so the rail follows it. A change that didn't get through
+// changed nothing, so nothing loads again (see changedNothing). See
+// openspec/specs/site-layout.
 export function revalidateAfterChanges({
   currentUrl,
   nextUrl,
   formMethod,
+  actionResult,
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs): boolean {
+  if (changedNothing(actionResult)) return false;
   if (formMethod || currentUrl.href === nextUrl.href) {
     return defaultShouldRevalidate;
   }
   return false;
+}
+
+// Whether an action answered that its change didn't get through, as a row
+// of the sheet list does offline (sheets/row-changes.ts). Loading again then
+// would only fail too, and take the page down with it.
+export function changedNothing(actionResult: unknown): boolean {
+  return (
+    typeof actionResult === "object" &&
+    actionResult !== null &&
+    "ok" in actionResult &&
+    actionResult.ok === false
+  );
+}
+
+// For a page whose action has row changes: it loads again after a change,
+// as React Router does, unless the change didn't get through.
+export function revalidateUnlessUnchanged({
+  actionResult,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs): boolean {
+  return !changedNothing(actionResult) && defaultShouldRevalidate;
 }

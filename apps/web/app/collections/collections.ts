@@ -8,7 +8,13 @@ export interface CollectionListItem {
   name: string;
   // How many sheets it holds.
   count: number;
+  // The titles of its first sheets, A to Z, at most CARD_TITLES. The
+  // Collections screen shows them on the collection's card.
+  titles: string[];
 }
+
+// How many titles a collection's card shows.
+export const CARD_TITLES = 3;
 
 // A collection as the sheet's "Choose collections…" lists it.
 export interface SheetCollection {

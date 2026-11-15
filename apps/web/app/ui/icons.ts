@@ -31,6 +31,7 @@ import refresh from "./icons/refresh.svg?raw";
 import remove from "./icons/remove.svg?raw";
 import search from "./icons/search.svg?raw";
 import stacks from "./icons/stacks.svg?raw";
+import swapVert from "./icons/swap_vert.svg?raw";
 import textDecrease from "./icons/text_decrease.svg?raw";
 import textIncrease from "./icons/text_increase.svg?raw";
 
@@ -75,6 +76,7 @@ const sources = {
   remove,
   search,
   stacks,
+  swapVert,
   textDecrease,
   textIncrease,
 };

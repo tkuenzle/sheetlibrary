@@ -138,23 +138,26 @@ export async function saveSheet(
   return stored ? { kind: "stale" } : { kind: "not-found" };
 }
 
-// A sheet as the library lists it, without its content.
+// A sheet as the library lists it, without its content. Times are
+// milliseconds since 1970.
 export interface SheetListItem {
   id: string;
   title: string;
   artist?: string;
-  // Milliseconds since 1970.
   updatedAt: number;
+  // When the sheet came into the list: for the library, when it was made.
+  addedAt: number;
 }
 
-// The person's sheets, the most recently edited first.
+// The person's sheets, the most recently edited first. The page sorts them
+// in the order the person chose (sheets/order.ts).
 export async function listSheets(
   db: D1Database,
   userId: string,
 ): Promise<SheetListItem[]> {
   const { results } = await db
     .prepare(
-      'SELECT "id", "title", "artist", "updatedAt" FROM "sheet" WHERE "userId" = ? ORDER BY "updatedAt" DESC',
+      'SELECT "id", "title", "artist", "updatedAt", "createdAt" FROM "sheet" WHERE "userId" = ? ORDER BY "updatedAt" DESC',
     )
     .bind(userId)
     .all<{
@@ -162,12 +165,14 @@ export async function listSheets(
       title: string;
       artist: string | null;
       updatedAt: number;
+      createdAt: number;
     }>();
   return results.map((row) => ({
     id: row.id,
     title: row.title,
     ...(row.artist === null ? {} : { artist: row.artist }),
     updatedAt: row.updatedAt,
+    addedAt: row.createdAt,
   }));
 }
 
@@ -212,7 +217,7 @@ export async function searchSheets(
     `highlight("sheet_fts", ${column}, ${MARKS})`;
   const { results } = await db
     .prepare(
-      `SELECT s."id", s."title", s."artist", s."updatedAt", ${mark("0")} AS "markedTitle", ${mark("1")} AS "markedArtist", ${mark("2")} AS "markedLyrics" FROM "sheet_fts" JOIN "sheet" s ON s."rowid" = "sheet_fts"."rowid" WHERE "sheet_fts" MATCH ? AND s."userId" = ? ORDER BY bm25("sheet_fts", ${WEIGHTS}), s."updatedAt" DESC`,
+      `SELECT s."id", s."title", s."artist", s."updatedAt", s."createdAt", ${mark("0")} AS "markedTitle", ${mark("1")} AS "markedArtist", ${mark("2")} AS "markedLyrics" FROM "sheet_fts" JOIN "sheet" s ON s."rowid" = "sheet_fts"."rowid" WHERE "sheet_fts" MATCH ? AND s."userId" = ? ORDER BY bm25("sheet_fts", ${WEIGHTS}), s."updatedAt" DESC`,
     )
     .bind(query, userId)
     .all<{
@@ -220,6 +225,7 @@ export async function searchSheets(
       title: string;
       artist: string | null;
       updatedAt: number;
+      createdAt: number;
       markedTitle: string;
       markedArtist: string | null;
       markedLyrics: string | null;
@@ -234,6 +240,7 @@ export async function searchSheets(
       title: row.title,
       ...(row.artist === null ? {} : { artist: row.artist }),
       updatedAt: row.updatedAt,
+      addedAt: row.createdAt,
       titleParts: markedParts(row.markedTitle),
       ...(row.markedArtist === null
         ? {}

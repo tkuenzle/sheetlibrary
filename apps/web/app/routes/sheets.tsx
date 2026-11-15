@@ -1,22 +1,32 @@
 import "../ui/group-list.css";
 import "./sheets.css";
 
-import { Fragment, useEffect, useRef, useState } from "react";
-import { Form, Link, redirect, useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import {
+  Form,
+  Link,
+  redirect,
+  type ShouldRevalidateFunctionArgs,
+  useNavigate,
+} from "react-router";
 
 import { closeOffer, offerClosed } from "../auth/passkey-offer";
 import { hasPasskey } from "../auth/passkeys.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { ImportDialog } from "../editor/import-button";
 import { PhotoImportDialog } from "../photos/photo-import-dialog";
-import { editDate, lastEdit } from "../sheets/last-edit";
+import { readSheetOrder, type SheetOrder } from "../sheets/order";
+import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
+import { SheetList } from "../sheets/sheet-list";
 import { UNTITLED } from "../sheets/details";
 import { importedSheetPath, importSheet } from "../sheets/import";
-import { isSearch, type TextPart } from "../sheets/search";
+import { isSearch } from "../sheets/search";
 import { SearchField, useSearchPending } from "../sheets/search-field";
+import { revalidateUnlessUnchanged } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
 import {
   createSheet,
+  deleteSheet,
   hasSheets,
   listSheets,
   searchSheets,
@@ -29,9 +39,10 @@ import { Menu } from "../ui/menu";
 import { errorKind, isOnline } from "../ui/page-error";
 import type { Route } from "./+types/sheets";
 
-// The Sheets screen of the library: the signed-in person's sheets, the
-// search field, "Import" and "New sheet". It sits in the shell
-// (routes/shell.tsx). See openspec/specs/library-page.
+// The Sheets screen of the library: the signed-in person's sheets in the
+// shared list, the search field, "Import" and "New sheet". It sits in the
+// shell (routes/shell.tsx). See openspec/specs/library-page and
+// openspec/specs/sheet-list.
 
 export function meta() {
   return [
@@ -43,6 +54,7 @@ export function meta() {
 // The email link lands on `?passkey`. Only then is a passkey offered, if
 // the account has none and this device didn't close the offer. With `q`
 // long enough to search, the sheets are the results, the best match first.
+// Otherwise the page sorts them in the order this device keeps.
 export async function loader({ context, request, url }: Route.LoaderArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
@@ -53,9 +65,10 @@ export async function loader({ context, request, url }: Route.LoaderArgs) {
     !offerClosed(request.headers.get("Cookie")) &&
     !(await hasPasskey(env.DB, userId));
   const q = url.searchParams.get("q") ?? "";
+  const order = readSheetOrder(request.headers.get("Cookie"));
   if (!isSearch(q)) {
     const sheets = await listSheets(env.DB, userId);
-    return { sheets, hasSheets: sheets.length > 0, q, offerPasskey };
+    return { sheets, hasSheets: sheets.length > 0, q, offerPasskey, order };
   }
   const sheets = await searchSheets(env.DB, userId, q);
   return {
@@ -63,20 +76,39 @@ export async function loader({ context, request, url }: Route.LoaderArgs) {
     hasSheets: sheets.length > 0 || (await hasSheets(env.DB, userId)),
     q,
     offerPasskey,
+    order,
   };
 }
 
-// "New sheet". A form on another site can't get here signed in, since the
-// session cookie is SameSite=Lax, so it is sent to sign-in like a visitor.
-export async function action({ context }: Route.ActionArgs) {
+// "New sheet", or deleting a sheet from its row (`intent` "delete"). A form
+// on another site can't get here signed in, since the session cookie is
+// SameSite=Lax, so it is sent to sign-in like a visitor.
+export async function action({ context, request }: Route.ActionArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
+  const form = await request.formData();
+  if (form.get("intent") === "delete") {
+    const sheetId = form.get("sheetId");
+    return rowAnswer(
+      "delete",
+      typeof sheetId === "string" &&
+        (await deleteSheet(env.DB, session.user.id, sheetId)),
+    );
+  }
   const sheet = await createSheet(env.DB, session.user.id, {
     title: UNTITLED,
     content: { format: "chordsheet", version: 1, sections: [] },
   });
   return redirect(`/sheets/${sheet.id}/edit?new`);
+}
+
+// A delete from a row that doesn't get through keeps the list on screen.
+export async function clientAction({
+  request,
+  serverAction,
+}: Route.ClientActionArgs) {
+  return keepListOnFailure(request, serverAction);
 }
 
 // In the browser, a search that can't reach the server doesn't fail the
@@ -90,6 +122,11 @@ export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
     if (errorKind(error, isOnline()) !== "unreachable") throw error;
     return { failed: true as const, error };
   }
+}
+
+// A row's change that didn't get through loads nothing again.
+export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
+  return revalidateUnlessUnchanged(args);
 }
 
 // A page that can't be loaded shows a note in the shell, which stays. See
@@ -115,6 +152,7 @@ export default function Library({ loaderData }: Route.ComponentProps) {
       hasSheets={shown.hasSheets}
       q={shown.q}
       offerPasskey={shown.offerPasskey}
+      order={shown.order}
       searchFailed={"failed" in loaderData}
     />
   );
@@ -257,6 +295,7 @@ export function LibraryView({
   hasSheets = sheets.length > 0,
   q = "",
   offerPasskey = false,
+  order = "title",
   searchFailed = false,
 }: {
   // All sheets, or the results of the search in `q`.
@@ -264,11 +303,14 @@ export function LibraryView({
   hasSheets?: boolean;
   q?: string;
   offerPasskey?: boolean;
+  // The order this device keeps.
+  order?: SheetOrder;
   // Whether the latest search couldn't reach the server, so the sheets are
   // the last results.
   searchFailed?: boolean;
 }) {
   const [offering, setOffering] = useState(offerPasskey);
+  const heading = useRef<HTMLHeadingElement>(null);
   const offer = offering && (
     <PasskeyOffer
       onClose={() => {
@@ -278,17 +320,8 @@ export function LibraryView({
     />
   );
 
-  // The viewer's time zone is only known in the browser. Until then, the
-  // last edit is hidden, with the date in UTC holding its place.
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
   const searching = isSearch(q);
   const pending = useSearchPending();
-  const now = Date.now();
-  const edited = (at: number) =>
-    hydrated ? lastEdit(at, now) : editDate(at, now, "UTC");
 
   if (!hasSheets) {
     return (
@@ -306,7 +339,9 @@ export function LibraryView({
   return (
     <div className="library library-with-sheets">
       <div className="library-heading">
-        <h1>Sheets</h1>
+        <h1 ref={heading} tabIndex={-1}>
+          Sheets
+        </h1>
         <Actions className="library-actions library-actions-beside" />
       </div>
       {offer}
@@ -330,53 +365,13 @@ export function LibraryView({
           <h2 id="library-no-results">{`No sheets match “${q.trim()}”`}</h2>
         </section>
       ) : (
-        <div className="library-list" aria-busy={pending || undefined}>
-          <div className="library-columns library-labels" aria-hidden="true">
-            <span>Title</span>
-            <span>Artist</span>
-            <span>Edited</span>
-          </div>
-          <ul className="group-list">
-            {sheets.map((sheet) => (
-              <li key={sheet.id}>
-                <Link className="library-columns" to={`/sheets/${sheet.id}`}>
-                  <span className="library-title">
-                    {"titleParts" in sheet ? (
-                      <Marked parts={sheet.titleParts} />
-                    ) : (
-                      sheet.title
-                    )}
-                  </span>
-                  <span className="library-details">
-                    <span>
-                      {"artistParts" in sheet && sheet.artistParts ? (
-                        <Marked parts={sheet.artistParts} />
-                      ) : (
-                        sheet.artist
-                      )}
-                    </span>
-                    {sheet.artist && (
-                      <span className="library-separator" aria-hidden="true">
-                        {" · "}
-                      </span>
-                    )}
-                    <span
-                      className="library-edited"
-                      data-pending={hydrated ? undefined : ""}
-                    >
-                      {edited(sheet.updatedAt)}
-                    </span>
-                  </span>
-                  {"line" in sheet && sheet.line && (
-                    <span className="library-line">
-                      <Marked parts={sheet.line} />
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <SheetList
+          sheets={sheets}
+          order={order}
+          sorted={!searching}
+          busy={pending}
+          onGone={() => heading.current?.focus()}
+        />
       )}
       <Actions
         size="large"
@@ -384,13 +379,4 @@ export function LibraryView({
       />
     </div>
   );
-}
-
-// Text with its matches marked.
-function Marked({ parts }: { parts: TextPart[] }) {
-  return parts.map((part, i) => (
-    <Fragment key={i}>
-      {part.hit ? <mark>{part.text}</mark> : part.text}
-    </Fragment>
-  ));
 }

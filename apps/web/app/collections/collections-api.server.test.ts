@@ -138,7 +138,7 @@ describe("collections API", () => {
     );
     expect(response.status).toBe(201);
     const { id } = await response.json<{ id: string }>();
-    expect((await readCollection(db, "ana", id))?.sheets).toEqual([
+    expect((await readCollection(db, "ana", id))?.sheets).toMatchObject([
       { id: sheetId, title: "Stille Nacht" },
     ]);
     expect(

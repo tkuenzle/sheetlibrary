@@ -24,7 +24,8 @@ export interface MenuItem {
 export type MenuPlacement = "below-end" | "below-start" | "above-end";
 
 // A button that opens a short list of actions. It is an icon button named by
-// `label`, or, with `text`, a tonal button that shows `label` and a chevron.
+// `label`, or, with `text`, a button that shows `label` and a chevron: tonal,
+// or plain with `variant="text"`.
 // It opens with the first item focused; the arrow keys, Home and End move
 // between the items. Escape or a click outside closes it, with the focus back
 // on the button. A picked item closes it and leaves the focus to the item's
@@ -35,6 +36,7 @@ export function Menu({
   icon = "moreVert",
   items,
   text = false,
+  variant = "tonal",
   size,
   placement = "below-end",
   fixed = false,
@@ -43,6 +45,7 @@ export function Menu({
   icon?: IconName;
   items: MenuItem[];
   text?: boolean;
+  variant?: "tonal" | "text";
   // Large for the main actions docked at the bottom of a phone.
   size?: "large";
   placement?: MenuPlacement;
@@ -99,7 +102,7 @@ export function Menu({
     <div className={`menu menu-${placement}`} ref={wrapper}>
       {text ? (
         <Button
-          variant="tonal"
+          variant={variant}
           size={size}
           icon={icon}
           className="menu-toggle-text"

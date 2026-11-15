@@ -1,6 +1,7 @@
 import { newSheetId } from "chordsheet";
 
 import {
+  CARD_TITLES,
   type CollectionListItem,
   collectionNameKey,
   keptCollectionName,
@@ -20,10 +21,15 @@ export interface Collection {
   sheets: CollectionSheet[];
 }
 
+// A sheet in a collection, as the list shows it. Times are milliseconds
+// since 1970.
 export interface CollectionSheet {
   id: string;
   title: string;
   artist?: string;
+  updatedAt: number;
+  // When the sheet was added to this collection.
+  addedAt: number;
 }
 
 // The answer to making or renaming a collection.
@@ -45,18 +51,50 @@ function isNameTaken(error: unknown): boolean {
 const OWNED_COLLECTION =
   '"collectionId" IN (SELECT "id" FROM "collection" WHERE "id" = ? AND "userId" = ?)';
 
-// The person's collections with how many sheets each holds, A to Z.
+// The person's collections, A to Z, with how many sheets each holds and the
+// titles of its first sheets. The titles are sorted here, with the same
+// collator as everywhere else, rather than in SQL.
 export async function listCollections(
   db: D1Database,
   userId: string,
 ): Promise<CollectionListItem[]> {
-  const { results } = await db
-    .prepare(
-      'SELECT c."id", c."name", count(cs."sheetId") AS "count" FROM "collection" c LEFT JOIN "collection_sheet" cs ON cs."collectionId" = c."id" WHERE c."userId" = ? GROUP BY c."id"',
-    )
-    .bind(userId)
-    .all<CollectionListItem>();
-  return sortedBy(results, (row) => row.name);
+  const [collections, sheets] = await db.batch<Record<string, unknown>>([
+    db
+      .prepare(
+        'SELECT c."id", c."name", count(cs."sheetId") AS "count" FROM "collection" c LEFT JOIN "collection_sheet" cs ON cs."collectionId" = c."id" WHERE c."userId" = ? GROUP BY c."id"',
+      )
+      .bind(userId),
+    db
+      .prepare(
+        'SELECT cs."collectionId", s."title" FROM "collection_sheet" cs JOIN "collection" c ON c."id" = cs."collectionId" JOIN "sheet" s ON s."id" = cs."sheetId" WHERE c."userId" = ?',
+      )
+      .bind(userId),
+  ]);
+  const titles = new Map<string, string[]>();
+  for (const row of (sheets?.results ?? []) as {
+    collectionId: string;
+    title: string;
+  }[]) {
+    titles.set(row.collectionId, [
+      ...(titles.get(row.collectionId) ?? []),
+      row.title,
+    ]);
+  }
+  const rows = (collections?.results ?? []) as {
+    id: string;
+    name: string;
+    count: number;
+  }[];
+  return sortedBy(
+    rows.map((row) => ({
+      ...row,
+      titles: sortedBy(titles.get(row.id) ?? [], (title) => title).slice(
+        0,
+        CARD_TITLES,
+      ),
+    })),
+    (row) => row.name,
+  );
 }
 
 // The collection with its sheets, or null if the person has no such
@@ -74,7 +112,7 @@ export async function readCollection(
       .bind(id, userId),
     db
       .prepare(
-        `SELECT s."id", s."title", s."artist" FROM "collection_sheet" cs JOIN "sheet" s ON s."id" = cs."sheetId" WHERE ${OWNED_COLLECTION}`,
+        `SELECT s."id", s."title", s."artist", s."updatedAt", cs."addedAt" FROM "collection_sheet" cs JOIN "sheet" s ON s."id" = cs."sheetId" WHERE ${OWNED_COLLECTION}`,
       )
       .bind(id, userId),
   ]);
@@ -85,6 +123,8 @@ export async function readCollection(
     id: string;
     title: string;
     artist: string | null;
+    updatedAt: number;
+    addedAt: number;
   }[];
   return {
     id: row.id,
@@ -94,6 +134,8 @@ export async function readCollection(
         id: sheet.id,
         title: sheet.title,
         ...(sheet.artist === null ? {} : { artist: sheet.artist }),
+        updatedAt: sheet.updatedAt,
+        addedAt: sheet.addedAt,
       })),
       (sheet) => sheet.title,
     ),

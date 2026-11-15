@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
@@ -50,7 +50,7 @@ describe("collection storage", () => {
     const kinder = await collection("Kinderlieder");
     expect(await addSheets(db, "ana", christmas, [stille])).toBe(true);
     expect(await addSheets(db, "ana", kinder, [stille])).toBe(true);
-    expect((await readCollection(db, "ana", christmas))?.sheets).toEqual([
+    expect((await readCollection(db, "ana", christmas))?.sheets).toMatchObject([
       { id: stille, title: "Stille Nacht" },
     ]);
     expect((await readCollection(db, "ana", kinder))?.sheets).toHaveLength(1);
@@ -62,7 +62,7 @@ describe("collection storage", () => {
     await addSheets(db, "ana", christmas, [stille, stille]);
     expect(await addSheets(db, "ana", christmas, [stille])).toBe(true);
     expect(await listCollections(db, "ana")).toEqual([
-      { id: christmas, name: "Christmas", count: 1 },
+      { id: christmas, name: "Christmas", count: 1, titles: ["Stille Nacht"] },
     ]);
   });
 
@@ -188,7 +188,30 @@ describe("collection storage", () => {
     await addSheets(db, "ana", christmas, [stille, drue]);
     await deleteSheet(db, "ana", stille);
     expect(await listCollections(db, "ana")).toEqual([
-      { id: christmas, name: "Christmas", count: 1 },
+      { id: christmas, name: "Christmas", count: 1, titles: ["Drüü Könige"] },
+    ]);
+  });
+
+  // Scenario "First titles on a card".
+  it("lists the first three titles of each collection, A to Z", async () => {
+    const ids = [
+      await sheet("Stille Nacht"),
+      await sheet("O Tannenbaum"),
+      await sheet("Drüü Könige"),
+      await sheet("Die Könige"),
+    ];
+    const christmas = await collection("Christmas");
+    const empty = await collection("Campfire");
+    await addSheets(db, "ana", christmas, ids);
+    await collection("Mine", "bo");
+    expect(await listCollections(db, "ana")).toEqual([
+      { id: empty, name: "Campfire", count: 0, titles: [] },
+      {
+        id: christmas,
+        name: "Christmas",
+        count: 4,
+        titles: ["Die Könige", "Drüü Könige", "O Tannenbaum"],
+      },
     ]);
   });
 
@@ -229,7 +252,20 @@ describe("collection storage", () => {
     if (result.kind !== "saved") throw new Error(result.kind);
     expect(
       (await readCollection(db, "ana", result.collection.id))?.sheets,
-    ).toEqual([{ id: stille, title: "Stille Nacht" }]);
+    ).toMatchObject([{ id: stille, title: "Stille Nacht" }]);
+  });
+
+  it("reads when each sheet was edited and added to the collection", async () => {
+    const now = vi.spyOn(Date, "now");
+    now.mockReturnValue(1000);
+    const stille = await sheet("Stille Nacht");
+    const christmas = await collection("Christmas");
+    now.mockReturnValue(2000);
+    await addSheets(db, "ana", christmas, [stille]);
+    now.mockRestore();
+    expect((await readCollection(db, "ana", christmas))?.sheets).toEqual([
+      { id: stille, title: "Stille Nacht", updatedAt: 1000, addedAt: 2000 },
+    ]);
   });
 
   it("lists the collections with whether they hold the sheet", async () => {

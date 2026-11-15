@@ -96,8 +96,8 @@ describe("shell shouldRevalidate", () => {
 });
 
 const collections: CollectionListItem[] = [
-  { id: "campfire0000", name: "Campfire", count: 21 },
-  { id: "christmas000", name: "Christmas", count: 1 },
+  { id: "campfire0000", name: "Campfire", count: 21, titles: [] },
+  { id: "christmas000", name: "Christmas", count: 1, titles: [] },
 ];
 
 describe("navItems", () => {

@@ -13,9 +13,16 @@ import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
 import { createSheet } from "../sheets/sheets.server";
+import type { SheetOrder } from "../sheets/order";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/collection";
-import { action, CollectionView, loader, meta } from "./collection";
+import {
+  action,
+  clientAction,
+  CollectionView,
+  loader,
+  meta,
+} from "./collection";
 
 describe("collection loader and action", () => {
   let test: Awaited<ReturnType<typeof testEnv>>;
@@ -51,10 +58,13 @@ describe("collection loader and action", () => {
     return context;
   }
 
-  const load = (userId: string | null, id = christmas) =>
+  const load = (userId: string | null, id = christmas, cookie?: string) =>
     loader({
       context: context(userId),
       params: { id },
+      request: new Request(`https://sheetlibrary.com/collections/${id}`, {
+        headers: cookie ? { Cookie: cookie } : {},
+      }),
     } as unknown as Route.LoaderArgs);
 
   function post(userId: string | null, fields: [string, string][]) {
@@ -74,7 +84,7 @@ describe("collection loader and action", () => {
   // Scenario "A to Z".
   it("gives the collection with its sheets, A to Z", async () => {
     await addSheets(db, "ana", christmas, [stille, drue]);
-    expect(await load("ana")).toEqual({
+    expect(await load("ana")).toMatchObject({
       collection: {
         id: christmas,
         name: "Christmas",
@@ -83,6 +93,14 @@ describe("collection loader and action", () => {
           { id: stille, title: "Stille Nacht" },
         ],
       },
+      order: "title",
+    });
+  });
+
+  // Scenario "From Sheets to a collection".
+  it("gives the order this device keeps", async () => {
+    expect(await load("ana", christmas, "sheet-order=added")).toMatchObject({
+      order: "added",
     });
   });
 
@@ -116,10 +134,30 @@ describe("collection loader and action", () => {
         ["intent", "remove"],
         ["sheetId", stille],
       ]),
-    ).toEqual({ ok: true });
-    expect((await readCollection(db, "ana", christmas))?.sheets).toEqual([
+    ).toEqual({ ok: true, intent: "remove" });
+    expect((await readCollection(db, "ana", christmas))?.sheets).toMatchObject([
       { id: drue, title: "Drüü Könige", artist: "Trad." },
     ]);
+  });
+
+  // Scenario "Deleting a sheet" from a row in a collection: the sheet goes
+  // from the library and from the collection.
+  it("deletes a sheet from its row", async () => {
+    await addSheets(db, "ana", christmas, [stille, drue]);
+    expect(
+      await post("ana", [
+        ["intent", "delete"],
+        ["sheetId", stille],
+      ]),
+    ).toEqual({ ok: true, intent: "delete" });
+    expect((await readCollection(db, "ana", christmas))?.sheets).toMatchObject([
+      { id: drue },
+    ]);
+    const theirs = (await post("bo", [
+      ["intent", "delete"],
+      ["sheetId", drue],
+    ])) as unknown as { init: { status: number } };
+    expect(theirs.init.status).toBe(404);
   });
 
   it("refuses someone else's collection and an unknown intent", async () => {
@@ -140,18 +178,30 @@ const christmas: Collection = {
   id: "abcdefghijkl",
   name: "Christmas",
   sheets: [
-    { id: "drue00000000", title: "Drüü Könige", artist: "Trad." },
-    { id: "stille000000", title: "Stille Nacht" },
+    {
+      id: "drue00000000",
+      title: "Drüü Könige",
+      artist: "Trad.",
+      updatedAt: Date.UTC(2025, 8, 3),
+      addedAt: Date.UTC(2025, 8, 1),
+    },
+    {
+      id: "stille000000",
+      title: "Stille Nacht",
+      updatedAt: Date.UTC(2025, 8, 2),
+      addedAt: Date.UTC(2025, 8, 4),
+    },
   ],
 };
 
-function render(collection: Collection) {
+function render(collection: Collection, order?: SheetOrder) {
   const Stub = createRoutesStub([
     {
       path: "/collections/:id",
       Component: () => (
         <CollectionView
           collection={collection}
+          order={order}
           onRenamed={() => Promise.resolve()}
           onDeleted={() => undefined}
         />
@@ -168,7 +218,7 @@ describe("collection page", () => {
     const html = render(christmas);
     expect(html).toMatch(/<h1[^>]*>Christmas<\/h1><p>2 sheets<\/p>/);
     expect(html).toMatch(
-      /<a class="collection-columns" [^>]*href="\/sheets\/drue00000000"[^>]*>.*Drüü Könige.*Trad\./,
+      /<a class="library-columns" [^>]*href="\/sheets\/drue00000000"[^>]*>.*Drüü Könige.*Trad\..*3 Sep 2025/,
     );
     expect(html.indexOf("Drüü Könige")).toBeLessThan(
       html.indexOf("Stille Nacht"),
@@ -176,13 +226,21 @@ describe("collection page", () => {
     expect(html).toContain("Add sheets");
   });
 
-  // Requirement "Removing a sheet".
-  it("has a remove button on each row, named for the sheet and the collection", () => {
+  // Requirement "Removing a sheet": in the row's menu, not a button.
+  it("has the shared row menu on each row, without a remove button", () => {
     const html = render(christmas);
-    expect(html).toContain('aria-label="Remove Stille Nacht from Christmas"');
-    expect(html).toMatch(
-      /<form [^>]*action="\/collections\/abcdefghijkl" method="post"><input type="hidden" name="intent" value="remove"\/><input type="hidden" name="sheetId" value="stille000000"\/>/,
+    expect(html).toContain('aria-label="More for Stille Nacht"');
+    expect(html).not.toContain("Remove Stille Nacht from Christmas");
+    expect(html).not.toContain('name="intent"');
+  });
+
+  // Scenario "From Sheets to a collection".
+  it("lists the sheets in the order this device keeps", () => {
+    const html = render(christmas, "added");
+    expect(html.indexOf("Stille Nacht")).toBeLessThan(
+      html.indexOf("Drüü Könige"),
     );
+    expect(html).toMatch(/Last added<svg/);
   });
 
   // Requirement "The collection's menu".
@@ -240,5 +298,25 @@ describe("Add sheets", () => {
     expect(html).toMatch(
       /type="button"[^>]*>Cancel<\/button><button type="submit"[^>]*disabled=""[^>]*>Add sheets<\/button>/,
     );
+  });
+});
+
+// Scenario "Deleting offline": the list stays, and the row comes back.
+describe("a row's change that doesn't get through", () => {
+  it("answers { ok: false } rather than failing the page", async () => {
+    const body = new FormData();
+    body.append("intent", "remove");
+    body.append("sheetId", "stille000000");
+    const answer = await clientAction({
+      request: new Request(
+        "https://sheetlibrary.com/collections/abcdefghijkl",
+        {
+          method: "POST",
+          body,
+        },
+      ),
+      serverAction: () => Promise.reject(new TypeError("Failed to fetch")),
+    } as unknown as Parameters<typeof clientAction>[0]);
+    expect(answer).toEqual({ ok: false, intent: "remove" });
   });
 });
