@@ -21,7 +21,7 @@
   justify-content: flex-end;
 }
 
-/* Title, artist and last edit in columns. The labels leave room for the
+/* Title, artist and key in columns. The labels leave room for the
    row's menu button. */
 .library-columns {
   display: grid;
@@ -109,7 +109,7 @@
   padding-block: 10px;
 }
 
-/* Wide, the artist and the last edit are columns of their own. */
+/* Wide, the artist and the key are columns of their own. */
 .library-details {
   display: contents;
 }
@@ -118,13 +118,14 @@
   display: none;
 }
 
-/* Until the viewer's time zone is known (see SheetList). */
-.library-edited[data-pending] {
-  visibility: hidden;
+.library-key {
+  color: var(--on-accent-soft);
+  font-weight: 600;
+  font-size: 14px;
 }
 
 /* Phone-wide (see app/breakpoints.ts): the title, with the artist and the
-   last edit below it, and no labels. */
+   key below it, and no labels. */
 @media (max-width: 640px) {
   .library-labels {
     display: none;
@@ -151,5 +152,10 @@
 
   .library-separator {
     display: inline;
+  }
+
+  .library-key {
+    color: inherit;
+    font: inherit;
   }
 }

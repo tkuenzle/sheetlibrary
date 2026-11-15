@@ -182,6 +182,7 @@ const christmas: Collection = {
       id: "drue00000000",
       title: "Drüü Könige",
       artist: "Trad.",
+      key: "A",
       updatedAt: Date.UTC(2025, 8, 3),
       addedAt: Date.UTC(2025, 8, 1),
     },
@@ -218,7 +219,7 @@ describe("collection page", () => {
     const html = render(christmas);
     expect(html).toMatch(/<h1[^>]*>Christmas<\/h1><p>2 sheets<\/p>/);
     expect(html).toMatch(
-      /<a class="library-columns" [^>]*href="\/sheets\/drue00000000"[^>]*>.*Drüü Könige.*Trad\..*3 Sep 2025/,
+      /<a class="library-columns" [^>]*href="\/sheets\/drue00000000"[^>]*>.*Drüü Könige.*Trad\..*<span aria-hidden="true">A<\/span>/,
     );
     expect(html.indexOf("Drüü Könige")).toBeLessThan(
       html.indexOf("Stille Nacht"),

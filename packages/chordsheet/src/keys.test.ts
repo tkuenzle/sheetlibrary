@@ -11,10 +11,12 @@ import {
   readKey,
   semitonesBetween,
   shapesKey,
+  songKey,
   stepKey,
   transposeChord,
   transposeSheet,
   versionKey,
+  writeKey,
 } from "./keys";
 import { line, read, section, sheet } from "./test-helpers";
 
@@ -320,6 +322,43 @@ describe("Guessing the key", () => {
 
   it("has no key without chords", () => {
     expect(guessKey([])).toBeNull();
+  });
+});
+
+describe("A sheet's key", () => {
+  // A sheet with one line, and a chord on each letter.
+  const withChords = (...texts: string[]) =>
+    sheet(
+      section(
+        line(
+          "x".repeat(texts.length),
+          ...texts.map((text, i): [number, string] => [i, text]),
+        ),
+      ),
+    );
+
+  it("is the key set in it", () => {
+    expect(songKey({ ...withChords("G", "C", "D"), key: minor("E") })).toEqual(
+      minor("E"),
+    );
+  });
+
+  it("is guessed from the chords without a set key", () => {
+    expect(songKey(withChords("G", "C", "D", "G"))).toEqual(major("G"));
+  });
+
+  it("is minor when the chords are", () => {
+    expect(songKey(withChords(...greensleeves))).toEqual(minor("E"));
+  });
+
+  it("is null without chords", () => {
+    expect(songKey(sheet(section(line("Amazing grace"))))).toBeNull();
+  });
+
+  it("is written as a chord is", () => {
+    expect(writeKey(major("G"))).toBe("G");
+    expect(writeKey(minor("F#"))).toBe("F#m");
+    expect(writeKey(minor("Bb"))).toBe("Bbm");
   });
 });
 

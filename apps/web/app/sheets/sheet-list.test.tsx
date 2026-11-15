@@ -16,6 +16,7 @@ const sheets: ListSheet[] = [
     id: "stille000000",
     title: "Stille Nacht",
     artist: "Franz Xaver Gruber",
+    key: "F#m",
     updatedAt: Date.UTC(2025, 8, 3, 12),
     addedAt: today,
   },
@@ -54,13 +55,22 @@ function render(
 
 describe("the sheet list", () => {
   // Requirement "A row in the list".
-  it("shows each sheet's title, artist and last edit, opening it to play", () => {
+  it("shows each sheet's title, artist and key, opening it to play", () => {
     const html = render();
     expect(html).toMatch(
-      /<a class="library-columns" [^>]*href="\/sheets\/stille000000"[^>]*>.*Stille Nacht.*Franz Xaver Gruber.*<span class="library-edited" data-pending="">3 Sep 2025<\/span>/,
+      /<a class="library-columns" [^>]*href="\/sheets\/stille000000"[^>]*>.*Stille Nacht.*Franz Xaver Gruber.*<span class="library-key"><span aria-hidden="true">F#m<\/span><span class="visually-hidden">F sharp minor<\/span><\/span>/,
     );
-    expect(html).toContain('href="/sheets/grace0000000"');
-    expect(html).toMatch(/<span>Title<\/span><span>Artist<\/span><span>Edited/);
+    expect(html).toMatch(/<span>Title<\/span><span>Artist<\/span><span>Key/);
+    expect(html).not.toContain("3 Sep 2025");
+  });
+
+  // Scenario "No chords".
+  it("shows no key, and no separator, for a sheet without one", () => {
+    const html = render();
+    expect(html).toMatch(
+      /href="\/sheets\/grace0000000"[^>]*>.*Amazing Grace.*<span class="library-key"><\/span>/,
+    );
+    expect(html.match(/library-separator/g)).toHaveLength(1);
   });
 
   // Scenario "A to Z by default".

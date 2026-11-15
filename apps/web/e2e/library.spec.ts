@@ -14,6 +14,11 @@ function rows(page: Page) {
   return page.getByRole("main").getByRole("listitem");
 }
 
+// "Recent" on Sheets.
+function recent(page: Page) {
+  return page.getByRole("region", { name: "Recent" });
+}
+
 // The shell's navigation: the rail, or the bar on a phone.
 function mainNav(page: Page) {
   return page.getByRole("navigation", { name: "Main" });
@@ -124,7 +129,44 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await expect(page).toHaveURL("/sheets");
   await expect(rows(page)).toHaveCount(1);
   await expect(rows(page)).toContainText("Untitled");
-  await expect(rows(page)).toContainText("Today");
+
+  // "Recent" counts this account's openings only, so it is checked here.
+  // Scenario "Editing only": the new sheet opened in the editor.
+  await expect(recent(page)).toHaveCount(0);
+
+  // Scenario "Opened last".
+  const created = await page.request.post("/api/sheets", {
+    data: {
+      title: "Stille Nacht",
+      content: { format: "chordsheet", version: 1, sections: [] },
+    },
+  });
+  expect(created.status()).toBe(201);
+  await page.reload();
+  for (const title of ["Untitled", "Stille Nacht"]) {
+    await page.getByRole("link", { name: title }).first().click();
+    await expect(heading(page)).toHaveText(title);
+    await page.goBack();
+    await expect(heading(page)).toHaveText("Sheets");
+  }
+  const cards = recent(page).getByRole("link");
+  await expect(cards).toHaveText([/^Stille Nacht/, /^Untitled/]);
+
+  // Scenario "Searching".
+  await page.getByRole("searchbox").fill("Stille");
+  await expect(page).toHaveURL(/q=Stille/);
+  await expect(recent(page)).toHaveCount(0);
+  await page.getByRole("button", { name: "Clear search" }).click();
+  await expect(cards).toHaveCount(2);
+
+  // Scenario "Deleting a recent sheet".
+  await page.getByRole("button", { name: "More for Stille Nacht" }).click();
+  await page.getByRole("menuitem", { name: "Delete" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Delete “Stille Nacht”?" })
+    .getByRole("button", { name: "Delete" })
+    .click();
+  await expect(cards).toHaveText([/^Untitled/]);
 });
 
 test.describe("signed in", () => {
@@ -411,6 +453,55 @@ test.describe("the sheet list", () => {
     await expect(page.getByRole("button", { name: "Last edited" })).toHaveCount(
       0,
     );
+  });
+
+  // Requirement "A row in the list": the key, set or guessed, and none
+  // without chords.
+  test("shows each sheet's key", async ({ page }) => {
+    const mark = newMark();
+    const line = (roots: string[]) => ({
+      text: "x".repeat(roots.length),
+      chords: roots.map((root, at) => ({ at, root })),
+    });
+    const sheets = [
+      {
+        title: `Amazing Grace ${mark}`,
+        content: {
+          format: "chordsheet",
+          version: 1,
+          sections: [{ lines: [line(["G", "C", "D", "G"])] }],
+        },
+      },
+      {
+        title: `Greensleeves ${mark}`,
+        content: {
+          format: "chordsheet",
+          version: 1,
+          key: { tonic: "F#", minor: true },
+          sections: [{ lines: [line(["G", "C"])] }],
+        },
+      },
+      {
+        title: `Untitled ${mark}`,
+        content: { format: "chordsheet", version: 1, sections: [] },
+      },
+    ];
+    for (const data of sheets) {
+      expect((await page.request.post("/api/sheets", { data })).status()).toBe(
+        201,
+      );
+    }
+    await page.goto("/sheets");
+    const row = (title: string) =>
+      page.getByRole("main").getByRole("listitem").filter({ hasText: title });
+    const shownKey = (title: string) =>
+      row(title).locator('.library-key > [aria-hidden="true"]');
+    await expect(shownKey(`Amazing Grace ${mark}`)).toHaveText("G");
+    await expect(shownKey(`Greensleeves ${mark}`)).toHaveText("F#m");
+    await expect(
+      row(`Greensleeves ${mark}`).getByRole("link"),
+    ).toHaveAccessibleName(/F sharp minor/);
+    await expect(row(`Untitled ${mark}`).locator(".library-key")).toBeEmpty();
   });
 
   // Scenarios "On Sheets", "Deleting" and "Cancelling".

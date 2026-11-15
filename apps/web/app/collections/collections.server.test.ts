@@ -255,7 +255,7 @@ describe("collection storage", () => {
     ).toMatchObject([{ id: stille, title: "Stille Nacht" }]);
   });
 
-  it("reads when each sheet was edited and added to the collection", async () => {
+  it("reads each sheet's key and when it was edited and added", async () => {
     const now = vi.spyOn(Date, "now");
     now.mockReturnValue(1000);
     const stille = await sheet("Stille Nacht");
@@ -264,7 +264,13 @@ describe("collection storage", () => {
     await addSheets(db, "ana", christmas, [stille]);
     now.mockRestore();
     expect((await readCollection(db, "ana", christmas))?.sheets).toEqual([
-      { id: stille, title: "Stille Nacht", updatedAt: 1000, addedAt: 2000 },
+      {
+        id: stille,
+        title: "Stille Nacht",
+        key: "G",
+        updatedAt: 1000,
+        addedAt: 2000,
+      },
     ]);
   });
 

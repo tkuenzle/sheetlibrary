@@ -12,7 +12,20 @@ test.use({ storageState: authFile });
 const content = {
   format: "chordsheet",
   version: 1,
-  sections: [{ lines: [{ text: "Stille Nacht, heilige Nacht", chords: [] }] }],
+  sections: [
+    {
+      lines: [
+        {
+          text: "Stille Nacht, heilige Nacht",
+          chords: [
+            { at: 0, root: "C" },
+            { at: 7, root: "G" },
+            { at: 14, root: "C" },
+          ],
+        },
+      ],
+    },
+  ],
 };
 
 // A word no other sheet or collection has, so a search finds only this
@@ -290,6 +303,8 @@ test("adds a sheet to collections from the play view", async ({
 
   await page.goto(`/collections/${collectionId}`);
   await expect(main(page).locator(".library-title")).toHaveText([title]);
+  // Scenario "The same row in a collection": the row shows the key.
+  await expect(main(page).locator(".library-key")).toContainText("C");
   const listed = await page.request.get(`/api/sheets/${sheetId}/collections`);
   const collections = (await listed.json()) as {
     name: string;

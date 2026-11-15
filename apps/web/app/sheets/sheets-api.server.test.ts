@@ -1,4 +1,4 @@
-import type { Sheet } from "chordsheet";
+import { readUltimateGuitar, type Sheet } from "chordsheet";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { testEnv } from "../db/local-env.test-helper";
@@ -10,6 +10,7 @@ import {
   handleVersions,
   maxSheetBytes,
 } from "./sheets-api.server";
+import { listSheets } from "./sheets.server";
 import { addUser } from "./sheets.test-helper";
 
 const base = "https://sheetlibrary.com/api/sheets";
@@ -63,6 +64,21 @@ describe("sheets API", () => {
       title: "Amazing Grace",
       content: seedSong,
     });
+  });
+
+  it("lists an imported sheet with its key", async () => {
+    const content = readUltimateGuitar(
+      "[Verse]\nAm          C\nThere is a house\nD           F\nIn New Orleans\nAm     E   Am\nThey call the rising sun",
+    );
+    const response = await handleSheets(
+      request("POST", "", { title: "Untitled", content }),
+      db,
+      "ana",
+    );
+    expect(response.status).toBe(201);
+    expect(await listSheets(db, "ana")).toMatchObject([
+      { title: "Untitled", key: "Am" },
+    ]);
   });
 
   // Scenario "Not signed in".

@@ -1,0 +1,41 @@
+import "./recent-sheets.css";
+
+import { Link, useFetcher } from "react-router";
+
+import { KeyText, type ListSheet, type RowAnswer, rowKey } from "./sheet-list";
+
+// "Recent" on Sheets: the sheets the person opened last, as cards that open
+// them to play. A card has no menu. See openspec/specs/library-page.
+export function RecentSheets({ sheets }: { sheets: ListSheet[] }) {
+  if (sheets.length === 0) return null;
+  return (
+    <section className="recent-sheets" aria-labelledby="recent-sheets">
+      <h2 id="recent-sheets">Recent</h2>
+      <ul>
+        {sheets.map((sheet) => (
+          <RecentCard key={sheet.id} sheet={sheet} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// A sheet's card. It goes with the sheet's row when that is deleted, and
+// comes back with it if the delete doesn't get through.
+function RecentCard({ sheet }: { sheet: ListSheet }) {
+  const fetcher = useFetcher<RowAnswer>({ key: rowKey(sheet.id) });
+  if (fetcher.state !== "idle" || fetcher.data?.ok === true) return null;
+  return (
+    <li>
+      <Link to={`/sheets/${sheet.id}`}>
+        <span className="recent-sheets-title">{sheet.title}</span>
+        {sheet.artist && <span>{sheet.artist}</span>}
+        {sheet.key && (
+          <span className="recent-sheets-key">
+            <KeyText text={sheet.key} />
+          </span>
+        )}
+      </Link>
+    </li>
+  );
+}

@@ -7,7 +7,11 @@ import { CollectionChoices } from "../collections/choose-collections-dialog";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
-import { createSheet, createVersion } from "../sheets/sheets.server";
+import {
+  createSheet,
+  createVersion,
+  recentSheets,
+} from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheet";
 import { loader, meta, phoneMenuItems, PlayView } from "./sheet";
@@ -66,6 +70,26 @@ describe("play view loader", () => {
       lyricsOnly: false,
       textStep: 0,
     });
+  });
+
+  // Scenario "Opened last" (library-page).
+  it("notes that the owner opened the sheet", async () => {
+    await load("ana");
+    expect(await recentSheets(test.env.DB, "ana")).toMatchObject([
+      { id: sheet.id },
+    ]);
+  });
+
+  it("notes nothing for someone else's sheet or an unknown id", async () => {
+    await load("bo");
+    await load("ana", "unknownid123");
+    expect(await recentSheets(test.env.DB, "ana")).toEqual([]);
+    expect(await recentSheets(test.env.DB, "bo")).toEqual([]);
+  });
+
+  it("still opens the sheet when the opening can't be noted", async () => {
+    await test.env.DB.prepare('DROP TABLE "sheet_open"').run();
+    expect(await load("ana")).toMatchObject({ sheet });
   });
 
   // Scenario "Opened with lyrics only".

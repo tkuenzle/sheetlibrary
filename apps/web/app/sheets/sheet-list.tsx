@@ -5,10 +5,10 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { Link, useFetcher, useRevalidator } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
+import { spokenKey } from "../editor/key-button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu, type MenuItem } from "../ui/menu";
 import { Note } from "../ui/note";
-import { editDate, lastEdit } from "./last-edit";
 import {
   keepSheetOrder,
   type ListedSheet,
@@ -18,15 +18,19 @@ import {
   sortSheets,
 } from "./order";
 import type { TextPart } from "./search";
+import { readVersionKey } from "./versions";
 
 // The list of sheets on Sheets and in a collection: a row per sheet with its
-// title, artist and last edit, opening it to play, and a menu on each row.
+// title, artist and key, opening it to play, and a menu on each row.
 // The order control sorts the rows and keeps the choice on this device. See
 // openspec/specs/sheet-list.
 
 // A sheet in the list. A search result has its matches marked.
 export interface ListSheet extends ListedSheet {
   id: string;
+  // The key, such as "F#m": the set key, or else the guess. None without
+  // chords.
+  key?: string;
   titleParts?: TextPart[];
   artistParts?: TextPart[];
   // The line with a match, when only the lyrics match.
@@ -41,8 +45,9 @@ export interface RowAnswer {
 }
 
 // A row's change and the confirm dialog share the row's fetcher by its key,
-// so the row knows when it goes, and when it comes back.
-function rowKey(id: string) {
+// so the row knows when it goes, and when it comes back. A "Recent" card
+// shares it too (recent-sheets.tsx).
+export function rowKey(id: string) {
   return `sheet-row-${id}`;
 }
 
@@ -82,16 +87,6 @@ export function SheetList({
   const deleter = useFetcher<RowAnswer>({
     key: rowKey(dialog?.sheet.id ?? ""),
   });
-
-  // The viewer's time zone is only known in the browser. Until then, the
-  // last edit is hidden, with the date in UTC holding its place.
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
-  const now = Date.now();
-  const edited = (at: number) =>
-    hydrated ? lastEdit(at, now) : editDate(at, now, "UTC");
 
   const shown = sorted ? sortSheets(sheets, order) : sheets;
 
@@ -153,15 +148,13 @@ export function SheetList({
       <div className="library-columns library-labels" aria-hidden="true">
         <span>Title</span>
         <span>Artist</span>
-        <span>Edited</span>
+        <span>Key</span>
       </div>
       <ul className="group-list">
         {shown.map((sheet) => (
           <Row
             key={sheet.id}
             sheet={sheet}
-            edited={edited(sheet.updatedAt)}
-            editedPending={!hydrated}
             menuItems={(remove) => menuItems(sheet, remove)}
             onRemove={() => {
               setNote(undefined);
@@ -260,20 +253,16 @@ export function rowMenuItems({
   ];
 }
 
-// A sheet's row: its title, artist and last edit, opening it to play, and
+// A sheet's row: its title, artist and key, opening it to play, and
 // its menu. It goes as soon as it is deleted or removed, and comes back if
 // that doesn't get through.
 function Row({
   sheet,
-  edited,
-  editedPending,
   menuItems,
   onRemove,
   onFailed,
 }: {
   sheet: ListSheet;
-  edited: string;
-  editedPending: boolean;
   menuItems: (remove: () => void) => MenuItem[];
   onRemove: () => void;
   onFailed: (intent: string | undefined) => void;
@@ -305,16 +294,13 @@ function Row({
               sheet.artist
             )}
           </span>
-          {sheet.artist && (
+          {sheet.artist && sheet.key && (
             <span className="library-separator" aria-hidden="true">
               {" · "}
             </span>
           )}
-          <span
-            className="library-edited"
-            data-pending={editedPending ? "" : undefined}
-          >
-            {edited}
+          <span className="library-key">
+            {sheet.key && <KeyText text={sheet.key} />}
           </span>
         </span>
         {sheet.line && (
@@ -334,6 +320,18 @@ function Row({
         })}
       />
     </li>
+  );
+}
+
+// A sheet's key as written, "F#m", read out as "F sharp minor".
+export function KeyText({ text }: { text: string }) {
+  const key = readVersionKey(text);
+  if (!key) return text;
+  return (
+    <>
+      <span aria-hidden="true">{text}</span>
+      <span className="visually-hidden">{spokenKey(key)}</span>
+    </>
   );
 }
 

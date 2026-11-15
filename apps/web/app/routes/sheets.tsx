@@ -16,6 +16,7 @@ import { cloudflareContext, sessionContext } from "../context";
 import { ImportDialog } from "../editor/import-button";
 import { PhotoImportDialog } from "../photos/photo-import-dialog";
 import { readSheetOrder, type SheetOrder } from "../sheets/order";
+import { RecentSheets } from "../sheets/recent-sheets";
 import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList } from "../sheets/sheet-list";
 import { UNTITLED } from "../sheets/details";
@@ -29,6 +30,7 @@ import {
   deleteSheet,
   hasSheets,
   listSheets,
+  recentSheets,
   searchSheets,
   type SearchResult,
   type SheetListItem,
@@ -54,7 +56,8 @@ export function meta() {
 // The email link lands on `?passkey`. Only then is a passkey offered, if
 // the account has none and this device didn't close the offer. With `q`
 // long enough to search, the sheets are the results, the best match first.
-// Otherwise the page sorts them in the order this device keeps.
+// Otherwise the page sorts them in the order this device keeps, and shows
+// the sheets opened last under "Recent".
 export async function loader({ context, request, url }: Route.LoaderArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
@@ -67,12 +70,23 @@ export async function loader({ context, request, url }: Route.LoaderArgs) {
   const q = url.searchParams.get("q") ?? "";
   const order = readSheetOrder(request.headers.get("Cookie"));
   if (!isSearch(q)) {
-    const sheets = await listSheets(env.DB, userId);
-    return { sheets, hasSheets: sheets.length > 0, q, offerPasskey, order };
+    const [sheets, recent] = await Promise.all([
+      listSheets(env.DB, userId),
+      recentSheets(env.DB, userId),
+    ]);
+    return {
+      sheets,
+      recent,
+      hasSheets: sheets.length > 0,
+      q,
+      offerPasskey,
+      order,
+    };
   }
   const sheets = await searchSheets(env.DB, userId, q);
   return {
     sheets,
+    recent: [],
     hasSheets: sheets.length > 0 || (await hasSheets(env.DB, userId)),
     q,
     offerPasskey,
@@ -149,6 +163,7 @@ export default function Library({ loaderData }: Route.ComponentProps) {
   return (
     <LibraryView
       sheets={shown.sheets}
+      recent={shown.recent}
       hasSheets={shown.hasSheets}
       q={shown.q}
       offerPasskey={shown.offerPasskey}
@@ -292,6 +307,7 @@ function Actions({ size, className }: { size?: "large"; className: string }) {
 
 export function LibraryView({
   sheets,
+  recent = [],
   hasSheets = sheets.length > 0,
   q = "",
   offerPasskey = false,
@@ -300,6 +316,8 @@ export function LibraryView({
 }: {
   // All sheets, or the results of the search in `q`.
   sheets: (SheetListItem | SearchResult)[];
+  // The sheets opened last, for "Recent". None while searching.
+  recent?: SheetListItem[];
   hasSheets?: boolean;
   q?: string;
   offerPasskey?: boolean;
@@ -356,6 +374,7 @@ export function LibraryView({
           Couldn’t search. Showing the last results.
         </p>
       )}
+      {!searching && <RecentSheets sheets={recent} />}
       {searching && sheets.length === 0 ? (
         <section
           className="library-empty"
