@@ -411,7 +411,7 @@ describe("library page", () => {
     expect(html.indexOf("Hallelujah")).toBeLessThan(
       html.indexOf("Amazing Grace"),
     );
-    expect(html).toMatch(/Artist, A to Z<svg/);
+    expect(html).toMatch(/Artist<svg/);
   });
 
   it("offers no passkey without offerPasskey", () => {

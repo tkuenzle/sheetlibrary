@@ -367,7 +367,7 @@ test("lists a collection in the order chosen on Sheets", async ({ page }) => {
   await page.goto(`/collections/${collectionId}`);
   await expect(titles).toHaveText([first, second]);
   await page.goto("/sheets");
-  await page.getByRole("button", { name: "Title, A to Z" }).click();
+  await page.getByRole("button", { name: "Title", exact: true }).click();
   await page.getByRole("menuitemcheckbox", { name: "Last added" }).click();
   await expect(page.getByRole("button", { name: "Last added" })).toBeVisible();
 
@@ -375,6 +375,8 @@ test("lists a collection in the order chosen on Sheets", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Last added" })).toBeVisible();
   await expect(titles).toHaveText([second, first]);
   await page.getByRole("button", { name: "Last added" }).click();
-  await page.getByRole("menuitemcheckbox", { name: "Title, A to Z" }).click();
+  await page
+    .getByRole("menuitemcheckbox", { name: "Title", exact: true })
+    .click();
   await expect(titles).toHaveText([first, second]);
 });

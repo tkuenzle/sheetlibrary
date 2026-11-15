@@ -70,7 +70,7 @@ describe("the sheet list", () => {
       html.indexOf("Stille Nacht"),
     );
     expect(html).toMatch(
-      /class="button button-text menu-toggle-text" aria-haspopup="menu"[^>]*>.*Title, A to Z<svg/,
+      /class="button button-text menu-toggle-text" aria-haspopup="menu"[^>]*>.*Title<svg/,
     );
   });
 

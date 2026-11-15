@@ -14,14 +14,14 @@ Each row SHALL show the sheet's title, its artist if it has one, and when it was
 - **THEN** its row on `/sheets` and on the page of "Christmas" both show "Stille Nacht", "Franz Xaver Gruber" and "Today"
 
 ### Requirement: Order of the sheets
-The list SHALL sort sheets A to Z by title unless the person chooses another order. A control above the list SHALL name the current order and offer "Title, A to Z", "Artist, A to Z", "Last edited" and "Last added". By artist, sheets without an artist SHALL come last. "Last edited" and "Last added" SHALL put the newest first.
+The list SHALL sort sheets A to Z by title unless the person chooses another order. A control above the list SHALL name the current order and offer "Title", "Artist", "Last edited" and "Last added". Title and artist SHALL sort A to Z. By artist, sheets without an artist SHALL come last. "Last edited" and "Last added" SHALL put the newest first.
 
 #### Scenario: A to Z by default
 - **WHEN** a person has "Stille Nacht" and "Amazing Grace", and last edited "Stille Nacht"
 - **THEN** the list shows "Amazing Grace", then "Stille Nacht"
 
 #### Scenario: By artist
-- **WHEN** a person chooses "Artist, A to Z" and has "Danny Boy" by Frederic Weatherly, "Amazing Grace" by John Newton and "Sternsinger" without an artist
+- **WHEN** a person chooses "Artist" and has "Danny Boy" by Frederic Weatherly, "Amazing Grace" by John Newton and "Sternsinger" without an artist
 - **THEN** the list shows "Danny Boy", "Amazing Grace", then "Sternsinger"
 
 ### Requirement: The order is kept

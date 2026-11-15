@@ -14,7 +14,7 @@ describe("sheet order cookie", () => {
     expect(readSheetOrder("sheet-order=added; a=1")).toBe("added");
   });
 
-  it("gives Title, A to Z without the cookie, or with a wrong value", () => {
+  it("gives Title without the cookie, or with a wrong value", () => {
     expect(readSheetOrder(null)).toBe("title");
     expect(readSheetOrder("a=1")).toBe("title");
     expect(readSheetOrder("sheet-order=")).toBe("title");
@@ -38,8 +38,8 @@ describe("sheet order cookie", () => {
   });
 
   it("names each order as the control says it", () => {
-    expect(orderLabel("title")).toBe("Title, A to Z");
-    expect(orderLabel("artist")).toBe("Artist, A to Z");
+    expect(orderLabel("title")).toBe("Title");
+    expect(orderLabel("artist")).toBe("Artist");
     expect(orderLabel("edited")).toBe("Last edited");
     expect(orderLabel("added")).toBe("Last added");
   });

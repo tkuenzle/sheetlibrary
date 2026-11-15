@@ -8,8 +8,8 @@ export type SheetOrder = "title" | "artist" | "edited" | "added";
 
 // The orders as the control offers them, the default first.
 export const SHEET_ORDERS: { order: SheetOrder; label: string }[] = [
-  { order: "title", label: "Title, A to Z" },
-  { order: "artist", label: "Artist, A to Z" },
+  { order: "title", label: "Title" },
+  { order: "artist", label: "Artist" },
   { order: "edited", label: "Last edited" },
   { order: "added", label: "Last added" },
 ];

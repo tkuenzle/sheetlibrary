@@ -384,15 +384,15 @@ test.describe("the sheet list", () => {
 
     await page.goto("/sheets");
     await expect(titles(page, mark)).toHaveText([grace, stille]);
-    await page.getByRole("button", { name: "Title, A to Z" }).click();
+    await page.getByRole("button", { name: "Title", exact: true }).click();
     await expect(page.getByRole("menuitemcheckbox")).toHaveText([
-      "Title, A to Z",
-      "Artist, A to Z",
+      "Title",
+      "Artist",
       "Last edited",
       "Last added",
     ]);
     await expect(
-      page.getByRole("menuitemcheckbox", { name: "Title, A to Z" }),
+      page.getByRole("menuitemcheckbox", { name: "Title", exact: true }),
     ).toBeChecked();
     await page.getByRole("menuitemcheckbox", { name: "Last edited" }).click();
     await expect(titles(page, mark)).toHaveText([stille, grace]);
