@@ -22,7 +22,7 @@ import {
   useSheetKey,
   withAddressParam,
 } from "../editor/sheet-title";
-import { SheetBar, SheetFrameBar } from "../shell/sheet-bar";
+import { focusSheetMenu, SheetBar, SheetFrameBar } from "../shell/sheet-bar";
 import { ViewButton } from "../shell/view-button";
 import { SheetView } from "../sheet-view/sheet-view";
 import { deleteStoredSheet } from "../sheets/delete";
@@ -407,6 +407,7 @@ export function PlayView({
         }}
         onClose={() => {
           setCollecting(false);
+          focusSheetMenu();
           if (collectionsChanged.current) void revalidate();
           collectionsChanged.current = false;
         }}
@@ -425,6 +426,7 @@ export function PlayView({
         }}
         onClose={() => {
           setDeleting(false);
+          focusSheetMenu();
         }}
       />
       <NameDialog

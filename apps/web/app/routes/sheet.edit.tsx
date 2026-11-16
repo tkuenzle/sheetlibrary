@@ -10,7 +10,7 @@ import { cloudflareContext, sessionContext } from "../context";
 import { EditorHelp, FirstTimeHelp } from "../editor/help";
 import { SheetEditor, type SheetEditorHandle } from "../editor/sheet-editor";
 import { keyQuery, SheetTitle, useSheetKey } from "../editor/sheet-title";
-import { SheetBar, SheetFrameBar } from "../shell/sheet-bar";
+import { focusSheetMenu, SheetBar, SheetFrameBar } from "../shell/sheet-bar";
 import { SidePanelButton } from "../shell/side-panel";
 import { useAutosave } from "../sheets/autosave";
 import { deleteStoredSheet } from "../sheets/delete";
@@ -363,6 +363,7 @@ export function SheetView({
         }}
         onClose={() => {
           setCollecting(false);
+          focusSheetMenu();
           if (collectionsChanged.current) void revalidate();
           collectionsChanged.current = false;
         }}
@@ -384,6 +385,7 @@ export function SheetView({
         }}
         onClose={() => {
           setDeleting(false);
+          focusSheetMenu();
         }}
       />
       <ConfirmDialog

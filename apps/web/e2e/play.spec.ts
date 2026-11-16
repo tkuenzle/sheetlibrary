@@ -140,32 +140,28 @@ test("says when the sheet isn't found", async ({ page }) => {
   );
 });
 
-// Scenarios "From playing to editing" and "Back to playing" (site-layout).
-test("switches to the editor and back, keeping the key and capo", async ({
+function bar(page: Page) {
+  return page.getByRole("banner");
+}
+
+// Scenarios "From playing to editing", "Back to playing" (sheet-page) and
+// "Opened from a link" (site-layout).
+test("opens edit mode and goes back with Done, keeping the key and capo", async ({
   page,
 }) => {
   const id = await createSheet(page, "Amazing Grace");
   await page.goto(`/sheets/${id}?key=A&capo=2`);
-  const bar = page.getByRole("banner");
-  await expect(bar.getByRole("link", { name: "Play" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(bar(page).getByRole("link", { name: "Play" })).toHaveCount(0);
 
-  await bar.getByRole("link", { name: "Edit" }).click();
+  await bar(page).getByRole("link", { name: "Edit" }).click();
   await expect(page).toHaveURL(`/sheets/${id}/edit?key=A&capo=2`);
-  await expect(bar.getByRole("link", { name: "Edit" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(bar(page).getByRole("button", { name: "Done" })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Key / })).toHaveText(
     "Key A · +2",
   );
   await expect(page.getByRole("button", { name: /^Capo/ })).toHaveText(
     "Capo 2",
   );
-  // "Edit" loads the page in full. The editor draws the chords only once
-  // React has hydrated the page; a click before that does nothing.
   await expect(page.locator(".chord-label")).toHaveCount(5);
 
   // A rename, saved, shows in the play view.
@@ -173,29 +169,95 @@ test("switches to the editor and back, keeping the key and capo", async ({
   await page.keyboard.type("Grace");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Grace");
-  // "Saved" shows when the page opens too. It goes away with the edit and
-  // comes back once the rename is saved.
-  await expect(page.getByRole("status")).toHaveText("");
   await expect(page.getByRole("status")).toHaveText("Saved");
-  await bar.getByRole("link", { name: "Play" }).click();
-  await expect(page).toHaveURL(`/sheets/${id}?key=A&capo=2`);
+
+  // A key shown in edit mode carries back to the play view.
+  await page.getByRole("button", { name: /^Key / }).click();
+  await page
+    .getByRole("dialog", { name: "Key" })
+    .getByRole("button", { name: "B", exact: true })
+    .click();
+  await page.keyboard.press("Escape");
+  // With the capo, the shapes stay G, so the capo moves to 4.
+  await bar(page).getByRole("button", { name: "Done" }).click();
+  await expect(page).toHaveURL(`/sheets/${id}?key=B&capo=4`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Grace");
+  await expect(page.getByRole("button", { name: /^Key / })).toHaveText(
+    "Key B · +4",
+  );
   await expect(chords(page)).toHaveText(["G", "G7", "C", "Em7", "G"]);
+
+  // Opened from its address, Back opens Sheets.
+  await bar(page).getByRole("link", { name: "Back" }).click();
+  await expect(page).toHaveURL("/sheets");
 });
 
-// Picks "Smaller text", "Larger text" or "Print": in the top bar, or on a
-// phone in the menu.
-async function pickAction(
-  page: Page,
-  name: "Smaller text" | "Larger text" | "Print",
-) {
-  const more = page.getByRole("button", { name: "More" });
-  if (await more.isVisible()) {
-    await more.click();
-    await page.getByRole("menuitem", { name }).click();
-  } else {
-    await page.getByRole("button", { name }).click();
-  }
+// Scenario "Back to playing" (sheet-page): Done sends what waits at once.
+test("saves at once on Done", async ({ page }) => {
+  const id = await createSheet(page, "Amazing Grace");
+  await page.goto(`/sheets/${id}`);
+  await bar(page).getByRole("link", { name: "Edit" }).click();
+  await expect(page.locator(".chord-label")).toHaveCount(5);
+  await page.getByRole("button", { name: "Amazing Grace" }).click();
+  await page.keyboard.type("Quick");
+  await page.keyboard.press("Enter");
+  await bar(page).getByRole("button", { name: "Done" }).click();
+  await expect(page).toHaveURL(`/sheets/${id}`);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Quick");
+});
+
+// Scenario "The browser's back" (sheet-page).
+test("goes back to playing with the browser's back", async ({ page }) => {
+  const id = await createSheet(page, "Amazing Grace");
+  await page.goto(`/sheets/${id}`);
+  await bar(page).getByRole("link", { name: "Edit" }).click();
+  await expect(page.locator(".chord-label")).toHaveCount(5);
+  await page.getByRole("button", { name: /^Key / }).click();
+  await page
+    .getByRole("dialog", { name: "Key" })
+    .getByRole("button", { name: "A", exact: true })
+    .click();
+  await page.keyboard.press("Escape");
+  await page.goBack();
+  await expect(page).toHaveURL(`/sheets/${id}?key=A`);
+  await expect(page.getByRole("button", { name: /^Key / })).toHaveText(
+    "Key A · +2",
+  );
+  await expect(bar(page).getByRole("link", { name: "Edit" })).toBeVisible();
+});
+
+// Scenario "Back to a search" (site-layout).
+test("goes back to the search it came from", async ({ page }) => {
+  const word = `Find${crypto.randomUUID().slice(0, 8)}`;
+  const id = await createSheet(page, `${word} grace`);
+  await page.goto(`/sheets?q=${word}`);
+  await page.getByRole("link", { name: new RegExp(word) }).click();
+  await expect(page).toHaveURL(`/sheets/${id}`);
+  await bar(page).getByRole("link", { name: "Back" }).click();
+  await expect(page).toHaveURL(`/sheets?q=${word}`);
+  await expect(
+    page.getByRole("searchbox", { name: "Search sheets" }),
+  ).toHaveValue(word);
+});
+
+// Opens "View", whose panel holds the text size and "Lyrics only".
+async function openView(page: Page) {
+  await bar(page).getByRole("button", { name: "View" }).click();
+  return page.getByRole("dialog", { name: "View" });
+}
+
+async function pickSize(page: Page, name: "Smaller text" | "Larger text") {
+  const view = await openView(page);
+  await view.getByRole("button", { name }).click();
+  await page.keyboard.press("Escape");
+  await expect(view).toBeHidden();
+}
+
+// Picks an item of the sheet's menu.
+async function pickFromMenu(page: Page, name: string) {
+  await bar(page).getByRole("button", { name: "More for this sheet" }).click();
+  await page.getByRole("menuitem", { name }).click();
 }
 
 function lyricsSize(page: Page) {
@@ -210,8 +272,8 @@ test("keeps a larger text size on this device", async ({ page }) => {
   const second = await createSheet(page, "Shenandoah");
   await page.goto(`/sheets/${first}`);
   const start = await lyricsSize(page);
-  await pickAction(page, "Larger text");
-  await pickAction(page, "Larger text");
+  await pickSize(page, "Larger text");
+  await pickSize(page, "Larger text");
   expect(await lyricsSize(page)).toBeCloseTo(start * 1.3, 1);
   await expectNoOverlap(page);
 
@@ -223,18 +285,12 @@ test("keeps a larger text size on this device", async ({ page }) => {
   expect(await lyricsSize(page)).toBeCloseTo(start * 1.3, 1);
 
   // At the largest size, "Larger text" is disabled.
-  await pickAction(page, "Larger text");
-  const more = page.getByRole("button", { name: "More" });
-  if (await more.isVisible()) {
-    await more.click();
-    await expect(
-      page.getByRole("menuitem", { name: "Larger text" }),
-    ).toBeDisabled();
-  } else {
-    await expect(
-      page.getByRole("button", { name: "Larger text" }),
-    ).toBeDisabled();
-  }
+  await pickSize(page, "Larger text");
+  const view = await openView(page);
+  await expect(view).toContainText("150%");
+  await expect(
+    view.getByRole("button", { name: "Larger text" }),
+  ).toBeDisabled();
 });
 
 // Opens the browser's print with "Print", and tells whether it did.
@@ -244,11 +300,11 @@ async function printOpens(page: Page): Promise<boolean> {
       document.body.dataset.printed = "yes";
     };
   });
-  await pickAction(page, "Print");
+  await pickFromMenu(page, "Print");
   return (await page.locator("body").getAttribute("data-printed")) === "yes";
 }
 
-// Scenario "Printing in another key".
+// Scenarios "Printing in another key" and "Printing from the menu".
 test("prints the sheet as shown, without the controls", async ({ page }) => {
   const id = await createSheet(page, "Amazing Grace");
   await page.goto(`/sheets/${id}?key=A`);
@@ -268,19 +324,23 @@ test("prints the sheet as shown, without the controls", async ({ page }) => {
   expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
 });
 
-// Scenario "Printing from a phone".
-test("puts the text size and Print in a menu on a phone", async ({ page }) => {
+// Scenario "On a wide screen", at a phone's width: the same bar, with Edit as
+// its icon.
+test("has the same bar on a phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const id = await createSheet(page, "Amazing Grace");
   await page.goto(`/sheets/${id}`);
-  await expect(page.getByRole("button", { name: "Print" })).toBeHidden();
-  await expect(page.getByRole("button", { name: "Larger text" })).toBeHidden();
+  const edit = bar(page).getByRole("link", { name: "Edit" });
+  await expect(edit).toBeVisible();
+  await expect(edit.getByText("Edit")).toBeHidden();
+  await expect(bar(page).getByRole("link", { name: "Account" })).toHaveCount(0);
   expect(await printOpens(page)).toBe(true);
 
-  // The menu sits after the key and the capo.
-  const capo = await page.getByRole("button", { name: /^Capo/ }).boundingBox();
-  const more = await page.getByRole("button", { name: "More" }).boundingBox();
-  expect(more && capo && more.x > capo.x).toBe(true);
+  // View is a sheet at the bottom of the screen.
+  const view = await openView(page);
+  await expect(
+    view.getByRole("switch", { name: "Lyrics only" }),
+  ).toBeInViewport();
 
   const sideways = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,
@@ -288,19 +348,15 @@ test("puts the text size and Print in a menu on a phone", async ({ page }) => {
   expect(sideways).toBe(false);
 });
 
-// Picks "Lyrics only": in the top bar, or on a phone in the menu.
+// Turns "Lyrics only" on or off in View.
 async function toggleLyrics(page: Page) {
-  const more = page.getByRole("button", { name: "More" });
-  if (await more.isVisible()) {
-    await more.click();
-    await page.getByRole("menuitemcheckbox", { name: "Lyrics only" }).click();
-  } else {
-    await page.getByRole("button", { name: "Lyrics only" }).click();
-  }
+  const view = await openView(page);
+  await view.getByRole("switch", { name: "Lyrics only" }).click();
+  await page.keyboard.press("Escape");
 }
 
-// Scenarios "Turning chords off and on", "Address follows" and "Printing the
-// lyrics".
+// Scenarios "Turning chords off and on", "Address follows", "Printing the
+// lyrics" and "Lyrics only from View".
 test("shows the lyrics only without a page load, as the address keeps", async ({
   page,
 }) => {
@@ -323,6 +379,11 @@ test("shows the lyrics only without a page load, as the address keeps", async ({
       () => (window as unknown as { stayed?: boolean }).stayed,
     ),
   ).toBe(true);
+  const view = await openView(page);
+  await expect(
+    view.getByRole("switch", { name: "Lyrics only" }),
+  ).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("Escape");
 
   // Printed, the lyrics stay without chords.
   await page.emulateMedia({ media: "print" });
@@ -342,32 +403,20 @@ test("shows the lyrics only without a page load, as the address keeps", async ({
   await expect(page).toHaveURL(/\?key=A$/);
 });
 
-// Scenario "On a phone".
-test("puts Lyrics only first in the menu on a phone", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  const id = await createSheet(page, "Amazing Grace");
-  await page.goto(`/sheets/${id}`);
-  await expect(page.getByRole("button", { name: "Lyrics only" })).toBeHidden();
-  const label = page.locator(".play-lyrics-label");
-  await expect(label).toHaveCount(0);
-
-  await page.getByRole("button", { name: "More" }).click();
-  const menu = page.getByRole("menu", { name: "More" });
-  const item = menu.getByRole("menuitemcheckbox", { name: "Lyrics only" });
-  await expect(menu.locator(".menu-item").first()).toHaveText("Lyrics only");
-  await expect(item).toHaveAttribute("aria-checked", "false");
-  await item.click();
-
-  await expect(chords(page)).toHaveCount(0);
-  await expect(label).toHaveText("Lyrics only");
-  await expect(label).toBeVisible();
-  await page.getByRole("button", { name: "More" }).click();
-  await expect(item).toHaveAttribute("aria-checked", "true");
-
-  const sideways = await page.evaluate(
-    () => document.documentElement.scrollWidth > window.innerWidth,
+// Scenario "Deleting while playing".
+test("deletes from the menu and goes back to the list", async ({ page }) => {
+  const title = `Gone ${crypto.randomUUID().slice(0, 8)}`;
+  const id = await createSheet(page, title);
+  await page.goto("/sheets");
+  await page.getByRole("link", { name: new RegExp(title) }).click();
+  await expect(page).toHaveURL(`/sheets/${id}`);
+  await pickFromMenu(page, "Delete");
+  const confirm = page.getByRole("alertdialog", { name: `Delete “${title}”?` });
+  await confirm.getByRole("button", { name: "Delete" }).click();
+  await expect(page).toHaveURL("/sheets");
+  await expect(page.getByRole("link", { name: new RegExp(title) })).toHaveCount(
+    0,
   );
-  expect(sideways).toBe(false);
 });
 
 // Versions: a name and a key. See openspec/specs/play-page and
@@ -391,8 +440,8 @@ async function openKeyPanel(page: Page) {
   return page.getByRole("dialog", { name: "Key" });
 }
 
-function artist(page: Page) {
-  return page.locator(".play-artist");
+function keyButton(page: Page) {
+  return page.getByRole("button", { name: /^Key / });
 }
 
 // A row of the list of versions, without its menu button.
@@ -418,14 +467,13 @@ test("saves the first version from the song key's menu", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(dialog).toBeHidden();
 
-  await expect(artist(page)).toHaveText("Anna's key");
+  await expect(keyButton(page)).toHaveText("Key A · Anna's key");
   await expect(page).toHaveURL(/\?version=[\w-]{12}$/);
-  await expect(page.getByRole("button", { name: /^Key / })).toHaveText("Key A");
 
   // Its address opens it again, in its key.
   await page.reload();
   await expect(chords(page)).toHaveText(["A", "A7", "D", "F#m7", "A"]);
-  await expect(artist(page)).toHaveText("Anna's key");
+  await expect(keyButton(page)).toHaveText("Key A · Anna's key");
   const list = await openKeyPanel(page);
   await expect(row(list, "Anna's key")).toHaveAttribute("aria-current", "true");
 });
@@ -443,7 +491,7 @@ test("changes, renames and deletes a version", async ({ page }) => {
   await panel.getByRole("button", { name: "B flat", exact: true }).click();
   await expect(chords(page)).toHaveText(["Bb", "Bb7", "Eb", "Gm7", "Bb"]);
   await expect(page).toHaveURL(`/sheets/${id}?version=${anna}&key=Bb`);
-  await expect(artist(page)).toHaveText("Anna's key");
+  await expect(keyButton(page)).toHaveText("Key Bb · +1 · Anna's key");
   await panel.getByRole("button", { name: "Back to A" }).click();
   await expect(chords(page)).toHaveText(["A", "A7", "D", "F#m7", "A"]);
   await expect(page).toHaveURL(`/sheets/${id}?version=${anna}`);
@@ -473,7 +521,7 @@ test("changes, renames and deletes a version", async ({ page }) => {
   );
   await dialog.getByRole("textbox", { name: "Name" }).fill("Anna");
   await dialog.getByRole("button", { name: "Save" }).click();
-  await expect(artist(page)).toHaveText("Anna");
+  await expect(keyButton(page)).toHaveText("Key Bb · Anna");
 
   // Deleting keeps the sheet in the key it was shown in.
   panel = await openKeyPanel(page);
@@ -484,7 +532,7 @@ test("changes, renames and deletes a version", async ({ page }) => {
   await confirm.getByRole("button", { name: "Delete" }).click();
   await expect(confirm).toBeHidden();
   await expect(chords(page)).toHaveText(["Bb", "Bb7", "Eb", "Gm7", "Bb"]);
-  await expect(artist(page)).toHaveCount(0);
+  await expect(keyButton(page)).toHaveText("Key Bb · +3");
   await expect(page).toHaveURL(`/sheets/${id}?key=Bb`);
 
   // The old bookmark opens the sheet in its song key.
@@ -519,12 +567,12 @@ test("lists the versions and switches between them", async ({ page }) => {
 
   await row(panel, "Sunday band").click();
   await expect(chords(page)).toHaveText(["Bb", "Bb7", "Eb", "Gm7", "Bb"]);
-  await expect(artist(page)).toHaveText("Sunday band");
+  await expect(keyButton(page)).toHaveText("Key Bb · Sunday band");
   await expect(page).toHaveURL(`/sheets/${id}?version=${band}`);
 
   await row(panel, "Song key").click();
   await expect(chords(page)).toHaveText(["G", "G7", "C", "Em7", "G"]);
-  await expect(artist(page)).toHaveCount(0);
+  await expect(keyButton(page)).toHaveText("Key G");
   await expect(page).toHaveURL(`/sheets/${id}`);
   expect(
     await page.evaluate(

@@ -111,6 +111,14 @@ export function SheetFrameBar() {
   );
 }
 
+// Puts the focus back on the sheet's menu button, as after a dialog that one
+// of its items opened, since the item itself is gone.
+export function focusSheetMenu(): void {
+  document
+    .querySelector<HTMLElement>(".sheet-bar [aria-haspopup=menu]")
+    ?.focus();
+}
+
 // A click that asks for a new tab or window, which the browser handles.
 function opensElsewhere(event: MouseEvent) {
   return (

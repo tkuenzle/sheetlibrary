@@ -1015,7 +1015,7 @@ test.describe("search", () => {
     const id = await addSheet(page, `Amazing ${tag}`);
     await page.goto(`/sheets/${id}`);
     await expect(heading(page)).toHaveText(`Amazing ${tag}`);
-    await page.getByRole("link", { name: "Library" }).click();
+    await page.getByRole("banner").getByRole("link", { name: "Back" }).click();
     await expect(page).toHaveURL("/sheets");
     await field(page).pressSequentially(tag.slice(0, 5), { delay: 100 });
     await expect(page).toHaveURL(`/sheets?q=${tag.slice(0, 5)}`);
