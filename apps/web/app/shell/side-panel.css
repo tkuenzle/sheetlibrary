@@ -32,7 +32,7 @@
 }
 
 @media (min-width: 1024px) {
-  .side-panel-button {
+  .side-panel-button:not(.side-panel-button-every-width) {
     display: none;
   }
 }

@@ -1,12 +1,13 @@
 import type { Sheet } from "chordsheet";
+import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
-import { RouterContextProvider } from "react-router";
+import { createRoutesStub, RouterContextProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
+import { EditorHelp, FirstTimeHelp } from "../editor/help";
 import { seedSong } from "../editor/seed-song";
-import type { SaveState } from "../sheets/autosave";
 import { createSheet, recentSheets } from "../sheets/sheets.server";
 import { NotFound } from "../sheets/not-found";
 import { addUser } from "../sheets/sheets.test-helper";
@@ -18,8 +19,17 @@ import {
   meta,
   SaveStatus,
   SheetView,
-  sheetMenuItems,
 } from "./sheet.edit";
+
+// Edit mode inside a router, as on its page.
+function render(view: ReactNode) {
+  const Stub = createRoutesStub([
+    { path: "/sheets/:id/edit", Component: () => view },
+  ]);
+  return renderToString(
+    <Stub initialEntries={["/sheets/abcdefghijkl/edit"]} />,
+  );
+}
 
 const amazingGrace: Sheet = {
   id: "abcdefghijkl",
@@ -42,16 +52,23 @@ describe("sheet page loader", () => {
   });
   afterEach(() => test.dispose());
 
-  function load(userId: string | null, id = sheet.id, search = "") {
+  function load(
+    userId: string | null,
+    id = sheet.id,
+    search = "",
+    cookie = "",
+  ) {
     const context = new RouterContextProvider();
     context.set(cloudflareContext, { env: test.env });
     // Only the user's id matters here.
     const session = { user: { id: userId }, session: {} } as never;
     context.set(sessionContext, userId ? session : null);
     const url = new URL(`https://sheetlibrary.test/sheets/${id}/edit${search}`);
+    const request = new Request(url, { headers: { Cookie: cookie } });
     return loader({
       context,
       params: { id },
+      request,
       url,
     } as unknown as Route.LoaderArgs);
   }
@@ -63,7 +80,15 @@ describe("sheet page loader", () => {
       isNew: false,
       shownKey: null,
       capo: null,
+      helpSeen: false,
     });
+  });
+
+  // Scenario "Got it".
+  it("passes on whether Got it put away the note on this device", async () => {
+    expect(
+      await load("ana", sheet.id, "", "play-text-size=1; edit-help=seen"),
+    ).toMatchObject({ helpSeen: true });
   });
 
   // Scenario "Editing only" (library-page).
@@ -78,6 +103,7 @@ describe("sheet page loader", () => {
       isNew: true,
       shownKey: null,
       capo: null,
+      helpSeen: false,
     });
   });
 
@@ -119,89 +145,110 @@ describe("sheet page loader", () => {
 
 describe("sheet page", () => {
   it("shows the sheet's title as the heading, with the key and the help", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} />);
+    const html = render(<SheetView sheet={amazingGrace} />);
     expect(html).toMatch(/<h1><button [^>]*>Amazing Grace<\/button><\/h1>/);
     expect(html).toContain("Key G");
-    expect(html).toContain("How to edit");
+    expect(html).toContain('aria-label="How to edit"');
+  });
+
+  // Scenarios "Opening edit mode" and "Help on a wide screen".
+  it("has Done, the save state, the help and the menu in the bar, and no help panel", () => {
+    const html = render(<SheetView sheet={amazingGrace} />);
+    expect(html).toMatch(
+      /<header class="top-bar sheet-bar sheet-bar-edit">.*Done<\/button><p class="save-status".*aria-label="How to edit".*aria-label="More for this sheet".*<\/header>/s,
+    );
+    expect(html).toContain("side-panel-button-every-width");
+    expect(html).not.toContain('class="side-panel"');
+    expect(html).not.toContain('aria-label="Back"');
+    expect(html).not.toContain('aria-label="Account"');
   });
 
   // Scenario "Opening a sheet".
   it("shows the artist below the title", () => {
-    const html = renderToString(
+    const html = render(
       <SheetView sheet={{ ...amazingGrace, artist: "Chris Tomlin" }} />,
     );
     expect(html).toMatch(/<\/h1>.*>Chris Tomlin<\/button>/s);
     expect(html).not.toContain("Add artist");
   });
 
-  // Scenario "Back to playing" (site-layout).
-  it("has the switch, with Edit marked", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} />);
-    expect(html).toMatch(/aria-label="Edit" aria-current="page"/);
-    expect(html).toContain('href="/sheets/abcdefghijkl"');
+  // Scenario "Renaming with the button".
+  it("has Rename beside the title, disabled while read-only", () => {
+    const html = render(<SheetView sheet={amazingGrace} />);
+    expect(html).toMatch(/<\/h1><span[^>]*><button [^>]*aria-label="Rename"/);
+    expect(
+      /<button [^>]*aria-label="Rename"[^>]*>/.exec(html)?.[0],
+    ).not.toContain("disabled");
   });
 
-  it("offers to add an artist when there is none", () => {
-    expect(renderToString(<SheetView sheet={amazingGrace} />)).toContain(
-      "Add artist",
+  it("has no Rename beside the field while the title is open", () => {
+    expect(render(<SheetView sheet={amazingGrace} isNew />)).not.toContain(
+      'aria-label="Rename"',
     );
   });
 
+  it("offers to add an artist when there is none", () => {
+    expect(render(<SheetView sheet={amazingGrace} />)).toContain("Add artist");
+  });
+
   it("has the sheet's menu", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} />);
+    const html = render(<SheetView sheet={amazingGrace} />);
     expect(html).toContain('aria-label="More for this sheet"');
     expect(html).toContain('aria-haspopup="menu"');
   });
 
-  it("has Rename and Delete in the sheet's menu", () => {
-    const items = (state: SaveState) =>
-      sheetMenuItems({
-        state,
-        onRename: () => undefined,
-        onDelete: () => undefined,
-      }).map(({ label, disabled }) => [label, disabled]);
-    expect(items("saved")).toEqual([
-      ["Rename", false],
-      ["Delete", false],
-    ]);
-    expect(items("conflict")).toEqual([
-      ["Rename", true],
-      ["Delete", false],
-    ]);
-    // Scenario "Deleted in another tab".
-    expect(items("deleted")).toEqual([
-      ["Rename", true],
-      ["Delete", true],
-    ]);
+  it("has the delete and the leave dialogs, closed", () => {
+    const html = render(<SheetView sheet={amazingGrace} />);
+    expect(
+      html.match(/<dialog [^>]*role="alertdialog"[^>]*><\/dialog>/g),
+    ).toHaveLength(2);
   });
 
-  it("has the delete dialog, closed", () => {
-    expect(renderToString(<SheetView sheet={amazingGrace} />)).toMatch(
-      /<dialog [^>]*role="alertdialog"[^>]*><\/dialog>/,
+  // Scenario "Got it".
+  it("shows the first-time note until Got it put it away", () => {
+    const first = render(<SheetView sheet={amazingGrace} />);
+    expect(first).toMatch(
+      /<div class="editor-intro"><div class="first-time-help" role="note">/,
+    );
+    expect(render(<SheetView sheet={amazingGrace} helpSeen />)).not.toContain(
+      "first-time-help",
     );
   });
 
+  it("says how to edit for touch and a mouse, with its two buttons", () => {
+    const html = renderToString(
+      <FirstTimeHelp onShortcuts={() => undefined} onGotIt={() => undefined} />,
+    );
+    expect(html).toContain(
+      '<span class="help-touch">Tap a section to edit it.',
+    );
+    expect(html).toContain(
+      '<span class="help-mouse">Click a section to edit it. <kbd>Ctrl K</kbd> or <kbd>⌘ K</kbd> adds a chord at the cursor.</span>',
+    );
+    expect(html).toMatch(/All shortcuts<\/button>.*Got it<\/button>/);
+  });
+
   it("opens the title field for a new sheet", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} isNew />);
+    const html = render(<SheetView sheet={amazingGrace} isNew />);
     expect(html).toMatch(/<h1><input [^>]*aria-label="Title"/);
     expect(html).toContain('value="Amazing Grace"');
   });
 
   // Scenario "Help on the sheet page".
   it("says how to rename in the help", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} />);
+    const html = renderToString(<EditorHelp rename />);
     expect(html).toContain("Click the title to rename the sheet");
     expect(html).toContain("Tap the title to rename the sheet");
   });
 
   it("has no prototype notice and no import", () => {
-    const html = renderToString(<SheetView sheet={amazingGrace} />);
+    const html = render(<SheetView sheet={amazingGrace} />);
     expect(html).not.toContain("prototype");
     expect(html).not.toContain("Import");
   });
 
   it("starts out saved", () => {
-    expect(renderToString(<SheetView sheet={amazingGrace} />)).toMatch(
+    expect(render(<SheetView sheet={amazingGrace} />)).toMatch(
       /<p class="save-status" role="status" data-state="saved">Saved<\/p>/,
     );
   });
@@ -240,7 +287,7 @@ describe("sheet page", () => {
   });
 
   it("says when the sheet isn't found", () => {
-    expect(renderToString(<NotFound />)).toContain("<h1>Sheet not found</h1>");
+    expect(render(<NotFound />)).toContain("<h1>Sheet not found</h1>");
     expect(
       meta({ loaderData: { sheet: null } } as Route.MetaArgs),
     ).toContainEqual({ title: "Sheet not found | Sheet Library" });

@@ -1,9 +1,11 @@
 import type { Sheet } from "chordsheet";
+import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
-import { RouterContextProvider } from "react-router";
+import { createRoutesStub, RouterContextProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { CollectionChoices } from "../collections/choose-collections-dialog";
+import { createCollection } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
@@ -14,7 +16,15 @@ import {
 } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheet";
-import { loader, meta, phoneMenuItems, PlayView } from "./sheet";
+import { loader, meta, PlayView } from "./sheet";
+
+// The play view inside a router, as on its page.
+function render(view: ReactNode) {
+  const Stub = createRoutesStub([
+    { path: "/sheets/:id", Component: () => view },
+  ]);
+  return renderToString(<Stub initialEntries={["/sheets/abcdefghijkl"]} />);
+}
 
 const amazingGrace: Sheet = {
   id: "abcdefghijkl",
@@ -64,12 +74,26 @@ describe("play view loader", () => {
     expect(await load("ana", sheet.id, "?key=A&capo=2")).toEqual({
       sheet,
       versions: [],
+      collections: [],
       versionId: null,
       shownKey: "A",
       capo: "2",
       lyricsOnly: false,
       textStep: 0,
     });
+  });
+
+  // Scenario "In two collections".
+  it("gives the collections that hold the sheet, A to Z", async () => {
+    for (const name of ["Christmas", "Campfire"]) {
+      await createCollection(test.env.DB, "ana", { name, sheetId: sheet.id });
+    }
+    await createCollection(test.env.DB, "ana", { name: "Kinderlieder" });
+    const loaded = (await load("ana")) as { collections: { name: string }[] };
+    expect(loaded.collections.map((c) => c.name)).toEqual([
+      "Campfire",
+      "Christmas",
+    ]);
   });
 
   // Scenario "Opened last" (library-page).
@@ -166,40 +190,40 @@ describe("play view loader", () => {
 describe("play view", () => {
   // Scenario "Opening a sheet".
   it("shows the title, the artist and the sheet", () => {
-    const html = renderToString(<PlayView sheet={amazingGrace} />);
+    const html = render(<PlayView sheet={amazingGrace} />);
     expect(html).toContain("<h1>Amazing Grace</h1>");
     expect(html).toContain('<p class="play-artist">John Newton</p>');
     expect(html).toContain('<div class="sheet-view-label">Verse 1</div>');
   });
 
   it("has no editor, save state or help", () => {
-    const html = renderToString(<PlayView sheet={amazingGrace} />);
+    const html = render(<PlayView sheet={amazingGrace} />);
     expect(html).not.toContain("contenteditable");
     expect(html).not.toContain('role="status"');
     expect(html).not.toContain("How to edit");
   });
 
   it("shows the lyrics larger than the editor", () => {
-    const html = renderToString(<PlayView sheet={amazingGrace} />);
+    const html = render(<PlayView sheet={amazingGrace} />);
     expect(html).toContain("--sheet-view-font-size:var(--play-text-base)");
   });
 
   it("shows the sheet in the key the address holds", () => {
-    const html = renderToString(<PlayView sheet={amazingGrace} shownKey="A" />);
+    const html = render(<PlayView sheet={amazingGrace} shownKey="A" />);
     expect(html).toContain('<span class="sheet-view-chord">A7</span>');
     expect(html).not.toContain('<span class="sheet-view-chord">G7</span>');
     expect(html).toMatch(/Key <!-- -->A/);
   });
 
   it("shows the shapes for the capo the address holds", () => {
-    const html = renderToString(<PlayView sheet={amazingGrace} capo="2" />);
+    const html = render(<PlayView sheet={amazingGrace} capo="2" />);
     expect(html).toContain('<span class="sheet-view-chord">F7</span>');
     expect(html).toContain('<span class="sheet-view-chord">Bb</span>');
   });
 
   // Scenario "Opened in another key": in A with capo 2, the shapes are G.
   it("shows a key and a capo together", () => {
-    const html = renderToString(
+    const html = render(
       <PlayView sheet={amazingGrace} shownKey="A" capo="2" />,
     );
     expect(html).toContain('aria-label="Key A, 2 semitones up"');
@@ -209,7 +233,7 @@ describe("play view", () => {
 
   // Scenario "Transposing to play".
   it("offers the key panel to view only", () => {
-    const html = renderToString(<PlayView sheet={amazingGrace} />);
+    const html = render(<PlayView sheet={amazingGrace} />);
     expect(html).toContain('class="key-button-toggle"');
     expect(html).toContain("Capo");
   });
@@ -219,89 +243,100 @@ describe("play view", () => {
       ...amazingGrace,
       content: { ...seedSong, sections: [{ lines: [] }] },
     };
-    expect(renderToString(<PlayView sheet={empty} />)).not.toContain(
-      "key-button",
-    );
+    expect(render(<PlayView sheet={empty} />)).not.toContain("key-button");
   });
 
-  // Scenario "From playing to editing" (site-layout).
-  it("has the switch, with Play marked and the key and capo carried", () => {
-    const html = renderToString(
+  // Scenario "From playing to editing".
+  it("links Edit to edit mode, carrying the key and the capo", () => {
+    const html = render(
       <PlayView sheet={amazingGrace} shownKey="F#" capo="1" />,
     );
-    expect(html).toMatch(/aria-label="Play" aria-current="page"/);
-    expect(html).toContain(
-      'href="/sheets/abcdefghijkl/edit?key=F%23&amp;capo=1"',
+    expect(html).toMatch(
+      /<a [^>]*aria-label="Edit" href="\/sheets\/abcdefghijkl\/edit\?key=F%23&amp;capo=1"/,
     );
+    expect(html).not.toContain('aria-label="Play"');
+  });
+
+  // Scenario "On a wide screen".
+  it("has Back, View, Edit and the sheet's menu in the top bar", () => {
+    const html = render(<PlayView sheet={amazingGrace} />);
+    const names = [
+      ...html.matchAll(
+        /<(?:a|button) [^>]*aria-label="(Back|View|Edit|More for this sheet)"/g,
+      ),
+    ].map((m) => m[1]);
+    expect(names).toEqual(["Back", "View", "Edit", "More for this sheet"]);
+    expect(html).not.toContain('aria-label="Account"');
   });
 
   it("shows the text size this device keeps", () => {
-    const html = renderToString(<PlayView sheet={amazingGrace} textStep={1} />);
+    const html = render(<PlayView sheet={amazingGrace} textStep={1} />);
     expect(html).toContain(
       "--sheet-view-font-size:calc(var(--play-text-base) * 1.15)",
+    );
+  });
+
+  // Scenario "Lyrics only from View": the text size, then the switch.
+  it("has the text size and Lyrics only in View", () => {
+    const html = render(<PlayView sheet={amazingGrace} textStep={1} />);
+    expect(html).toMatch(
+      /<dialog [^>]*aria-label="View".*aria-label="Smaller text".*115%.*aria-label="Larger text".*role="switch"/s,
     );
   });
 
   it("disables Smaller text and Larger text at the ends", () => {
     const button = (html: string, label: string) =>
       new RegExp(`aria-label="${label}"[^>]*>`).exec(html)?.[0] ?? "";
-    const middle = renderToString(<PlayView sheet={amazingGrace} />);
+    const middle = render(<PlayView sheet={amazingGrace} />);
     expect(button(middle, "Smaller text")).not.toContain("disabled");
     expect(button(middle, "Larger text")).not.toContain("disabled");
-    const smallest = renderToString(
-      <PlayView sheet={amazingGrace} textStep={-2} />,
-    );
+    const smallest = render(<PlayView sheet={amazingGrace} textStep={-2} />);
     expect(button(smallest, "Smaller text")).toContain("disabled");
-    const largest = renderToString(
-      <PlayView sheet={amazingGrace} textStep={3} />,
-    );
+    const largest = render(<PlayView sheet={amazingGrace} textStep={3} />);
     expect(button(largest, "Larger text")).toContain("disabled");
   });
 
-  // Scenario "Printing from a phone": the menu shows on a phone only.
-  it("has a menu for the text size and Print, also without chords", () => {
+  // Scenario "Printing from the menu": the items are in sheets/sheet-menu.
+  it("has the sheet's menu, also without chords", () => {
     const empty = {
       ...amazingGrace,
       content: { ...seedSong, sections: [{ lines: [] }] },
     };
     for (const sheet of [amazingGrace, empty]) {
-      const html = renderToString(<PlayView sheet={sheet} />);
+      const html = render(<PlayView sheet={sheet} />);
       expect(html).toMatch(
-        /<div class="play-more">.*aria-label="More"[^>]*aria-haspopup="menu"/s,
+        /aria-label="More for this sheet"[^>]*aria-haspopup="menu"/,
       );
+      expect(html).not.toContain('aria-label="More"');
     }
   });
 
+  // Scenario "In two collections".
+  it("links the collections that hold the sheet under the title", () => {
+    const html = render(
+      <PlayView
+        sheet={amazingGrace}
+        collections={[
+          { id: "c1", name: "Campfire" },
+          { id: "c2", name: "Christmas" },
+        ]}
+      />,
+    );
+    expect(html).toMatch(
+      /<ul class="play-collections" aria-label="Collections"><li><a [^>]*href="\/collections\/c1"[^>]*>.*Campfire<\/a><\/li><li><a [^>]*href="\/collections\/c2"/,
+    );
+    expect(html.indexOf("key-button")).toBeLessThan(
+      html.indexOf("play-collections"),
+    );
+  });
+
+  it("shows no collections when none holds the sheet", () => {
+    expect(render(<PlayView sheet={amazingGrace} />)).not.toContain(
+      "play-collections",
+    );
+  });
+
   describe("choose collections", () => {
-    // Scenario "On a wide screen".
-    it("has a button in the top bar before Smaller text", () => {
-      const html = renderToString(<PlayView sheet={amazingGrace} />);
-      expect(html).toMatch(
-        /play-actions-divider.*aria-label="Choose collections".*aria-label="Smaller text"/s,
-      );
-    });
-
-    // Scenario "Adding from a phone".
-    it("is in the phone's menu after Lyrics only, before the text size", () => {
-      const item = (label: string, separated?: boolean) => ({
-        label,
-        icon: "add" as const,
-        ...(separated === undefined ? {} : { separated }),
-        onSelect: () => undefined,
-      });
-      expect(
-        phoneMenuItems(item("Lyrics only", true), item("Choose collections…"), [
-          item("Smaller text"),
-          item("Print"),
-        ]).map((i) => [i.label, i.separated ?? false]),
-      ).toEqual([
-        ["Lyrics only", false],
-        ["Choose collections…", true],
-        ["Smaller text", false],
-        ["Print", false],
-      ]);
-    });
-
     // Scenario "Already in a collection".
     it("ticks the collections that hold the sheet", () => {
       const html = renderToString(
@@ -341,11 +376,11 @@ describe("play view", () => {
 
   describe("lyrics only", () => {
     const toggle = (html: string) =>
-      /<button[^>]*class="[^"]*play-lyrics-toggle"[^>]*>/.exec(html)?.[0] ?? "";
+      /<button[^>]*role="switch"[^>]*>/.exec(html)?.[0] ?? "";
 
     // Scenario "Opened with lyrics only".
     it("shows the lyrics without chords or the key and capo buttons", () => {
-      const html = renderToString(
+      const html = render(
         <PlayView sheet={amazingGrace} shownKey="A" lyricsOnly />,
       );
       expect(html).toContain("sheet-view is-lyrics-only");
@@ -357,37 +392,20 @@ describe("play view", () => {
 
     // Scenario "Turning chords off and on": off, nothing changes.
     it("shows the chords and the key button when off", () => {
-      const html = renderToString(<PlayView sheet={amazingGrace} />);
+      const html = render(<PlayView sheet={amazingGrace} />);
       expect(html).toContain('class="sheet-view-chord"');
       expect(html).toContain("key-button");
-      expect(html).not.toContain("play-lyrics-label");
     });
 
-    it("has a toggle in the top bar, pressed while on", () => {
-      const off = renderToString(<PlayView sheet={amazingGrace} />);
-      expect(toggle(off)).toContain('aria-pressed="false"');
-      const on = renderToString(<PlayView sheet={amazingGrace} lyricsOnly />);
-      expect(toggle(on)).toContain('aria-pressed="true"');
-      expect(on).toMatch(/play-lyrics-toggle".*?<\/svg>Lyrics only<\/button>/s);
-    });
-
-    it("comes before the text size", () => {
-      const html = renderToString(<PlayView sheet={amazingGrace} />);
-      expect(html.indexOf("play-lyrics-toggle")).toBeLessThan(
-        html.indexOf('aria-label="Smaller text"'),
-      );
-    });
-
-    // Scenario "On a phone": the label shows on a phone only.
-    it("shows a label in place of the key and capo buttons", () => {
-      const html = renderToString(<PlayView sheet={amazingGrace} lyricsOnly />);
-      expect(html).toMatch(
-        /<h1>Amazing Grace<\/h1><div class="play-more"><span class="play-lyrics-label">Lyrics only<\/span>/,
-      );
+    it("has a switch in View, on while on", () => {
+      const off = render(<PlayView sheet={amazingGrace} />);
+      expect(toggle(off)).toContain('aria-checked="false"');
+      const on = render(<PlayView sheet={amazingGrace} lyricsOnly />);
+      expect(toggle(on)).toContain('aria-checked="true"');
     });
 
     it("isn't carried to the editor, but the key is", () => {
-      const html = renderToString(
+      const html = render(
         <PlayView sheet={amazingGrace} shownKey="A" lyricsOnly />,
       );
       expect(html).toContain('href="/sheets/abcdefghijkl/edit?key=A"');
@@ -401,7 +419,7 @@ describe("play view", () => {
 
     // Scenario "Link to a version".
     it("shows the sheet in the open version's key", () => {
-      const html = renderToString(
+      const html = render(
         <PlayView
           sheet={amazingGrace}
           versions={versions}
@@ -409,13 +427,13 @@ describe("play view", () => {
         />,
       );
       expect(html).toContain('<span class="sheet-view-chord">A7</span>');
-      expect(html).toMatch(/aria-label="Key A"/);
+      expect(html).toMatch(/aria-label="Key A, Anna&#x27;s key"/);
       expect(html).not.toContain("data-transposed");
     });
 
     // Scenario "Version in another key".
     it("shows another key with the version still open", () => {
-      const html = renderToString(
+      const html = render(
         <PlayView
           sheet={amazingGrace}
           versions={versions}
@@ -424,46 +442,45 @@ describe("play view", () => {
         />,
       );
       expect(html).toContain('<span class="sheet-view-chord">Bb7</span>');
-      expect(html).toContain('aria-label="Key B flat, 1 semitone up"');
-      expect(html).toContain("John Newton · Anna&#x27;s key");
+      expect(html).toContain(
+        'aria-label="Key B flat, 1 semitone up, Anna&#x27;s key"',
+      );
     });
 
-    // Scenario "Name after the artist".
-    it("shows the version's name after the artist, or alone", () => {
-      const html = renderToString(
+    // Scenario "Name in the key button".
+    it("shows the version's name in the key button, and the artist alone", () => {
+      const html = render(
         <PlayView
           sheet={amazingGrace}
           versions={versions}
           versionId={anna.id}
         />,
       );
-      expect(html).toContain(
-        '<p class="play-artist">John Newton · Anna&#x27;s key</p>',
+      expect(html).toMatch(
+        /Key <!-- -->A<span class="key-button-version"> · <!-- -->Anna&#x27;s key<\/span>/,
       );
-      const alone = renderToString(
+      // On paper the name follows the artist; on screen CSS hides it there.
+      expect(html).toContain(
+        '<p class="play-artist">John Newton<span class="play-print-version"> · Anna&#x27;s key</span></p>',
+      );
+    });
+
+    // Scenario "Printing a version".
+    it("keeps the version's name for printing, also without an artist", () => {
+      const alone = render(
         <PlayView
           sheet={{ ...amazingGrace, artist: undefined }}
           versions={versions}
           versionId={anna.id}
         />,
       );
-      expect(alone).toContain('<p class="play-artist">Anna&#x27;s key</p>');
-    });
-
-    it("shows the version's name with lyrics only", () => {
-      const html = renderToString(
-        <PlayView
-          sheet={amazingGrace}
-          versions={versions}
-          versionId={anna.id}
-          lyricsOnly
-        />,
+      expect(alone).toContain(
+        '<p class="play-artist"><span class="play-print-version">Anna&#x27;s key</span></p>',
       );
-      expect(html).toContain("John Newton · Anna&#x27;s key");
     });
 
     it("shows no name without an open version", () => {
-      const html = renderToString(
+      const html = render(
         <PlayView sheet={amazingGrace} versions={versions} />,
       );
       expect(html).toContain('<p class="play-artist">John Newton</p>');
@@ -475,15 +492,15 @@ describe("play view", () => {
         ...amazingGrace,
         content: { ...seedSong, key: { tonic: "E", minor: true } },
       };
-      const html = renderToString(
+      const html = render(
         <PlayView sheet={minorSheet} versions={versions} versionId={anna.id} />,
       );
-      expect(html).toMatch(/aria-label="Key F sharp minor"/);
+      expect(html).toMatch(/aria-label="Key F sharp minor, Anna&#x27;s key"/);
     });
 
     // "Edit" from a version opens the editor in its key.
     it("carries the version's key to the editor", () => {
-      const html = renderToString(
+      const html = render(
         <PlayView
           sheet={amazingGrace}
           versions={versions}
@@ -496,7 +513,7 @@ describe("play view", () => {
 
   it("leaves out the artist when there is none", () => {
     const withoutArtist = { ...amazingGrace, artist: undefined };
-    expect(renderToString(<PlayView sheet={withoutArtist} />)).not.toContain(
+    expect(render(<PlayView sheet={withoutArtist} />)).not.toContain(
       "play-artist",
     );
   });

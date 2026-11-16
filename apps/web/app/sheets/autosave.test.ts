@@ -239,6 +239,73 @@ describe("autosave", () => {
     expect(states).toEqual(["waiting"]);
   });
 
+  describe("saveNow", () => {
+    it("answers saved at once when nothing waits", async () => {
+      await expect(autosave.saveNow()).resolves.toBe("saved");
+      expect(net.fetch).not.toHaveBeenCalled();
+    });
+
+    // Scenario "Back to playing" (sheet-page).
+    it("sends waiting edits without the quiet moment", async () => {
+      autosave.edited();
+      const result = autosave.saveNow();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(net.fetch).toHaveBeenCalledTimes(1);
+      await net.pending[0]?.answer(saved(2));
+      await expect(result).resolves.toBe("saved");
+      // The scheduled save doesn't send them again.
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(net.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("waits for a save in flight, then sends what came after it", async () => {
+      autosave.edited();
+      await vi.advanceTimersByTimeAsync(1000);
+      autosave.edited();
+      const result = autosave.saveNow();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(net.fetch).toHaveBeenCalledTimes(1);
+      await net.pending[0]?.answer(saved(2));
+      expect(net.fetch).toHaveBeenCalledTimes(2);
+      expect(net.pending[1]?.body.revision).toBe(2);
+      await net.pending[1]?.answer(saved(3));
+      await expect(result).resolves.toBe("saved");
+    });
+
+    // Scenario "Going back while offline" (sheet-page).
+    it("answers failed after one try offline, and keeps retrying", async () => {
+      autosave.edited();
+      const result = autosave.saveNow();
+      await vi.advanceTimersByTimeAsync(0);
+      await net.pending[0]?.answer(new TypeError("Failed to fetch"));
+      await expect(result).resolves.toBe("failed");
+      expect(states.at(-1)).toBe("failed");
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(net.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("tries at once while a retry waits", async () => {
+      autosave.edited();
+      await vi.advanceTimersByTimeAsync(1000);
+      await net.pending[0]?.answer(new TypeError("Failed to fetch"));
+      const result = autosave.saveNow();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(net.fetch).toHaveBeenCalledTimes(2);
+      await net.pending[1]?.answer(saved(2));
+      await expect(result).resolves.toBe("saved");
+    });
+
+    it("answers stopped after a conflict or a stop", async () => {
+      autosave.edited();
+      await vi.advanceTimersByTimeAsync(1000);
+      await net.pending[0]?.answer(new Response(null, { status: 409 }));
+      await expect(autosave.saveNow()).resolves.toBe("stopped");
+      autosave.stop();
+      await expect(autosave.saveNow()).resolves.toBe("stopped");
+      expect(net.fetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("ignores a save that fails after the stop", async () => {
     autosave.edited();
     await vi.advanceTimersByTimeAsync(1000);

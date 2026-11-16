@@ -5,39 +5,20 @@ import { type ReactNode, use } from "react";
 import { Icon } from "../ui/icon";
 import { type SignedIn, SignedInContext } from "./signed-in";
 
-// The bar at the top of the home page, the prototype editor and a sheet: the
-// site's name, linking home or, once signed in, to the library, or "Library"
-// with a back arrow on a sheet, followed by `afterBack`. Then the page's
-// actions, and the link to sign in or to the account at the end. The
-// library's screens and the account page have the shell instead
-// (routes/shell.tsx).
+// The bar at the top of the home page and the prototype editor: the site's
+// name, linking home or, once signed in, to the library. Then the page's
+// actions, and the link to sign in or to the account at the end. A sheet has
+// its own bar (sheet-bar.tsx), and the library's screens and the account page
+// have the shell (routes/shell.tsx).
 // The links load the next page in full, so a page with unsaved edits can warn
 // before they go.
-export function TopBar({
-  back = false,
-  afterBack,
-  children,
-}: {
-  // On a sheet: "Library" and a back arrow in place of the site's name.
-  back?: boolean;
-  // On a sheet, after "Library": the switch between playing and editing.
-  afterBack?: ReactNode;
-  children?: ReactNode;
-}) {
+export function TopBar({ children }: { children?: ReactNode }) {
   const signedIn = use(SignedInContext);
   return (
-    <header className={back ? "top-bar top-bar-with-back" : "top-bar"}>
-      {back ? (
-        <a className="top-bar-back" href="/sheets">
-          <Icon name="arrowBack" />
-          Library
-        </a>
-      ) : (
-        <a className="top-bar-name" href={signedIn ? "/sheets" : "/"}>
-          Sheet Library
-        </a>
-      )}
-      {back && afterBack}
+    <header className="top-bar">
+      <a className="top-bar-name" href={signedIn ? "/sheets" : "/"}>
+        Sheet Library
+      </a>
       {(children ?? signedIn !== undefined) && (
         <div className="top-bar-actions">
           {children}

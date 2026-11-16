@@ -36,19 +36,6 @@ describe("TopBar", () => {
     );
   });
 
-  // Scenarios "Back to the library" and "No title in the bar".
-  it("starts with Library instead of the site's name on a sheet", () => {
-    const html = renderToString(
-      <SignedInContext value={ana}>
-        <TopBar back />
-      </SignedInContext>,
-    );
-    expect(html).toMatch(
-      /^<header [^>]*><a class="top-bar-back" href="\/sheets"><svg [^>]*>.*<\/svg>Library<\/a>/,
-    );
-    expect(html).not.toContain("Sheet Library");
-  });
-
   it("shows the actions only when given", () => {
     expect(renderToString(<TopBar />)).not.toContain("top-bar-actions");
     expect(

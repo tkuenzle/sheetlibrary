@@ -40,6 +40,11 @@ export function keepTextStep(
 
 // The lyrics' size for a step, as a CSS length on the play view's base size,
 // which is smaller on a phone.
+// The step's size as a share of the base size, in percent, such as 115.
+export function textPercent(step: number): number {
+  return Math.round((SCALES[step - MIN_TEXT_STEP] ?? 1) * 100);
+}
+
 export function textSize(step: number): string {
   const scale = SCALES[step - MIN_TEXT_STEP] ?? 1;
   return scale === 1

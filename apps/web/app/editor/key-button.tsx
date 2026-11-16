@@ -52,6 +52,7 @@ export function KeyButton({
   current,
   song,
   home = song,
+  version,
   songPart,
   guessed,
   guess,
@@ -72,6 +73,9 @@ export function KeyButton({
   // The key "Back" returns to and the distance counts from: an open
   // version's key, or else the song key.
   home?: Key;
+  // The open version's name, shown after the key, such as "Key A · Anna's
+  // key". See openspec/specs/play-page.
+  version?: string | undefined;
   // To view only: what shows in place of the song key, such as the list of
   // versions on the play view. It gets a way to close the panel.
   songPart?: (close: () => void) => ReactNode;
@@ -105,7 +109,7 @@ export function KeyButton({
         {...toggleProps}
         type="button"
         className="key-button-toggle"
-        aria-label={[`Key ${spokenKey(current)}`, distance.spoken]
+        aria-label={[`Key ${spokenKey(current)}`, distance.spoken, version]
           .filter(Boolean)
           .join(", ")}
         data-transposed={transposed || undefined}
@@ -115,6 +119,12 @@ export function KeyButton({
           <span className="key-button-distance">
             {" · "}
             {distance.written}
+          </span>
+        )}
+        {version && (
+          <span className="key-button-version">
+            {" · "}
+            {version}
           </span>
         )}
         <Icon name="expandMore" size={22} />

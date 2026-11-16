@@ -11,6 +11,7 @@ import deleteIcon from "./icons/delete.svg?raw";
 import doNotDisturbOn from "./icons/do_not_disturb_on.svg?raw";
 import edit from "./icons/edit.svg?raw";
 import expandMore from "./icons/expand_more.svg?raw";
+import formatSize from "./icons/format_size.svg?raw";
 import help from "./icons/help.svg?raw";
 import image from "./icons/image.svg?raw";
 import info from "./icons/info.svg?raw";
@@ -58,6 +59,7 @@ const sources = {
   doNotDisturbOn,
   edit,
   expandMore,
+  formatSize,
   help,
   image,
   info,

@@ -12,6 +12,7 @@ import type { Saved } from "./sheets-api.server";
 //   saving --409--> conflict, for good
 //   saving --404--> deleted, for good
 //   any state --stop()--> stopped: nothing more is sent or reported
+//   waiting or failed --saveNow()--> saving at once, without waiting
 
 export type SaveState =
   // Everything is saved.
@@ -25,6 +26,11 @@ export type SaveState =
   | "conflict"
   // The sheet was deleted elsewhere. Saving has stopped.
   | "deleted";
+
+// How `saveNow()` ended: everything is saved, the save didn't get through
+// (a retry is still coming), or saving has stopped, after a conflict, a
+// delete or `stop()`.
+export type SaveNowResult = "saved" | "failed" | "stopped";
 
 // What a save sends besides the id and the revision.
 export type SheetDraft = Pick<Sheet, "title" | "artist" | "content">;
@@ -51,6 +57,8 @@ export class Autosave {
   // Counts the edits, so a save can tell if more came while it was away.
   private edits = 0;
   private inFlight = false;
+  // The save under way, so `saveNow()` can wait for it.
+  private current: Promise<void> | undefined;
   // When the first edit that no save has sent yet was made.
   private firstUnsent: number | undefined;
   private failures = 0;
@@ -89,6 +97,26 @@ export class Autosave {
     clearTimeout(this.timer);
   }
 
+  // Saves what is waiting at once, for leaving the editor. It waits for a
+  // save under way, then sends any edits still unsent, without the quiet
+  // moment or the retry's wait. One failed try is enough to answer "failed";
+  // the retry then goes on as usual.
+  async saveNow(): Promise<SaveNowResult> {
+    let tried = false;
+    for (;;) {
+      if (this.stopped || this.isFinal()) return "stopped";
+      if (this.current) {
+        await this.current;
+        continue;
+      }
+      if (this.state === "saved") return "saved";
+      if (tried && this.state === "failed") return "failed";
+      tried = true;
+      clearTimeout(this.timer);
+      await this.startSave();
+    }
+  }
+
   private isFinal() {
     return this.state === "conflict" || this.state === "deleted";
   }
@@ -109,8 +137,16 @@ export class Autosave {
   private schedule(ms: number) {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
-      void this.save();
+      void this.startSave();
     }, ms);
+  }
+
+  private startSave() {
+    const current = this.save().finally(() => {
+      if (this.current === current) this.current = undefined;
+    });
+    this.current = current;
+    return current;
   }
 
   private retry() {
@@ -178,14 +214,20 @@ export class Autosave {
   }
 }
 
-// Autosave for a page: the save state, and the function to call after every
-// edit. Saving starts in the browser, once the page is up. Like the editor,
-// it reads the sheet once; give the page a new key to load another one.
-// Saving stops when the page closes, or on `stop()`.
+// Autosave for a page: the save state, the function to call after every
+// edit, and `saveNow()` for leaving. Saving starts in the browser, once the
+// page is up. Like the editor, it reads the sheet once; give the page a new
+// key to load another one. Saving stops when the page closes, or on
+// `stop()`.
 export function useAutosave(
   sheet: Sheet,
   read: () => SheetDraft | null,
-): { state: SaveState; edited: () => void; stop: () => void } {
+): {
+  state: SaveState;
+  edited: () => void;
+  stop: () => void;
+  saveNow: () => Promise<SaveNowResult>;
+} {
   const [state, setState] = useState<SaveState>("saved");
   const [loaded] = useState(sheet);
   const autosave = useRef<Autosave | null>(null);
@@ -209,5 +251,7 @@ export function useAutosave(
     state,
     edited: () => autosave.current?.edited(),
     stop: () => autosave.current?.stop(),
+    // Before the page is up in the browser, nothing can have been edited.
+    saveNow: () => autosave.current?.saveNow() ?? Promise.resolve("saved"),
   };
 }
