@@ -46,8 +46,16 @@
     padding-left: var(--space-xs);
   }
 
+  /* Done is the small button's size, so it doesn't fill the 56px bar, with
+     room before it and between it and the save state. */
   .sheet-bar-edit {
-    padding-left: var(--space-s);
+    gap: var(--space-m);
+    padding-left: var(--space-m);
+  }
+
+  .sheet-bar-edit .button.sheet-bar-done {
+    height: 44px;
+    padding: 0 var(--space-l) 0 var(--space-m);
   }
 
   .sheet-bar .button.sheet-bar-edit-link:has(> .icon:first-child) {
