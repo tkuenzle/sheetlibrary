@@ -18,7 +18,7 @@
 - [x] 3.3 Show the open version's name in the key button and the artist alone; verify with route tests for a version, a renamed version and a deleted one
 - [x] 3.4 Read the sheet's collections in the play loader and show them as links under the title above 640px, reloading once after "Choose collections…" closes with a change; verify with a loader test and a route test
 - [x] 3.5 Delete from the menu with the existing confirm dialog, leaving as Back does; verify with route tests for confirm, cancel and a failed delete
-- [ ] 3.6 Centre the sheet; verify on a wide screen with the browser-check skill
+- [x] 3.6 Centre the sheet; verify on a wide screen with the browser-check skill
 
 ## 4. Edit mode
 
@@ -32,6 +32,6 @@
 
 ## 5. Docs and end to end
 
-- [ ] 5.1 Update `docs/ui-text.md` (top bar, play view, sheet's menu, saving, the first-time note, the leave prompt) and `docs/design-direction.md` (top bar on a sheet, play first, no side panel on a sheet); verify the wording matches the UI
+- [x] 5.1 Update `docs/ui-text.md` (top bar, play view, sheet's menu, saving, the first-time note, the leave prompt) and `docs/design-direction.md` (top bar on a sheet, play first, no side panel on a sheet); verify the wording matches the UI
 - [x] 5.2 Update `e2e/play.spec.ts`, `e2e/sheet.spec.ts` and `e2e/library.spec.ts`: Back to a search with its scroll, Back from a link, Edit and Done keeping key and capo, Done saving at once, the browser's back from edit mode to play, the browser's back offline, the menu, and "Got it" across a reload; verify `pnpm e2e` passes for these files
-- [ ] 5.3 Check play, View, the menu and edit mode on a phone, a middle and a wide screen with the browser-check skill; verify against the canvas boards
+- [x] 5.3 Check play, View, the menu and edit mode on a phone, a middle and a wide screen with the browser-check skill; verify against the canvas boards

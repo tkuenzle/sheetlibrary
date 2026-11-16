@@ -1,16 +1,14 @@
 /* A stored sheet. The editor's layout is shared with /editor (editor.css). */
 
 /*
-  The title's line and the artist on the left, and the sheet's menu at the
-  top right. The title wraps beside the menu, so the menu stays in its place
-  at every width. The heading takes over the title's padding from
-  editor.css, so the menu sits inside it.
+  The title's line, with Rename beside the title, then the artist. The
+  heading takes over the title's padding from editor.css.
 */
 .sheet-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--space-s);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   padding: 0 var(--space-s);
 }
 
@@ -19,14 +17,6 @@
 }
 
 .sheet-heading h1 {
-  min-width: 0;
-}
-
-.sheet-heading-main {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
   min-width: 0;
 }
 
@@ -48,4 +38,9 @@
 .save-status[data-state="failed"],
 .save-status[data-state="conflict"] {
   color: var(--text);
+}
+
+/* Rename sits close to the title, closer than the key buttons after it. */
+.sheet-heading .editor-title > .tooltip-anchor:has(> .sheet-rename) {
+  margin-left: calc(-1 * var(--space-m));
 }

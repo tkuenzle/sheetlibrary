@@ -6,7 +6,7 @@
 .play-page {
   --play-text-base: 24px;
 
-  max-width: 960px;
+  max-width: 720px;
   margin: 0 auto;
   padding: var(--space-l) var(--space-2xl) 80px;
 }
