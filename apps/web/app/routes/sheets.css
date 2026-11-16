@@ -50,6 +50,91 @@
   text-align: center;
 }
 
+/* The empty library: the ways to add the first sheet, as cards, as on the
+   canvas board "Empty library (first sign-in)". Three across where they
+   fit, stacked on a phone. */
+.library-first {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding-top: var(--space-xl);
+}
+
+.library-first-heading > h2 {
+  margin: 0 0 var(--space-s);
+  font: 800 var(--font-size-heading) / 1.2 var(--font);
+}
+
+.library-first-heading > p {
+  margin: 0;
+  color: var(--text-muted);
+  font: 400 var(--font-size-body) / 1.45 var(--font);
+}
+
+.library-ways {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-l);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-ways > li,
+.library-ways form {
+  display: flex;
+}
+
+.library-way {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-m);
+  padding: var(--space-xl);
+  border: 0;
+  border-radius: var(--corner-medium);
+  background: var(--surface-active);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.library-way:hover {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--text) 4%, transparent) 0 0
+  );
+}
+
+.library-way:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.library-way-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--corner-full);
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.library-way-label {
+  font: 700 20px / 1.2 var(--font);
+}
+
+.library-way-text {
+  color: var(--text-muted);
+  font: 400 var(--font-size-body) / 1.4 var(--font);
+}
+
 /* The passkey offer after an email sign-in, in the note colors. */
 .passkey-offer {
   display: grid;
@@ -77,19 +162,13 @@
   margin-left: calc(-1 * var(--space-m));
 }
 
-/* "Import" and "New sheet", side by side. */
+/* Buttons beside a screen's heading, or in its empty state. */
 .library-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   gap: var(--space-m);
-}
-
-/* On a phone, they are docked at the bottom right instead, above the
-   shell's bar. */
-.library-actions-docked {
-  display: none;
 }
 
 /* Phone-wide (see app/breakpoints.ts): the title, with the artist and the
@@ -114,26 +193,51 @@
     padding-bottom: 120px;
   }
 
+  /* On a phone, the screen's floating button takes their place. */
   .library-actions-beside {
     display: none;
   }
 
-  .library-actions-docked {
-    display: flex;
-    position: fixed;
-    right: var(--space-l);
-    bottom: calc(var(--shell-bar-height, 0px) + var(--space-l));
-    z-index: 1;
-  }
-
-  /* The Import menu opens above the docked buttons, at their right edge, so
-     it stays on the screen. */
-  .library-actions-docked .menu {
-    position: static;
-  }
-
   .library-empty {
     padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
+  }
+
+  .library-first {
+    padding-top: 0;
+  }
+
+  .library-ways {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-s);
+  }
+
+  /* On a phone, the icon sits beside the name and the line. */
+  .library-way {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "icon label"
+      "icon text";
+    column-gap: var(--space-l);
+    row-gap: var(--space-xs);
+    align-items: center;
+    padding: var(--space-l) 20px;
+  }
+
+  .library-way-icon {
+    grid-area: icon;
+    width: 48px;
+    height: 48px;
+  }
+
+  .library-way-label {
+    grid-area: label;
+    font-size: 17px;
+  }
+
+  .library-way-text {
+    grid-area: text;
+    font-size: var(--font-size-small);
   }
 
   /* "Add passkey" below the text, and "Close" at the top right. */

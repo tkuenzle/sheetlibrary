@@ -31,6 +31,16 @@
   right: 0;
 }
 
+.menu-beside > .menu-list {
+  top: 0;
+  left: calc(100% + var(--space-s));
+}
+
+/* The square button of the compact rail: rounded corners, not round. */
+.icon-button.menu-toggle-square {
+  border-radius: var(--space-l);
+}
+
 /* The chevron after the text, pointing where the list opens. */
 .button.menu-toggle-text {
   padding-right: 14px;

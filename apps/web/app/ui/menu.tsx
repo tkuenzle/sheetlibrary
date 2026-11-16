@@ -19,13 +19,39 @@ export interface MenuItem {
 }
 
 // Where the list opens: under the button at its right edge (the default) or
-// its left edge, or above it at its right edge, for a button docked at the
-// bottom of the screen.
-export type MenuPlacement = "below-end" | "below-start" | "above-end";
+// its left edge, above it at its right edge, for a button docked at the
+// bottom of the screen, or beside it on its right, level with its top, for a
+// button in the compact rail.
+export type MenuPlacement =
+  "below-end" | "below-start" | "above-end" | "beside";
+
+// The item the arrow keys, Home and End move the focus to, from the one that
+// has it. Wraps around at both ends. Undefined for any other key.
+export function nextMenuItem<T>(
+  key: string,
+  items: T[],
+  current: T | null,
+): T | undefined {
+  const at = current === null ? -1 : items.indexOf(current);
+  switch (key) {
+    case "ArrowDown":
+      return items[(at + 1) % items.length];
+    case "ArrowUp":
+      return items[(at - 1 + items.length) % items.length];
+    case "Home":
+      return items[0];
+    case "End":
+      return items.at(-1);
+    default:
+      return undefined;
+  }
+}
 
 // A button that opens a short list of actions. It is an icon button named by
 // `label`, or, with `text`, a button that shows `label` and a chevron: tonal,
-// or plain with `variant="text"`.
+// filled for the screen's main action, or plain with `variant="text"`.
+// `chevron={false}` leaves the chevron out. With `square`, it is a filled
+// square icon button, as in the compact rail.
 // It opens with the first item focused; the arrow keys, Home and End move
 // between the items. Escape or a click outside closes it, with the focus back
 // on the button. A picked item closes it and leaves the focus to the item's
@@ -37,6 +63,8 @@ export function Menu({
   items,
   text = false,
   variant = "tonal",
+  chevron = true,
+  square = false,
   size,
   placement = "below-end",
   fixed = false,
@@ -45,7 +73,9 @@ export function Menu({
   icon?: IconName;
   items: MenuItem[];
   text?: boolean;
-  variant?: "tonal" | "text";
+  variant?: "tonal" | "filled" | "text";
+  chevron?: boolean;
+  square?: boolean;
   // Large for the main actions docked at the bottom of a phone.
   size?: "large";
   placement?: MenuPlacement;
@@ -105,12 +135,22 @@ export function Menu({
           variant={variant}
           size={size}
           icon={icon}
-          className="menu-toggle-text"
+          className={chevron ? "menu-toggle-text" : undefined}
           {...toggle}
         >
           {label}
-          <Icon name="expandMore" />
+          {chevron && <Icon name="expandMore" />}
         </Button>
+      ) : square ? (
+        <IconButton
+          icon={icon}
+          label={label}
+          variant="filled"
+          size="large"
+          className="menu-toggle-square"
+          tooltipPlacement="right"
+          {...toggle}
+        />
       ) : (
         <IconButton icon={icon} label={label} {...toggle} />
       )}
@@ -124,24 +164,23 @@ export function Menu({
           style={fixed ? fixedAt : undefined}
           tabIndex={-1}
           onKeyDown={(event) => {
-            const all = menuItems();
-            const at = all.indexOf(document.activeElement as HTMLButtonElement);
-            let next: HTMLButtonElement | undefined;
-            if (event.key === "ArrowDown") next = all[(at + 1) % all.length];
-            else if (event.key === "ArrowUp")
-              next = all[(at - 1 + all.length) % all.length];
-            else if (event.key === "Home") next = all[0];
-            else if (event.key === "End") next = all.at(-1);
-            else if (event.key === "Escape") {
+            if (event.key === "Escape") {
               event.preventDefault();
               close();
               return;
-            } else if (event.key === "Tab") {
+            }
+            if (event.key === "Tab") {
               setOpen(false);
               return;
-            } else return;
+            }
+            const next = nextMenuItem(
+              event.key,
+              menuItems(),
+              document.activeElement as HTMLButtonElement | null,
+            );
+            if (!next) return;
             event.preventDefault();
-            next?.focus();
+            next.focus();
           }}
         >
           {items.map((item) => (
@@ -180,6 +219,8 @@ function fixedPosition(
         bottom: window.innerHeight - box.top + 12,
         right: fromRight,
       };
+    case "beside":
+      return { position: "fixed", top: box.top, left: box.right + 8 };
   }
 }
 

@@ -199,6 +199,15 @@ describe("ShellView", () => {
     expect(bar).not.toContain("Campfire");
   });
 
+  // Requirement "Rail on wide screens": "New sheet" after the site's name,
+  // on every screen.
+  it("has New sheet after the site's name in the rail", () => {
+    const [rail = ""] = navs(render("/collections/christmas000"));
+    expect(rail).toMatch(
+      /Sheet Library<\/a><div class="shell-new-sheet"><div class="menu menu-below-start"><button type="button" class="button button-filled" aria-haspopup="menu" aria-expanded="false"><svg [^>]*>.*?<\/svg>New sheet<\/button><\/div><\/div><ul class="nav-rail-items">/,
+    );
+  });
+
   // Scenarios "The open screen" and "A collection on a phone".
   it("marks a collection in the rail, and Collections where it isn't listed", () => {
     const [rail = "", compact = "", bar = ""] = navs(
@@ -221,14 +230,32 @@ describe("ShellView", () => {
     );
   });
 
+  // Requirement "Rail with icons on middle screens": the square "New sheet"
+  // under the menu button, opening beside it.
+  it("has the square New sheet under the menu button in the compact rail", () => {
+    const [, compact = ""] = navs(render("/sheets"));
+    expect(compact).toMatch(
+      /aria-label="Open navigation".*?<div class="shell-new-sheet"><div class="menu menu-beside"><span [^>]*><button type="button" aria-label="New sheet" class="button icon-button icon-button-filled button-filled icon-button-large menu-toggle-square" aria-haspopup="menu"/s,
+    );
+  });
+
   // Requirement "Opening the rail on middle screens". Opening it is tested
   // in the browser (e2e/library.spec.ts).
   it("ends with the opened rail's panel, empty and from the left while closed", () => {
     const html = render("/sheets");
     expect(html).toMatch(
-      /<dialog class="edge-panel shell-rail-panel" data-side="left" aria-label="Main"><\/dialog><\/div>$/,
+      /<dialog class="edge-panel shell-rail-panel" data-side="left" aria-label="Main"><\/dialog><\/div>/,
     );
     expect(navs(html)).toHaveLength(3);
+  });
+
+  // The ways to add a sheet open the same dialogs from every screen in the
+  // shell. Opening them is tested in the browser (e2e/library.spec.ts).
+  it("has the import dialogs after the shell, closed", () => {
+    const html = render("/collections");
+    expect(html).toMatch(
+      /<\/div><dialog class="import-dialog" [^>]*><\/dialog><dialog class="photo-import-dialog" [^>]*><\/dialog>$/,
+    );
   });
 
   // Requirement "Bottom bar on phones".

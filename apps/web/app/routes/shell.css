@@ -18,10 +18,12 @@ html:has(.shell) {
   scrollbar-gutter: stable;
 }
 
-/* The rail stays in view while the page scrolls. */
+/* The rail stays in view while the page scrolls. Its menus open over the
+   content beside it. */
 .shell > .nav-rail {
   position: sticky;
   top: 0;
+  z-index: 2;
   grid-column: 1;
   align-self: start;
   height: 100vh;
@@ -168,4 +170,17 @@ html:has(.shell) {
   .shell-account {
     display: flex;
   }
+}
+
+/* "New sheet" in the full rail: the screen's main action, at the start of
+   its line, as on the canvas board "Sheets, desktop". */
+.nav-rail:not(.nav-rail-compact) > .shell-new-sheet {
+  align-self: flex-start;
+}
+
+.shell-new-sheet .button-filled:not(.icon-button) {
+  height: 56px;
+  padding: 0 24px 0 20px;
+  font-size: 16px;
+  font-weight: 700;
 }

@@ -1,7 +1,7 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { Menu, MenuEntry, type MenuItem } from "./menu";
+import { Menu, MenuEntry, type MenuItem, nextMenuItem } from "./menu";
 
 describe("Menu", () => {
   it("is a closed menu button named by its label", () => {
@@ -47,6 +47,65 @@ describe("Menu", () => {
     expect(html).toMatch(/<\/svg>Import<svg /);
     expect(html).not.toContain("aria-label");
     expect(html).not.toContain("tooltip");
+  });
+
+  it("is a filled button without a chevron, for the rail's main action", () => {
+    const html = renderToString(
+      <Menu
+        label="New sheet"
+        icon="add"
+        text
+        variant="filled"
+        chevron={false}
+        placement="below-start"
+        items={[]}
+      />,
+    );
+    expect(html).toMatch(/^<div class="menu menu-below-start"/);
+    expect(html).toMatch(
+      /<button type="button" class="button button-filled" aria-haspopup="menu" aria-expanded="false"/,
+    );
+    expect(html).toMatch(/<\/svg>New sheet<\/button>/);
+  });
+
+  it("is a filled square icon button opening beside it", () => {
+    const html = renderToString(
+      <Menu
+        label="New sheet"
+        icon="add"
+        square
+        placement="beside"
+        items={[]}
+      />,
+    );
+    expect(html).toMatch(/^<div class="menu menu-beside"/);
+    expect(html).toContain('aria-label="New sheet"');
+    expect(html).toMatch(
+      /class="button icon-button icon-button-filled button-filled icon-button-large menu-toggle-square"/,
+    );
+  });
+
+  describe("the keys between items", () => {
+    const items = ["a", "b", "c"];
+
+    it("moves down and up, wrapping around", () => {
+      expect(nextMenuItem("ArrowDown", items, "a")).toBe("b");
+      expect(nextMenuItem("ArrowDown", items, "c")).toBe("a");
+      expect(nextMenuItem("ArrowUp", items, "a")).toBe("c");
+    });
+
+    it("goes to the ends with Home and End", () => {
+      expect(nextMenuItem("Home", items, "b")).toBe("a");
+      expect(nextMenuItem("End", items, "b")).toBe("c");
+    });
+
+    it("starts at the first item when none has the focus", () => {
+      expect(nextMenuItem("ArrowDown", items, null)).toBe("a");
+    });
+
+    it("ignores other keys", () => {
+      expect(nextMenuItem("Enter", items, "a")).toBeUndefined();
+    });
   });
 
   describe("an item", () => {

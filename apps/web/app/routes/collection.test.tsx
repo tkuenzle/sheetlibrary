@@ -227,6 +227,18 @@ describe("collection page", () => {
     expect(html).toContain("Add sheets");
   });
 
+  // Requirement "The screen's add button on phones": tonal beside the
+  // heading, and the floating button for a phone.
+  it("has Add sheets beside the heading, and floating for a phone", () => {
+    const html = render(christmas);
+    expect(html).toMatch(
+      /library-actions-beside"><button type="button" class="button button-tonal"><svg [^>]*>.*?<\/svg>Add sheets<\/button>/,
+    );
+    expect(html).toContain(
+      '<button type="button" aria-label="Add sheets" class="floating-button">',
+    );
+  });
+
   // Requirement "Removing a sheet": in the row's menu, not a button.
   it("has the shared row menu on each row, without a remove button", () => {
     const html = render(christmas);
@@ -257,7 +269,10 @@ describe("collection page", () => {
     expect(html).toMatch(/<p>No sheets yet<\/p>/);
     expect(html).toMatch(/No sheets in this collection.*Add sheets/s);
     expect(html).not.toContain("group-list");
-    expect(html).not.toContain("library-actions-docked");
+    expect(html).toMatch(
+      /No sheets in this collection.*<button type="button" class="button button-filled">.*Add sheets/s,
+    );
+    expect(html).not.toContain("floating-button");
   });
 
   it("names the page for the collection, and asks not to be indexed", () => {

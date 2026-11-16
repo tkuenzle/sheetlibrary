@@ -80,6 +80,68 @@ async function openMenuItem(page: Page, item: string) {
   await page.getByRole("menuitem", { name: item }).click();
 }
 
+// Where a box sits in the window, to check a floating button above the bar.
+async function floatsAboveBar(page: Page, name: string) {
+  const box = await page.getByRole("button", { name }).boundingBox();
+  const viewport = page.viewportSize();
+  expect(box).toMatchObject({ width: 64, height: 64 });
+  if (!box || !viewport) throw new Error("No box");
+  expect(box.x + box.width).toBeGreaterThan(viewport.width - 32);
+  // The bar is 80px high.
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height - 80);
+  expect(box.y + box.height).toBeGreaterThan(viewport.height - 128);
+}
+
+// Scenarios "On Collections" and "On a collection" on a phone, and
+// "Opening Collections" on a wide screen: "New collection" and "Add sheets"
+// float above the bar on a phone, and sit beside the heading wider, with
+// "New sheet" in the rail.
+test("puts each screen's add button where the window has room for it", async ({
+  page,
+  hasTouch,
+}) => {
+  const mark = newMark();
+  const sheet = await createSheet(page, `Floating ${mark}`);
+  const id = await createCollection(page, `Floating ${mark}`);
+  const added = await page.request.put(
+    `/api/sheets/${sheet}/collections/${id}`,
+  );
+  expect(added.ok()).toBe(true);
+
+  await page.goto("/collections");
+  await page.waitForLoadState("networkidle");
+  if (hasTouch) {
+    await floatsAboveBar(page, "New collection");
+    await page.getByRole("button", { name: "New collection" }).click();
+    await expect(nameDialog(page, "New collection")).toBeVisible();
+    await nameDialog(page, "New collection")
+      .getByRole("button", { name: "Cancel" })
+      .click();
+    await expect(page.getByRole("button", { name: "New sheet" })).toHaveCount(
+      0,
+    );
+  } else {
+    const button = main(page).getByRole("button", { name: "New collection" });
+    await expect(button).toHaveText("New collection");
+    expect((await button.boundingBox())?.y).toBeLessThan(
+      ((await heading(page).boundingBox())?.y ?? 0) + 80,
+    );
+    await expect(
+      mainNav(page).getByRole("button", { name: "New sheet" }),
+    ).toBeVisible();
+  }
+
+  await page.goto(`/collections/${id}`);
+  await expect(heading(page)).toHaveText(`Floating ${mark}`);
+  if (hasTouch) {
+    await floatsAboveBar(page, "Add sheets");
+  } else {
+    await expect(
+      main(page).getByRole("button", { name: "Add sheets" }),
+    ).toHaveText("Add sheets");
+  }
+});
+
 // Scenarios "Opening Collections", "Making a collection", "A new
 // collection" (the rail), "Adding two sheets", "Removing", "Renaming", "Name
 // in use" and "Deleting".

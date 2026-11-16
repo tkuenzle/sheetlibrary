@@ -62,7 +62,8 @@ export function NavRail({
   name?: { href: string; label: string };
   // On the line of the site's name, at its end, such as a close button.
   besideName?: ReactNode;
-  // Before the items, such as the button that opens the full rail.
+  // After the site's name and before the items, such as the button that
+  // opens the full rail, or "New sheet".
   top?: ReactNode;
   items: NavItem[];
   footer?: NavItem[];

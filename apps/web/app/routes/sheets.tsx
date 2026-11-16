@@ -7,20 +7,21 @@ import {
   Link,
   redirect,
   type ShouldRevalidateFunctionArgs,
-  useNavigate,
 } from "react-router";
 
 import { closeOffer, offerClosed } from "../auth/passkey-offer";
 import { hasPasskey } from "../auth/passkeys.server";
 import { cloudflareContext, sessionContext } from "../context";
-import { ImportDialog } from "../editor/import-button";
-import { PhotoImportDialog } from "../photos/photo-import-dialog";
 import { readSheetOrder, type SheetOrder } from "../sheets/order";
 import { RecentSheets } from "../sheets/recent-sheets";
 import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList } from "../sheets/sheet-list";
 import { UNTITLED } from "../sheets/details";
-import { importedSheetPath, importSheet } from "../sheets/import";
+import {
+  newSheetItems,
+  type NewSheetWay,
+  useNewSheet,
+} from "../sheets/new-sheet";
 import { isSearch } from "../sheets/search";
 import { SearchField, useSearchPending } from "../sheets/search-field";
 import { revalidateUnlessUnchanged } from "../shell/revalidate";
@@ -35,15 +36,16 @@ import {
   type SearchResult,
   type SheetListItem,
 } from "../sheets/sheets.server";
-import { Button, IconButton } from "../ui/button";
+import { IconButton } from "../ui/button";
+import { FloatingMenu } from "../ui/floating-button";
 import { Icon } from "../ui/icon";
-import { Menu } from "../ui/menu";
+import type { IconName } from "../ui/icons";
 import { errorKind, isOnline } from "../ui/page-error";
 import type { Route } from "./+types/sheets";
 
 // The Sheets screen of the library: the signed-in person's sheets in the
-// shared list, the search field, "Import" and "New sheet". It sits in the
-// shell (routes/shell.tsx). See openspec/specs/library-page and
+// shared list and the search field. "New sheet" is in the shell's rail, and
+// floats above the bar on a phone. It sits in the shell (routes/shell.tsx). See openspec/specs/library-page and
 // openspec/specs/sheet-list.
 
 export function meta() {
@@ -94,7 +96,8 @@ export async function loader({ context, request, url }: Route.LoaderArgs) {
   };
 }
 
-// "New sheet", or deleting a sheet from its row (`intent` "delete"). A form
+// "Write a new sheet", from any screen in the shell, or deleting a sheet
+// from its row (`intent` "delete"). A form
 // on another site can't get here signed in, since the session cookie is
 // SameSite=Lax, so it is sent to sign-in like a visitor.
 export async function action({ context, request }: Route.ActionArgs) {
@@ -220,88 +223,87 @@ function PasskeyOffer({ onClose }: { onClose: () => void }) {
   );
 }
 
-// Posts to the action above. Works before the scripts load.
-function NewSheet({ size }: { size?: "large" }) {
+// The empty library's cards: the ways of "New sheet", each with a line
+// that says what it does. See openspec/specs/library-page.
+const ways: {
+  way: NewSheetWay;
+  label: string;
+  icon: IconName;
+  text: string;
+}[] = [
+  {
+    way: "write",
+    label: "Write it",
+    icon: "edit",
+    text: "Start with an empty sheet and type the lyrics and chords.",
+  },
+  {
+    way: "photos",
+    label: "From photos",
+    icon: "photoCamera",
+    text: "Take or pick a photo of each page. The lyrics and chords are read into a sheet.",
+  },
+  {
+    way: "ultimate-guitar",
+    label: "From Ultimate Guitar",
+    icon: "link",
+    text: "Paste the chords and lyrics from an Ultimate Guitar page.",
+  },
+];
+
+// "Write it" posts to the action above, so it works before the scripts
+// load. The imports open their dialog in the shell.
+function FirstSheet() {
+  const start = useNewSheet();
   return (
-    <Form method="post">
-      <Button type="submit" icon="add" size={size}>
-        New sheet
-      </Button>
-    </Form>
+    <section className="library-first" aria-labelledby="library-first">
+      <div className="library-first-heading">
+        <h2 id="library-first">Add your first sheet</h2>
+        <p>Pick a way to start. Everything can be edited later.</p>
+      </div>
+      <ul className="library-ways">
+        {ways.map(({ way, label, icon, text }) => {
+          const content = (
+            <>
+              <span className="library-way-icon" aria-hidden="true">
+                <Icon name={icon} size={28} />
+              </span>
+              <span className="library-way-label">{label}</span>
+              <span className="library-way-text">{text}</span>
+            </>
+          );
+          return (
+            <li key={way}>
+              {way === "write" ? (
+                <Form method="post" action="/sheets">
+                  <button type="submit" className="library-way">
+                    {content}
+                  </button>
+                </Form>
+              ) : (
+                <button
+                  type="button"
+                  className="library-way"
+                  onClick={() => {
+                    start(way);
+                  }}
+                >
+                  {content}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
-// "Import": a menu of the imports. Each creates a sheet and opens it, as
-// "New sheet" does. A dialog stays until the sheet replaces the library.
-// Docked at the bottom of a phone, the menu opens above the button. A sheet
-// from photos takes the title read from them, and only opens to be named
-// without one.
-function LibraryImport({ size }: { size?: "large" }) {
-  const navigate = useNavigate();
-  const [dialog, setDialog] = useState<"photos" | "ultimate-guitar">();
-  const wrapper = useRef<HTMLDivElement>(null);
-
-  function closed() {
-    setDialog(undefined);
-    wrapper.current?.querySelector<HTMLElement>("[aria-haspopup]")?.focus();
-  }
-
+// "New sheet" floating above the bar on a phone. Wider, it is in the rail.
+function NewSheetButton() {
+  const start = useNewSheet();
   return (
-    <div className="library-import" ref={wrapper}>
-      <Menu
-        label="Import"
-        icon="contentPasteGo"
-        text
-        size={size}
-        placement={size === "large" ? "above-end" : "below-start"}
-        items={[
-          {
-            label: "From photos…",
-            icon: "photoCamera",
-            onSelect: () => {
-              setDialog("photos");
-            },
-          },
-          {
-            label: "From Ultimate Guitar…",
-            icon: "contentPasteGo",
-            onSelect: () => {
-              setDialog("ultimate-guitar");
-            },
-          },
-        ]}
-      />
-      <ImportDialog
-        open={dialog === "ultimate-guitar"}
-        onClose={closed}
-        onImport={async (sheet, capo) => {
-          const result = await importSheet(sheet);
-          if ("error" in result) return result.error;
-          void navigate(importedSheetPath(result.id, { capo }));
-          return undefined;
-        }}
-      />
-      <PhotoImportDialog
-        open={dialog === "photos"}
-        onClose={closed}
-        onRead={async ({ content, title, artist }) => {
-          const result = await importSheet(content, { title, artist });
-          if ("error" in result) return false;
-          void navigate(importedSheetPath(result.id, { title }));
-          return true;
-        }}
-      />
-    </div>
-  );
-}
-
-// "Import" before "New sheet", as on the canvas.
-function Actions({ size, className }: { size?: "large"; className: string }) {
-  return (
-    <div className={className}>
-      <LibraryImport size={size} />
-      <NewSheet size={size} />
-    </div>
+    <FloatingMenu label="New sheet" icon="add" items={newSheetItems(start)} />
   );
 }
 
@@ -346,22 +348,16 @@ export function LibraryView({
       <div className="library">
         <h1>Sheets</h1>
         {offer}
-        <section className="library-empty" aria-labelledby="library-empty">
-          <h2 id="library-empty">No sheets yet</h2>
-          <Actions className="library-actions" />
-        </section>
+        <FirstSheet />
       </div>
     );
   }
 
   return (
     <div className="library library-with-sheets">
-      <div className="library-heading">
-        <h1 ref={heading} tabIndex={-1}>
-          Sheets
-        </h1>
-        <Actions className="library-actions library-actions-beside" />
-      </div>
+      <h1 ref={heading} tabIndex={-1}>
+        Sheets
+      </h1>
       {offer}
       <SearchField
         q={q}
@@ -393,10 +389,7 @@ export function LibraryView({
           onGone={() => heading.current?.focus()}
         />
       )}
-      <Actions
-        size="large"
-        className="library-actions library-actions-docked"
-      />
+      <NewSheetButton />
     </div>
   );
 }

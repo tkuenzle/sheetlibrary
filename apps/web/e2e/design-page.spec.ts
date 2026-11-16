@@ -81,6 +81,34 @@ test("shows the rail, its compact form and the bottom bar", async ({
   expect((await bar.boundingBox())?.height).toBe(80);
 });
 
+// The floating buttons stand where they are here. The menu opens its items
+// over the dimmed page, and Escape closes it with the focus back on it.
+test("shows the floating buttons and opens the floating menu", async ({
+  page,
+}) => {
+  const light = page.locator('[data-theme="light"]');
+  const add = light.getByRole("button", { name: "New collection" });
+  expect(await add.boundingBox()).toMatchObject({ width: 64, height: 64 });
+
+  const newSheet = light.getByRole("button", { name: "New sheet" });
+  await newSheet.click();
+  const menu = page.getByRole("menu", { name: "New sheet" });
+  await expect(menu.getByRole("menuitem")).toHaveText([
+    "Write a new sheet",
+    "From photos…",
+    "From Ultimate Guitar…",
+  ]);
+  await expect(menu.getByRole("menuitem").first()).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(
+    menu.getByRole("menuitem", { name: "From Ultimate Guitar…" }),
+  ).toBeFocused();
+  await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(newSheet).toBeFocused();
+});
+
 // The loading bar stands still here, and the page errors keep their
 // action. See openspec/specs/site-layout.
 test("shows the loading bar and the page errors", async ({ page }) => {
@@ -158,6 +186,7 @@ test("components keep an outline in forced colors mode", async ({ page }) => {
         ".popover",
         ".note",
         ".tooltip",
+        ".floating-button",
         ".nav-rail-sub-item[aria-current]",
         ".nav-rail-compact .nav-rail-item[aria-current] > .nav-rail-icon",
         ".nav-bar-item[aria-current] > .nav-bar-icon",

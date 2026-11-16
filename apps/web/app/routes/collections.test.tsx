@@ -74,12 +74,29 @@ describe("Collections screen", () => {
     }
   });
 
-  // Scenario "First visit".
+  // Requirement "The screen's add button on phones": tonal beside the
+  // heading, and the floating button for a phone.
+  it("has New collection beside the heading, and floating for a phone", () => {
+    const html = render([
+      { id: "abcdefghijkl", name: "Christmas", count: 0, titles: [] },
+    ]);
+    expect(html).toMatch(
+      /library-actions-beside"><button type="button" class="button button-tonal"><svg [^>]*>.*?<\/svg>New collection<\/button>/,
+    );
+    expect(html).toContain(
+      '<button type="button" aria-label="New collection" class="floating-button">',
+    );
+  });
+
+  // Scenario "First visit", and "No floating button on an empty screen".
   it("says there are no collections yet, and offers New collection", () => {
     const html = render([]);
     expect(html).toContain("No collections yet");
-    expect(html).toMatch(/No collections yet.*New collection/s);
+    expect(html).toMatch(
+      /No collections yet.*<button type="button" class="button button-filled">.*New collection/s,
+    );
     expect(html).not.toContain("collections-cards");
+    expect(html).not.toContain("floating-button");
   });
 
   it("sets the page title and asks search engines not to index it", () => {
