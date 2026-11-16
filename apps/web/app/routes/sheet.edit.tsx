@@ -2,8 +2,15 @@ import "./editor.css";
 import "./sheet.edit.css";
 
 import type { Sheet } from "chordsheet";
-import { useEffect, useRef, useState } from "react";
-import { data, redirect, useBlocker, useRevalidator } from "react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  data,
+  type Location,
+  redirect,
+  useBlocker,
+  useNavigate,
+  useRevalidator,
+} from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
 import { cloudflareContext, sessionContext } from "../context";
@@ -228,31 +235,60 @@ export function SheetView({
   // a link, saves first. Only when that save fails does the page ask. After
   // a conflict or a delete, saving has stopped, so it leaves at once, and so
   // it does once the sheet is deleted from here.
+  //
+  // The blocked move is made again by the page, not with the blocker's
+  // `proceed()`, which waits for React Router to undo a browser back first
+  // and could lose the move when the save came back at the same moment.
   const leaving = useRef(false);
+  // While a save for a blocked move runs, more moves are let go of, so a
+  // second back press doesn't step back twice.
+  const saving = useRef(false);
+  const blockedAs = useRef<string>("PUSH");
   const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      !leaving.current &&
-      unsaved &&
-      !readOnly &&
-      nextLocation.pathname !== currentLocation.pathname,
+    ({ currentLocation, nextLocation, historyAction }) => {
+      const block =
+        !leaving.current &&
+        unsaved &&
+        !readOnly &&
+        nextLocation.pathname !== currentLocation.pathname;
+      if (block) blockedAs.current = historyAction;
+      return block;
+    },
   );
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState<Location | null>(null);
   const saveNow = useRef(autosave.saveNow);
   useEffect(() => {
     saveNow.current = autosave.saveNow;
   });
+  const navigate = useNavigate();
+  // Makes the blocked move again: a browser back steps back, and a link or
+  // Done goes to its address the way it would have.
+  const leave = useCallback(
+    (to: Location) => {
+      leaving.current = true;
+      if (blockedAs.current === "POP") {
+        void navigate(-1);
+        return;
+      }
+      void navigate(`${to.pathname}${to.search}`, {
+        replace: blockedAs.current === "REPLACE",
+        state: to.state as unknown,
+      });
+    },
+    [navigate],
+  );
   useEffect(() => {
     if (blocker.state !== "blocked") return;
-    let cancelled = false;
+    const to = blocker.location;
+    blocker.reset();
+    if (saving.current) return;
+    saving.current = true;
     void saveNow.current().then((result) => {
-      if (cancelled) return;
-      if (result === "failed") setAsking(true);
-      else blocker.proceed();
+      saving.current = false;
+      if (result === "failed") setAsking(to);
+      else leave(to);
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [blocker]);
+  }, [blocker, leave]);
 
   function done() {
     const query = keyQuery(sheetKey);
@@ -389,21 +425,19 @@ export function SheetView({
         }}
       />
       <ConfirmDialog
-        open={asking}
+        open={asking !== null}
         title="Leave without the edits?"
         text="The latest edits couldn’t be saved. Leaving loses them."
         confirm="Leave"
         failure=""
         onConfirm={() => {
-          leaving.current = true;
           autosave.stop();
-          setAsking(false);
-          if (blocker.state === "blocked") blocker.proceed();
+          if (asking) leave(asking);
+          setAsking(null);
           return Promise.resolve();
         }}
         onClose={() => {
-          setAsking(false);
-          if (blocker.state === "blocked") blocker.reset();
+          setAsking(null);
         }}
       />
     </>
