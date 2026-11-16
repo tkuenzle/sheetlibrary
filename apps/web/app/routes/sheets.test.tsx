@@ -297,8 +297,7 @@ describe("library page", () => {
       html.indexOf("Hallelujah"),
     );
     expect(html).toContain('aria-label="More for Hallelujah"');
-    expect(html).toContain("New sheet");
-    expect(html).not.toContain("No sheets yet");
+    expect(html).not.toContain("Add your first sheet");
   });
 
   // Requirement "All sheets heading".
@@ -371,7 +370,10 @@ describe("library page", () => {
     });
   });
 
-  it("offers Import before New sheet, beside the heading and docked", () => {
+  // Requirements "New sheet" and "Sheets and Collections screens": no
+  // button beside the heading, and no Import. "New sheet" belongs to the
+  // shell (routes/shell.tsx).
+  it("has no New sheet or Import of its own", () => {
     const html = render([
       {
         id: "abcdefghijkl",
@@ -380,17 +382,10 @@ describe("library page", () => {
         addedAt: today,
       },
     ]);
-    const beside = /library-actions-beside">(.*?)<\/form><\/div>/s.exec(html);
-    const docked = /library-actions-docked">(.*?)<\/form><\/div>/s.exec(html);
-    for (const actions of [beside?.[1], docked?.[1]]) {
-      expect(actions).toMatch(
-        /class="button button-tonal[^"]*menu-toggle-text"[^>]*aria-haspopup="menu".*Import<svg .*New sheet<\/button>/s,
-      );
-    }
-    expect(beside?.[1]).toContain('class="menu menu-below-start"');
-    expect(docked?.[1]).toContain('class="menu menu-above-end"');
-    expect(docked?.[1]).toMatch(/button-tonal button-large/);
-    expect(docked?.[1]).toMatch(/button-filled button-large/);
+    expect(html).toContain('<h1 tabindex="-1">Sheets</h1>');
+    expect(html).not.toContain("New sheet");
+    expect(html).not.toContain(">Import<");
+    expect(html).not.toContain("library-actions");
   });
 
   // Scenario "Opening Sheets".
@@ -417,15 +412,31 @@ describe("library page", () => {
     }
   });
 
-  // Scenario "First sign-in".
-  it("says there are no sheets yet, and offers Import and a new sheet", () => {
+  // Scenarios "First sign-in" and "Empty library on a phone".
+  it("offers the three ways as cards, without a floating button", () => {
     const html = render([]);
-    expect(html).toContain("No sheets yet");
-    expect(html).toMatch(
-      /aria-haspopup="menu".*Import<svg .*<form [^>]*method="post"[^>]*>.*New sheet<\/button>/s,
+    expect(html).toContain('<h2 id="library-first">Add your first sheet</h2>');
+    expect(html).toContain(
+      "Pick a way to start. Everything can be edited later.",
     );
-    expect(html).not.toContain("<ul");
-    expect(html).not.toContain("library-actions-docked");
+    const labels = [
+      ...html.matchAll(/class="library-way-label">([^<]*)</g),
+    ].map((match) => match[1]);
+    expect(labels).toEqual(["Write it", "From photos", "From Ultimate Guitar"]);
+    expect(html).not.toContain("floating-button");
+    expect(html).not.toContain("No sheets yet");
+  });
+
+  // Scenario "Writing the first sheet": a form that posts to /sheets, so it
+  // works before the scripts load. The imports are buttons.
+  it("posts Write it to /sheets, and makes the imports buttons", () => {
+    const html = render([]);
+    expect(html).toMatch(
+      /<form [^>]*action="\/sheets" method="post"><button type="submit" class="library-way">.*?Write it/s,
+    );
+    expect(
+      html.match(/<button type="button" class="library-way">/g),
+    ).toHaveLength(2);
   });
 
   // Scenarios "First email sign-in" and "Opening the account page".
@@ -451,7 +462,7 @@ describe("library page", () => {
         html.indexOf("<h1>Library</h1>"),
       );
       expect(html.indexOf("passkey-offer")).toBeLessThan(
-        html.indexOf(sheets.length ? "<ul" : "No sheets yet"),
+        html.indexOf(sheets.length ? "<ul" : "Add your first sheet"),
       );
     }
   });
@@ -601,7 +612,7 @@ describe("library search", () => {
     expect(html).toContain("No sheets match “königin”");
     expect(html).toContain('role="search"');
     expect(html).not.toContain('class="group-list"');
-    expect(html).not.toContain("No sheets yet");
+    expect(html).not.toContain("Add your first sheet");
   });
 });
 

@@ -73,7 +73,7 @@ export function CollectionsView({
       <div className="library-heading">
         <h1>Collections</h1>
         <div className="library-actions library-actions-beside">
-          <NewCollection onCreated={onCreated} />
+          <NewCollection variant="tonal" onCreated={onCreated} />
         </div>
       </div>
       <ul className="collections-cards">
@@ -93,9 +93,6 @@ export function CollectionsView({
           </li>
         ))}
       </ul>
-      <div className="library-actions library-actions-docked">
-        <NewCollection size="large" onCreated={onCreated} />
-      </div>
     </div>
   );
 }

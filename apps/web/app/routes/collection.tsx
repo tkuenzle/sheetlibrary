@@ -168,14 +168,13 @@ export function CollectionView({
     heading.current?.focus();
   }
 
-  const addButton = (size?: "large") => (
-    <Button
-      icon="add"
-      size={size}
-      onClick={() => {
-        setDialog("add");
-      }}
-    >
+  function openAdd() {
+    setDialog("add");
+  }
+
+  // Filled in the empty state, tonal beside the heading.
+  const addButton = (variant: "filled" | "tonal") => (
+    <Button icon="add" variant={variant} onClick={openAdd}>
       Add sheets
     </Button>
   );
@@ -191,7 +190,7 @@ export function CollectionView({
         </div>
         {count > 0 && (
           <div className="library-actions library-actions-beside">
-            {addButton()}
+            {addButton("tonal")}
           </div>
         )}
         <Menu
@@ -218,7 +217,7 @@ export function CollectionView({
         <section className="library-empty" aria-labelledby="collection-empty">
           <h2 id="collection-empty">No sheets in this collection</h2>
           <p>Add sheets here, or from a sheet with “Choose collections…”.</p>
-          <div className="library-actions">{addButton()}</div>
+          <div className="library-actions">{addButton("filled")}</div>
         </section>
       ) : (
         <SheetList
@@ -227,11 +226,6 @@ export function CollectionView({
           collection={collection}
           onGone={() => heading.current?.focus()}
         />
-      )}
-      {count > 0 && (
-        <div className="library-actions library-actions-docked">
-          {addButton("large")}
-        </div>
       )}
       <AddSheetsDialog
         open={dialog === "add"}

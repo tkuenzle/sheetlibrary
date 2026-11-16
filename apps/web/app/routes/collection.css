@@ -1,6 +1,6 @@
 /* A collection's page, as on the canvas page "Collections". The library's
-   styles (sheets.css) lay out the column and the docked button, and the
-   list has its own (sheets/sheet-list.css). */
+   styles (sheets.css) lay out the column, and the list has its own
+   (sheets/sheet-list.css). */
 .collection-heading {
   display: flex;
   flex-wrap: wrap;
@@ -37,12 +37,17 @@
 /* Phone-wide (see app/breakpoints.ts). */
 @media (max-width: 640px) {
   /* The menu sits beside the account, which the shell puts at the end of
-     the heading's line. */
+     the heading's line. "Add sheets" goes on the line below. */
   .collection-heading {
-    flex-wrap: nowrap;
     align-items: flex-start;
     margin-right: var(--shell-account-room, 0px);
     padding-left: var(--space-s);
+  }
+
+  .collection-heading > .library-actions-beside {
+    order: 1;
+    flex-basis: 100%;
+    justify-content: flex-start;
   }
 
   /* Level with the account. */
@@ -51,6 +56,7 @@
   }
 
   .collection-title {
+    flex: 1;
     gap: var(--space-xs);
   }
 

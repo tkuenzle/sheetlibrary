@@ -15,6 +15,7 @@ import help from "./icons/help.svg?raw";
 import image from "./icons/image.svg?raw";
 import info from "./icons/info.svg?raw";
 import libraryMusic from "./icons/library_music.svg?raw";
+import link from "./icons/link.svg?raw";
 import login from "./icons/login.svg?raw";
 import logout from "./icons/logout.svg?raw";
 import lyrics from "./icons/lyrics.svg?raw";
@@ -61,6 +62,7 @@ const sources = {
   image,
   info,
   libraryMusic,
+  link,
   login,
   logout,
   lyrics,

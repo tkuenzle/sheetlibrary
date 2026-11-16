@@ -21,9 +21,17 @@ import { cloudflareContext, sessionContext } from "../context";
 import { EdgePanel } from "../shell/edge-panel";
 import { focusHeading } from "../shell/focus";
 import { revalidateAfterChanges } from "../shell/revalidate";
+import {
+  newSheetItems,
+  NewSheetProvider,
+  type NewSheetWay,
+  useNewSheet,
+} from "../sheets/new-sheet";
 import { RouteError } from "../shell/route-error";
 import { SignedInContext } from "../shell/signed-in";
 import { IconButton } from "../ui/button";
+import { FloatingMenu } from "../ui/floating-button";
+import { Menu } from "../ui/menu";
 import { NavBar } from "../ui/nav-bar";
 import { type NavItem, NavRail } from "../ui/nav-rail";
 import type { Route } from "./+types/shell";
@@ -127,7 +135,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 // account is at the bottom of the rail. On a phone it is its initial at the
 // top right, on the heading's line, and the bar holds only the screens.
 // The compact rail's menu button opens the full rail over the page. It
-// closes when the window leaves the middle width.
+// closes when the window leaves the middle width. "New sheet" is under the
+// site's name in the full rail, under the menu button in the compact one,
+// and floating above the bar on a phone, on every screen. The shell holds the ways it starts (sheets/new-sheet.tsx), so it
+// works on every screen.
 const outsideMiddle = `${phone}, ${wide}`;
 
 export function ShellView({
@@ -142,7 +153,35 @@ export function ShellView({
   initial: string;
   children: ReactNode;
 }) {
+  return (
+    <NewSheetProvider>
+      <ShellLayout
+        pathname={pathname}
+        collections={collections}
+        initial={initial}
+      >
+        {children}
+      </ShellLayout>
+    </NewSheetProvider>
+  );
+}
+
+function ShellLayout({
+  pathname,
+  collections,
+  initial,
+  children,
+}: {
+  pathname: string;
+  collections: CollectionListItem[];
+  initial: string;
+  children: ReactNode;
+}) {
+  const startNewSheet = useNewSheet();
   const [railOpen, setRailOpen] = useState(false);
+  // A way to add a sheet picked in the opened rail, until the rail has
+  // closed. It starts then, over the page.
+  const pickedWay = useRef<NewSheetWay | null>(null);
   // Where a link in the opened rail was picked, until the rail has closed.
   const pickedOn = useRef<string | null>(null);
   const items = navItems(pathname, collections);
@@ -168,21 +207,25 @@ export function ShellView({
       </a>
       <NavRail
         name={{ href: "/sheets", label: "Sheet Library" }}
+        top={<NewSheetMenu onPick={startNewSheet} />}
         items={items}
         footer={[account]}
       />
       <NavRail
         compact
         top={
-          <IconButton
-            icon="menu"
-            label="Open navigation"
-            aria-haspopup="dialog"
-            tooltipPlacement="right"
-            onClick={() => {
-              setRailOpen(true);
-            }}
-          />
+          <>
+            <IconButton
+              icon="menu"
+              label="Open navigation"
+              aria-haspopup="dialog"
+              tooltipPlacement="right"
+              onClick={() => {
+                setRailOpen(true);
+              }}
+            />
+            <NewSheetMenu compact onPick={startNewSheet} />
+          </>
         }
         items={items}
         footer={[account]}
@@ -201,6 +244,11 @@ export function ShellView({
         {children}
       </main>
       <NavBar items={items} />
+      <FloatingMenu
+        label="New sheet"
+        icon="add"
+        items={newSheetItems(startNewSheet)}
+      />
       <EdgePanel
         side="left"
         className="shell-rail-panel"
@@ -213,6 +261,9 @@ export function ShellView({
           if (pickedOn.current !== null && pickedOn.current !== pathname)
             focusHeading();
           pickedOn.current = null;
+          const way = pickedWay.current;
+          pickedWay.current = null;
+          if (way) startNewSheet(way);
         }}
         closeWhen={outsideMiddle}
         aria-label="Main"
@@ -226,6 +277,10 @@ export function ShellView({
             onPick={() => {
               pickedOn.current = pathname;
             }}
+            onPickWay={(way) => {
+              pickedWay.current = way;
+              slideOut();
+            }}
           />
         )}
       </EdgePanel>
@@ -233,21 +288,60 @@ export function ShellView({
   );
 }
 
+// "New sheet" and its menu of the ways to add a sheet: a filled button with
+// its name in the full rail, opening below it, and a square + button in the
+// compact rail, opening beside it.
+function NewSheetMenu({
+  compact = false,
+  onPick,
+}: {
+  compact?: boolean;
+  onPick: (way: NewSheetWay) => void;
+}) {
+  const items = newSheetItems(onPick);
+  return (
+    <div className="shell-new-sheet">
+      {compact ? (
+        <Menu
+          label="New sheet"
+          icon="add"
+          square
+          placement="beside"
+          items={items}
+        />
+      ) : (
+        <Menu
+          label="New sheet"
+          icon="add"
+          text
+          variant="filled"
+          chevron={false}
+          placement="below-start"
+          items={items}
+        />
+      )}
+    </div>
+  );
+}
+
 // The full rail in the opened panel. A picked link keeps the panel open
 // until the new page is there, then slides it out over that page, so the
-// old page doesn't show again in between.
+// old page doesn't show again in between. A way picked from "New sheet"
+// slides it out first, and starts once it has closed.
 function OpenedRail({
   pathname,
   items,
   account,
   slideOut,
   onPick,
+  onPickWay,
 }: {
   pathname: string;
   items: NavItem[];
   account: NavItem;
   slideOut: () => void;
   onPick: () => void;
+  onPickWay: (way: NewSheetWay) => void;
 }) {
   const navigation = useNavigation();
   const [pickedOn, setPickedOn] = useState<string | null>(null);
@@ -289,6 +383,7 @@ function OpenedRail({
             onClick={slideOut}
           />
         }
+        top={<NewSheetMenu onPick={onPickWay} />}
         items={items}
         footer={[account]}
       />

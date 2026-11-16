@@ -1,6 +1,7 @@
 import "./design.css";
 
 import { Button, IconButton } from "../ui/button";
+import { FloatingButton, FloatingMenu } from "../ui/floating-button";
 import { LoadingBar } from "../ui/loading-bar";
 import { NavBar } from "../ui/nav-bar";
 import { type NavItem, NavRail } from "../ui/nav-rail";
@@ -168,6 +169,35 @@ function Style({ theme, name }: { theme: string; name: string }) {
           <Button icon="add" size="large">
             Chord
           </Button>
+        </div>
+      </div>
+
+      <div>
+        <h3>Floating buttons, on a phone</h3>
+        <div className="design-row">
+          <FloatingButton icon="add" label="New collection" inPlace />
+          <FloatingMenu
+            label="New sheet"
+            icon="add"
+            inPlace
+            items={[
+              {
+                label: "Write a new sheet",
+                icon: "edit",
+                onSelect: () => undefined,
+              },
+              {
+                label: "From photos…",
+                icon: "photoCamera",
+                onSelect: () => undefined,
+              },
+              {
+                label: "From Ultimate Guitar…",
+                icon: "link",
+                onSelect: () => undefined,
+              },
+            ]}
+          />
         </div>
       </div>
 

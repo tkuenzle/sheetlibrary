@@ -11,24 +11,22 @@ export const collectionFailure = "The collection couldn’t be saved. Try again.
 
 // "New collection": asks for a name, makes the collection and hands it to
 // `onCreated`. A name the person already uses keeps the dialog open, with a
-// note that says so.
+// note that says so. The button is filled in the empty state, and tonal
+// beside the heading.
 export function NewCollection({
-  size,
+  variant = "filled",
   onCreated,
 }: {
-  size?: "large";
+  variant?: "filled" | "tonal";
   onCreated: (collection: { id: string; name: string }) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const openDialog = () => {
+    setOpen(true);
+  };
   return (
     <>
-      <Button
-        icon="add"
-        size={size}
-        onClick={() => {
-          setOpen(true);
-        }}
-      >
+      <Button icon="add" variant={variant} onClick={openDialog}>
         New collection
       </Button>
       <NameDialog

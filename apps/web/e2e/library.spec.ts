@@ -35,14 +35,20 @@ function sameDocument(page: Page) {
   return page.evaluate(() => "loadedOnce" in document.documentElement.dataset);
 }
 
-// The Import menu's button. On a phone, it is the docked one.
-function importButton(page: Page) {
-  return page.getByRole("button", { name: "Import", exact: true });
+// "New sheet": in the rail, or floating above the bar on a phone. Only the
+// one for the window's width is visible.
+function newSheetButton(page: Page) {
+  return page.getByRole("button", { name: "New sheet" });
+}
+
+// Picks one of the ways in the menu of "New sheet".
+async function startNewSheet(page: Page, way: string) {
+  await newSheetButton(page).click();
+  await page.getByRole("menuitem", { name: way }).click();
 }
 
 async function openUltimateGuitar(page: Page) {
-  await importButton(page).click();
-  await page.getByRole("menuitem", { name: "From Ultimate Guitar…" }).click();
+  await startNewSheet(page, "From Ultimate Guitar…");
 }
 
 function passkeyOffer(page: Page) {
@@ -61,11 +67,12 @@ async function pasteAndImport(page: Page, text: string) {
     .click();
 }
 
-// Scenarios "Opening the email link", "First sign-in" and "Starting a
-// sheet", and the passkey offer. A new account starts with no sheets, so this signs in by email
+// Scenarios "Opening the email link", "First sign-in" and "Writing the
+// first sheet", the last with JavaScript off, and the passkey offer. A new account starts with no sheets, so this signs in by email
 // itself. Sign-in emails are limited per visitor, so only on one project.
 test("a new account signs in to an empty library and starts a sheet", async ({
   page,
+  browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium", "One sign-in email per run");
 
@@ -97,8 +104,21 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await expect(page).toHaveURL(/\/sheets\?/);
   await expect(page).toHaveTitle("Sheets | Sheet Library");
   await expect(heading(page)).toHaveText("Sheets");
-  await expect(page.getByText("No sheets yet")).toBeVisible();
-  await expect(importButton(page)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Add your first sheet" }),
+  ).toBeVisible();
+  const ways = page
+    .getByRole("region", { name: "Add your first sheet" })
+    .getByRole("button");
+  await expect(ways).toHaveCount(3);
+  await expect(ways.nth(0)).toContainText("Write it");
+  await expect(ways.nth(1)).toContainText("From photos");
+  await expect(ways.nth(2)).toContainText("From Ultimate Guitar");
+  // Scenario "Empty library on a phone": the cards, and no floating button.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(ways).toHaveCount(3);
+  await expect(newSheetButton(page)).toHaveCount(0);
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   // Scenarios "First email sign-in", "Opening the account page" and "Closed
   // before". A reload doesn't offer it again.
@@ -119,14 +139,19 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await expect(heading(page)).toHaveText("Sheets");
   await expect(passkeyOffer(page)).toHaveCount(0);
 
-  await page.getByRole("button", { name: "New sheet" }).click();
-  await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit$/);
-  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
-    "Untitled",
-  );
+  // "Write it" is a form, so it works with JavaScript off.
+  const noScripts = await browser.newContext({
+    javaScriptEnabled: false,
+    storageState: await page.context().storageState(),
+  });
+  const plain = await noScripts.newPage();
+  await plain.goto("/sheets");
+  await plain.getByRole("button", { name: /^Write it/ }).click();
+  // The editor itself needs the scripts. The list below shows the sheet.
+  await expect(plain).toHaveURL(/\/sheets\/[\w-]{12}\/edit\?new$/);
+  await noScripts.close();
 
-  await page.getByRole("banner").getByRole("link", { name: "Library" }).click();
-  await expect(page).toHaveURL("/sheets");
+  await page.goto("/sheets");
   await expect(rows(page)).toHaveCount(1);
   await expect(rows(page)).toContainText("Untitled");
 
@@ -202,7 +227,8 @@ test.describe("signed in", () => {
     await expect(heading(page)).toHaveText("Sheets");
   });
 
-  // On a phone, the button is docked at the bottom right.
+  // Scenario "Starting a sheet". On a phone, the button floats at the
+  // bottom right, above the bar.
   test("starts a sheet from the list", async ({ page }, testInfo) => {
     await page.request.post("/api/sheets", {
       data: {
@@ -216,7 +242,7 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("link", { name: /Amazing Grace/ }).first(),
     ).toBeVisible();
-    const button = page.getByRole("button", { name: "New sheet" });
+    const button = newSheetButton(page);
     if (testInfo.project.name === "phone") {
       const box = await button.boundingBox();
       const viewport = page.viewportSize();
@@ -229,6 +255,22 @@ test.describe("signed in", () => {
       }
     }
     await button.click();
+    // Scenario "Opening the menu on a phone": the ways show above the
+    // button, which reads "Close" while they are open.
+    if (testInfo.project.name === "phone") {
+      const close = page.getByRole("button", { name: "Close" });
+      await expect(close).toBeVisible();
+      const closeBox = await close.boundingBox();
+      const way = await page
+        .getByRole("menuitem", { name: "Write a new sheet" })
+        .boundingBox();
+      expect((way?.y ?? 0) + (way?.height ?? 0)).toBeLessThan(closeBox?.y ?? 0);
+      await close.click();
+      await expect(close).toBeHidden();
+      await expect(button).toBeFocused();
+      await button.click();
+    }
+    await page.getByRole("menuitem", { name: "Write a new sheet" }).click();
 
     // Scenario "Naming a new sheet": the title field is open, with
     // "Untitled" selected, so typing replaces it.
@@ -343,6 +385,26 @@ test.describe("the shell", () => {
     await expect(page).toHaveURL("/sheets");
   });
 
+  // Scenario "Opening Sheets": no button beside the heading, and "New
+  // sheet" in the rail.
+  test("has New sheet in the rail, not beside the heading", async ({
+    page,
+    hasTouch,
+  }) => {
+    test.skip(hasTouch, "The rail isn't there on a phone");
+    await page.goto("/sheets");
+    await expect(heading(page)).toHaveText("Sheets");
+    await expect(
+      mainNav(page).getByRole("button", { name: "New sheet" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("main").getByRole("button", { name: "New sheet" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Import", exact: true }),
+    ).toHaveCount(0);
+  });
+
   // Scenario "On a tablet".
   test("shows the rail as icons with their names in a window of middle width", async ({
     page,
@@ -359,9 +421,70 @@ test.describe("the shell", () => {
       "Collections",
       /^[A-Z]Account$/,
     ]);
+    const buttons = mainNav(page).getByRole("button");
+    await expect(buttons).toHaveCount(2);
+    await expect(buttons.nth(0)).toHaveAccessibleName("Open navigation");
+    await expect(buttons.nth(1)).toHaveAccessibleName("New sheet");
     expect((await mainNav(page).boundingBox())?.width).toBe(88);
+
+    // The square "New sheet" opens its menu beside it.
+    const newSheet = mainNav(page).getByRole("button", { name: "New sheet" });
+    await newSheet.click();
+    const menu = page.getByRole("menu", { name: "New sheet" });
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Write a new sheet",
+      "From photos…",
+      "From Ultimate Guitar…",
+    ]);
+    const buttonBox = await newSheet.boundingBox();
+    const menuBox = await menu.boundingBox();
+    expect(menuBox?.x).toBeGreaterThan(
+      (buttonBox?.x ?? 0) + (buttonBox?.width ?? 0),
+    );
+    await page.keyboard.press("Escape");
+
     await mainNav(page).getByRole("link", { name: "Collections" }).click();
     await expect(page).toHaveURL("/collections");
+  });
+
+  // Scenario "New sheet on another screen", and "Write a new sheet" from it.
+  test("starts a sheet from the rail on any screen", async ({
+    page,
+    hasTouch,
+  }) => {
+    test.skip(hasTouch, "The rail isn't there on a phone");
+    const name = `Rail ${crypto.randomUUID().slice(0, 8)}`;
+    const response = await page.request.post("/api/collections", {
+      data: { name },
+    });
+    const { id } = (await response.json()) as { id: string };
+    await page.goto(`/collections/${id}`);
+    await page.waitForLoadState("networkidle");
+
+    const newSheet = mainNav(page).getByRole("button", { name: "New sheet" });
+    await newSheet.click();
+    const menu = page.getByRole("menu", { name: "New sheet" });
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Write a new sheet",
+      "From photos…",
+      "From Ultimate Guitar…",
+    ]);
+
+    // An import's dialog opens over the collection, and gives the focus back
+    // to "New sheet" when cancelled.
+    await menu.getByRole("menuitem", { name: "From Ultimate Guitar…" }).click();
+    await expect(importDialog(page)).toBeVisible();
+    await importDialog(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(importDialog(page)).toBeHidden();
+    await expect(newSheet).toBeFocused();
+    await expect(page).toHaveURL(`/collections/${id}`);
+
+    await newSheet.click();
+    await menu.getByRole("menuitem", { name: "Write a new sheet" }).click();
+    await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit$/);
+    await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+      "Untitled",
+    );
   });
 
   test.describe("the opened rail", () => {
@@ -457,6 +580,23 @@ test.describe("the shell", () => {
       await expect(heading(page)).toBeFocused();
     });
 
+    // Scenario "A way picked from the opened rail".
+    test("closes before a way picked from its New sheet starts", async ({
+      page,
+    }) => {
+      await page.goto("/sheets");
+      await page.waitForLoadState("networkidle");
+      await menuButton(page).click();
+      await panel(page).getByRole("button", { name: "New sheet" }).click();
+      await panel(page).getByRole("menuitem", { name: "From photos…" }).click();
+      await expect(panel(page)).toBeHidden();
+      const photos = page.getByRole("dialog", { name: "Import from photos" });
+      await expect(photos).toBeVisible();
+      await photos.getByRole("button", { name: "Cancel" }).click();
+      await expect(photos).toBeHidden();
+      await expect(menuButton(page)).toBeFocused();
+    });
+
     // Scenario "Closing with Escape".
     test("closes with Escape, and gives the focus back", async ({ page }) => {
       await page.goto("/sheets");
@@ -499,7 +639,7 @@ test.describe("the shell", () => {
   });
 
   // Scenarios "Opening a sheet", "Going back" and "On a phone" (Bottom bar):
-  // the last row clears the docked buttons and the bar.
+  // the last row clears the floating button and the bar.
   test("opens a sheet from a row, and goes back to where the list was", async ({
     page,
   }) => {
@@ -521,9 +661,7 @@ test.describe("the shell", () => {
     const viewport = page.viewportSize();
     expect(rowBox && viewport).toBeTruthy();
     if (rowBox && viewport && !wide(page) && viewport.width <= 640) {
-      const button = await page
-        .getByRole("button", { name: "New sheet" })
-        .boundingBox();
+      const button = await newSheetButton(page).boundingBox();
       expect(rowBox.y + rowBox.height).toBeLessThanOrEqual(button?.y ?? 0);
       expect(rowBox.y + rowBox.height).toBeLessThanOrEqual(
         viewport.height - 80,
@@ -740,10 +878,8 @@ test.describe("the import", () => {
     await page.goto("/sheets");
   });
 
-  // Scenario "Importing a song". On a phone, "Import" is docked beside
-  // "New sheet" and keeps its text.
+  // Scenario "Importing a song".
   test("creates a sheet and opens it, to be named", async ({ page }) => {
-    await expect(importButton(page)).toHaveText("Import");
     await pasteAndImport(page, verse);
     await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit$/);
     await expect(page.getByLabel("Title", { exact: true })).toBeFocused();
@@ -790,7 +926,7 @@ test.describe("the import", () => {
     await importDialog(page).getByLabel("Chords and lyrics").fill(verse);
     await importDialog(page).getByRole("button", { name: "Cancel" }).click();
     await expect(importDialog(page)).toBeHidden();
-    await expect(importButton(page)).toBeFocused();
+    await expect(newSheetButton(page)).toBeFocused();
     await expect(page).toHaveURL("/sheets");
     expect(posts).toEqual([]);
   });

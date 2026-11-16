@@ -17,7 +17,7 @@ function importButton(page: Page) {
 
 async function openPhotos(page: Page) {
   await page.goto("/sheets");
-  await page.getByRole("button", { name: "Import", exact: true }).click();
+  await page.getByRole("button", { name: "New sheet" }).click();
   await page.getByRole("menuitem", { name: "From photos…" }).click();
   await expect(dialog(page)).toBeVisible();
 }
@@ -205,9 +205,7 @@ test("cancel stops the request and creates no sheet", async ({ page }) => {
   await dialog(page).getByRole("button", { name: "Cancel" }).click();
   await expect(dialog(page)).toBeHidden();
   await stopped;
-  await expect(
-    page.getByRole("button", { name: "Import", exact: true }),
-  ).toBeFocused();
+  await expect(page.getByRole("button", { name: "New sheet" })).toBeFocused();
   await expect(page).toHaveURL("/sheets");
   expect(created).toEqual([]);
 });
