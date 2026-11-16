@@ -7,7 +7,7 @@ The page where the owner of a sheet plays it or prints it: the sheet in large te
 ## Requirements
 
 ### Requirement: A sheet to play
-The page at `/sheets/:id` SHALL show the owner's sheet with the read-only sheet view, its title as the heading and in the browser tab, and its artist below the title. The lyrics SHALL be larger than in the editor. The page SHALL NOT show editing tools, the save state or the help.
+The page at `/sheets/:id` SHALL show the owner's sheet with the read-only sheet view, centred on the page, its title as the heading and in the browser tab, and its artist below the title. The lyrics SHALL be larger than in the editor. The page SHALL NOT show editing tools, the save state or the help.
 
 #### Scenario: Opening a sheet
 - **WHEN** the owner opens `/sheets/:id` for their sheet "Amazing Grace" by John Newton
@@ -26,6 +26,45 @@ The page SHALL show the sheet complete from its HTML and CSS, in the key and wit
 #### Scenario: Opened in another key
 - **WHEN** the owner opens `/sheets/:id?key=A&capo=2` for a sheet in G, with JavaScript turned off
 - **THEN** the chords show the shapes for capo 2 in A, and the key button reads "Key A · +2"
+
+### Requirement: The play bar
+The top bar of the play view SHALL hold Back, then at its end "View", "Edit" and the sheet's menu, the same at every width. "Edit" SHALL be a button with its name, and only its icon on a phone, still named "Edit".
+
+#### Scenario: On a wide screen
+- **WHEN** the owner opens a sheet to play on a wide screen
+- **THEN** the top bar holds Back, "View", "Edit" and "More for this sheet", and nothing else
+
+### Requirement: View
+"View" SHALL open a panel with the text size, as "Smaller text" and "Larger text", and "Lyrics only" as a switch, on while lyrics only is on. Escape or a click outside SHALL close the panel.
+
+#### Scenario: Lyrics only from View
+- **WHEN** the owner opens "View" and turns on "Lyrics only"
+- **THEN** the chords go away, and the switch is on the next time "View" opens
+
+### Requirement: Edit from the play view
+"Edit" SHALL open the sheet in edit mode at `/sheets/:id/edit`, with the key and the capo shown now, without loading the page in full.
+
+#### Scenario: From playing to editing
+- **WHEN** the owner shows a sheet in A with capo 2 on the play view and picks "Edit"
+- **THEN** edit mode opens with the sheet in A and capo 2
+
+### Requirement: The sheet's menu on the play view
+The menu "More for this sheet" SHALL hold "Choose collections…", "Print" and "Delete". It SHALL be the same in edit mode. Escape or a click outside SHALL close it.
+
+#### Scenario: Printing from the menu
+- **WHEN** the owner opens "More for this sheet" and picks "Print"
+- **THEN** the browser's print opens
+
+#### Scenario: The same in edit mode
+- **WHEN** the owner opens "More for this sheet" in edit mode
+- **THEN** it holds "Choose collections…", "Print" and "Delete", and no "Rename"
+
+### Requirement: Deleting from the play view
+"Delete" SHALL ask to confirm, as in edit mode. Confirming SHALL delete the sheet and leave it as Back does. When the delete can't reach the server, the confirmation SHALL stay open and say that the sheet couldn't be deleted.
+
+#### Scenario: Deleting while playing
+- **WHEN** the owner opens "Amazing Grace" from Sheets, picks "Delete" in its menu and confirms
+- **THEN** Sheets shows again, without "Amazing Grace"
 
 ### Requirement: Key and capo for the view only
 The play view SHALL have the key button and the capo button, which transpose and set a capo as on the editor page. Their panels SHALL NOT offer to change the song key or to make the shown key the song key. A transpose or a capo SHALL NOT change the stored sheet.
@@ -59,17 +98,6 @@ A transpose or a capo on the play view SHALL show the new chords at once, withou
 - **WHEN** the owner opens "Anna's key" and picks "Print"
 - **THEN** the print preview shows "Anna's key" after the artist
 
-### Requirement: Controls on a phone
-On a phone, "Choose collections…", "Smaller text", "Larger text" and "Print" SHALL sit in a menu after the key and capo buttons.
-
-#### Scenario: Printing from a phone
-- **WHEN** the owner opens the menu on a phone and picks "Print"
-- **THEN** the browser's print opens
-
-#### Scenario: Adding from a phone
-- **WHEN** the owner opens the menu on a phone and picks "Choose collections…"
-- **THEN** the dialog with the owner's collections opens
-
 ### Requirement: Lyrics only for the view
 The play view SHALL have "Lyrics only", which shows the sheet with the view's lyrics only. It SHALL NOT change the stored sheet. While it is on, the key and capo buttons SHALL be hidden. Printing SHALL print the sheet as shown, so with lyrics only it prints the lyrics.
 
@@ -92,30 +120,23 @@ The address SHALL hold `lyrics` while lyrics only is on, next to `key` and `capo
 - **WHEN** the owner shows a sheet in A and picks "Lyrics only"
 - **THEN** the page doesn't load again, and the address holds `lyrics` and `key=A`
 
-### Requirement: Where Lyrics only sits
-On a wide screen, "Lyrics only" SHALL be a toggle with its name, before "Smaller text", "Larger text" and "Print" in the top bar, marked while on. On a phone, it SHALL be the first item in the menu, checked while on, and a "Lyrics only" label SHALL show in place of the key and capo buttons.
-
-#### Scenario: On a phone
-- **WHEN** the owner opens the menu on a phone and picks "Lyrics only"
-- **THEN** the chords go away, "Lyrics only" shows where the key and capo buttons were, and the menu item is checked the next time the menu opens
-
 ### Requirement: Opening a version
 The page at `/sheets/:id?version=…` SHALL show the sheet in the version's key, complete before JavaScript. With `key` next to `version`, it SHALL show the sheet in that key, with the version still open.
 
 #### Scenario: Link to a version
 - **WHEN** the owner opens the address of "Anna's key", a version in A of a sheet in G, with JavaScript turned off
-- **THEN** the chords are in A, and the key button reads "Key A"
+- **THEN** the chords are in A, and the key button reads "Key A · Anna's key"
 
 #### Scenario: Version in another key
 - **WHEN** the owner opens "Anna's key" with `key=Bb` next to `version`
 - **THEN** the chords are in Bb, and the page still shows "Anna's key"
 
-### Requirement: The version's name on the page
-While a version is open, its name SHALL show after the artist, such as "John Newton · Anna's key", or alone for a sheet without an artist. It SHALL also show with lyrics only.
+### Requirement: The version's name in the key button
+While a version is open, the key button SHALL show its name after the key, such as "Key A · Anna's key". The artist SHALL show alone below the title.
 
-#### Scenario: Name after the artist
-- **WHEN** the owner opens "Anna's key" of "Amazing Grace" by John Newton
-- **THEN** "John Newton · Anna's key" shows below the title
+#### Scenario: Name in the key button
+- **WHEN** the owner opens "Anna's key", in A, of "Amazing Grace" by John Newton
+- **THEN** the key button reads "Key A · Anna's key", and "John Newton" shows below the title alone
 
 ### Requirement: A version that is gone
 An address with a version that doesn't exist SHALL show the sheet in its song key, without a version, and the address SHALL drop `version`.
@@ -143,14 +164,14 @@ Picking a version in the list SHALL open it, and picking "Song key" SHALL show t
 
 #### Scenario: Switching versions
 - **WHEN** the owner has "Anna's key" open and picks "Sunday band" in the list
-- **THEN** the chords are in Bb without a page load, "Sunday band" shows after the artist, and the address holds its version
+- **THEN** the chords are in Bb without a page load, the key button shows "Sunday band", and the address holds its version
 
 ### Requirement: Naming a version
 "Save A as a version…" SHALL open a dialog with a name field, filled in with "Key A" and selected. "Save" SHALL store the version with that name and the shown key, and open it. "Cancel" or Escape SHALL store nothing.
 
 #### Scenario: Saving with a name
 - **WHEN** the owner shows a sheet in A, picks "Save A as a version…", types "Anna's key" and presses Enter
-- **THEN** "Anna's key" shows after the artist, and the list holds "Anna's key A"
+- **THEN** the key button shows "Anna's key", and the list holds "Anna's key A"
 
 #### Scenario: Keeping the suggested name
 - **WHEN** the owner picks "Save A as a version…" and presses Enter at once
@@ -182,7 +203,7 @@ The open version's row SHALL have a "…" that opens its menu. The menu SHALL ho
 
 #### Scenario: Renaming
 - **WHEN** the owner picks "Rename…" on "Sunday band", types "Evening band" and picks "Save"
-- **THEN** "Evening band" shows after the artist and in the list
+- **THEN** the key button and the list show "Evening band"
 
 ### Requirement: Deleting a version
 "Delete…" SHALL first ask to confirm, naming the version and saying the sheet stays as it is and that this can't be undone. Confirming SHALL delete the version and show the sheet in the key it was shown in, without a version. "Cancel" SHALL keep it.
@@ -209,9 +230,13 @@ The dialog SHALL offer "New collection", which asks for a name as on the Collect
 - **WHEN** the owner, who has no collections, opens "Choose collections…", selects "New collection" and saves "Christmas"
 - **THEN** the dialog lists "Christmas", ticked, and "Christmas" holds the sheet
 
-### Requirement: Where Choose collections sits
-On a wide screen, "Choose collections" SHALL be a button in the top bar, before "Smaller text". On a phone, "Choose collections…" SHALL be in the menu, after "Lyrics only".
+### Requirement: Collections under the title
+In a window wider than 640px, the collections that hold the sheet SHALL show under the title, after the key and capo buttons, each by its name as a link to its page.
 
-#### Scenario: On a wide screen
-- **WHEN** the owner opens a sheet to play on a wide screen
-- **THEN** the top bar has "Choose collections" before "Smaller text"
+#### Scenario: In two collections
+- **WHEN** the owner opens "Stille Nacht", which is in "Christmas" and "Campfire", on a wide screen
+- **THEN** "Christmas" and "Campfire" show under the title, and "Christmas" opens that collection
+
+#### Scenario: After choosing a collection
+- **WHEN** the owner ticks "Kinderlieder" in "Choose collections…" and selects "Done"
+- **THEN** "Kinderlieder" shows under the title too
