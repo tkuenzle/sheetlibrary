@@ -114,6 +114,11 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   await expect(ways.nth(0)).toContainText("Write it");
   await expect(ways.nth(1)).toContainText("From photos");
   await expect(ways.nth(2)).toContainText("From Ultimate Guitar");
+  // Scenario "Empty library on a phone": the cards, and no floating button.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(ways).toHaveCount(3);
+  await expect(newSheetButton(page)).toHaveCount(0);
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   // Scenarios "First email sign-in", "Opening the account page" and "Closed
   // before". A reload doesn't offer it again.

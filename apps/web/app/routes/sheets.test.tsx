@@ -297,7 +297,6 @@ describe("library page", () => {
       html.indexOf("Hallelujah"),
     );
     expect(html).toContain('aria-label="More for Hallelujah"');
-    expect(html).toContain('aria-label="New sheet"');
     expect(html).not.toContain("Add your first sheet");
   });
 
@@ -372,9 +371,9 @@ describe("library page", () => {
   });
 
   // Requirements "New sheet" and "Sheets and Collections screens": no
-  // button beside the heading, and "New sheet" floating on a phone, with
-  // its menu. Wider, it is in the shell's rail (routes/shell.tsx).
-  it("has New sheet as the floating button, and no Import", () => {
+  // button beside the heading, and no Import. "New sheet" belongs to the
+  // shell (routes/shell.tsx).
+  it("has no New sheet or Import of its own", () => {
     const html = render([
       {
         id: "abcdefghijkl",
@@ -384,12 +383,7 @@ describe("library page", () => {
       },
     ]);
     expect(html).toContain('<h1 tabindex="-1">Sheets</h1>');
-    expect(html).toMatch(
-      /<button type="button" aria-label="New sheet" class="floating-button" aria-haspopup="menu" aria-expanded="false">/,
-    );
-    expect(html).toMatch(
-      /<dialog class="floating-menu" aria-label="New sheet"><\/dialog><\/div>$/,
-    );
+    expect(html).not.toContain("New sheet");
     expect(html).not.toContain(">Import<");
     expect(html).not.toContain("library-actions");
   });

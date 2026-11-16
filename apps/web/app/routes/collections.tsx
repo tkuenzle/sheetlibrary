@@ -93,7 +93,6 @@ export function CollectionsView({
           </li>
         ))}
       </ul>
-      <NewCollection variant="floating" onCreated={onCreated} />
     </div>
   );
 }

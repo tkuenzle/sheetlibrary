@@ -193,11 +193,6 @@
     padding-bottom: 120px;
   }
 
-  /* On a phone, the screen's floating button takes their place. */
-  .library-actions-beside {
-    display: none;
-  }
-
   .library-empty {
     padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
   }

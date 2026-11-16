@@ -227,16 +227,14 @@ describe("collection page", () => {
     expect(html).toContain("Add sheets");
   });
 
-  // Requirement "The screen's add button on phones": tonal beside the
-  // heading, and the floating button for a phone.
-  it("has Add sheets beside the heading, and floating for a phone", () => {
+  // Requirement "Add buttons beside the heading": tonal, at every width,
+  // and never floating. The floating button is the shell's "New sheet".
+  it("has Add sheets beside the heading, and no floating button", () => {
     const html = render(christmas);
     expect(html).toMatch(
       /library-actions-beside"><button type="button" class="button button-tonal"><svg [^>]*>.*?<\/svg>Add sheets<\/button>/,
     );
-    expect(html).toContain(
-      '<button type="button" aria-label="Add sheets" class="floating-button">',
-    );
+    expect(html).not.toContain("floating-button");
   });
 
   // Requirement "Removing a sheet": in the row's menu, not a button.

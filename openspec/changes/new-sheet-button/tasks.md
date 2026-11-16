@@ -29,6 +29,12 @@
 
 - [x] 5.1 Check in a real browser with the browser-check skill, at 1280px, 800px and 390px: the rail against "Sheets, desktop", the compact and opened rail against "Sheets, middle" and "The rail, opened", the phone's menu against "New sheet: one button, three ways", the empty library against "Empty library (first sign-in)", and a list scrolled to its end under the floating button. Both styles, and 200% text. Verify that `just check` passes.
 
+## 6. "New sheet" floats on every screen
+
+- [x] 6.1 Move the floating "New sheet" from `routes/sheets.tsx` into `ShellView`, hidden on the empty library by `.shell:has(.library-first)`. Update `shell.test.tsx` and `sheets.test.tsx` and verify they pass.
+- [x] 6.2 Remove the floating "New collection" and "Add sheets", and show the tonal buttons beside the heading on phones. Update `collections.test.tsx` and `collection.test.tsx` and verify they pass.
+- [x] 6.3 Update the e2e cases for "On Collections", "On a collection on a phone" and "Empty library on a phone", and the Sheets, Collections and A collection lines in `docs/ui-text.md` and `docs/design-direction.md`. Check the headings at 390px in a browser, and verify that `just check` passes.
+
 ## Workflow follow-up
 
 - Archive the change in the PR that closes #133, before it merges.

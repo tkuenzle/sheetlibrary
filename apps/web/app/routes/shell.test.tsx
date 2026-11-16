@@ -239,6 +239,16 @@ describe("ShellView", () => {
     );
   });
 
+  // Requirement "New sheet floating on phones": on every screen, after the
+  // bar. CSS shows it on a phone only, and hides it on the empty library.
+  it("has New sheet floating after the bar, on every screen", () => {
+    for (const pathname of ["/sheets", "/collections", "/account"]) {
+      expect(render(pathname)).toMatch(
+        /<\/nav><button type="button" aria-label="New sheet" class="floating-button" aria-haspopup="menu" aria-expanded="false">.*?<\/button><dialog class="floating-menu" aria-label="New sheet"><\/dialog>/,
+      );
+    }
+  });
+
   // Requirement "Opening the rail on middle screens". Opening it is tested
   // in the browser (e2e/library.spec.ts).
   it("ends with the opened rail's panel, empty and from the left while closed", () => {

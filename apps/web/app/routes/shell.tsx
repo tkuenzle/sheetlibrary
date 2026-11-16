@@ -30,6 +30,7 @@ import {
 import { RouteError } from "../shell/route-error";
 import { SignedInContext } from "../shell/signed-in";
 import { IconButton } from "../ui/button";
+import { FloatingMenu } from "../ui/floating-button";
 import { Menu } from "../ui/menu";
 import { NavBar } from "../ui/nav-bar";
 import { type NavItem, NavRail } from "../ui/nav-rail";
@@ -135,8 +136,8 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 // top right, on the heading's line, and the bar holds only the screens.
 // The compact rail's menu button opens the full rail over the page. It
 // closes when the window leaves the middle width. "New sheet" is under the
-// site's name in the full rail, and under the menu button in the compact
-// one. The shell holds the ways it starts (sheets/new-sheet.tsx), so it
+// site's name in the full rail, under the menu button in the compact one,
+// and floating above the bar on a phone, on every screen. The shell holds the ways it starts (sheets/new-sheet.tsx), so it
 // works on every screen.
 const outsideMiddle = `${phone}, ${wide}`;
 
@@ -243,6 +244,11 @@ function ShellLayout({
         {children}
       </main>
       <NavBar items={items} />
+      <FloatingMenu
+        label="New sheet"
+        icon="add"
+        items={newSheetItems(startNewSheet)}
+      />
       <EdgePanel
         side="left"
         className="shell-rail-panel"

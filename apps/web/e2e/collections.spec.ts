@@ -92,11 +92,11 @@ async function floatsAboveBar(page: Page, name: string) {
   expect(box.y + box.height).toBeGreaterThan(viewport.height - 128);
 }
 
-// Scenarios "On Collections" and "On a collection" on a phone, and
+// Scenarios "On Collections" and "On a collection on a phone", and
 // "Opening Collections" on a wide screen: "New collection" and "Add sheets"
-// float above the bar on a phone, and sit beside the heading wider, with
-// "New sheet" in the rail.
-test("puts each screen's add button where the window has room for it", async ({
+// sit beside the heading at every width, and "New sheet" is in the rail, or
+// floating above the bar on a phone.
+test("keeps the add buttons beside the heading, with New sheet floating on a phone", async ({
   page,
   hasTouch,
 }) => {
@@ -108,37 +108,38 @@ test("puts each screen's add button where the window has room for it", async ({
   );
   expect(added.ok()).toBe(true);
 
-  await page.goto("/collections");
-  await page.waitForLoadState("networkidle");
-  if (hasTouch) {
-    await floatsAboveBar(page, "New collection");
-    await page.getByRole("button", { name: "New collection" }).click();
-    await expect(nameDialog(page, "New collection")).toBeVisible();
-    await nameDialog(page, "New collection")
-      .getByRole("button", { name: "Cancel" })
-      .click();
-    await expect(page.getByRole("button", { name: "New sheet" })).toHaveCount(
-      0,
-    );
-  } else {
-    const button = main(page).getByRole("button", { name: "New collection" });
-    await expect(button).toHaveText("New collection");
+  for (const [path, name] of [
+    ["/collections", "New collection"],
+    [`/collections/${id}`, "Add sheets"],
+  ] as const) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    const button = main(page).getByRole("button", { name });
+    await expect(button).toHaveText(name);
+    // Beside the heading, or on the line below it on a phone.
     expect((await button.boundingBox())?.y).toBeLessThan(
-      ((await heading(page).boundingBox())?.y ?? 0) + 80,
+      ((await heading(page).boundingBox())?.y ?? 0) + 120,
     );
-    await expect(
-      mainNav(page).getByRole("button", { name: "New sheet" }),
-    ).toBeVisible();
+    if (hasTouch) {
+      await floatsAboveBar(page, "New sheet");
+    } else {
+      await expect(
+        mainNav(page).getByRole("button", { name: "New sheet" }),
+      ).toBeVisible();
+    }
   }
 
-  await page.goto(`/collections/${id}`);
-  await expect(heading(page)).toHaveText(`Floating ${mark}`);
+  // The floating button opens the ways, on Collections as on Sheets.
   if (hasTouch) {
-    await floatsAboveBar(page, "Add sheets");
-  } else {
+    await page.getByRole("button", { name: "New sheet" }).click();
     await expect(
-      main(page).getByRole("button", { name: "Add sheets" }),
-    ).toHaveText("Add sheets");
+      page.getByRole("menu", { name: "New sheet" }).getByRole("menuitem"),
+    ).toHaveText([
+      "Write a new sheet",
+      "From photos…",
+      "From Ultimate Guitar…",
+    ]);
+    await page.keyboard.press("Escape");
   }
 });
 

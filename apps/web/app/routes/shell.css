@@ -184,3 +184,9 @@ html:has(.shell) {
   font-size: 16px;
   font-weight: 700;
 }
+
+/* The empty library shows the ways as cards, so "New sheet" doesn't float
+   over them. */
+.shell:has(.library-first) > .floating-button {
+  display: none;
+}

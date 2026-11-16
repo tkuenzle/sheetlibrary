@@ -17,11 +17,7 @@ import { RecentSheets } from "../sheets/recent-sheets";
 import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList } from "../sheets/sheet-list";
 import { UNTITLED } from "../sheets/details";
-import {
-  newSheetItems,
-  type NewSheetWay,
-  useNewSheet,
-} from "../sheets/new-sheet";
+import { type NewSheetWay, useNewSheet } from "../sheets/new-sheet";
 import { isSearch } from "../sheets/search";
 import { SearchField, useSearchPending } from "../sheets/search-field";
 import { revalidateUnlessUnchanged } from "../shell/revalidate";
@@ -37,15 +33,14 @@ import {
   type SheetListItem,
 } from "../sheets/sheets.server";
 import { IconButton } from "../ui/button";
-import { FloatingMenu } from "../ui/floating-button";
 import { Icon } from "../ui/icon";
 import type { IconName } from "../ui/icons";
 import { errorKind, isOnline } from "../ui/page-error";
 import type { Route } from "./+types/sheets";
 
 // The Sheets screen of the library: the signed-in person's sheets in the
-// shared list and the search field. "New sheet" is in the shell's rail, and
-// floats above the bar on a phone. It sits in the shell (routes/shell.tsx). See openspec/specs/library-page and
+// shared list and the search field. "New sheet" belongs to the shell
+// (routes/shell.tsx), which it sits in. See openspec/specs/library-page and
 // openspec/specs/sheet-list.
 
 export function meta() {
@@ -299,14 +294,6 @@ function FirstSheet() {
   );
 }
 
-// "New sheet" floating above the bar on a phone. Wider, it is in the rail.
-function NewSheetButton() {
-  const start = useNewSheet();
-  return (
-    <FloatingMenu label="New sheet" icon="add" items={newSheetItems(start)} />
-  );
-}
-
 export function LibraryView({
   sheets,
   recent = [],
@@ -389,7 +376,6 @@ export function LibraryView({
           onGone={() => heading.current?.focus()}
         />
       )}
-      <NewSheetButton />
     </div>
   );
 }

@@ -25,7 +25,7 @@ In a window from 641px to 1023px wide, the rail SHALL show icons for "Sheets", "
 - **THEN** the rail shows "Open navigation", "New sheet", then "Sheets", "Collections" and "Account" with their icons, and the link "Collections" opens `/collections`
 
 ### Requirement: Bottom bar on phones
-In a window up to 640px wide, the navigation SHALL be a bar at the bottom of the screen, with "Sheets" and "Collections", each with its icon and its name. The screen's floating add button SHALL sit above the bar.
+In a window up to 640px wide, the navigation SHALL be a bar at the bottom of the screen, with "Sheets" and "Collections", each with its icon and its name. The floating "New sheet" SHALL sit above the bar.
 
 #### Scenario: On a phone
 - **WHEN** a person on a phone opens `/sheets`
@@ -63,27 +63,27 @@ The opened rail SHALL close when an entry is picked, on "Close", on Escape, on a
 
 ## ADDED Requirements
 
-### Requirement: The screen's add button on phones
-In a window up to 640px wide, a screen SHALL show its main add action as one square button with a plus, floating above the bottom bar at the right: "New sheet" on Sheets, which opens its menu, "New collection" on Collections, and "Add sheets" on a collection. Account SHALL have none. Wider, "New collection" and "Add sheets" SHALL sit beside their screen's heading.
+### Requirement: New sheet floating on phones
+In a window up to 640px wide, "New sheet" SHALL be one square button with a plus, floating above the bottom bar at the right, on every screen in the shell. It SHALL open the same three ways as in the rail. The empty library SHALL show its cards and no floating button.
 
 #### Scenario: On Collections
 - **WHEN** a person with collections opens `/collections` on a phone
-- **THEN** the floating button is "New collection", and it opens the "New collection" dialog
-
-#### Scenario: On a collection
-- **WHEN** a person opens the collection "Christmas", which holds 14 sheets, on a phone
-- **THEN** the floating button is "Add sheets"
-
-### Requirement: No floating button on an empty screen
-An empty screen SHALL show no floating button. The empty library shows its cards. With no collections, or in an empty collection, the add button SHALL stay in the empty state.
+- **THEN** the floating button is "New sheet", and it opens "Write a new sheet", "From photos…" and "From Ultimate Guitar…"
 
 #### Scenario: Empty library on a phone
 - **WHEN** a person who has no sheets opens `/sheets` on a phone
 - **THEN** the page shows the three cards and no floating button
 
+### Requirement: Add buttons beside the heading
+"New collection" on Collections and "Add sheets" on a collection SHALL sit beside their screen's heading at every width, and SHALL NOT float. With no collections, or in an empty collection, the button SHALL be in the empty state instead.
+
+#### Scenario: On a collection on a phone
+- **WHEN** a person opens the collection "Christmas", which holds 14 sheets, on a phone
+- **THEN** "Add sheets" is beside the heading, and the floating button is "New sheet"
+
 ### Requirement: The "New sheet" menu on phones
 On a phone, "New sheet" SHALL open its three ways as large buttons stacked above it, over the dimmed screen, and turn into a "Close" button while they are open. Escape, "Close" and a tap on the dimmed screen SHALL close them, with focus back on "New sheet".
 
 #### Scenario: Opening the menu on a phone
-- **WHEN** a person on a phone selects "New sheet" on `/sheets`
+- **WHEN** a person on a phone selects "New sheet"
 - **THEN** "Write a new sheet", "From photos…" and "From Ultimate Guitar…" show above the button over the dimmed screen, and the button reads "Close"

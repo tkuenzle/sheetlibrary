@@ -33,7 +33,6 @@ import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList } from "../sheets/sheet-list";
 import { deleteSheet } from "../sheets/sheets.server";
 import { Button } from "../ui/button";
-import { FloatingButton } from "../ui/floating-button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu } from "../ui/menu";
 import { NameDialog } from "../ui/name-dialog";
@@ -227,9 +226,6 @@ export function CollectionView({
           collection={collection}
           onGone={() => heading.current?.focus()}
         />
-      )}
-      {count > 0 && (
-        <FloatingButton icon="add" label="Add sheets" onClick={openAdd} />
       )}
       <AddSheetsDialog
         open={dialog === "add"}
