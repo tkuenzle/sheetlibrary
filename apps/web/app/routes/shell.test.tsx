@@ -213,6 +213,24 @@ describe("ShellView", () => {
     expect(link(bar, "/sheets")).not.toContain("aria-current");
   });
 
+  // Requirement "Rail with icons on middle screens".
+  it("starts the compact rail with the menu button that opens the full rail", () => {
+    const [, compact = ""] = navs(render("/sheets"));
+    expect(compact).toMatch(
+      /aria-label="Main"><span [^>]*><button type="button" aria-label="Open navigation" [^>]*aria-haspopup="dialog"/,
+    );
+  });
+
+  // Requirement "Opening the rail on middle screens". Opening it is tested
+  // in the browser (e2e/library.spec.ts).
+  it("ends with the opened rail's panel, empty and from the left while closed", () => {
+    const html = render("/sheets");
+    expect(html).toMatch(
+      /<dialog class="edge-panel shell-rail-panel" data-side="left" aria-label="Main"><\/dialog><\/div>$/,
+    );
+    expect(navs(html)).toHaveLength(3);
+  });
+
   // Requirement "Bottom bar on phones".
   it("has Sheets and Collections in the bar, and no account", () => {
     const [, , bar = ""] = navs(render("/sheets"));
@@ -228,7 +246,9 @@ describe("ShellView", () => {
     expect(rail).toMatch(
       /<span class="nav-avatar" aria-hidden="true">A<\/span>Account<\/a>/,
     );
-    expect(link(compact ?? "", "/account")).toContain('aria-label="Account"');
+    expect(compact).toMatch(
+      /<span class="nav-avatar" aria-hidden="true">A<\/span><\/span>Account<\/a>/,
+    );
     // After the rails and before the content, so it comes first on a phone.
     expect(html).toMatch(
       /<\/nav><a class="shell-account" [^>]*aria-label="Account"[^>]*><span class="nav-avatar" aria-hidden="true">A<\/span><\/a><main /,

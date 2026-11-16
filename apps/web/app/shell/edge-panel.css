@@ -1,0 +1,90 @@
+/*
+  A modal panel the full height of the window, from the left or the right
+  edge, a strip of the page left visible. The caller sets its width.
+*/
+.edge-panel {
+  --edge-panel-from: 100%;
+
+  top: 0;
+  bottom: 0;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 24px var(--shadow);
+  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+  outline: 1px solid transparent;
+}
+
+.edge-panel[data-side="right"] {
+  right: 0;
+  left: auto;
+  border-radius: var(--corner-large) 0 0 var(--corner-large);
+}
+
+.edge-panel[data-side="left"] {
+  --edge-panel-from: -100%;
+
+  right: auto;
+  left: 0;
+  border-radius: 0 var(--corner-large) var(--corner-large) 0;
+}
+
+.edge-panel[open] {
+  animation: edge-panel-in 200ms ease-out;
+}
+
+.edge-panel::backdrop {
+  background: var(--scrim);
+}
+
+.edge-panel[open]::backdrop {
+  animation: edge-panel-fade 200ms ease-out;
+}
+
+/* Sliding out before the panel closes (see EdgePanel). */
+.edge-panel[data-closing] {
+  animation: edge-panel-out 150ms ease-in forwards;
+}
+
+.edge-panel[data-closing]::backdrop {
+  animation: edge-panel-fade-out 150ms ease-in forwards;
+}
+
+@keyframes edge-panel-in {
+  from {
+    translate: var(--edge-panel-from) 0;
+  }
+}
+
+@keyframes edge-panel-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes edge-panel-out {
+  to {
+    translate: var(--edge-panel-from) 0;
+  }
+}
+
+@keyframes edge-panel-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-panel[open],
+  .edge-panel[open]::backdrop,
+  .edge-panel[data-closing],
+  .edge-panel[data-closing]::backdrop {
+    animation: none;
+  }
+}

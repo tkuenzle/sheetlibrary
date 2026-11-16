@@ -344,19 +344,158 @@ test.describe("the shell", () => {
   });
 
   // Scenario "On a tablet".
-  test("shows the rail as icons in a window of middle width", async ({
+  test("shows the rail as icons with their names in a window of middle width", async ({
     page,
     hasTouch,
   }) => {
     test.skip(hasTouch, "The phone project stays a phone");
     await page.setViewportSize({ width: 800, height: 720 });
     await page.goto("/sheets");
-    const links = mainNav(page).getByRole("link");
-    await expect(links).toHaveCount(3);
-    await expect(links).toHaveText(["", "", /^[A-Z]$/]);
-    expect((await mainNav(page).boundingBox())?.width).toBe(80);
+    await expect(
+      mainNav(page).getByRole("button", { name: "Open navigation" }),
+    ).toBeVisible();
+    await expect(mainNav(page).getByRole("link")).toHaveText([
+      "Sheets",
+      "Collections",
+      /^[A-Z]Account$/,
+    ]);
+    expect((await mainNav(page).boundingBox())?.width).toBe(88);
     await mainNav(page).getByRole("link", { name: "Collections" }).click();
     await expect(page).toHaveURL("/collections");
+  });
+
+  test.describe("the opened rail", () => {
+    test.skip(({ hasTouch }) => hasTouch, "The phone project stays a phone");
+
+    test.beforeEach(async ({ page }) => {
+      await page.setViewportSize({ width: 800, height: 720 });
+    });
+
+    const menuButton = (page: Page) =>
+      page.getByRole("button", { name: "Open navigation" });
+    const panel = (page: Page) => page.getByRole("dialog", { name: "Main" });
+    const focusInPanel = (page: Page) =>
+      page.evaluate(() => document.activeElement?.closest("dialog") !== null);
+
+    // Scenario "Opening a collection from the opened rail".
+    test("lists the collections, and opens one", async ({ page }) => {
+      const name = `Christmas ${crypto.randomUUID().slice(0, 8)}`;
+      const response = await page.request.post("/api/collections", {
+        data: { name },
+      });
+      expect(response.status()).toBe(201);
+      await page.goto("/sheets");
+      await markDocument(page);
+
+      await menuButton(page).click();
+      await expect(panel(page)).toBeVisible();
+      await expect(
+        panel(page).getByRole("link", { name: "Sheet Library" }),
+      ).toBeVisible();
+      expect(await focusInPanel(page)).toBe(true);
+      expect((await panel(page).boundingBox())?.width).toBe(304);
+
+      await panel(page)
+        .getByRole("link", { name: new RegExp(`^${name}`) })
+        .click();
+      await expect(panel(page)).toBeHidden();
+      await expect(heading(page)).toHaveText(name);
+      await expect(heading(page)).toBeFocused();
+      expect(await sameDocument(page)).toBe(true);
+    });
+
+    test("slides out after a pick, and the new page's heading takes the focus", async ({
+      page,
+    }) => {
+      await page.goto("/sheets");
+      // A slide out takes 1.5 seconds at a tenth of the speed, so the new
+      // page comes while the page is still inert behind the rail.
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send("Animation.enable");
+      await cdp.send("Animation.setPlaybackRate", { playbackRate: 0.1 });
+      await menuButton(page).click();
+      await expect(panel(page)).toBeVisible();
+      await panel(page)
+        .getByRole("link", { name: "Collections", exact: true })
+        .click();
+      await expect(heading(page)).toHaveText("Collections");
+      await expect(panel(page)).toHaveAttribute("data-closing");
+      await expect(panel(page)).toBeHidden();
+      await expect(heading(page)).toBeFocused();
+    });
+
+    test("stays open until the picked page is there, so the old one doesn't show again", async ({
+      page,
+    }) => {
+      const name = `Slow ${crypto.randomUUID().slice(0, 8)}`;
+      const response = await page.request.post("/api/collections", {
+        data: { name },
+      });
+      expect(response.status()).toBe(201);
+      await page.goto("/sheets");
+      await page.waitForLoadState("networkidle");
+      let release = (): void => undefined;
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      await page.route(/\/collections\/[^/]+\.data/, async (route) => {
+        await held;
+        await route.continue();
+      });
+
+      await menuButton(page).click();
+      await panel(page)
+        .getByRole("link", { name: new RegExp(`^${name}`) })
+        .click();
+      // While the collection loads, the rail stays over the old page.
+      await expect(page).toHaveURL("/sheets");
+      await expect(panel(page)).toBeVisible();
+      await expect(panel(page)).not.toHaveAttribute("data-closing");
+      release();
+      await expect(heading(page)).toHaveText(name);
+      await expect(panel(page)).toBeHidden();
+      await expect(heading(page)).toBeFocused();
+    });
+
+    // Scenario "Closing with Escape".
+    test("closes with Escape, and gives the focus back", async ({ page }) => {
+      await page.goto("/sheets");
+      await menuButton(page).click();
+      await expect(panel(page)).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(panel(page)).toBeHidden();
+      await expect(menuButton(page)).toBeFocused();
+    });
+
+    test("closes with its button or a click on the page, which it covers", async ({
+      page,
+    }) => {
+      await page.goto("/sheets");
+      await menuButton(page).click();
+      await panel(page).getByRole("button", { name: "Close" }).click();
+      await expect(panel(page)).toBeHidden();
+      await expect(menuButton(page)).toBeFocused();
+
+      await menuButton(page).click();
+      await expect(panel(page)).toBeVisible();
+      // On the heading "Sheets", beside the panel: the click doesn't reach
+      // the page.
+      const box = await heading(page).boundingBox();
+      await page.mouse.click((box?.x ?? 0) + 300, (box?.y ?? 0) + 10);
+      await expect(panel(page)).toBeHidden();
+      await expect(page).toHaveURL("/sheets");
+    });
+
+    test("closes when the window leaves the middle width", async ({ page }) => {
+      await page.goto("/sheets");
+      for (const width of [1280, 500]) {
+        await page.setViewportSize({ width: 800, height: 720 });
+        await menuButton(page).click();
+        await expect(panel(page)).toBeVisible();
+        await page.setViewportSize({ width, height: 720 });
+        await expect(panel(page)).toBeHidden();
+      }
+    });
   });
 
   // Scenarios "Opening a sheet", "Going back" and "On a phone" (Bottom bar):

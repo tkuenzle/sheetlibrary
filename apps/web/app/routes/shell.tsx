@@ -1,12 +1,13 @@
 import "./shell.css";
 
-import { type ReactNode, use } from "react";
+import { type ReactNode, use, useEffect, useRef, useState } from "react";
 import {
   Link,
   Outlet,
   redirect,
   type ShouldRevalidateFunctionArgs,
   useLocation,
+  useNavigation,
   useRouteLoaderData,
 } from "react-router";
 
@@ -14,11 +15,15 @@ import {
   type CollectionListItem,
   sheetCount,
 } from "../collections/collections";
+import { phone, wide } from "../breakpoints";
 import { listCollections } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
+import { EdgePanel } from "../shell/edge-panel";
+import { focusHeading } from "../shell/focus";
 import { revalidateAfterChanges } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
 import { SignedInContext } from "../shell/signed-in";
+import { IconButton } from "../ui/button";
 import { NavBar } from "../ui/nav-bar";
 import { type NavItem, NavRail } from "../ui/nav-rail";
 import type { Route } from "./+types/shell";
@@ -121,6 +126,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 // renders the right layout, and nothing jumps when the scripts load. The
 // account is at the bottom of the rail. On a phone it is its initial at the
 // top right, on the heading's line, and the bar holds only the screens.
+// The compact rail's menu button opens the full rail over the page. It
+// closes when the window leaves the middle width.
+const outsideMiddle = `${phone}, ${wide}`;
+
 export function ShellView({
   pathname,
   collections,
@@ -133,6 +142,9 @@ export function ShellView({
   initial: string;
   children: ReactNode;
 }) {
+  const [railOpen, setRailOpen] = useState(false);
+  // Where a link in the opened rail was picked, until the rail has closed.
+  const pickedOn = useRef<string | null>(null);
   const items = navItems(pathname, collections);
   const account: NavItem = {
     href: "/account",
@@ -159,7 +171,22 @@ export function ShellView({
         items={items}
         footer={[account]}
       />
-      <NavRail compact items={items} footer={[account]} />
+      <NavRail
+        compact
+        top={
+          <IconButton
+            icon="menu"
+            label="Open navigation"
+            aria-haspopup="dialog"
+            tooltipPlacement="right"
+            onClick={() => {
+              setRailOpen(true);
+            }}
+          />
+        }
+        items={items}
+        footer={[account]}
+      />
       <Link
         className="shell-account"
         to={account.href}
@@ -174,6 +201,97 @@ export function ShellView({
         {children}
       </main>
       <NavBar items={items} />
+      <EdgePanel
+        side="left"
+        className="shell-rail-panel"
+        open={railOpen}
+        onClosed={() => {
+          setRailOpen(false);
+          // The new page came while the rail was open. The page was inert
+          // then, so its heading couldn't take the focus (see
+          // shell/focus.ts), and closing put it back on the menu button.
+          if (pickedOn.current !== null && pickedOn.current !== pathname)
+            focusHeading();
+          pickedOn.current = null;
+        }}
+        closeWhen={outsideMiddle}
+        aria-label="Main"
+      >
+        {({ slideOut }) => (
+          <OpenedRail
+            pathname={pathname}
+            items={items}
+            account={account}
+            slideOut={slideOut}
+            onPick={() => {
+              pickedOn.current = pathname;
+            }}
+          />
+        )}
+      </EdgePanel>
+    </div>
+  );
+}
+
+// The full rail in the opened panel. A picked link keeps the panel open
+// until the new page is there, then slides it out over that page, so the
+// old page doesn't show again in between.
+function OpenedRail({
+  pathname,
+  items,
+  account,
+  slideOut,
+  onPick,
+}: {
+  pathname: string;
+  items: NavItem[];
+  account: NavItem;
+  slideOut: () => void;
+  onPick: () => void;
+}) {
+  const navigation = useNavigation();
+  const [pickedOn, setPickedOn] = useState<string | null>(null);
+  // Whether the move has started. Picking the open page loads it again
+  // without changing the address.
+  const moved = useRef(false);
+
+  useEffect(() => {
+    if (pickedOn === null) return;
+    if (navigation.state !== "idle") {
+      moved.current = true;
+      return;
+    }
+    if (moved.current || pathname !== pickedOn) slideOut();
+  }, [pickedOn, navigation.state, pathname, slideOut]);
+
+  return (
+    <div
+      className="shell-rail-panel-content"
+      onClick={(event) => {
+        // Only a move React Router makes itself: a click that opens a new
+        // tab leaves the rail open.
+        if (
+          !event.defaultPrevented ||
+          !(event.target instanceof Element && event.target.closest("a"))
+        )
+          return;
+        onPick();
+        setPickedOn(pathname);
+      }}
+    >
+      <NavRail
+        name={{ href: "/sheets", label: "Sheet Library" }}
+        besideName={
+          <IconButton
+            icon="close"
+            label="Close"
+            tooltipPlacement="bottom"
+            onClick={slideOut}
+          />
+        }
+        items={items}
+        footer={[account]}
+      />
     </div>
   );
 }

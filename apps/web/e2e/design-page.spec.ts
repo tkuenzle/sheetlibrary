@@ -50,8 +50,8 @@ test("shows both styles and asks search engines not to index it", async ({
   expect(await background("lamplight")).toBe("rgb(16, 21, 17)");
 });
 
-// The rail lists the collections, its compact form shows only icons, and
-// the bar marks the item a collection belongs to.
+// The rail lists the collections, its compact form shows icons with their
+// names under them, and the bar marks the item a collection belongs to.
 test("shows the rail, its compact form and the bottom bar", async ({
   page,
 }) => {
@@ -66,10 +66,12 @@ test("shows the rail, its compact form and the bottom bar", async ({
 
   const compact = light.getByRole("navigation", { name: "Rail, compact" });
   await expect(compact.getByRole("link")).toHaveCount(3);
-  await expect(compact.getByRole("link", { name: "Collections" })).toHaveText(
-    "",
-  );
-  expect((await compact.boundingBox())?.width).toBe(80);
+  await expect(compact.getByRole("link")).toHaveText([
+    "Sheets",
+    "Collections",
+    "AAccount",
+  ]);
+  expect((await compact.boundingBox())?.width).toBe(88);
 
   const bar = light.getByRole("navigation", { name: "Bottom bar" });
   await expect(bar.getByRole("link", { name: "Collections" })).toHaveAttribute(
@@ -157,7 +159,7 @@ test("components keep an outline in forced colors mode", async ({ page }) => {
         ".note",
         ".tooltip",
         ".nav-rail-sub-item[aria-current]",
-        ".nav-rail-compact .nav-rail-item[aria-current]",
+        ".nav-rail-compact .nav-rail-item[aria-current] > .nav-rail-icon",
         ".nav-bar-item[aria-current] > .nav-bar-icon",
       ]
         .map((selector) => {

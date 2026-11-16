@@ -38,9 +38,16 @@ export function useFocusOnNavigation() {
     const focused = document.activeElement;
     const focusInPage = focused !== main && main.contains(focused);
     if (!movesFocus({ from, to: location.pathname, focusInPage })) return;
-    const heading = main.querySelector("h1");
-    if (!heading) return;
-    if (!heading.hasAttribute("tabindex")) heading.tabIndex = -1;
-    heading.focus({ preventScroll: true });
+    focusHeading();
   }, [location]);
+}
+
+// Puts the focus on the page's heading, without scrolling. Also used when a
+// modal panel closes after a move, since the page was inert while it was
+// open (see the opened rail in routes/shell.tsx).
+export function focusHeading() {
+  const heading = document.querySelector("main h1");
+  if (!(heading instanceof HTMLElement)) return;
+  if (!heading.hasAttribute("tabindex")) heading.tabIndex = -1;
+  heading.focus({ preventScroll: true });
 }

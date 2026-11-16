@@ -29,6 +29,19 @@
   white-space: nowrap;
 }
 
+/* The site's name with something at the end of its line, such as the close
+   button of the opened rail. */
+.nav-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+
+.nav-rail-head > .nav-rail-name {
+  align-self: center;
+}
+
 .nav-rail-name:focus-visible {
   border-radius: var(--space-xs);
   outline: 3px solid var(--focus);
@@ -126,24 +139,82 @@
   margin: 0 -4px;
 }
 
-[aria-current] > .nav-avatar {
+[aria-current] > .nav-avatar,
+[aria-current] > .nav-rail-icon > .nav-avatar {
   background-color: var(--surface-active);
 }
 
-/* Compact: only the icons. Nothing scrolls, so the tooltips can reach out
-   of the rail. */
+/* Compact: each icon with its name under it, as on the canvas board
+   "Sheets, middle". The icon sits in a pill that marks the open one, as in
+   the bottom bar. */
 .nav-rail-compact {
   align-items: center;
-  width: 80px;
-  padding-inline: 0;
+  gap: var(--space-l);
+  width: 88px;
+  padding: var(--space-l) 0;
+}
+
+.nav-rail-compact ul {
+  gap: var(--space-m);
 }
 
 .nav-rail-compact .nav-rail-items {
-  overflow: visible;
+  margin-top: var(--space-s);
 }
 
 .nav-rail-compact .nav-rail-item {
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-xs);
+  width: 80px;
+  height: auto;
+  min-height: 56px;
+  padding: var(--space-xs) 0;
+  border-radius: var(--corner-small);
+  color: var(--text-muted);
+  font: 600 12px / 1.2 var(--font);
+  text-align: center;
+  /* With larger text, a long name breaks instead of being cut off. */
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.nav-rail-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
   justify-content: center;
   width: 56px;
-  padding: 0;
+  height: 32px;
+  border-radius: var(--corner-full);
+}
+
+/* The hover and the mark go on the pill, not on the whole item. */
+.nav-rail-compact .nav-rail-item:hover {
+  background-image: none;
+}
+
+.nav-rail-compact .nav-rail-item:hover > .nav-rail-icon {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--text) 6%, transparent) 0 0
+  );
+}
+
+.nav-rail-compact .nav-rail-item[aria-current] {
+  background-color: transparent;
+  color: var(--text);
+  outline: none;
+}
+
+/* The outline shows it in forced colors mode. */
+.nav-rail-compact .nav-rail-item[aria-current] > .nav-rail-icon {
+  background-color: var(--accent-soft);
+  color: var(--on-accent-soft);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.nav-rail-compact .nav-rail-item:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
 }
