@@ -1,6 +1,6 @@
 import "./not-found.css";
 
-import { TopBar } from "../shell/top-bar";
+import { SheetFrameBar } from "../shell/sheet-bar";
 
 const pages = {
   sheet: {
@@ -15,7 +15,7 @@ const pages = {
 
 // A sheet's or a collection's page, for an id that doesn't exist or belongs
 // to another account: both get the same answer. A sheet's page has its own
-// top bar. A collection's sits in the shell, which has the navigation.
+// top bar, with Back. A collection's sits in the shell, which has the navigation.
 export function NotFound({
   what = "sheet",
 }: {
@@ -32,7 +32,7 @@ export function NotFound({
   }
   return (
     <>
-      <TopBar back />
+      <SheetFrameBar />
       <main className="sheet-not-found">
         <h1>{page.title}</h1>
         <p>{page.text}</p>

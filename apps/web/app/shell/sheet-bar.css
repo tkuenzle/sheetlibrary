@@ -1,0 +1,71 @@
+/*
+  The top bar on a sheet (see top-bar.css for the bar itself). The widths are
+  listed in app/breakpoints.ts.
+*/
+.sheet-bar {
+  padding-left: var(--space-s);
+}
+
+.sheet-bar .top-bar-actions {
+  gap: var(--space-xs);
+}
+
+/* Back: an icon button that is a link, so it works without JavaScript. */
+.sheet-bar-back {
+  flex: none;
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* Edit: a tonal button that is a link. */
+.sheet-bar-edit-link {
+  text-decoration: none;
+}
+
+/* Edit mode: the bar takes the tonal color, so the mode shows at a glance. */
+.sheet-bar-edit {
+  padding-left: var(--space-m);
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.sheet-bar-edit .save-status {
+  color: var(--on-accent-soft);
+  font-weight: 600;
+}
+
+.sheet-bar-edit .icon-button-standard {
+  color: var(--on-accent-soft);
+}
+
+/* Phone-wide: Edit shows only its icon, as round as an icon button. The
+   selector outweighs the padding that button.css gives a button with an
+   icon. */
+@media (max-width: 640px) {
+  .sheet-bar {
+    padding-left: var(--space-xs);
+  }
+
+  /* Done is the small button's size, so it doesn't fill the 56px bar, with
+     room before it and between it and the save state. */
+  .sheet-bar-edit {
+    gap: var(--space-m);
+    padding-left: var(--space-m);
+  }
+
+  .sheet-bar-edit .button.sheet-bar-done {
+    height: 44px;
+    padding: 0 var(--space-l) 0 var(--space-m);
+  }
+
+  .sheet-bar .button.sheet-bar-edit-link:has(> .icon:first-child) {
+    width: 48px;
+    padding: 0;
+    background: transparent;
+    color: var(--text-muted);
+  }
+
+  .sheet-bar-edit-text {
+    display: none;
+  }
+}

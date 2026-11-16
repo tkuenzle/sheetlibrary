@@ -183,15 +183,69 @@ test("keeps trying while saves don't get through", async ({ page }) => {
   await expect(status(page)).toHaveText("Saved", { timeout: 10_000 });
 });
 
-test("asks before leaving while edits aren't saved", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+function done(page: Page) {
+  return page.getByRole("banner").getByRole("button", { name: "Done" });
+}
+
+function leaveDialog(page: Page) {
+  return page.getByRole("alertdialog", { name: "Leave without the edits?" });
+}
+
+// Scenario "Going back while offline", with Done, and a reload, which the
+// browser itself asks about.
+test("asks before leaving while edits can't be saved", async ({ page }) => {
+  const id = await createSheet(page);
+  await openSheet(page, id);
   await page.route("**/api/sheets/*", (route) => route.abort());
   await typeAtEnd(page, " again");
   await expect(status(page)).toHaveText("Not saved yet. Trying again…");
+
+  // Done tries to save once more, and asks when that fails too.
+  await done(page).click();
+  await expect(leaveDialog(page)).toBeVisible();
+  await leaveDialog(page).getByRole("button", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(`/sheets/${id}/edit`);
+
+  // Started from the page, since a reload the prompt cancels never ends.
   const seen = prompts(page, false);
-  await page.getByRole("banner").getByRole("link", { name: "Library" }).click();
+  await page.evaluate(() => {
+    window.location.reload();
+  });
   await expect.poll(() => seen).toEqual(["beforeunload"]);
-  await expect(page).toHaveURL(/\/sheets\//);
+  await expect(page).toHaveURL(`/sheets/${id}/edit`);
+
+  // "Leave" goes, without the edits.
+  await done(page).click();
+  await leaveDialog(page).getByRole("button", { name: "Leave" }).click();
+  await expect(page).toHaveURL(`/sheets/${id}`);
+  await page.unroute("**/api/sheets/*");
+  await page.reload();
+  await expect(page.getByText("sound again")).toHaveCount(0);
+});
+
+// Scenario "Going back while offline".
+test("asks before the browser's back while edits can't be saved", async ({
+  page,
+}) => {
+  const id = await createSheet(page);
+  await page.goto(`/sheets/${id}`);
+  await page.getByRole("banner").getByRole("link", { name: "Edit" }).click();
+  await expect(page.locator(".chord-label")).toHaveCount(1);
+  await page.route("**/api/sheets/*", (route) => route.abort());
+  await typeAtEnd(page, " again");
+  await page.goBack();
+  await expect(leaveDialog(page)).toBeVisible();
+  await leaveDialog(page).getByRole("button", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(`/sheets/${id}/edit`);
+  await expect(firstLine(page)).toHaveText(
+    "Amazing grace, how sweet the sound again",
+  );
+
+  // Back online, the browser's back saves and goes.
+  await page.unroute("**/api/sheets/*");
+  await page.goBack();
+  await expect(page).toHaveURL(`/sheets/${id}`);
+  await expect(page.getByText("sound again")).toBeVisible();
 });
 
 // Scenario "Two tabs" (sheet-page).
@@ -230,9 +284,7 @@ test("stops saving when the sheet changed in another tab", async ({
   await expect(other.getByRole("button", { name: "Add artist" })).toHaveCount(
     0,
   );
-  await menuButton(other).click();
-  await expect(other.getByRole("menuitem", { name: "Rename" })).toBeDisabled();
-  await other.keyboard.press("Escape");
+  await expect(renameButton(other)).toBeDisabled();
 
   // Scenario "Transposing after a conflict".
   await other.getByRole("button", { name: /^Key / }).click();
@@ -256,6 +308,10 @@ function titleButton(page: Page) {
 
 function menuButton(page: Page) {
   return page.getByRole("button", { name: "More for this sheet" });
+}
+
+function renameButton(page: Page) {
+  return page.getByRole("button", { name: "Rename" });
 }
 
 // A title no other test uses, so the library can be checked for it.
@@ -333,29 +389,76 @@ test("Escape keeps the old title", async ({ page }) => {
   await expect(status(page)).toHaveText("Saved");
 });
 
-// Scenario "Rename from the menu".
-test("the sheet's menu opens the title field", async ({ page }) => {
+// Scenario "Renaming with the button".
+test("Rename beside the title opens the title field", async ({ page }) => {
+  await openSheet(page, await createSheet(page));
+  await renameButton(page).click();
+  await expect(page.getByLabel("Title")).toBeFocused();
+  await expect(page.getByLabel("Title")).toHaveValue("Amazing Grace");
+  await expect(renameButton(page)).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(renameButton(page)).toBeVisible();
+});
+
+// Scenario "The same in edit mode" (play-page).
+test("the sheet's menu holds what is done with the sheet", async ({ page }) => {
   await openSheet(page, await createSheet(page));
   await menuButton(page).click();
-  const rename = page.getByRole("menuitem", { name: "Rename" });
-  await expect(rename).toBeFocused();
-  await page.keyboard.press("ArrowDown");
+  const items = page.getByRole("menuitem");
+  await expect(items).toHaveText(["Choose collections…", "Print", "Delete"]);
+  await expect(items.first()).toBeFocused();
+  await page.keyboard.press("ArrowUp");
   await expect(page.getByRole("menuitem", { name: "Delete" })).toBeFocused();
-  await page.keyboard.press("ArrowDown");
-  await expect(rename).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect(rename).toHaveCount(0);
+  await expect(items).toHaveCount(0);
   await expect(menuButton(page)).toBeFocused();
 
   // A click outside closes it too.
   await menuButton(page).click();
   await page.locator("main").click({ position: { x: 4, y: 4 } });
-  await expect(rename).toHaveCount(0);
+  await expect(items).toHaveCount(0);
+});
 
-  await menuButton(page).click();
-  await rename.click();
-  await expect(page.getByLabel("Title")).toBeFocused();
-  await expect(page.getByLabel("Title")).toHaveValue("Amazing Grace");
+// Scenarios "Got it" and "Help on a wide screen".
+test("shows how to edit the first time, then behind the help button", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    storageState: authFile,
+    viewport: { width: 1280, height: 800 },
+  });
+  const page = await context.newPage();
+  await context.clearCookies({ name: "edit-help" });
+  await openSheet(page, await createSheet(page));
+  const note = page.getByRole("note");
+  await expect(note).toContainText("Click a section to edit it.");
+  await expect(
+    page.getByRole("complementary", { name: "How to edit" }),
+  ).toHaveCount(0);
+
+  // "All shortcuts" opens the help over the page.
+  await note.getByRole("button", { name: "All shortcuts" }).click();
+  const help = page.getByRole("dialog", { name: "How to edit" });
+  await expect(help).toContainText("Click the title to rename the sheet");
+  await page.keyboard.press("Escape");
+  await expect(help).toBeHidden();
+
+  // "Got it" puts the note away on this device, also after a reload.
+  await note.getByRole("button", { name: "Got it" }).click();
+  await expect(note).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(".chord-label")).toHaveCount(1);
+  await expect(page.getByRole("note")).toHaveCount(0);
+
+  // The help button opens it at this width too, and gives the focus back.
+  const button = page.getByRole("banner").getByRole("button", {
+    name: "How to edit",
+  });
+  await button.click();
+  await expect(help).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(button).toBeFocused();
+  await context.close();
 });
 
 // Scenario "Undo after renaming".
@@ -516,8 +619,8 @@ test("stops saving when the sheet was deleted in another tab", async ({
     "false",
   );
   await expect(titleButton(other)).toBeDisabled();
+  await expect(renameButton(other)).toBeDisabled();
   await menuButton(other).click();
-  await expect(other.getByRole("menuitem", { name: "Rename" })).toBeDisabled();
   await expect(other.getByRole("menuitem", { name: "Delete" })).toBeDisabled();
   await other.keyboard.press("Escape");
 

@@ -263,12 +263,15 @@ export function useSheetKey(
 // button or field that renames it.
 export function SheetTitle({
   title,
+  titleAction,
   sheetKey: { key, guessed, guess, shown, capo, show, setCapo },
   editor,
   readOnly = false,
   children,
 }: {
   title: ReactNode;
+  // Right after the title, such as the button that renames it.
+  titleAction?: ReactNode;
   sheetKey: SheetKey;
   editor: RefObject<SheetEditorHandle | null>;
   // A read-only sheet can still be shown in another key, but not changed.
@@ -280,6 +283,7 @@ export function SheetTitle({
   return (
     <div className="editor-title">
       <h1>{title}</h1>
+      {titleAction}
       {key && current && (
         // The key and the capo wrap together, after the title.
         <div className="editor-title-keys">

@@ -290,15 +290,13 @@ test("goes back to Collections, and doesn't find an unknown collection", async (
   await expect(collectionsLink(page)).toHaveAttribute("aria-current", "page");
 });
 
+// From the sheet's menu, the same at every width.
 async function openChooseCollections(page: Page) {
-  if (
-    await page.getByRole("button", { name: "Choose collections" }).isVisible()
-  ) {
-    await page.getByRole("button", { name: "Choose collections" }).click();
-  } else {
-    await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Choose collections…" }).click();
-  }
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: "More for this sheet" })
+    .click();
+  await page.getByRole("menuitem", { name: "Choose collections…" }).click();
   return page.getByRole("dialog", { name: "Choose collections" });
 }
 
@@ -314,19 +312,8 @@ test("adds a sheet to collections from the play view", async ({
   const collectionId = await createCollection(page, name);
 
   await page.goto(`/sheets/${sheetId}`);
-  if (testInfo.project.name === "chromium") {
-    const actions = page.locator(".play-actions");
-    await expect(actions.getByRole("button")).toHaveText([
-      "Lyrics only",
-      "",
-      "",
-      "",
-      "",
-    ]);
-    await expect(
-      actions.getByRole("button", { name: "Choose collections" }),
-    ).toBeVisible();
-  }
+  const holding = page.getByRole("list", { name: "Collections" });
+  await expect(holding).toHaveCount(0);
 
   let dialog = await openChooseCollections(page);
   await expect(dialog).toContainText(title);
@@ -341,6 +328,18 @@ test("adds a sheet to collections from the play view", async ({
   expect((await added).status()).toBe(204);
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(dialog).toBeHidden();
+
+  // Scenarios "After choosing a collection" and "In two collections": above
+  // a phone's width, the collection shows under the title, as a link.
+  if (testInfo.project.name === "chromium") {
+    await expect(holding.getByRole("link")).toHaveText([name]);
+    await expect(holding.getByRole("link")).toHaveAttribute(
+      "href",
+      `/collections/${collectionId}`,
+    );
+  } else {
+    await expect(holding).toBeHidden();
+  }
 
   dialog = await openChooseCollections(page);
   await expect(dialog.getByRole("checkbox", { name })).toBeChecked();

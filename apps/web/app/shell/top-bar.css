@@ -6,11 +6,6 @@
   padding: 0 var(--space-s) 0 var(--space-xl);
 }
 
-/* The back link has its own padding, so the bar has less. */
-.top-bar-with-back {
-  padding-left: var(--space-m);
-}
-
 .top-bar-name {
   color: var(--text);
   font: 800 20px / 1 var(--font);
@@ -25,31 +20,12 @@
   outline-offset: 3px;
 }
 
-/* "Library" with a back arrow, shaped like a text button. */
-.top-bar-back {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: var(--space-s);
-  height: 48px;
-  padding: 0 20px 0 var(--space-m);
-  border-radius: var(--corner-full);
-  color: var(--text);
-  font: 700 17px / 1 var(--font);
-  text-decoration: none;
-  white-space: nowrap;
-  outline: 1px solid transparent;
-  outline-offset: -1px;
-}
-
-.top-bar-back:hover,
 .top-bar-account:hover {
   background-image: linear-gradient(
     color-mix(in srgb, var(--text) 8%, transparent) 0 0
   );
 }
 
-.top-bar-back:focus-visible,
 .top-bar-account:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
@@ -101,16 +77,8 @@
     padding: 0 var(--space-xs) 0 20px;
   }
 
-  .top-bar-with-back {
-    padding-left: var(--space-xs);
-  }
-
   .top-bar-name {
     font-size: 19px;
-  }
-
-  .top-bar-back {
-    padding-right: var(--space-l);
   }
 }
 

@@ -137,7 +137,7 @@ describe("a sheet's error boundary", () => {
       </SignedInContext>,
     );
     expect(html).toMatch(/^<header /);
-    expect(html).toContain(">Library<");
+    expect(html).toMatch(/<a [^>]*href="\/sheets" aria-label="Back"/);
     expect(html).toContain(
       '<h1 class="page-error-title">Something went wrong</h1>',
     );

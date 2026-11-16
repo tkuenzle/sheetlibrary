@@ -1,5 +1,7 @@
 import "./help.css";
 
+import { Button } from "../ui/button";
+
 // How to edit, for the side panel. It holds the help for touch, the keys and
 // the help for a mouse, in that order, and CSS hides the group that doesn't
 // match the main pointer. So a finger gets touch, then keys, and a mouse gets
@@ -67,5 +69,40 @@ export function EditorHelp({ rename = false }: { rename?: boolean }) {
         </ul>
       </div>
     </>
+  );
+}
+
+// The note at the top of edit mode, until "Got it" puts it away on this
+// device: the main way to edit, for touch or a mouse, as the help shows it.
+// "All shortcuts" opens the full help. See openspec/specs/sheet-page ("How
+// to edit, the first time").
+export function FirstTimeHelp({
+  onShortcuts,
+  onGotIt,
+}: {
+  onShortcuts: () => void;
+  onGotIt: () => void;
+}) {
+  return (
+    <div className="first-time-help" role="note">
+      <p>
+        <span className="help-touch">
+          Tap a section to edit it. <strong>Chord</strong> in the toolbar adds a
+          chord at the cursor.
+        </span>
+        <span className="help-mouse">
+          Click a section to edit it. <kbd>Ctrl K</kbd> or <kbd>⌘ K</kbd> adds a
+          chord at the cursor.
+        </span>
+      </p>
+      <div className="first-time-help-actions">
+        <Button variant="text" size="small" onClick={onShortcuts}>
+          All shortcuts
+        </Button>
+        <Button variant="tonal" size="small" onClick={onGotIt}>
+          Got it
+        </Button>
+      </div>
+    </div>
   );
 }

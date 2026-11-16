@@ -35,21 +35,42 @@ export function SidePanel({
 
 // The button that opens the side panel as a modal sheet from the right, for
 // the top bar. Only shown below the wide width. The sheet closes when the
-// window gets wide, where the panel sits beside the content.
+// window gets wide, where the panel sits beside the content. With
+// `everyWidth`, as on a sheet in edit mode, there is no panel beside the
+// content, so the button shows at every width and the sheet stays open.
+// `open` and `onOpenChange` let the page open it from elsewhere too.
 export function SidePanelButton({
   icon,
   title,
+  everyWidth = false,
+  open: openFromPage,
+  onOpenChange,
   children,
 }: {
   icon: IconName;
   title: string;
+  everyWidth?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openHere, setOpenHere] = useState(false);
+  const open = openFromPage ?? openHere;
+  const setOpen = (next: boolean) => {
+    setOpenHere(next);
+    onOpenChange?.(next);
+  };
   const titleId = useId();
   return (
     // Opening the help doesn't stop editing (see SheetEditor).
-    <div className="side-panel-button" data-keeps-editing>
+    <div
+      className={
+        everyWidth
+          ? "side-panel-button side-panel-button-every-width"
+          : "side-panel-button"
+      }
+      data-keeps-editing
+    >
       <IconButton
         icon={icon}
         label={title}
@@ -65,7 +86,7 @@ export function SidePanelButton({
         onClosed={() => {
           setOpen(false);
         }}
-        closeWhen={wide}
+        closeWhen={everyWidth ? "not all" : wide}
         aria-labelledby={titleId}
       >
         {({ slideOut }) => (
