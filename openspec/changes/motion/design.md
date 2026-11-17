@@ -25,7 +25,7 @@ Every place that moves writes its own numbers and its own `@media (prefers-reduc
 
 **The switch's handle moves with `translate` and `scale`.** It stays 24px in the layout and is scaled down to 16px when off, so turning it on changes no layout and the browser doesn't lay out the bar each frame.
 
-**The dimming of old search results doesn't fade.** It starts after the 200ms wait, so an answer just after that arrives while the fade runs: the rows are swapped in one frame mid-fade, and the list seems to jump. A slower fade in with an instant restore was considered. Snapping on and off is simpler and reads as a clear sign.
+**Old search results aren't dimmed.** The dim starts after the 200ms wait, so an answer just after that arrives while it fades in: the rows are swapped in one frame mid-fade, and the list seems to jump. Without the fade, it blinks instead. A slower fade in with an instant restore was considered. On Sheets, "Searching…" and the loading bar already show the wait, so the dim goes. In Add sheets it was the only sign; #137 gives that dialog its loading state.
 
 **The active section doesn't fade.** A color fade at `--motion-short` was built and tried. With the standard curve most of it happens in the first frames, so it wasn't noticeable, and a slower one would make editing feel sluggish. The person moved the cursor themselves, so a fade tells them nothing new.
 

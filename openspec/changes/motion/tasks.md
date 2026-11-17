@@ -10,7 +10,7 @@
 - [x] 2.1 Move `EdgePanel` and the key panel onto the tokens and remove their reduced-motion blocks; verify the rail and help slide as before, and add an e2e case that opens and closes the key panel on a phone at once with reduced motion
 - [x] 2.2 Move the docked chord input onto the tokens, remove its reduced-motion block and the `matchMedia` check in `sheet-editor.tsx`; verify "opens and closes the docked chord input at once with reduced motion" in `e2e/sheet-editor.spec.ts` still passes
 - [x] 2.3 In `packages/chord-editor/src/style.css`, use `var(--chord-editor-motion, 150ms)` for the lift and the docked toolbar, list the property in the stylesheet's header, and set it to `--motion-short` in the app; verify "lifts the label at once with reduced motion" and the package's tests pass
-- [x] 2.4 Remove the fade from the dimming of old search results (`sheet-list.css`, `routes/sheets.css`, `add-sheets-dialog.css`), so it goes on and off at once; verify with the `library` e2e tests
+- [x] 2.4 Remove the dimming of old search results (`sheet-list.css`, `routes/sheets.css`, `add-sheets-dialog.css`), keeping them marked busy; verify with the `library` e2e test for a slow search, which checks the list isn't dimmed
 - [x] 2.5 Make the Lyrics only switch's handle move with `translate` and `scale` on the tokens, and remove its reduced-motion block; verify the handle looks as before in both states, and add an e2e case in `e2e/design-system.spec.ts` that it is at its end at once with reduced motion
 - [x] 2.6 Check the loading bar and the photo import's sign still stand still with reduced motion; verify with the existing `waiting` and photo import tests
 

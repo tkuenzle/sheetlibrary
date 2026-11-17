@@ -59,7 +59,7 @@ Use the tokens, never numbers. The `chord-editor` package takes its duration fro
 - **The editor's scroll to the cursor** jumps. Smooth scrolling would fight typing and the keyboard on a phone.
 - **The save state** changes its text at once. It is a status, not an event.
 - **Text and chords** never move on their own. A chord moves only while it is dragged, and lifts above the finger.
-- **Old search results** dim at once while a search loads, and show at full strength the moment the new ones arrive. A fade was tried: the new results often arrived while it ran, so the list seemed to jump mid-fade.
+- **Old search results** stay as they are while a search loads. "Searching…" in the field and the loading bar show the wait. A dim was tried, with and without a fade: the new results often arrived just after it started, so the list blinked or seemed to jump.
 - **The active section** changes its look at once. The person moved the cursor there, so a fade would tell them nothing.
 
 ## Reduced motion

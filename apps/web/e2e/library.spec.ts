@@ -1073,6 +1073,8 @@ test.describe("search", () => {
       "aria-busy",
       "true",
     );
+    // "Searching…" is the sign; the earlier results aren't dimmed.
+    await expect(page.locator(".library-list")).toHaveCSS("opacity", "1");
     await expect(status).toHaveText("1 sheet");
     await expect(page.locator(".library-list")).not.toHaveAttribute(
       "aria-busy",

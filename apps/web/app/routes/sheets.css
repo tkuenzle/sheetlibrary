@@ -23,12 +23,6 @@
   gap: var(--space-m);
 }
 
-/* While a search loads, the results shown are out of date. The list has
-   the same rule (sheets/sheet-list.css). */
-.library-empty[aria-busy="true"] {
-  opacity: 0.5;
-}
-
 /* No sheets yet. */
 .library-empty {
   display: flex;
