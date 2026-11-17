@@ -278,7 +278,7 @@
   }
 
   .key-panel[open] {
-    animation: key-panel-in 200ms ease-out;
+    animation: key-panel-in var(--motion-medium) var(--ease-enter);
   }
 
   .key-panel::backdrop {
@@ -286,16 +286,16 @@
   }
 
   .key-panel[open]::backdrop {
-    animation: key-panel-fade 200ms ease-out;
+    animation: key-panel-fade var(--motion-medium) var(--ease-enter);
   }
 
   /* Sliding out before the sheet closes (see KeyButton). */
   .key-panel[data-closing] {
-    animation: key-panel-out 150ms ease-in forwards;
+    animation: key-panel-out var(--motion-short) var(--ease-exit) forwards;
   }
 
   .key-panel[data-closing]::backdrop {
-    animation: key-panel-fade-out 150ms ease-in forwards;
+    animation: key-panel-fade-out var(--motion-short) var(--ease-exit) forwards;
   }
 
   .key-panel-key {
@@ -324,14 +324,5 @@
 @keyframes key-panel-fade-out {
   to {
     opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .key-panel[open],
-  .key-panel[open]::backdrop,
-  .key-panel[data-closing],
-  .key-panel[data-closing]::backdrop {
-    animation: none;
   }
 }

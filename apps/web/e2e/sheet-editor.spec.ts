@@ -1455,11 +1455,16 @@ test.describe("the section toolbar", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await tapChar(page, "wretch", 1);
     await press(page, addChordButton(page));
-    expect(await chordInputAnimation(page)).toBe("none");
-    expect(await cancelChordInput(page)).toEqual({
-      shown: false,
-      closing: false,
-      animation: "",
+    expect(
+      await page
+        .locator(".chord-input")
+        .evaluate((form) => getComputedStyle(form).animationDuration),
+    ).toBe("0s");
+    // The slide out takes no time and ends at once, well before the timer
+    // that closes it when a slide doesn't end (300ms).
+    await cancelChordInput(page);
+    await expect(page.locator(".chord-input")).toHaveCount(0, {
+      timeout: 250,
     });
   });
 

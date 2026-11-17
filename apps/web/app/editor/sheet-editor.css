@@ -12,6 +12,9 @@
   --label-height: 32px;
   /* The label's pill reaches this far left of the lyrics. */
   --label-inset: 12px;
+  /* Here rather than on .chord-editor, so the section toolbar beside it
+     gets it too. 0s with reduced motion (see docs/motion.md). */
+  --chord-editor-motion: var(--motion-short);
 }
 
 .sheet-editor .chord-editor {

@@ -105,6 +105,10 @@ The tokens are in `apps/web/app/ui/tokens.css`. Each color is written as `light-
   - fully round for buttons and toolbars
 - **Icons:** Material Symbols Rounded, weight 500, drawn for 24px, as inline SVGs committed in `apps/web/app/ui/icons/`. Only the icons listed in `icons.ts` are bundled. The npm packages only have icons drawn for 48px, which look too thin at 24px.
 
+## Motion
+
+Calm and short, with Material 3's standard curves and no overshoot. Peers in the shell fade into each other, a sheet rises over the shell, and Edit is a mode that only changes the bar. The shell never moves. With reduced motion nothing moves. The concept and the tokens are in `docs/motion.md`.
+
 ## Components
 
 The base components are React components in `apps/web/app/ui/`, each with its own CSS on the role tokens: `Button`, `IconButton`, `Tooltip`, `Toolbar`, `Popover`, `Note`, `NavRail` and `NavBar`. They keep an outline in forced colors mode. `NavRail` is the navigation at the left of a wide screen: the site's name, the items with what they hold listed under them, and the account at the bottom. Its compact form shows only icons, with tooltips. `NavBar` is the navigation at the bottom of a phone. Both mark the open item with the tonal colors. `LoadingBar` is the bar at the top of the window while a page loads; it stands still with reduced motion, and takes a system color in forced colors mode. `PageError` is the note in place of a page that can't be shown: an icon, the heading, a line and its action. The grouped rows of the library and the account page are a class, `group-list` in `group-list.css`, since their rows hold different things. The `/design` page shows them in both styles. It exists only in pull request previews and the dev server.

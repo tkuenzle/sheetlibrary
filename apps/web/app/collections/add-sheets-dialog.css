@@ -39,11 +39,6 @@
   padding: 0 var(--space-l);
   overflow-y: auto;
   list-style: none;
-  transition: opacity 150ms;
-}
-
-.add-sheets-list[aria-busy="true"] {
-  opacity: 0.5;
 }
 
 .add-sheets-list label {

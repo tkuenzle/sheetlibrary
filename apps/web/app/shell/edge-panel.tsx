@@ -12,7 +12,7 @@ export interface EdgePanelControls {
 // The caller has the button that opens it and sets `open`; the panel says
 // when it has closed. Its content is only rendered while it is open. It
 // slides in, and slides out before it closes, since a dialog leaves the page
-// at once when it closes. With reduced motion, CSS leaves out the slide.
+// at once when it closes. With reduced motion, the slide takes no time.
 export function EdgePanel({
   side,
   open,
@@ -48,8 +48,8 @@ export function EdgePanel({
     };
   }, [open, closeWhen]);
 
-  // Closes once the slide out is done. With reduced motion there is no
-  // animation to wait for, so it closes at once.
+  // Closes once the slide out is done. With reduced motion it takes no time
+  // (see docs/motion.md), so it closes at once.
   useEffect(() => {
     const panel = dialog.current;
     if (!closing || !panel) return;

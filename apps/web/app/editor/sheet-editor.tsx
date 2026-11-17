@@ -72,7 +72,6 @@ export interface SheetEditorHandle {
 // too narrow for the section toolbar beside the section. The toolbar then
 // docks at the bottom.
 const compact = `(pointer: coarse), ${phone}`;
-const reducedMotion = "(prefers-reduced-motion: reduce)";
 
 type ChordTarget =
   | { kind: "new"; pos: number }
@@ -233,11 +232,7 @@ export function SheetEditor({
     // the tap. Otherwise iOS doesn't open the keyboard.
     flushSync(() => {
       setChordInput(next);
-      setLeaving(
-        !next && current?.docked && !matchMedia(reducedMotion).matches
-          ? current
-          : null,
-      );
+      setLeaving(!next && current?.docked ? current : null);
     });
   }
 
