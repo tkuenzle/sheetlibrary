@@ -39,7 +39,6 @@
   padding: 0 var(--space-l);
   overflow-y: auto;
   list-style: none;
-  transition: opacity var(--motion-short) var(--ease-move);
 }
 
 .add-sheets-list[aria-busy="true"] {

@@ -90,11 +90,8 @@
   font: 700 17px / 1.3 var(--font);
 }
 
-/* While a search loads, the results shown are out of date. */
-.library-list {
-  transition: opacity var(--motion-short) var(--ease-move);
-}
-
+/* While a search loads, the results shown are out of date. No fade: the
+   results can arrive while it runs (see docs/motion.md). */
 .library-list[aria-busy="true"] {
   opacity: 0.5;
 }

@@ -25,10 +25,6 @@
 
 /* While a search loads, the results shown are out of date. The list has
    the same rule (sheets/sheet-list.css). */
-.library-empty {
-  transition: opacity var(--motion-short) var(--ease-move);
-}
-
 .library-empty[aria-busy="true"] {
   opacity: 0.5;
 }
