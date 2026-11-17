@@ -1,220 +1,222 @@
-/* The rail: the navigation at the left of a wide screen, as on the canvas
-   page "UX overhaul". Its width is fixed, so the page beside it never
-   moves. */
-.nav-rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-  box-sizing: border-box;
-  width: 272px;
-  padding: var(--space-xl) var(--space-m) var(--space-m);
-}
+@layer components {
+  /* The rail: the navigation at the left of a wide screen, as on the canvas
+     page "UX overhaul". Its width is fixed, so the page beside it never
+     moves. */
+  .nav-rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    box-sizing: border-box;
+    width: 272px;
+    padding: var(--space-xl) var(--space-m) var(--space-m);
+  }
 
-.nav-rail ul {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+  .nav-rail ul {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
 
-.nav-rail-name {
-  align-self: flex-start;
-  margin: 0 var(--space-l);
-  color: var(--text);
-  font: 800 20px / 1 var(--font);
-  letter-spacing: -0.03em;
-  text-decoration: none;
-  white-space: nowrap;
-}
+  .nav-rail-name {
+    align-self: flex-start;
+    margin: 0 var(--space-l);
+    color: var(--text);
+    font: 800 20px / 1 var(--font);
+    letter-spacing: -0.03em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
 
-/* The site's name with something at the end of its line, such as the close
-   button of the opened rail. */
-.nav-rail-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-s);
-}
+  /* The site's name with something at the end of its line, such as the close
+     button of the opened rail. */
+  .nav-rail-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s);
+  }
 
-.nav-rail-head > .nav-rail-name {
-  align-self: center;
-}
+  .nav-rail-head > .nav-rail-name {
+    align-self: center;
+  }
 
-.nav-rail-name:focus-visible {
-  border-radius: var(--space-xs);
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
-}
+  .nav-rail-name:focus-visible {
+    border-radius: var(--space-xs);
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+  }
 
-/* The items scroll on their own; the name and the footer stay in view. */
-.nav-rail-items {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
+  /* The items scroll on their own; the name and the footer stay in view. */
+  .nav-rail-items {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
 
-.nav-rail-item,
-.nav-rail-sub-item {
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
-  border-radius: var(--corner-full);
-  text-decoration: none;
-}
+  .nav-rail-item,
+  .nav-rail-sub-item {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    border-radius: var(--corner-full);
+    text-decoration: none;
+  }
 
-.nav-rail-item {
-  gap: var(--space-m);
-  height: 48px;
-  padding: 0 var(--space-l);
-  color: var(--text);
-  font: 600 var(--font-size-body) / 1.2 var(--font);
-}
+  .nav-rail-item {
+    gap: var(--space-m);
+    height: 48px;
+    padding: 0 var(--space-l);
+    color: var(--text);
+    font: 600 var(--font-size-body) / 1.2 var(--font);
+  }
 
-/* What an item holds, such as each collection, in line with its name. */
-.nav-rail .nav-rail-sub {
-  margin-top: 2px;
-}
+  /* What an item holds, such as each collection, in line with its name. */
+  .nav-rail .nav-rail-sub {
+    margin-top: 2px;
+  }
 
-.nav-rail-sub-item {
-  justify-content: space-between;
-  gap: var(--space-s);
-  min-height: 40px;
-  padding: var(--space-xs) var(--space-l) var(--space-xs) 52px;
-  color: var(--text-muted);
-  font: 500 14px / 1.3 var(--font);
-}
+  .nav-rail-sub-item {
+    justify-content: space-between;
+    gap: var(--space-s);
+    min-height: 40px;
+    padding: var(--space-xs) var(--space-l) var(--space-xs) 52px;
+    color: var(--text-muted);
+    font: 500 14px / 1.3 var(--font);
+  }
 
-.nav-rail-sub-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  .nav-rail-sub-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-.nav-rail-count {
-  flex: none;
-  font-size: var(--font-size-small);
-}
+  .nav-rail-count {
+    flex: none;
+    font-size: var(--font-size-small);
+  }
 
-.nav-rail-item:hover,
-.nav-rail-sub-item:hover {
-  background-image: linear-gradient(
-    color-mix(in srgb, var(--text) 6%, transparent) 0 0
-  );
-}
+  .nav-rail-item:hover,
+  .nav-rail-sub-item:hover {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--text) 6%, transparent) 0 0
+    );
+  }
 
-/* The open one. The outline shows it in forced colors mode. */
-.nav-rail-item[aria-current],
-.nav-rail-sub-item[aria-current] {
-  background-color: var(--accent-soft);
-  color: var(--on-accent-soft);
-  outline: 1px solid transparent;
-  outline-offset: -1px;
-}
+  /* The open one. The outline shows it in forced colors mode. */
+  .nav-rail-item[aria-current],
+  .nav-rail-sub-item[aria-current] {
+    background-color: var(--accent-soft);
+    color: var(--on-accent-soft);
+    outline: 1px solid transparent;
+    outline-offset: -1px;
+  }
 
-/* Inside the item, so the scrolling list doesn't cut it off. */
-.nav-rail-item:focus-visible,
-.nav-rail-sub-item:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: -3px;
-}
+  /* Inside the item, so the scrolling list doesn't cut it off. */
+  .nav-rail-item:focus-visible,
+  .nav-rail-sub-item:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: -3px;
+  }
 
-/* A letter in a circle, as for the account. */
-.nav-avatar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--corner-full);
-  background-color: var(--accent-soft);
-  color: var(--on-accent-soft);
-  font: 700 var(--font-size-body) / 1 var(--font);
-}
+  /* A letter in a circle, as for the account. */
+  .nav-avatar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--corner-full);
+    background-color: var(--accent-soft);
+    color: var(--on-accent-soft);
+    font: 700 var(--font-size-body) / 1 var(--font);
+  }
 
-/* In the rail, it takes the space of an icon. */
-.nav-rail-item > .nav-avatar {
-  margin: 0 -4px;
-}
+  /* In the rail, it takes the space of an icon. */
+  .nav-rail-item > .nav-avatar {
+    margin: 0 -4px;
+  }
 
-[aria-current] > .nav-avatar,
-[aria-current] > .nav-rail-icon > .nav-avatar {
-  background-color: var(--surface-active);
-}
+  [aria-current] > .nav-avatar,
+  [aria-current] > .nav-rail-icon > .nav-avatar {
+    background-color: var(--surface-active);
+  }
 
-/* Compact: each icon with its name under it, as on the canvas board
-   "Sheets, middle". The icon sits in a pill that marks the open one, as in
-   the bottom bar. */
-.nav-rail-compact {
-  align-items: center;
-  gap: var(--space-l);
-  width: 88px;
-  padding: var(--space-l) 0;
-}
+  /* Compact: each icon with its name under it, as on the canvas board
+     "Sheets, middle". The icon sits in a pill that marks the open one, as in
+     the bottom bar. */
+  .nav-rail-compact {
+    align-items: center;
+    gap: var(--space-l);
+    width: 88px;
+    padding: var(--space-l) 0;
+  }
 
-.nav-rail-compact ul {
-  gap: var(--space-m);
-}
+  .nav-rail-compact ul {
+    gap: var(--space-m);
+  }
 
-.nav-rail-compact .nav-rail-items {
-  margin-top: var(--space-s);
-}
+  .nav-rail-compact .nav-rail-items {
+    margin-top: var(--space-s);
+  }
 
-.nav-rail-compact .nav-rail-item {
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--space-xs);
-  width: 80px;
-  height: auto;
-  min-height: 56px;
-  padding: var(--space-xs) 0;
-  border-radius: var(--corner-small);
-  color: var(--text-muted);
-  font: 600 12px / 1.2 var(--font);
-  text-align: center;
-  /* With larger text, a long name breaks instead of being cut off. */
-  overflow-wrap: anywhere;
-  hyphens: auto;
-}
+  .nav-rail-compact .nav-rail-item {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-xs);
+    width: 80px;
+    height: auto;
+    min-height: 56px;
+    padding: var(--space-xs) 0;
+    border-radius: var(--corner-small);
+    color: var(--text-muted);
+    font: 600 12px / 1.2 var(--font);
+    text-align: center;
+    /* With larger text, a long name breaks instead of being cut off. */
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
 
-.nav-rail-icon {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 32px;
-  border-radius: var(--corner-full);
-}
+  .nav-rail-icon {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 32px;
+    border-radius: var(--corner-full);
+  }
 
-/* The hover and the mark go on the pill, not on the whole item. */
-.nav-rail-compact .nav-rail-item:hover {
-  background-image: none;
-}
+  /* The hover and the mark go on the pill, not on the whole item. */
+  .nav-rail-compact .nav-rail-item:hover {
+    background-image: none;
+  }
 
-.nav-rail-compact .nav-rail-item:hover > .nav-rail-icon {
-  background-image: linear-gradient(
-    color-mix(in srgb, var(--text) 6%, transparent) 0 0
-  );
-}
+  .nav-rail-compact .nav-rail-item:hover > .nav-rail-icon {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--text) 6%, transparent) 0 0
+    );
+  }
 
-.nav-rail-compact .nav-rail-item[aria-current] {
-  background-color: transparent;
-  color: var(--text);
-  outline: none;
-}
+  .nav-rail-compact .nav-rail-item[aria-current] {
+    background-color: transparent;
+    color: var(--text);
+    outline: none;
+  }
 
-/* The outline shows it in forced colors mode. */
-.nav-rail-compact .nav-rail-item[aria-current] > .nav-rail-icon {
-  background-color: var(--accent-soft);
-  color: var(--on-accent-soft);
-  outline: 1px solid transparent;
-  outline-offset: -1px;
-}
+  /* The outline shows it in forced colors mode. */
+  .nav-rail-compact .nav-rail-item[aria-current] > .nav-rail-icon {
+    background-color: var(--accent-soft);
+    color: var(--on-accent-soft);
+    outline: 1px solid transparent;
+    outline-offset: -1px;
+  }
 
-.nav-rail-compact .nav-rail-item:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: -3px;
+  .nav-rail-compact .nav-rail-item:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: -3px;
+  }
 }

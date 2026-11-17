@@ -1,134 +1,136 @@
-/*
-  The import button, in the top bar or in the library, and its dialog over
-  the page. The widths are listed in app/breakpoints.ts.
-*/
-/* Phone-wide, in the top bar: only the icon, as round as an icon button.
-   The selector outweighs the padding that button.css gives a button with an
-   icon. Elsewhere, such as in the library, the text stays. */
-@media (max-width: 640px) {
-  .top-bar
-    .import-button
-    .button.import-button-toggle:has(> .icon:first-child) {
-    width: 48px;
+@layer components {
+  /*
+    The import button, in the top bar or in the library, and its dialog over
+    the page. The widths are listed in app/breakpoints.ts.
+  */
+  /* Phone-wide, in the top bar: only the icon, as round as an icon button.
+     The selector outweighs the padding that button.css gives a button with an
+     icon. Elsewhere, such as in the library, the text stays. */
+  @media (max-width: 640px) {
+    .top-bar
+      .import-button
+      .button.import-button-toggle:has(> .icon:first-child) {
+      width: 48px;
+      padding: 0;
+    }
+
+    .top-bar .import-button-text {
+      display: none;
+    }
+  }
+
+  /* The content fills the dialog, so a click on the dialog itself was on the
+     backdrop (see ImportButton). */
+  .import-dialog {
+    width: min(560px, 100vw - 2 * var(--space-l));
+    max-width: none;
+    max-height: calc(100dvh - 2 * var(--space-l));
+    box-sizing: border-box;
     padding: 0;
+    border: 0;
+    border-radius: var(--corner-large);
+    background: var(--surface-active);
+    color: var(--text);
+    box-shadow: 0 8px 24px var(--shadow);
+    /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+    outline: 1px solid transparent;
   }
 
-  .top-bar .import-button-text {
-    display: none;
+  .import-dialog::backdrop {
+    background: var(--scrim);
   }
-}
 
-/* The content fills the dialog, so a click on the dialog itself was on the
-   backdrop (see ImportButton). */
-.import-dialog {
-  width: min(560px, 100vw - 2 * var(--space-l));
-  max-width: none;
-  max-height: calc(100dvh - 2 * var(--space-l));
-  box-sizing: border-box;
-  padding: 0;
-  border: 0;
-  border-radius: var(--corner-large);
-  background: var(--surface-active);
-  color: var(--text);
-  box-shadow: 0 8px 24px var(--shadow);
-  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
-  outline: 1px solid transparent;
-}
+  .import-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-l);
+    padding: var(--space-xl);
+  }
 
-.import-dialog::backdrop {
-  background: var(--scrim);
-}
+  .import-form h2 {
+    margin: 0;
+    font: 700 var(--font-size-heading) / 1.2 var(--font);
+    letter-spacing: -0.01em;
+  }
 
-.import-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-l);
-  padding: var(--space-xl);
-}
+  .import-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
 
-.import-form h2 {
-  margin: 0;
-  font: 700 var(--font-size-heading) / 1.2 var(--font);
-  letter-spacing: -0.01em;
-}
+  .import-field label {
+    font: 600 var(--font-size-label) / 1.3 var(--font);
+  }
 
-.import-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
+  .import-field p {
+    margin: 0 0 var(--space-xs);
+    color: var(--text-muted);
+    font: 400 var(--font-size-small) / 1.4 var(--font);
+  }
 
-.import-field label {
-  font: 600 var(--font-size-label) / 1.3 var(--font);
-}
+  /* Monospace, without wrapping, so the chords line up over the lyrics as
+     they do on Ultimate Guitar. */
+  .import-field textarea {
+    min-height: 160px;
+    box-sizing: border-box;
+    padding: var(--space-m);
+    border: 1px solid var(--border);
+    border-radius: var(--corner-small);
+    background: var(--surface);
+    color: var(--text);
+    font:
+      400 14px / 1.4 ui-monospace,
+      "SF Mono",
+      Menlo,
+      Consolas,
+      monospace;
+    resize: vertical;
+  }
 
-.import-field p {
-  margin: 0 0 var(--space-xs);
-  color: var(--text-muted);
-  font: 400 var(--font-size-small) / 1.4 var(--font);
-}
+  .import-field textarea:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 0;
+    border-color: transparent;
+  }
 
-/* Monospace, without wrapping, so the chords line up over the lyrics as
-   they do on Ultimate Guitar. */
-.import-field textarea {
-  min-height: 160px;
-  box-sizing: border-box;
-  padding: var(--space-m);
-  border: 1px solid var(--border);
-  border-radius: var(--corner-small);
-  background: var(--surface);
-  color: var(--text);
-  font:
-    400 14px / 1.4 ui-monospace,
-    "SF Mono",
-    Menlo,
-    Consolas,
-    monospace;
-  resize: vertical;
-}
+  /* The capo the chords are written for, with its chevron over the select. */
+  .import-capo {
+    position: relative;
+    width: 200px;
+  }
 
-.import-field textarea:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 0;
-  border-color: transparent;
-}
+  .import-capo select {
+    width: 100%;
+    height: 48px;
+    box-sizing: border-box;
+    padding: 0 40px 0 var(--space-m);
+    border: 1px solid var(--border);
+    border-radius: var(--corner-small);
+    background: var(--surface);
+    color: var(--text);
+    font: 600 var(--font-size-body) / 1 var(--font);
+    appearance: none;
+    cursor: pointer;
+  }
 
-/* The capo the chords are written for, with its chevron over the select. */
-.import-capo {
-  position: relative;
-  width: 200px;
-}
+  .import-capo select:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 0;
+    border-color: transparent;
+  }
 
-.import-capo select {
-  width: 100%;
-  height: 48px;
-  box-sizing: border-box;
-  padding: 0 40px 0 var(--space-m);
-  border: 1px solid var(--border);
-  border-radius: var(--corner-small);
-  background: var(--surface);
-  color: var(--text);
-  font: 600 var(--font-size-body) / 1 var(--font);
-  appearance: none;
-  cursor: pointer;
-}
+  .import-capo > .icon {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
 
-.import-capo select:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 0;
-  border-color: transparent;
-}
-
-.import-capo > .icon {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.import-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-s);
+  .import-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-s);
+  }
 }

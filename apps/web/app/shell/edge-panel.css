@@ -1,81 +1,83 @@
-/*
-  A modal panel the full height of the window, from the left or the right
-  edge, a strip of the page left visible. The caller sets its width.
-*/
-.edge-panel {
-  --edge-panel-from: 100%;
+@layer components {
+  /*
+    A modal panel the full height of the window, from the left or the right
+    edge, a strip of the page left visible. The caller sets its width.
+  */
+  .edge-panel {
+    --edge-panel-from: 100%;
 
-  top: 0;
-  bottom: 0;
-  max-width: none;
-  height: 100dvh;
-  max-height: none;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 8px 24px var(--shadow);
-  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
-  outline: 1px solid transparent;
-}
-
-.edge-panel[data-side="right"] {
-  right: 0;
-  left: auto;
-  border-radius: var(--corner-large) 0 0 var(--corner-large);
-}
-
-.edge-panel[data-side="left"] {
-  --edge-panel-from: -100%;
-
-  right: auto;
-  left: 0;
-  border-radius: 0 var(--corner-large) var(--corner-large) 0;
-}
-
-.edge-panel[open] {
-  animation: edge-panel-in var(--motion-medium) var(--ease-enter);
-}
-
-.edge-panel::backdrop {
-  background: var(--scrim);
-}
-
-.edge-panel[open]::backdrop {
-  animation: edge-panel-fade var(--motion-medium) var(--ease-enter);
-}
-
-/* Sliding out before the panel closes (see EdgePanel). */
-.edge-panel[data-closing] {
-  animation: edge-panel-out var(--motion-short) var(--ease-exit) forwards;
-}
-
-.edge-panel[data-closing]::backdrop {
-  animation: edge-panel-fade-out var(--motion-short) var(--ease-exit) forwards;
-}
-
-@keyframes edge-panel-in {
-  from {
-    translate: var(--edge-panel-from) 0;
+    top: 0;
+    bottom: 0;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 8px 24px var(--shadow);
+    /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+    outline: 1px solid transparent;
   }
-}
 
-@keyframes edge-panel-fade {
-  from {
-    opacity: 0;
+  .edge-panel[data-side="right"] {
+    right: 0;
+    left: auto;
+    border-radius: var(--corner-large) 0 0 var(--corner-large);
   }
-}
 
-@keyframes edge-panel-out {
-  to {
-    translate: var(--edge-panel-from) 0;
+  .edge-panel[data-side="left"] {
+    --edge-panel-from: -100%;
+
+    right: auto;
+    left: 0;
+    border-radius: 0 var(--corner-large) var(--corner-large) 0;
   }
-}
 
-@keyframes edge-panel-fade-out {
-  to {
-    opacity: 0;
+  .edge-panel[open] {
+    animation: edge-panel-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .edge-panel::backdrop {
+    background: var(--scrim);
+  }
+
+  .edge-panel[open]::backdrop {
+    animation: edge-panel-fade var(--motion-medium) var(--ease-enter);
+  }
+
+  /* Sliding out before the panel closes (see EdgePanel). */
+  .edge-panel[data-closing] {
+    animation: edge-panel-out var(--motion-short) var(--ease-exit) forwards;
+  }
+
+  .edge-panel[data-closing]::backdrop {
+    animation: edge-panel-fade-out var(--motion-short) var(--ease-exit) forwards;
+  }
+
+  @keyframes edge-panel-in {
+    from {
+      translate: var(--edge-panel-from) 0;
+    }
+  }
+
+  @keyframes edge-panel-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes edge-panel-out {
+    to {
+      translate: var(--edge-panel-from) 0;
+    }
+  }
+
+  @keyframes edge-panel-fade-out {
+    to {
+      opacity: 0;
+    }
   }
 }

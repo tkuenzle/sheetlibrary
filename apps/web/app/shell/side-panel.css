@@ -1,69 +1,71 @@
-/*
-  Beside the page's content from the wide width, or behind a button in the
-  top bar below it. The widths are listed in app/breakpoints.ts.
-*/
-/*
-  It stays in view while the page scrolls, like the section toolbar on the
-  other side, and scrolls on its own if the window is shorter than it.
-*/
-.side-panel {
-  position: sticky;
-  top: var(--space-l);
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-  width: 300px;
-  max-height: calc(100dvh - 2 * var(--space-l));
-  overflow-y: auto;
-  box-sizing: border-box;
-  padding: var(--space-xl);
-  border-radius: var(--corner-large);
-  background: var(--surface);
-  color: var(--text);
-  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
-  outline: 1px solid transparent;
-}
-
-@media (max-width: 1023px) {
+@layer components {
+  /*
+    Beside the page's content from the wide width, or behind a button in the
+    top bar below it. The widths are listed in app/breakpoints.ts.
+  */
+  /*
+    It stays in view while the page scrolls, like the section toolbar on the
+    other side, and scrolls on its own if the window is shorter than it.
+  */
   .side-panel {
-    display: none;
+    position: sticky;
+    top: var(--space-l);
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    width: 300px;
+    max-height: calc(100dvh - 2 * var(--space-l));
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: var(--space-xl);
+    border-radius: var(--corner-large);
+    background: var(--surface);
+    color: var(--text);
+    /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+    outline: 1px solid transparent;
   }
-}
 
-@media (min-width: 1024px) {
-  .side-panel-button:not(.side-panel-button-every-width) {
-    display: none;
+  @media (max-width: 1023px) {
+    .side-panel {
+      display: none;
+    }
   }
-}
 
-.side-panel-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-l);
-}
+  @media (min-width: 1024px) {
+    .side-panel-button:not(.side-panel-button-every-width) {
+      display: none;
+    }
+  }
 
-.side-panel-content h2 {
-  margin: 0;
-  font: 700 var(--font-size-heading) / 1.2 var(--font);
-  letter-spacing: -0.01em;
-}
+  .side-panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-l);
+  }
 
-/* The sheet: a panel from the right (see edge-panel.css). */
-.side-panel-sheet {
-  width: min(360px, 100vw - 56px);
-}
+  .side-panel-content h2 {
+    margin: 0;
+    font: 700 var(--font-size-heading) / 1.2 var(--font);
+    letter-spacing: -0.01em;
+  }
 
-.side-panel-sheet > .side-panel-content {
-  box-sizing: border-box;
-  min-height: 100%;
-  padding: var(--space-s) var(--space-xl) var(--space-xl);
-}
+  /* The sheet: a panel from the right (see edge-panel.css). */
+  .side-panel-sheet {
+    width: min(360px, 100vw - 56px);
+  }
 
-.side-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-s);
-  margin-right: calc(-1 * var(--space-m));
+  .side-panel-sheet > .side-panel-content {
+    box-sizing: border-box;
+    min-height: 100%;
+    padding: var(--space-s) var(--space-xl) var(--space-xl);
+  }
+
+  .side-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s);
+    margin-right: calc(-1 * var(--space-m));
+  }
 }

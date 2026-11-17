@@ -1,149 +1,151 @@
-/* One column in the HTML's order: the intro, the sample, the list. */
-.home {
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-  box-sizing: border-box;
-  max-width: 600px;
-  margin: 0 auto;
-  padding: var(--space-3xl) var(--space-xl) 72px;
-}
-
-.home-intro {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-xl);
-}
-
-.home-intro h1 {
-  margin: 0;
-  font: 800 46px / 1.05 var(--font);
-  letter-spacing: -0.035em;
-  text-wrap: balance;
-}
-
-.home-intro p {
-  max-width: 30em;
-  margin: 0;
-  color: var(--text-muted);
-  font: 400 19px / 1.45 var(--font);
-}
-
-.home-ways {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-s);
-}
-
-/* Bigger than a normal button; .button may come later in the bundle. */
-.button.home-way {
-  height: 56px;
-  padding: 0 20px;
-  font-size: 16px;
-  text-decoration: none;
-}
-
-.button.button-filled.home-way {
-  padding: 0 28px;
-}
-
-.home-sample {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
-}
-
-.home-sample-note {
-  margin: 0;
-  padding: 0 36px;
-  color: var(--text-muted);
-  font: 400 14px / 1.4 var(--font);
-}
-
-.home-features {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font: 500 16px / 1.5 var(--font);
-}
-
-.home-features li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-m);
-}
-
-.home-features .icon {
-  flex: none;
-  color: var(--accent);
-}
-
-/* Wide (see app/breakpoints.ts): the intro and the list on the left, the
-   sample on the right, centered in the window below the top bar. */
-@media (min-width: 1024px) {
+@layer pages {
+  /* One column in the HTML's order: the intro, the sample, the list. */
   .home {
-    display: grid;
-    grid-template-areas:
-      "intro sample"
-      "features sample";
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    align-content: center;
-    gap: var(--space-2xl) 72px;
-    min-height: calc(100dvh - 64px);
-    max-width: 1136px;
-    padding: var(--space-xl) var(--space-2xl) 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    box-sizing: border-box;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--space-3xl) var(--space-xl) 72px;
   }
 
   .home-intro {
-    grid-area: intro;
-    align-self: end;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xl);
   }
 
   .home-intro h1 {
-    font-size: 60px;
-  }
-
-  .home-sample {
-    grid-area: sample;
-    align-self: center;
-  }
-
-  .home-features {
-    grid-area: features;
-    align-self: start;
-  }
-}
-
-/* Phone-wide. */
-@media (max-width: 640px) {
-  .home {
-    gap: 28px;
-    padding: var(--space-l) var(--space-l) 40px;
-  }
-
-  .home-intro {
-    gap: var(--space-l);
-    padding: 0 var(--space-xs);
-  }
-
-  .home-intro h1 {
-    font-size: var(--font-size-title);
+    margin: 0;
+    font: 800 46px / 1.05 var(--font);
+    letter-spacing: -0.035em;
+    text-wrap: balance;
   }
 
   .home-intro p {
-    font-size: 17px;
+    max-width: 30em;
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 19px / 1.45 var(--font);
+  }
+
+  .home-ways {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+  }
+
+  /* Bigger than a normal button; .button may come later in the bundle. */
+  .button.home-way {
+    height: 56px;
+    padding: 0 20px;
+    font-size: 16px;
+    text-decoration: none;
+  }
+
+  .button.button-filled.home-way {
+    padding: 0 28px;
+  }
+
+  .home-sample {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
   }
 
   .home-sample-note {
-    padding: 0 22px;
+    margin: 0;
+    padding: 0 36px;
+    color: var(--text-muted);
+    font: 400 14px / 1.4 var(--font);
   }
 
   .home-features {
-    padding: 0 var(--space-xs);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font: 500 16px / 1.5 var(--font);
+  }
+
+  .home-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-m);
+  }
+
+  .home-features .icon {
+    flex: none;
+    color: var(--accent);
+  }
+
+  /* Wide (see app/breakpoints.ts): the intro and the list on the left, the
+     sample on the right, centered in the window below the top bar. */
+  @media (min-width: 1024px) {
+    .home {
+      display: grid;
+      grid-template-areas:
+        "intro sample"
+        "features sample";
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      align-content: center;
+      gap: var(--space-2xl) 72px;
+      min-height: calc(100dvh - 64px);
+      max-width: 1136px;
+      padding: var(--space-xl) var(--space-2xl) 56px;
+    }
+
+    .home-intro {
+      grid-area: intro;
+      align-self: end;
+    }
+
+    .home-intro h1 {
+      font-size: 60px;
+    }
+
+    .home-sample {
+      grid-area: sample;
+      align-self: center;
+    }
+
+    .home-features {
+      grid-area: features;
+      align-self: start;
+    }
+  }
+
+  /* Phone-wide. */
+  @media (max-width: 640px) {
+    .home {
+      gap: 28px;
+      padding: var(--space-l) var(--space-l) 40px;
+    }
+
+    .home-intro {
+      gap: var(--space-l);
+      padding: 0 var(--space-xs);
+    }
+
+    .home-intro h1 {
+      font-size: var(--font-size-title);
+    }
+
+    .home-intro p {
+      font-size: 17px;
+    }
+
+    .home-sample-note {
+      padding: 0 22px;
+    }
+
+    .home-features {
+      padding: 0 var(--space-xs);
+    }
   }
 }

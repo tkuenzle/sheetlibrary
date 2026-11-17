@@ -1,269 +1,271 @@
-/* The library's screens: one column in the shell, below its search row. */
-.library {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-  box-sizing: border-box;
-  max-width: 880px;
-  margin: 0 auto;
-  padding: var(--space-2xl) var(--space-xl) 80px;
-}
-
-.library h1 {
-  margin: 0;
-  font: 800 var(--font-size-title) / 1.05 var(--font);
-  letter-spacing: -0.035em;
-}
-
-.library-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-m);
-}
-
-/* No sheets yet. */
-.library-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-l);
-  padding: 56px var(--space-2xl) var(--space-3xl);
-  border-radius: var(--corner-large);
-  background: var(--surface-active);
-}
-
-.library-empty > h2 {
-  margin: 0;
-  font: 700 var(--font-size-heading) / 1.2 var(--font);
-  text-align: center;
-}
-
-/* The empty library: the ways to add the first sheet, as cards, as on the
-   canvas board "Empty library (first sign-in)". Three across where they
-   fit, stacked on a phone. */
-.library-first {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-  padding-top: var(--space-xl);
-}
-
-.library-first-heading > h2 {
-  margin: 0 0 var(--space-s);
-  font: 800 var(--font-size-heading) / 1.2 var(--font);
-}
-
-.library-first-heading > p {
-  margin: 0;
-  color: var(--text-muted);
-  font: 400 var(--font-size-body) / 1.45 var(--font);
-}
-
-.library-ways {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-l);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.library-ways > li,
-.library-ways form {
-  display: flex;
-}
-
-.library-way {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-m);
-  padding: var(--space-xl);
-  border: 0;
-  border-radius: var(--corner-medium);
-  background: var(--surface-active);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
-  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
-  outline: 1px solid transparent;
-  outline-offset: -1px;
-}
-
-.library-way:hover {
-  background-image: linear-gradient(
-    color-mix(in srgb, var(--text) 4%, transparent) 0 0
-  );
-}
-
-.library-way:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
-}
-
-.library-way-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--corner-full);
-  background: var(--accent-soft);
-  color: var(--on-accent-soft);
-}
-
-.library-way-label {
-  font: 700 20px / 1.2 var(--font);
-}
-
-.library-way-text {
-  color: var(--text-muted);
-  font: 400 var(--font-size-body) / 1.4 var(--font);
-}
-
-/* The passkey offer after an email sign-in, in the note colors. */
-.passkey-offer {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: var(--space-l);
-  padding: 14px 14px 14px 20px;
-  border-radius: var(--corner-medium);
-  background: var(--info);
-  color: var(--on-info);
-  outline: 1px solid transparent;
-}
-
-.passkey-offer > p {
-  margin: 0;
-  font: 400 var(--font-size-body) / 1.45 var(--font);
-}
-
-.passkey-offer-add {
-  text-decoration: none;
-}
-
-/* "Close" sits in its tooltip's anchor. */
-.passkey-offer > .tooltip-anchor {
-  margin-left: calc(-1 * var(--space-m));
-}
-
-/* Buttons beside a screen's heading, or in its empty state. */
-.library-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-m);
-}
-
-/* Phone-wide (see app/breakpoints.ts): the title, with the artist and the
-   last edit below it. */
-@media (max-width: 640px) {
+@layer pages {
+  /* The library's screens: one column in the shell, below its search row. */
   .library {
-    gap: var(--space-l);
-    padding: var(--space-xl) var(--space-m) var(--space-3xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    box-sizing: border-box;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: var(--space-2xl) var(--space-xl) 80px;
   }
 
-  /* In the shell, the account sits at the end of the heading's line. */
   .library h1 {
-    padding: 0 var(--space-s);
+    margin: 0;
+    font: 800 var(--font-size-title) / 1.05 var(--font);
+    letter-spacing: -0.035em;
   }
 
-  .library-heading,
-  .library > h1 {
-    margin-right: var(--shell-account-room, 0px);
+  .library-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-m);
   }
 
-  .library-with-sheets {
-    padding-bottom: 120px;
-  }
-
+  /* No sheets yet. */
   .library-empty {
-    padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-l);
+    padding: 56px var(--space-2xl) var(--space-3xl);
+    border-radius: var(--corner-large);
+    background: var(--surface-active);
   }
 
+  .library-empty > h2 {
+    margin: 0;
+    font: 700 var(--font-size-heading) / 1.2 var(--font);
+    text-align: center;
+  }
+
+  /* The empty library: the ways to add the first sheet, as cards, as on the
+     canvas board "Empty library (first sign-in)". Three across where they
+     fit, stacked on a phone. */
   .library-first {
-    padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    padding-top: var(--space-xl);
+  }
+
+  .library-first-heading > h2 {
+    margin: 0 0 var(--space-s);
+    font: 800 var(--font-size-heading) / 1.2 var(--font);
+  }
+
+  .library-first-heading > p {
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--font-size-body) / 1.45 var(--font);
   }
 
   .library-ways {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-s);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-l);
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
-  /* On a phone, the icon sits beside the name and the line. */
+  .library-ways > li,
+  .library-ways form {
+    display: flex;
+  }
+
   .library-way {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      "icon label"
-      "icon text";
-    column-gap: var(--space-l);
-    row-gap: var(--space-xs);
-    align-items: center;
-    padding: var(--space-l) 20px;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-m);
+    padding: var(--space-xl);
+    border: 0;
+    border-radius: var(--corner-medium);
+    background: var(--surface-active);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+    outline: 1px solid transparent;
+    outline-offset: -1px;
+  }
+
+  .library-way:hover {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--text) 4%, transparent) 0 0
+    );
+  }
+
+  .library-way:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
   }
 
   .library-way-icon {
-    grid-area: icon;
-    width: 48px;
-    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--corner-full);
+    background: var(--accent-soft);
+    color: var(--on-accent-soft);
   }
 
   .library-way-label {
-    grid-area: label;
-    font-size: 17px;
+    font: 700 20px / 1.2 var(--font);
   }
 
   .library-way-text {
-    grid-area: text;
-    font-size: var(--font-size-small);
+    color: var(--text-muted);
+    font: 400 var(--font-size-body) / 1.4 var(--font);
   }
 
-  /* "Add passkey" below the text, and "Close" at the top right. */
+  /* The passkey offer after an email sign-in, in the note colors. */
   .passkey-offer {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      "icon text close"
-      ". add .";
-    align-items: start;
-    gap: var(--space-m);
-    padding: var(--space-xs) var(--space-xs) var(--space-l) 20px;
-  }
-
-  .passkey-offer > .icon {
-    grid-area: icon;
-    margin-top: var(--space-m);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-l);
+    padding: 14px 14px 14px 20px;
+    border-radius: var(--corner-medium);
+    background: var(--info);
+    color: var(--on-info);
+    outline: 1px solid transparent;
   }
 
   .passkey-offer > p {
-    grid-area: text;
-    padding-top: var(--space-m);
+    margin: 0;
+    font: 400 var(--font-size-body) / 1.45 var(--font);
   }
 
   .passkey-offer-add {
-    grid-area: add;
-    justify-self: start;
+    text-decoration: none;
   }
 
+  /* "Close" sits in its tooltip's anchor. */
   .passkey-offer > .tooltip-anchor {
-    grid-area: close;
-    margin-left: 0;
+    margin-left: calc(-1 * var(--space-m));
   }
-}
 
-/* Below the search field, while a search can't reach the server. */
-.library-search-failed {
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-  margin: 0;
-  padding: 0 20px;
-  color: var(--text-muted);
-  font: 500 var(--font-size-small) / 1.3 var(--font);
+  /* Buttons beside a screen's heading, or in its empty state. */
+  .library-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-m);
+  }
+
+  /* Phone-wide (see app/breakpoints.ts): the title, with the artist and the
+     last edit below it. */
+  @media (max-width: 640px) {
+    .library {
+      gap: var(--space-l);
+      padding: var(--space-xl) var(--space-m) var(--space-3xl);
+    }
+
+    /* In the shell, the account sits at the end of the heading's line. */
+    .library h1 {
+      padding: 0 var(--space-s);
+    }
+
+    .library-heading,
+    .library > h1 {
+      margin-right: var(--shell-account-room, 0px);
+    }
+
+    .library-with-sheets {
+      padding-bottom: 120px;
+    }
+
+    .library-empty {
+      padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
+    }
+
+    .library-first {
+      padding-top: 0;
+    }
+
+    .library-ways {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-s);
+    }
+
+    /* On a phone, the icon sits beside the name and the line. */
+    .library-way {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        "icon label"
+        "icon text";
+      column-gap: var(--space-l);
+      row-gap: var(--space-xs);
+      align-items: center;
+      padding: var(--space-l) 20px;
+    }
+
+    .library-way-icon {
+      grid-area: icon;
+      width: 48px;
+      height: 48px;
+    }
+
+    .library-way-label {
+      grid-area: label;
+      font-size: 17px;
+    }
+
+    .library-way-text {
+      grid-area: text;
+      font-size: var(--font-size-small);
+    }
+
+    /* "Add passkey" below the text, and "Close" at the top right. */
+    .passkey-offer {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "icon text close"
+        ". add .";
+      align-items: start;
+      gap: var(--space-m);
+      padding: var(--space-xs) var(--space-xs) var(--space-l) 20px;
+    }
+
+    .passkey-offer > .icon {
+      grid-area: icon;
+      margin-top: var(--space-m);
+    }
+
+    .passkey-offer > p {
+      grid-area: text;
+      padding-top: var(--space-m);
+    }
+
+    .passkey-offer-add {
+      grid-area: add;
+      justify-self: start;
+    }
+
+    .passkey-offer > .tooltip-anchor {
+      grid-area: close;
+      margin-left: 0;
+    }
+  }
+
+  /* Below the search field, while a search can't reach the server. */
+  .library-search-failed {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+    margin: 0;
+    padding: 0 20px;
+    color: var(--text-muted);
+    font: 500 var(--font-size-small) / 1.3 var(--font);
+  }
 }

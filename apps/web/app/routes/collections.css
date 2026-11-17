@@ -1,59 +1,61 @@
-/* The Collections screen: a card per collection, with its name, how many
-   sheets it holds and its first titles, as on the canvas board
-   "Collections, phone". The library's styles (sheets.css) lay out the
-   page. */
-.collections-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
-  gap: var(--space-m);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.collections-cards a {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  height: 100%;
-  box-sizing: border-box;
-  padding: var(--space-l) 20px;
-  border-radius: var(--corner-medium);
-  background: var(--surface-active);
-  color: var(--text-muted);
-  font: 600 14px / 1.3 var(--font);
-  text-decoration: none;
-}
-
-.collections-cards a:hover {
-  background-image: linear-gradient(
-    color-mix(in srgb, var(--text) 4%, transparent) 0 0
-  );
-}
-
-.collections-cards a:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.collections-name {
-  overflow-wrap: anywhere;
-  color: var(--text);
-  font: 700 17px / 1.3 var(--font);
-}
-
-.collections-titles {
-  font: 400 13px / 1.4 var(--font);
-}
-
-/* Phone-wide (see app/breakpoints.ts): two cards side by side. */
-@media (max-width: 640px) {
+@layer pages {
+  /* The Collections screen: a card per collection, with its name, how many
+     sheets it holds and its first titles, as on the canvas board
+     "Collections, phone". The library's styles (sheets.css) lay out the
+     page. */
   .collections-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-s);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+    gap: var(--space-m);
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
   .collections-cards a {
-    padding: var(--space-l);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    height: 100%;
+    box-sizing: border-box;
+    padding: var(--space-l) 20px;
+    border-radius: var(--corner-medium);
+    background: var(--surface-active);
+    color: var(--text-muted);
+    font: 600 14px / 1.3 var(--font);
+    text-decoration: none;
+  }
+
+  .collections-cards a:hover {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--text) 4%, transparent) 0 0
+    );
+  }
+
+  .collections-cards a:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .collections-name {
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font: 700 17px / 1.3 var(--font);
+  }
+
+  .collections-titles {
+    font: 400 13px / 1.4 var(--font);
+  }
+
+  /* Phone-wide (see app/breakpoints.ts): two cards side by side. */
+  @media (max-width: 640px) {
+    .collections-cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-s);
+    }
+
+    .collections-cards a {
+      padding: var(--space-l);
+    }
   }
 }

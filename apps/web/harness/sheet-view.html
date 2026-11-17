@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sheet view harness</title>
+    <!-- The same order of cascade layers as the app (app/root.tsx). -->
+    <style>
+      @layer tokens, base, editor, components, pages;
+    </style>
   </head>
   <body>
     <div id="root"></div>

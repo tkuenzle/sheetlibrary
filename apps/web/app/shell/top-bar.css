@@ -1,97 +1,99 @@
-.top-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-m);
-  min-height: 64px;
-  padding: 0 var(--space-s) 0 var(--space-xl);
-}
-
-.top-bar-name {
-  color: var(--text);
-  font: 800 20px / 1 var(--font);
-  letter-spacing: -0.03em;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.top-bar-name:focus-visible {
-  border-radius: var(--space-xs);
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
-}
-
-.top-bar-account:hover {
-  background-image: linear-gradient(
-    color-mix(in srgb, var(--text) 8%, transparent) 0 0
-  );
-}
-
-.top-bar-account:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
-}
-
-.top-bar-actions {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-}
-
-/* A link that looks like the buttons beside it. */
-.top-bar-sign-in {
-  text-decoration: none;
-}
-
-/* The account: a round initial inside a round touch target. */
-.top-bar-account {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--corner-full);
-  text-decoration: none;
-  outline: 1px solid transparent;
-  outline-offset: -1px;
-}
-
-.top-bar-initial {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--corner-full);
-  background-color: var(--accent-soft);
-  color: var(--on-accent-soft);
-  font: 700 16px / 1 var(--font);
-}
-
-/* Phone-wide (see app/breakpoints.ts): smaller, and "Sign in" only as its
-   icon. */
-@media (max-width: 640px) {
+@layer components {
   .top-bar {
-    gap: var(--space-xs);
-    min-height: 56px;
-    padding: 0 var(--space-xs) 0 20px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-m);
+    min-height: 64px;
+    padding: 0 var(--space-s) 0 var(--space-xl);
   }
 
   .top-bar-name {
-    font-size: 19px;
+    color: var(--text);
+    font: 800 20px / 1 var(--font);
+    letter-spacing: -0.03em;
+    text-decoration: none;
+    white-space: nowrap;
   }
-}
 
-/* Phone-wide: the sign-in link shows only its icon, as round as an icon
-   button. The selector outweighs the padding that button.css gives a button
-   with an icon. */
-@media (max-width: 640px) {
-  .top-bar .button.top-bar-sign-in:has(> .icon:first-child) {
+  .top-bar-name:focus-visible {
+    border-radius: var(--space-xs);
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  .top-bar-account:hover {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--text) 8%, transparent) 0 0
+    );
+  }
+
+  .top-bar-account:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  .top-bar-actions {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  /* A link that looks like the buttons beside it. */
+  .top-bar-sign-in {
+    text-decoration: none;
+  }
+
+  /* The account: a round initial inside a round touch target. */
+  .top-bar-account {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
     width: 48px;
-    padding: 0;
+    height: 48px;
+    border-radius: var(--corner-full);
+    text-decoration: none;
+    outline: 1px solid transparent;
+    outline-offset: -1px;
   }
 
-  .top-bar-sign-in-text {
-    display: none;
+  .top-bar-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--corner-full);
+    background-color: var(--accent-soft);
+    color: var(--on-accent-soft);
+    font: 700 16px / 1 var(--font);
+  }
+
+  /* Phone-wide (see app/breakpoints.ts): smaller, and "Sign in" only as its
+     icon. */
+  @media (max-width: 640px) {
+    .top-bar {
+      gap: var(--space-xs);
+      min-height: 56px;
+      padding: 0 var(--space-xs) 0 20px;
+    }
+
+    .top-bar-name {
+      font-size: 19px;
+    }
+  }
+
+  /* Phone-wide: the sign-in link shows only its icon, as round as an icon
+     button. The selector outweighs the padding that button.css gives a button
+     with an icon. */
+  @media (max-width: 640px) {
+    .top-bar .button.top-bar-sign-in:has(> .icon:first-child) {
+      width: 48px;
+      padding: 0;
+    }
+
+    .top-bar-sign-in-text {
+      display: none;
+    }
   }
 }
