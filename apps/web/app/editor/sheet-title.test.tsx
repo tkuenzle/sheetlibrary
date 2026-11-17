@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { SheetEditorHandle } from "./sheet-editor";
 import {
   addressKey,
+  addressValues,
   drawnKey,
   keyQuery,
   loadSheetKey,
@@ -53,6 +54,26 @@ describe("keyQuery", () => {
     );
     expect(keyQuery({ shown: null, capo: 3 })).toBe("capo=3");
     expect(keyQuery({ shown: null, capo: 0 })).toBe("");
+  });
+});
+
+describe("addressValues", () => {
+  const transposed = { key: G, shown: A, home: null, capo: 2 };
+
+  it("writes the shown key and the capo", () => {
+    expect(addressValues(transposed)).toEqual({ key: "A", capo: "2" });
+    expect(addressValues({ ...transposed, shown: null, capo: 0 })).toEqual({
+      key: null,
+      capo: null,
+    });
+  });
+
+  // The home page's sample stays at /.
+  it("writes neither when kept out of the address", () => {
+    expect(addressValues(transposed, false)).toEqual({
+      key: null,
+      capo: null,
+    });
   });
 });
 

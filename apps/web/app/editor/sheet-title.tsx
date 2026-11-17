@@ -190,6 +190,20 @@ export function addressKey({
   return current && from && !sameKey(current, from) ? current : null;
 }
 
+// The values the address holds as `key` and `capo`, null for one it
+// doesn't hold. Kept out of the address, it holds neither.
+export function addressValues(
+  state: Pick<SheetKeyState, "key" | "shown" | "home" | "capo">,
+  inAddress = true,
+): { key: string | null; capo: string | null } {
+  if (!inAddress) return { key: null, capo: null };
+  const key = addressKey(state);
+  return {
+    key: key ? keyName(key) : null,
+    capo: state.capo ? String(state.capo) : null,
+  };
+}
+
 // Writes a value into the page's address, or, with null, takes it out,
 // without a new entry in the history. `true` writes a flag, such as `lyrics`.
 export function useAddressParam(name: string, value: string | true | null) {
@@ -221,21 +235,23 @@ export function withAddressParam(
 // The sheet's key: the set key, or else guessed from its chords. Until the
 // editor reports them, it comes from the loaded sheet, so the server
 // renders the button too. `shown` and `capo` are the address's `key` and
-// `capo`, read once; the address then follows them. `home` is the key of
-// the version the page opened with.
+// `capo`, read once; the address then follows them, unless `inAddress` is
+// false, as for the home page's sample. `home` is the key of the version
+// the page opened with.
 export function useSheetKey(
   sheet: ChordSheet,
   shown: string | null = null,
   capo: string | null = null,
   home: Key | null = null,
+  { inAddress = true }: { inAddress?: boolean } = {},
 ): SheetKey {
   const [state, dispatch] = useReducer(sheetKeyReducer, null, () =>
     loadSheetKey(sheet, shown, capo, home),
   );
 
-  const inAddress = addressKey(state);
-  useAddressParam("key", inAddress ? keyName(inAddress) : null);
-  useAddressParam("capo", state.capo ? String(state.capo) : null);
+  const address = addressValues(state, inAddress);
+  useAddressParam("key", address.key);
+  useAddressParam("capo", address.capo);
 
   return {
     ...state,

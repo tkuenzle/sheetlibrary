@@ -10,16 +10,26 @@ describe("SampleSheet", () => {
     expect(sampleSheet.sections[0]?.label).toBe("Verse 1");
   });
 
-  it("shows it in the sheet view, with its label", () => {
+  // Scenario "Sample section".
+  it("shows the title, the artist, the key and capo buttons and the verse", () => {
     const html = renderToString(<SampleSheet />);
+    expect(html).toContain("<h2>Amazing Grace</h2>");
+    expect(html).toContain("John Newton");
+    expect(html).toMatch(/aria-label="Key G"/);
+    expect(html).toMatch(/aria-label="Capo"/);
     expect(html).toContain('<div class="sheet-view"');
     expect(html).toContain('<div class="sheet-view-label">Verse 1</div>');
+    expect(html.match(/class="sheet-view-line/g)).toHaveLength(4);
     expect(html).not.toContain("Verse 2");
   });
 
-  it("is hidden from screen readers", () => {
-    expect(renderToString(<SampleSheet />)).toMatch(
-      /^<div class="sample-sheet" aria-hidden="true">/,
+  // Scenario "Screen reader".
+  it("is a part named Sample sheet that screen readers read", () => {
+    const html = renderToString(<SampleSheet />);
+    expect(html).toMatch(
+      /^<section class="sample-sheet" aria-label="Sample sheet">/,
     );
+    // Only the icons are hidden.
+    expect(html).not.toMatch(/<(?!svg)[a-z]+ [^>]*aria-hidden/);
   });
 });
