@@ -10,7 +10,7 @@ The UI text SHALL be plain: everyday words, imperative, without "we", "please", 
 
 #### Scenario: Home page
 - **WHEN** a visitor reads the home page's text
-- **THEN** it says the library is coming soon and asks them to try the chord editor, without "you can"
+- **THEN** it says what the library does in imperative sentences, such as "Change the key, add a capo, and play from any screen.", without "you can"
 
 ### Requirement: One word for each thing
 The UI text SHALL use the glossary's words: "sheet", not "song"; "cursor", not "caret"; "edit", not "change", for sections and chords alike.
