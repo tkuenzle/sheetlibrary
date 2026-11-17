@@ -20,5 +20,5 @@
 ## 4. Checks
 
 - [x] 4.1 Run the screenshot script from 1.1 against the new build and compare; verify every screenshot matches, fixing any difference with a selector or the right layer, not with file order
-- [ ] 4.2 With the browser-check skill, move from Sheets to a collection and back on a phone with the CPU slowed down 6×; verify no frame shows unstyled rows
+- [x] 4.2 With the browser-check skill, move from Sheets to a collection and back on a phone with the CPU slowed down 6×; verify no frame shows unstyled rows
 - [x] 4.3 Run the full e2e suite; verify it passes
