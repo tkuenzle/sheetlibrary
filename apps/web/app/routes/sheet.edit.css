@@ -1,46 +1,55 @@
-/* A stored sheet. The editor's layout is shared with /editor (editor.css). */
+@layer pages {
+  /* A stored sheet. The editor's layout is shared with /editor (editor.css). */
 
-/*
-  The title's line, with Rename beside the title, then the artist. The
-  heading takes over the title's padding from editor.css.
-*/
-.sheet-heading {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 0 var(--space-s);
-}
-
-.sheet-heading .editor-title {
-  padding: 0;
-}
-
-.sheet-heading h1 {
-  min-width: 0;
-}
-
-@media not ((pointer: coarse) or (max-width: 640px)) {
+  /*
+    The title's line, with Rename beside the title, then the artist. The
+    heading takes over the title's padding from editor.css.
+  */
   .sheet-heading {
-    padding: 0 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 0 var(--space-s);
   }
-}
 
-/* Quiet, after the title and the key. It keeps its line while empty, so
-   nothing moves when it wraps on a phone. */
-.save-status {
-  min-height: 1lh;
-  margin: 0;
-  color: var(--text-muted);
-  font: 400 var(--font-size-small) / 1.4 var(--font);
-}
+  .sheet-heading .editor-title {
+    padding: 0;
+  }
 
-.save-status[data-state="failed"],
-.save-status[data-state="conflict"] {
-  color: var(--text);
-}
+  .sheet-heading h1 {
+    min-width: 0;
+  }
 
-/* Rename sits close to the title, closer than the key buttons after it. */
-.sheet-heading .editor-title > .tooltip-anchor:has(> .sheet-rename) {
-  margin-left: calc(-1 * var(--space-m));
+  @media not ((pointer: coarse) or (max-width: 640px)) {
+    .sheet-heading {
+      padding: 0 28px;
+    }
+  }
+
+  /* Quiet, after the title and the key. It keeps its line while empty, so
+     nothing moves when it wraps on a phone. */
+  .save-status {
+    min-height: 1lh;
+    margin: 0;
+    color: var(--text-muted);
+    font: 400 var(--font-size-small) / 1.4 var(--font);
+  }
+
+  /* In the bar, on its tonal color. Here rather than in sheet-bar.css, since
+     this page's layer would win over that one. */
+  .sheet-bar-edit .save-status {
+    color: var(--on-accent-soft);
+    font-weight: 600;
+  }
+
+  .save-status[data-state="failed"],
+  .save-status[data-state="conflict"] {
+    color: var(--text);
+  }
+
+  /* Rename sits close to the title, closer than the key buttons after it. */
+  .sheet-heading .editor-title > .tooltip-anchor:has(> .sheet-rename) {
+    margin-left: calc(-1 * var(--space-m));
+  }
 }

@@ -1,122 +1,124 @@
-/*
-  A stored sheet to play or print, centred on the page. The lyrics are larger
-  than in the editor (--font-size-lyrics). The widths are listed in
-  app/breakpoints.ts.
-*/
-.play-page {
-  --play-text-base: 24px;
-
-  max-width: 720px;
-  margin: 0 auto;
-  padding: var(--space-l) var(--space-2xl) 80px;
-}
-
-.play-heading {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-xl);
-}
-
-.play-heading h1 {
-  margin: 0;
-  font: 800 var(--font-size-title) / 1.05 var(--font);
-  letter-spacing: -0.035em;
-}
-
-.play-artist {
-  margin: 0;
-  color: var(--text-muted);
-  font: 500 17px / 1.4 var(--font);
-}
-
-/* The open version's name shows in the key button, and here only on paper. */
-.play-print-version {
-  display: none;
-}
-
-/* The key, the capo and the collections that hold the sheet, under the
-   title. They wrap together. */
-.play-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-s);
-  margin-top: var(--space-s);
-}
-
-.play-collections {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-s);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* After the key and the capo, a little apart from them. */
-.play-chips > .play-collections:not(:first-child) {
-  margin-left: var(--space-s);
-}
-
-/* A collection: an outlined tag that links to its page. */
-.play-collection {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  box-sizing: border-box;
-  padding: 0 var(--space-m);
-  border: 1px solid var(--border);
-  border-radius: var(--corner-small);
-  color: var(--text-muted);
-  font: 500 var(--font-size-small) / 1 var(--font);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.play-collection:hover {
-  background-image: linear-gradient(
-    color-mix(in srgb, var(--text) 8%, transparent) 0 0
-  );
-}
-
-.play-collection:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-
-@media (max-width: 640px) {
+@layer pages {
+  /*
+    A stored sheet to play or print, centred on the page. The lyrics are larger
+    than in the editor (--font-size-lyrics). The widths are listed in
+    app/breakpoints.ts.
+  */
   .play-page {
-    --play-text-base: 20px;
+    --play-text-base: 24px;
 
-    padding: var(--space-s) var(--space-l) 64px;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: var(--space-l) var(--space-2xl) 80px;
   }
 
-  /* Only on wider screens (see openspec/specs/play-page). */
-  .play-collections {
-    display: none;
-  }
-}
-
-/*
-  On paper, or in a PDF: the title, the artist and the sheet as shown, without
-  the top bar or any button. The sheet view keeps each line with its chords.
-*/
-@media print {
-  /* The play view's top bar, which outweighs top-bar.css. */
-  .top-bar:has(~ .play-page),
-  .play-page button,
-  .play-collections {
-    display: none;
+  .play-heading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-xl);
   }
 
+  .play-heading h1 {
+    margin: 0;
+    font: 800 var(--font-size-title) / 1.05 var(--font);
+    letter-spacing: -0.035em;
+  }
+
+  .play-artist {
+    margin: 0;
+    color: var(--text-muted);
+    font: 500 17px / 1.4 var(--font);
+  }
+
+  /* The open version's name shows in the key button, and here only on paper. */
   .play-print-version {
-    display: inline;
+    display: none;
   }
 
-  .play-page {
-    max-width: none;
+  /* The key, the capo and the collections that hold the sheet, under the
+     title. They wrap together. */
+  .play-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s);
+    margin-top: var(--space-s);
+  }
+
+  .play-collections {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+    margin: 0;
     padding: 0;
+    list-style: none;
+  }
+
+  /* After the key and the capo, a little apart from them. */
+  .play-chips > .play-collections:not(:first-child) {
+    margin-left: var(--space-s);
+  }
+
+  /* A collection: an outlined tag that links to its page. */
+  .play-collection {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    box-sizing: border-box;
+    padding: 0 var(--space-m);
+    border: 1px solid var(--border);
+    border-radius: var(--corner-small);
+    color: var(--text-muted);
+    font: 500 var(--font-size-small) / 1 var(--font);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .play-collection:hover {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--text) 8%, transparent) 0 0
+    );
+  }
+
+  .play-collection:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 640px) {
+    .play-page {
+      --play-text-base: 20px;
+
+      padding: var(--space-s) var(--space-l) 64px;
+    }
+
+    /* Only on wider screens (see openspec/specs/play-page). */
+    .play-collections {
+      display: none;
+    }
+  }
+
+  /*
+    On paper, or in a PDF: the title, the artist and the sheet as shown, without
+    the top bar or any button. The sheet view keeps each line with its chords.
+  */
+  @media print {
+    /* The play view's top bar, which outweighs top-bar.css. */
+    .top-bar:has(~ .play-page),
+    .play-page button,
+    .play-collections {
+      display: none;
+    }
+
+    .play-print-version {
+      display: inline;
+    }
+
+    .play-page {
+      max-width: none;
+      padding: 0;
+    }
   }
 }

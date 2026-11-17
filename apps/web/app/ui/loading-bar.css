@@ -1,56 +1,58 @@
-/* The bar across the top of the window while a page loads. Above the rail,
-   below dialogs, which sit in the top layer. */
+@layer components {
+  /* The bar across the top of the window while a page loads. Above the rail,
+     below dialogs, which sit in the top layer. */
 
-.loading-bar {
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 20;
-  height: 3px;
-  overflow: hidden;
-  background: var(--accent-soft);
-}
-
-/* A short piece slides across. Its own width is the unit, so it starts
-   just outside the left edge and ends past the right. */
-.loading-bar > span {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 30%;
-  border-radius: 2px;
-  background: var(--accent);
-  animation: loading-bar 1.4s ease-in-out infinite;
-}
-
-@keyframes loading-bar {
-  from {
-    transform: translateX(-100%);
+  .loading-bar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 20;
+    height: 3px;
+    overflow: hidden;
+    background: var(--accent-soft);
   }
-  to {
-    transform: translateX(340%);
-  }
-}
 
-/* Without motion, the whole bar shows in the accent and stands still. */
-.loading-bar-still > span {
-  width: 100%;
-  animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
+  /* A short piece slides across. Its own width is the unit, so it starts
+     just outside the left edge and ends past the right. */
   .loading-bar > span {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 30%;
+    border-radius: 2px;
+    background: var(--accent);
+    animation: loading-bar 1.4s ease-in-out infinite;
+  }
+
+  @keyframes loading-bar {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(340%);
+    }
+  }
+
+  /* Without motion, the whole bar shows in the accent and stands still. */
+  .loading-bar-still > span {
     width: 100%;
     animation: none;
   }
-}
 
-/* Forced colors drop the backgrounds, so the bar takes a system color. */
-@media (forced-colors: active) {
-  .loading-bar > span {
-    background: Highlight;
-    forced-color-adjust: none;
+  @media (prefers-reduced-motion: reduce) {
+    .loading-bar > span {
+      width: 100%;
+      animation: none;
+    }
+  }
+
+  /* Forced colors drop the backgrounds, so the bar takes a system color. */
+  @media (forced-colors: active) {
+    .loading-bar > span {
+      background: Highlight;
+      forced-color-adjust: none;
+    }
   }
 }

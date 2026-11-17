@@ -1,111 +1,113 @@
-/*
-  The floating button: a 64px square with rounded corners, at the bottom
-  right, above the shell's bar. Only on a phone (see app/breakpoints.ts).
-*/
-.floating-button {
-  display: none;
-  position: fixed;
-  right: var(--space-l);
-  bottom: calc(var(--shell-bar-height, 0px) + var(--space-l));
-  z-index: 1;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--corner-medium);
-  background-color: var(--accent);
-  color: var(--on-accent);
-  box-shadow: 0 4px 12px var(--shadow);
-  cursor: pointer;
-  touch-action: manipulation;
-  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
-  outline: 1px solid transparent;
-  outline-offset: -1px;
-}
-
-.floating-button:hover {
-  background-image: linear-gradient(
-    color-mix(in srgb, currentColor 8%, transparent) 0 0
-  );
-}
-
-.floating-button:active {
-  background-image: linear-gradient(
-    color-mix(in srgb, currentColor 12%, transparent) 0 0
-  );
-}
-
-.floating-button:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
-}
-
-@media (max-width: 640px) {
+@layer components {
+  /*
+    The floating button: a 64px square with rounded corners, at the bottom
+    right, above the shell's bar. Only on a phone (see app/breakpoints.ts).
+  */
   .floating-button {
-    display: flex;
+    display: none;
+    position: fixed;
+    right: var(--space-l);
+    bottom: calc(var(--shell-bar-height, 0px) + var(--space-l));
+    z-index: 1;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--corner-medium);
+    background-color: var(--accent);
+    color: var(--on-accent);
+    box-shadow: 0 4px 12px var(--shadow);
+    cursor: pointer;
+    touch-action: manipulation;
+    /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+    outline: 1px solid transparent;
+    outline-offset: -1px;
   }
-}
 
-/* Where it is, at any width, as on the design page. */
-.floating-button[data-in-place] {
-  display: flex;
-  position: static;
-}
+  .floating-button:hover {
+    background-image: linear-gradient(
+      color-mix(in srgb, currentColor 8%, transparent) 0 0
+    );
+  }
 
-/*
-  The open menu: a dialog that fills the window over the dimmed screen, so a
-  tap beside the items closes it.
-*/
-.floating-menu {
-  position: fixed;
-  inset: 0;
-  width: auto;
-  max-width: none;
-  height: auto;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
+  .floating-button:active {
+    background-image: linear-gradient(
+      color-mix(in srgb, currentColor 12%, transparent) 0 0
+    );
+  }
 
-.floating-menu::backdrop {
-  background: var(--scrim);
-}
+  .floating-button:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+  }
 
-/* The items stacked above the button's spot, at its right edge. In a short
-   window, as with large text, they scroll rather than leave the screen. The
-   padding keeps room for their shadows inside the scrolling box. */
-.floating-menu-list {
-  --floating-menu-bottom: calc(
-    var(--shell-bar-height, 0px) + var(--space-l) + 64px + var(--space-s)
-  );
+  @media (max-width: 640px) {
+    .floating-button {
+      display: flex;
+    }
+  }
 
-  position: fixed;
-  right: var(--space-s);
-  bottom: var(--floating-menu-bottom);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-s);
-  box-sizing: border-box;
-  max-height: calc(100dvh - var(--floating-menu-bottom));
-  padding: var(--space-s);
-  overflow-y: auto;
-}
+  /* Where it is, at any width, as on the design page. */
+  .floating-button[data-in-place] {
+    display: flex;
+    position: static;
+  }
 
-.button.floating-menu-item {
-  height: 56px;
-  padding: 0 24px 0 20px;
-  font-size: 16px;
-  box-shadow: 0 2px 6px var(--shadow);
-}
+  /*
+    The open menu: a dialog that fills the window over the dimmed screen, so a
+    tap beside the items closes it.
+  */
+  .floating-menu {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    max-width: none;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
 
-/* "Close" sits where the floating button was, in the tonal colors. */
-.floating-button.floating-menu-close {
-  display: flex;
-  background-color: var(--accent-soft);
-  color: var(--on-accent-soft);
+  .floating-menu::backdrop {
+    background: var(--scrim);
+  }
+
+  /* The items stacked above the button's spot, at its right edge. In a short
+     window, as with large text, they scroll rather than leave the screen. The
+     padding keeps room for their shadows inside the scrolling box. */
+  .floating-menu-list {
+    --floating-menu-bottom: calc(
+      var(--shell-bar-height, 0px) + var(--space-l) + 64px + var(--space-s)
+    );
+
+    position: fixed;
+    right: var(--space-s);
+    bottom: var(--floating-menu-bottom);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-s);
+    box-sizing: border-box;
+    max-height: calc(100dvh - var(--floating-menu-bottom));
+    padding: var(--space-s);
+    overflow-y: auto;
+  }
+
+  .button.floating-menu-item {
+    height: 56px;
+    padding: 0 24px 0 20px;
+    font-size: 16px;
+    box-shadow: 0 2px 6px var(--shadow);
+  }
+
+  /* "Close" sits where the floating button was, in the tonal colors. */
+  .floating-button.floating-menu-close {
+    display: flex;
+    background-color: var(--accent-soft);
+    color: var(--on-accent-soft);
+  }
 }

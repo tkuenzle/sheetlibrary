@@ -3,170 +3,177 @@
   the top of its style.css). The package keeps the layout the chord layer
   measures.
 */
-.sheet-editor {
-  position: relative;
-  /* The room left of the sections for their toolbar. */
-  --toolbar-margin: 112px;
-  /* Room in a section around its label and lyrics. */
-  --section-padding: var(--space-m) 28px var(--space-l);
-  --label-height: 32px;
-  /* The label's pill reaches this far left of the lyrics. */
-  --label-inset: 12px;
-  /* Here rather than on .chord-editor, so the section toolbar beside it
-     gets it too. 0s with reduced motion (see docs/motion.md). */
-  --chord-editor-motion: var(--motion-short);
-}
 
-.sheet-editor .chord-editor {
-  --chord-editor-font-size: var(--font-size-lyrics);
-  --chord-editor-line-height: calc(2.8 * var(--font-size-lyrics));
-  --chord-editor-active-line-height: calc(3.3 * var(--font-size-lyrics));
-  --chord-editor-section-gap: var(--space-m);
-  --chord-editor-label-height: var(--label-height);
-  --chord-editor-add-label: "Add label";
-  color: var(--text);
-}
+/* The package's styles go in their own layer, below the app's, so these
+   rules win over them. Unlayered, they would win over every layer. */
+@import "chord-editor/style.css" layer(editor);
 
-.sheet-editor .chord-editor:not([data-compact]) {
-  margin-left: var(--toolbar-margin);
-}
-
-/*
-  Sections keep the same padding when they become active, so the lyrics
-  don't move sideways or down when the caret enters them.
-*/
-.sheet-editor .section {
-  padding: var(--section-padding);
-  border-radius: var(--corner-large);
-}
-
-/* The active section is a sheet on the page. */
-.sheet-editor .is-editing .section.is-active {
-  background: var(--surface-active);
-  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
-  outline: 1px solid transparent;
-}
-
-.sheet-editor .is-editing .section:not(.is-active) {
-  color: var(--text-dimmed);
-}
-
-/*
-  The section's label, above its lyrics. Its text lines up with the lyrics;
-  in the active section it is a pill, whose padding reaches into the
-  section's padding.
-*/
-.sheet-editor .section-label,
-.sheet-editor .section-label-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: var(--label-height);
-  margin-left: calc(-1 * var(--label-inset));
-  padding: 0 var(--label-inset);
-  border-radius: var(--corner-full);
-  color: var(--text-muted);
-  font: 700 var(--font-size-label) / 1 var(--font);
-}
-
-.sheet-editor .is-editing .section:not(.is-active) .section-label {
-  color: var(--text-dimmed);
-}
-
-.sheet-editor .is-editing .section.is-active .section-label {
-  background: var(--accent-soft);
-  color: var(--on-accent-soft);
-  cursor: pointer;
-  /* Shows as an outline in forced colors mode, where backgrounds are gone. */
-  outline: 1px solid transparent;
-}
-
-.sheet-editor .section-label-add {
-  padding-left: var(--space-s);
-  color: var(--accent);
-}
-
-.sheet-editor .section-label-add::before {
-  content: "";
-  width: 20px;
-  height: 20px;
-  background: currentColor;
-  mask: url("../ui/icons/add.svg") center / contain no-repeat;
-}
-
-/* The label field lies over the label while it is open. */
-.sheet-editor[data-editing-label] .section.is-active .section-label-row > * {
-  visibility: hidden;
-}
-
-/* In a phone-wide window (see app/breakpoints.ts), the sections are tighter. */
-@media (max-width: 640px) {
+@layer components {
   .sheet-editor {
-    --section-padding: var(--space-s) var(--space-l) var(--space-m);
-    --label-height: 28px;
-    --label-inset: 10px;
+    position: relative;
+    /* The room left of the sections for their toolbar. */
+    --toolbar-margin: 112px;
+    /* Room in a section around its label and lyrics. */
+    --section-padding: var(--space-m) 28px var(--space-l);
+    --label-height: 32px;
+    /* The label's pill reaches this far left of the lyrics. */
+    --label-inset: 12px;
+    /* Here rather than on .chord-editor, so the section toolbar beside it
+       gets it too. 0s with reduced motion (see docs/motion.md). */
+    --chord-editor-motion: var(--motion-short);
   }
 
+  .sheet-editor .chord-editor {
+    --chord-editor-font-size: var(--font-size-lyrics);
+    --chord-editor-line-height: calc(2.8 * var(--font-size-lyrics));
+    --chord-editor-active-line-height: calc(3.3 * var(--font-size-lyrics));
+    --chord-editor-section-gap: var(--space-m);
+    --chord-editor-label-height: var(--label-height);
+    --chord-editor-add-label: "Add label";
+    color: var(--text);
+  }
+
+  .sheet-editor .chord-editor:not([data-compact]) {
+    margin-left: var(--toolbar-margin);
+  }
+
+  /*
+    Sections keep the same padding when they become active, so the lyrics
+    don't move sideways or down when the caret enters them.
+  */
   .sheet-editor .section {
-    border-radius: 24px;
+    padding: var(--section-padding);
+    border-radius: var(--corner-large);
   }
-}
 
-/* Chord labels, the "+", the drop caret and the dash. */
-.sheet-editor .chord-label {
-  color: var(--chord);
-}
+  /* The active section is a sheet on the page. */
+  .sheet-editor .is-editing .section.is-active {
+    background: var(--surface-active);
+    /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+    outline: 1px solid transparent;
+  }
 
-.sheet-editor .chord-label.is-dimmed {
-  color: var(--chord-dimmed);
-}
+  .sheet-editor .is-editing .section:not(.is-active) {
+    color: var(--text-dimmed);
+  }
 
-.sheet-editor .chord-dash.is-dimmed {
-  color: var(--text-dimmed);
-}
+  /*
+    The section's label, above its lyrics. Its text lines up with the lyrics;
+    in the active section it is a pill, whose padding reaches into the
+    section's padding.
+  */
+  .sheet-editor .section-label,
+  .sheet-editor .section-label-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: var(--label-height);
+    margin-left: calc(-1 * var(--label-inset));
+    padding: 0 var(--label-inset);
+    border-radius: var(--corner-full);
+    color: var(--text-muted);
+    font: 700 var(--font-size-label) / 1 var(--font);
+  }
 
-/*
-  The selected and the dragged label are pills. The pill is drawn behind the
-  label, so the label keeps the size the lyrics make room for.
-*/
-.sheet-editor .chord-label:is(.is-selected, .is-dragging) {
-  isolation: isolate;
-  color: var(--on-accent);
-}
+  .sheet-editor .is-editing .section:not(.is-active) .section-label {
+    color: var(--text-dimmed);
+  }
 
-.sheet-editor .chord-label:is(.is-selected, .is-dragging)::before {
-  content: "";
-  position: absolute;
-  inset: -3px -6px;
-  z-index: -1;
-  border-radius: var(--corner-full);
-  background: var(--accent);
-}
+  .sheet-editor .is-editing .section.is-active .section-label {
+    background: var(--accent-soft);
+    color: var(--on-accent-soft);
+    cursor: pointer;
+    /* Shows as an outline in forced colors mode, where backgrounds are gone. */
+    outline: 1px solid transparent;
+  }
 
-.sheet-editor .chord-label.is-dragging::before {
-  box-shadow: 0 6px 16px var(--shadow);
-}
+  .sheet-editor .section-label-add {
+    padding-left: var(--space-s);
+    color: var(--accent);
+  }
 
-/* Shows as an outline in forced colors mode, where the pill is gone. */
-.sheet-editor .chord-label.is-selected {
-  outline: 2px solid transparent;
-  outline-offset: 4px;
-}
+  .sheet-editor .section-label-add::before {
+    content: "";
+    width: 20px;
+    height: 20px;
+    background: currentColor;
+    mask: url("../ui/icons/add.svg") center / contain no-repeat;
+  }
 
-.sheet-editor .chord-add {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  border-radius: var(--corner-full);
-  background: var(--accent);
-  color: var(--on-accent);
-  font: 700 15px / 1 var(--font);
-}
+  /* The label field lies over the label while it is open. */
+  .sheet-editor[data-editing-label] .section.is-active .section-label-row > * {
+    visibility: hidden;
+  }
 
-.sheet-editor .chord-drop-caret {
-  border-radius: 1px;
-  color: var(--chord);
+  /* In a phone-wide window (see app/breakpoints.ts), the sections are tighter. */
+  @media (max-width: 640px) {
+    .sheet-editor {
+      --section-padding: var(--space-s) var(--space-l) var(--space-m);
+      --label-height: 28px;
+      --label-inset: 10px;
+    }
+
+    .sheet-editor .section {
+      border-radius: 24px;
+    }
+  }
+
+  /* Chord labels, the "+", the drop caret and the dash. */
+  .sheet-editor .chord-label {
+    color: var(--chord);
+  }
+
+  .sheet-editor .chord-label.is-dimmed {
+    color: var(--chord-dimmed);
+  }
+
+  .sheet-editor .chord-dash.is-dimmed {
+    color: var(--text-dimmed);
+  }
+
+  /*
+    The selected and the dragged label are pills. The pill is drawn behind the
+    label, so the label keeps the size the lyrics make room for.
+  */
+  .sheet-editor .chord-label:is(.is-selected, .is-dragging) {
+    isolation: isolate;
+    color: var(--on-accent);
+  }
+
+  .sheet-editor .chord-label:is(.is-selected, .is-dragging)::before {
+    content: "";
+    position: absolute;
+    inset: -3px -6px;
+    z-index: -1;
+    border-radius: var(--corner-full);
+    background: var(--accent);
+  }
+
+  .sheet-editor .chord-label.is-dragging::before {
+    box-shadow: 0 6px 16px var(--shadow);
+  }
+
+  /* Shows as an outline in forced colors mode, where the pill is gone. */
+  .sheet-editor .chord-label.is-selected {
+    outline: 2px solid transparent;
+    outline-offset: 4px;
+  }
+
+  .sheet-editor .chord-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    border-radius: var(--corner-full);
+    background: var(--accent);
+    color: var(--on-accent);
+    font: 700 15px / 1 var(--font);
+  }
+
+  .sheet-editor .chord-drop-caret {
+    border-radius: 1px;
+    color: var(--chord);
+  }
 }

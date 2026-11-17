@@ -75,6 +75,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
           content="width=device-width, initial-scale=1, interactive-widget=resizes-content"
         />
         <Meta />
+        {/* The order of the cascade layers, before any stylesheet. All CSS
+            is one file, and the bundler decides the order of its rules, so
+            each CSS file puts its rules in a layer instead. The first
+            statement the browser sees fixes the order. See
+            docs/design-direction.md. */}
+        <style>{"@layer tokens, base, editor, components, pages;"}</style>
         <Links />
       </head>
       <body>

@@ -119,6 +119,20 @@ The `chord-editor` package draws what sits on the lyrics: chord labels, the "+",
 
 Buttons, icons and UI text belong to the app; the text follows `docs/ui-text.md`. The section toolbar is a React component in the app. The package only places it, beside the section or docked, and tells the app what it shows. Each DOM element has one owner, React or the package, never both.
 
+## Layers
+
+Each component or route imports its own CSS, and the build puts all of it into one stylesheet that loads with the first page. A move between pages then never adds or removes a stylesheet, so no page shows before its styles. The bundler decides the order of the rules in that file, so every CSS file puts its rules in a cascade layer, and a layer always wins over the ones before it, whatever the order of the rules:
+
+| Layer        | Files                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------- |
+| `tokens`     | `ui/tokens.css`                                                                             |
+| `base`       | `app.css`                                                                                   |
+| `editor`     | the `chord-editor` package's stylesheet, imported in `editor/sheet-editor.css`              |
+| `components` | `ui/`, `shell/`, `sheets/`, `collections/`, `editor/`, `photos/`, `sheet-view/` and `home/` |
+| `pages`      | `routes/`                                                                                   |
+
+The paths are under `apps/web/app/`. A new CSS file wraps its rules in `@layer <name> { … }` for its folder. `@import` stays outside. The order is declared in `apps/web/app/root.tsx`, before the stylesheet, and in the harness pages.
+
 ## Widths
 
 Every layout rule uses the same three widths, listed in `apps/web/app/breakpoints.ts`:

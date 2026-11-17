@@ -1,134 +1,136 @@
-.design-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-2xl) var(--space-l);
-}
+@layer pages {
+  .design-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-2xl) var(--space-l);
+  }
 
-.design-page h1 {
-  margin: 0 0 var(--space-s);
-  font-size: var(--font-size-title);
-  font-weight: 800;
-  letter-spacing: -0.035em;
-}
+  .design-page h1 {
+    margin: 0 0 var(--space-s);
+    font-size: var(--font-size-title);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+  }
 
-.design-page > p {
-  margin: 0 0 var(--space-2xl);
-  color: var(--text-muted);
-}
+  .design-page > p {
+    margin: 0 0 var(--space-2xl);
+    color: var(--text-muted);
+  }
 
-.design-styles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
-  gap: var(--space-xl);
-}
+  .design-styles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+    gap: var(--space-xl);
+  }
 
-.design-style {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xl);
-  padding: var(--space-2xl);
-  border-radius: var(--corner-large);
-  background: var(--page);
-  color: var(--text);
-  outline: 1px solid var(--border);
-}
+  .design-style {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xl);
+    padding: var(--space-2xl);
+    border-radius: var(--corner-large);
+    background: var(--page);
+    color: var(--text);
+    outline: 1px solid var(--border);
+  }
 
-.design-style h2 {
-  margin: 0;
-  font-size: var(--font-size-heading);
-  font-weight: 700;
-}
+  .design-style h2 {
+    margin: 0;
+    font-size: var(--font-size-heading);
+    font-weight: 700;
+  }
 
-.design-style h3 {
-  margin: 0 0 var(--space-m);
-  font-size: var(--font-size-body);
-  font-weight: 700;
-  color: var(--text-muted);
-}
+  .design-style h3 {
+    margin: 0 0 var(--space-m);
+    font-size: var(--font-size-body);
+    font-weight: 700;
+    color: var(--text-muted);
+  }
 
-.design-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--space-m);
-}
+  .design-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-m);
+  }
 
-/* The rail and the bottom bar, each in a frame that stands for the screen. */
-.design-nav {
-  display: flex;
-  min-height: 360px;
-  border-radius: var(--corner-medium);
-  outline: 1px solid var(--border);
-}
+  /* The rail and the bottom bar, each in a frame that stands for the screen. */
+  .design-nav {
+    display: flex;
+    min-height: 360px;
+    border-radius: var(--corner-medium);
+    outline: 1px solid var(--border);
+  }
 
-.design-nav-bar {
-  display: block;
-  max-width: 390px;
-  min-height: 0;
-  overflow: hidden;
-}
+  .design-nav-bar {
+    display: block;
+    max-width: 390px;
+    min-height: 0;
+    overflow: hidden;
+  }
 
-/* The loading bar, in a frame that stands for the top of the window. */
-.design-loading {
-  position: relative;
-  height: 48px;
-  overflow: hidden;
-  border-radius: var(--corner-small);
-  outline: 1px solid var(--border);
-}
+  /* The loading bar, in a frame that stands for the top of the window. */
+  .design-loading {
+    position: relative;
+    height: 48px;
+    overflow: hidden;
+    border-radius: var(--corner-small);
+    outline: 1px solid var(--border);
+  }
 
-.design-loading .loading-bar {
-  position: absolute;
-}
+  .design-loading .loading-bar {
+    position: absolute;
+  }
 
-/* A page error, in a frame that stands for the content area. */
-.design-page-error {
-  flex: 1 1 280px;
-  border-radius: var(--corner-medium);
-  outline: 1px solid var(--border);
-}
+  /* A page error, in a frame that stands for the content area. */
+  .design-page-error {
+    flex: 1 1 280px;
+    border-radius: var(--corner-medium);
+    outline: 1px solid var(--border);
+  }
 
-.design-page-error .page-error {
-  padding: var(--space-xl);
-}
+  .design-page-error .page-error {
+    padding: var(--space-xl);
+  }
 
-/* Over the design page's own h3 rule. */
-.design-page-error .page-error-title {
-  margin: 0;
-  color: var(--text);
-  font: 800 28px / 1.05 var(--font);
-}
+  /* Over the design page's own h3 rule. */
+  .design-page-error .page-error-title {
+    margin: 0;
+    color: var(--text);
+    font: 800 28px / 1.05 var(--font);
+  }
 
-.design-swatches {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: var(--space-s) var(--space-l);
-  margin: 0;
-  padding: 0;
-  font-size: var(--font-size-small);
-  list-style: none;
-}
+  .design-swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--space-s) var(--space-l);
+    margin: 0;
+    padding: 0;
+    font-size: var(--font-size-small);
+    list-style: none;
+  }
 
-.design-swatches li {
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-}
+  .design-swatches li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+  }
 
-.design-swatches span {
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--corner-small);
-  box-shadow: inset 0 0 0 1px var(--border);
-}
+  .design-swatches span {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--corner-small);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
 
-.design-type {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-}
+  .design-type {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
 
-.design-type p {
-  margin: 0;
+  .design-type p {
+    margin: 0;
+  }
 }

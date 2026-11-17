@@ -1,33 +1,35 @@
 @import "@fontsource-variable/schibsted-grotesk";
 @import "./ui/tokens.css";
 
-:root {
-  --chord-editor-font: var(--font);
-  font-family: var(--font);
-}
+@layer base {
+  :root {
+    --chord-editor-font: var(--font);
+    font-family: var(--font);
+  }
 
-body {
-  margin: 0;
-  background: var(--page);
-  color: var(--text);
-}
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text);
+  }
 
-a {
-  color: var(--accent);
-}
+  a {
+    color: var(--accent);
+  }
 
-/* A heading only takes the focus after a move to its page, so that screen
-   readers read it (see shell/focus.ts). It shows no ring. */
-h1:focus {
-  outline: none;
-}
+  /* A heading only takes the focus after a move to its page, so that screen
+     readers read it (see shell/focus.ts). It shows no ring. */
+  h1:focus {
+    outline: none;
+  }
 
-/* Text only screen readers read. */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+  /* Text only screen readers read. */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }

@@ -1,4 +1,3 @@
-import "chord-editor/style.css";
 import "./sheet-editor.css";
 
 import {

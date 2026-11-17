@@ -1,176 +1,178 @@
-/* The account page: one column in the shell, in the library's grouped
-   rows (ui/group-list.css). The rename field is styled as sign-in's
-   (sign-in.css). */
-.account {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-  box-sizing: border-box;
-  max-width: 640px;
-  margin: 0 auto;
-  padding: var(--space-2xl) var(--space-xl) 96px;
-}
-
-.account h1 {
-  margin: 0 0 var(--space-s);
-  font: 800 var(--font-size-title) / 1.05 var(--font);
-  letter-spacing: -0.035em;
-}
-
-.account-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-}
-
-.account-section h2 {
-  margin: var(--space-l) 0 0 var(--space-xs);
-  font: 700 var(--font-size-heading) / 1.2 var(--font);
-}
-
-.account-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-s);
-  box-sizing: border-box;
-  min-height: 64px;
-  padding: var(--space-xs) var(--space-s) var(--space-xs) var(--space-xl);
-}
-
-.account-email {
-  font: 600 var(--font-size-body) / 1.4 var(--font);
-  overflow-wrap: anywhere;
-}
-
-.account-empty {
-  color: var(--text-muted);
-  font: 400 var(--font-size-body) / 1.4 var(--font);
-}
-
-.account-passkey-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.account-passkey-name {
-  font: 600 var(--font-size-body) / 1.4 var(--font);
-  overflow-wrap: anywhere;
-}
-
-.account-passkey-added {
-  color: var(--text-muted);
-  font: 400 var(--font-size-small) / 1.4 var(--font);
-}
-
-.account-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.account-passkey-rename {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--space-s);
-  padding: var(--space-m) 0 var(--space-xs);
-}
-
-.account-add {
-  align-self: flex-start;
-  margin-top: var(--space-xs);
-}
-
-/* "Sign out" fills its one-row group. The page's class outweighs the
-   group's margin, whichever stylesheet comes first. */
-.account .account-sign-out {
-  margin-top: 40px;
-}
-
-.account-sign-out > li {
-  border-radius: var(--corner-medium);
-}
-
-.account-sign-out button {
-  display: flex;
-  align-items: center;
-  gap: var(--space-l);
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 64px;
-  padding: 0 var(--space-xl) 0 20px;
-  border: 0;
-  border-radius: inherit;
-  background: transparent;
-  color: var(--text);
-  font: 600 var(--font-size-label) / 1.2 var(--font);
-  text-align: left;
-  cursor: pointer;
-  outline: 1px solid transparent;
-  outline-offset: -1px;
-}
-
-.account-sign-out button > .icon {
-  color: var(--text-muted);
-}
-
-.account-sign-out button:hover {
-  background-image: linear-gradient(
-    color-mix(in srgb, var(--text) 4%, transparent) 0 0
-  );
-}
-
-.account-sign-out button:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-
-/* Phone-wide (see app/breakpoints.ts): a passkey's buttons go below its
-   name. */
-@media (max-width: 640px) {
+@layer pages {
+  /* The account page: one column in the shell, in the library's grouped
+     rows (ui/group-list.css). The rename field is styled as sign-in's
+     (sign-in.css). */
   .account {
-    padding: var(--space-xl) var(--space-m) 40px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    box-sizing: border-box;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: var(--space-2xl) var(--space-xl) 96px;
   }
 
-  /* The account's initial sits at the end of the heading's line. */
   .account h1 {
-    margin-right: var(--shell-account-room, 0px);
-    margin-left: var(--space-s);
+    margin: 0 0 var(--space-s);
+    font: 800 var(--font-size-title) / 1.05 var(--font);
+    letter-spacing: -0.035em;
+  }
+
+  .account-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
   }
 
   .account-section h2 {
-    margin: var(--space-m) 0 0 var(--space-s);
+    margin: var(--space-l) 0 0 var(--space-xs);
+    font: 700 var(--font-size-heading) / 1.2 var(--font);
   }
 
   .account-row {
-    min-height: 60px;
-    padding: var(--space-m) var(--space-s) var(--space-m) 20px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+    box-sizing: border-box;
+    min-height: 64px;
+    padding: var(--space-xs) var(--space-s) var(--space-xs) var(--space-xl);
   }
 
-  .account-passkey {
-    flex-wrap: wrap;
-    gap: 0;
-    padding-bottom: var(--space-xs);
+  .account-email {
+    font: 600 var(--font-size-body) / 1.4 var(--font);
+    overflow-wrap: anywhere;
+  }
+
+  .account-empty {
+    color: var(--text-muted);
+    font: 400 var(--font-size-body) / 1.4 var(--font);
   }
 
   .account-passkey-text {
-    flex-basis: 100%;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
   }
 
-  .account-passkey .account-actions {
-    justify-content: flex-start;
-    margin-left: calc(-1 * var(--space-m));
+  .account-passkey-name {
+    font: 600 var(--font-size-body) / 1.4 var(--font);
+    overflow-wrap: anywhere;
   }
 
+  .account-passkey-added {
+    color: var(--text-muted);
+    font: 400 var(--font-size-small) / 1.4 var(--font);
+  }
+
+  .account-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .account-passkey-rename {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-s);
+    padding: var(--space-m) 0 var(--space-xs);
+  }
+
+  .account-add {
+    align-self: flex-start;
+    margin-top: var(--space-xs);
+  }
+
+  /* "Sign out" fills its one-row group. The page's class outweighs the
+     group's margin, whichever stylesheet comes first. */
   .account .account-sign-out {
-    margin-top: var(--space-2xl);
+    margin-top: 40px;
+  }
+
+  .account-sign-out > li {
+    border-radius: var(--corner-medium);
   }
 
   .account-sign-out button {
-    min-height: 60px;
-    padding: 0 20px 0 18px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-l);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 64px;
+    padding: 0 var(--space-xl) 0 20px;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    color: var(--text);
+    font: 600 var(--font-size-label) / 1.2 var(--font);
+    text-align: left;
+    cursor: pointer;
+    outline: 1px solid transparent;
+    outline-offset: -1px;
+  }
+
+  .account-sign-out button > .icon {
+    color: var(--text-muted);
+  }
+
+  .account-sign-out button:hover {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--text) 4%, transparent) 0 0
+    );
+  }
+
+  .account-sign-out button:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* Phone-wide (see app/breakpoints.ts): a passkey's buttons go below its
+     name. */
+  @media (max-width: 640px) {
+    .account {
+      padding: var(--space-xl) var(--space-m) 40px;
+    }
+
+    /* The account's initial sits at the end of the heading's line. */
+    .account h1 {
+      margin-right: var(--shell-account-room, 0px);
+      margin-left: var(--space-s);
+    }
+
+    .account-section h2 {
+      margin: var(--space-m) 0 0 var(--space-s);
+    }
+
+    .account-row {
+      min-height: 60px;
+      padding: var(--space-m) var(--space-s) var(--space-m) 20px;
+    }
+
+    .account-passkey {
+      flex-wrap: wrap;
+      gap: 0;
+      padding-bottom: var(--space-xs);
+    }
+
+    .account-passkey-text {
+      flex-basis: 100%;
+    }
+
+    .account-passkey .account-actions {
+      justify-content: flex-start;
+      margin-left: calc(-1 * var(--space-m));
+    }
+
+    .account .account-sign-out {
+      margin-top: var(--space-2xl);
+    }
+
+    .account-sign-out button {
+      min-height: 60px;
+      padding: 0 20px 0 18px;
+    }
   }
 }
