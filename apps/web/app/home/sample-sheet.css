@@ -1,25 +1,57 @@
+/* A card in the look of the play view: the title, the artist, the key and
+   capo buttons, then the verse. */
 .sample-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
   box-sizing: border-box;
   padding: var(--space-2xl) 36px 36px;
   border-radius: var(--corner-large);
   background: var(--surface-active);
   color: var(--text);
-  rotate: -2deg;
-  outline: 1px solid transparent;
+  box-shadow: 0 8px 32px var(--shadow);
 }
 
-.sample-sheet-title {
-  font: 700 17px / 1.2 var(--font);
+.sample-sheet-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
+.sample-sheet-heading h2 {
+  margin: 0;
+  font: 800 32px / 1.05 var(--font);
+  letter-spacing: -0.03em;
+}
+
+.sample-sheet-artist {
+  margin: 0;
+  color: var(--text-muted);
+  font: 500 17px / 1.4 var(--font);
+}
+
+/* As .play-chips. */
+.sample-sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s);
+  margin-top: var(--space-s);
+}
+
+/* Phone-wide (see app/breakpoints.ts). */
 @media (max-width: 640px) {
   .sample-sheet {
-    margin: 0 6px;
-    padding: 22px 22px 26px;
+    gap: 20px;
+    padding: var(--space-xl) 22px 26px;
     border-radius: 24px;
   }
 
-  .sample-sheet-title {
-    font-size: 15px;
+  .sample-sheet-heading h2 {
+    font-size: 26px;
+  }
+
+  .sample-sheet-artist {
+    font-size: 16px;
   }
 }

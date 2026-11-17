@@ -13,10 +13,17 @@ function load(signedIn: boolean) {
 }
 
 describe("home page", () => {
-  it("says what the site is and that it's coming soon", () => {
+  // Scenario "Opening the home page".
+  it("says what the app is for", () => {
     const html = renderToString(<Home />);
-    expect(html).toContain("<h1>A library for your sheet music</h1>");
-    expect(html).toContain("Coming soon.");
+    expect(html).toContain("<h1>Every song you play, in one place</h1>");
+    expect(html).toContain(
+      "Keep your chord sheets in one library. Change the key, add a capo, and play from any screen.",
+    );
+    expect(html).toContain("Add sheets from photos or from Ultimate Guitar");
+    expect(html).toContain("Save a key for each singer");
+    expect(html).toContain("Group sheets in collections");
+    expect(html).not.toContain("Coming soon");
     // The voice in docs/ui-text.md.
     expect(html).not.toContain("you can");
   });
@@ -25,9 +32,26 @@ describe("home page", () => {
     expect(renderToString(<Home />)).toContain('<header class="top-bar">');
   });
 
-  it("links to the chord editor", () => {
-    expect(renderToString(<Home />)).toMatch(
-      /<a class="[^"]*" href="\/editor">Try the chord editor<\/a>/,
+  // Requirement "Ways in".
+  it("offers to sign in and to try it first", () => {
+    const html = renderToString(<Home />);
+    expect(html).toMatch(
+      /<a class="[^"]*home-way" href="\/sign-in">Sign in<\/a>/,
+    );
+    expect(html).toMatch(
+      /<a class="[^"]*home-way" href="\/editor">Try it first<\/a>/,
+    );
+  });
+
+  // In one column, the sample comes before the list.
+  it("shows the sample with its note, before the list", () => {
+    const html = renderToString(<Home />);
+    expect(html).toContain("A sample sheet. Try changing the key.");
+    expect(html.indexOf('aria-label="Sample sheet"')).toBeLessThan(
+      html.indexOf("Add sheets from photos"),
+    );
+    expect(html.indexOf("Try it first")).toBeLessThan(
+      html.indexOf('aria-label="Sample sheet"'),
     );
   });
 
