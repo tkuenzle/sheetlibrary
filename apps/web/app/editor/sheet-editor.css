@@ -40,23 +40,6 @@
   border-radius: var(--corner-large);
 }
 
-/*
-  A section that becomes active, or stops being active, fades its colors
-  (see docs/motion.md). Only colors: its taller lines change at once.
-*/
-.sheet-editor .section,
-.sheet-editor .section-label {
-  transition:
-    background-color var(--motion-short) var(--ease-move),
-    color var(--motion-short) var(--ease-move);
-}
-
-/* A lifted label keeps the package's slide up. */
-.sheet-editor .chord-label:not(.is-lifted),
-.sheet-editor .chord-dash {
-  transition: color var(--motion-short) var(--ease-move);
-}
-
 /* The active section is a sheet on the page. */
 .sheet-editor .is-editing .section.is-active {
   background: var(--surface-active);

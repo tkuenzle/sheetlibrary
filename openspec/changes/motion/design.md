@@ -8,7 +8,7 @@ Every place that moves writes its own numbers and its own `@media (prefers-reduc
 
 **Goals:**
 - Reduced motion is decided once, so a new part follows it without writing its own rule.
-- What moves today keeps its durations and only takes the new curves, apart from the switch's handle and the active section.
+- What moves today keeps its durations and only takes the new curves, apart from the switch's handle.
 
 **Non-Goals:**
 - Menus, dialogs and page changes. The concept describes them; #136 builds them.
@@ -25,9 +25,8 @@ Every place that moves writes its own numbers and its own `@media (prefers-reduc
 
 **The switch's handle moves with `translate` and `scale`.** It stays 24px in the layout and is scaled down to 16px when off, so turning it on changes no layout and the browser doesn't lay out the bar each frame.
 
-**The active section fades its colors.** `.section` and its label, lyrics and chords get a transition on `background-color` and `color`, at `--motion-short` with `--ease-move`. No size or position is transitioned: the active section's taller lines still change at once, so the chord layer's measurements are right as soon as the section is active.
+**The active section doesn't fade.** A color fade at `--motion-short` was built and tried. With the standard curve most of it happens in the first frames, so it wasn't noticeable, and a slower one would make editing feel sluggish. The person moved the cursor themselves, so a fade tells them nothing new.
 
 ## Risks / Trade-offs
 
 - [A browser could skip `animationend` for an animation of 0s] → The e2e tests with reduced motion already open and close the docked chord input. A case for the key panel on a phone is added.
-- [The active section's fade could lag while typing or arrowing quickly through sections] → It is only colors, at 150ms. Check it on a phone with the browser-check skill.

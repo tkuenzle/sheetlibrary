@@ -14,11 +14,7 @@
 - [x] 2.5 Make the Lyrics only switch's handle move with `translate` and `scale` on the tokens, and remove its reduced-motion block; verify the handle looks as before in both states, and add an e2e case in `e2e/design-system.spec.ts` that it is at its end at once with reduced motion
 - [x] 2.6 Check the loading bar and the photo import's sign still stand still with reduced motion; verify with the existing `waiting` and photo import tests
 
-## 3. The active section
+## 3. Checks
 
-- [x] 3.1 Fade the active section's background, label and chord colors in `editor/sheet-editor.css` at `--motion-short` with `--ease-move`; verify with an e2e case that the second section's background changes over time after a click, and one that it changes at once with reduced motion
-
-## 4. Checks
-
-- [x] 4.1 Search the app and the package for durations and curves outside the tokens, and for `prefers-reduced-motion` outside `tokens.css`, the two loops and the package; verify none is left
-- [x] 4.2 Check the panels, the key panel, the chord input, the switch and the active section on a phone and a wide screen, with and without reduced motion, with the browser-check skill; verify the durations are as before and only the curves, the switch and the active section differ
+- [x] 3.1 Search the app and the package for durations and curves outside the tokens, and for `prefers-reduced-motion` outside `tokens.css`, the two loops and the package; verify none is left
+- [x] 3.2 Check the panels, the key panel, the chord input and the switch on a phone and a wide screen, with and without reduced motion, with the browser-check skill; verify the durations are as before and only the curves and the switch differ

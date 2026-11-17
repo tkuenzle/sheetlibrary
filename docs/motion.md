@@ -59,7 +59,7 @@ Use the tokens, never numbers. The `chord-editor` package takes its duration fro
 - **The editor's scroll to the cursor** jumps. Smooth scrolling would fight typing and the keyboard on a phone.
 - **The save state** changes its text at once. It is a status, not an event.
 - **Text and chords** never move on their own. A chord moves only while it is dragged, and lifts above the finger.
-- **The active section** fades its colors when another section becomes active. It doesn't move or grow.
+- **The active section** changes its look at once. The person moved the cursor there, so a fade would tell them nothing.
 
 ## Reduced motion
 
