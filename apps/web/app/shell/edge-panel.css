@@ -36,7 +36,7 @@
 }
 
 .edge-panel[open] {
-  animation: edge-panel-in 200ms ease-out;
+  animation: edge-panel-in var(--motion-medium) var(--ease-enter);
 }
 
 .edge-panel::backdrop {
@@ -44,16 +44,16 @@
 }
 
 .edge-panel[open]::backdrop {
-  animation: edge-panel-fade 200ms ease-out;
+  animation: edge-panel-fade var(--motion-medium) var(--ease-enter);
 }
 
 /* Sliding out before the panel closes (see EdgePanel). */
 .edge-panel[data-closing] {
-  animation: edge-panel-out 150ms ease-in forwards;
+  animation: edge-panel-out var(--motion-short) var(--ease-exit) forwards;
 }
 
 .edge-panel[data-closing]::backdrop {
-  animation: edge-panel-fade-out 150ms ease-in forwards;
+  animation: edge-panel-fade-out var(--motion-short) var(--ease-exit) forwards;
 }
 
 @keyframes edge-panel-in {
@@ -77,14 +77,5 @@
 @keyframes edge-panel-fade-out {
   to {
     opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .edge-panel[open],
-  .edge-panel[open]::backdrop,
-  .edge-panel[data-closing],
-  .edge-panel[data-closing]::backdrop {
-    animation: none;
   }
 }

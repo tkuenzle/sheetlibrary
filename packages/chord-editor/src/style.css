@@ -18,6 +18,8 @@
     lyrics that holds its label, the same with or without one
   --chord-editor-touch-lift: how far a chord dragged by touch is lifted above
     the finger, so it and the spot where it lands can be seen
+  --chord-editor-motion: how long the lift and the docked toolbar's fade
+    take, 150ms if not set
 
   The package holds no UI text. The app passes in the words it needs:
 
@@ -177,7 +179,7 @@
 */
 .chord-label.is-lifted {
   translate: 0 calc(-1 * var(--chord-layer-lift));
-  transition: translate 0.15s ease-out;
+  transition: translate var(--chord-editor-motion, 150ms) ease-out;
 }
 
 /* In a word split by a pile of chords, a dash bridges the gap. */
@@ -243,7 +245,7 @@
   bottom: 0;
   left: 0;
   z-index: 2;
-  transition: opacity 150ms;
+  transition: opacity var(--chord-editor-motion, 150ms);
 }
 
 [data-section-toolbar][data-docked][data-moving] {

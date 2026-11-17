@@ -164,13 +164,13 @@
   bottom: 0;
   left: 0;
   z-index: 3;
-  transition: opacity 150ms;
-  animation: chord-input-in 200ms ease-out;
+  transition: opacity var(--motion-short) var(--ease-move);
+  animation: chord-input-in var(--motion-medium) var(--ease-enter);
 }
 
 /* Sliding out once closed, as the key picker does (see SheetEditor). */
 .chord-input[data-docked][data-closing] {
-  animation: chord-input-out 150ms ease-in forwards;
+  animation: chord-input-out var(--motion-short) var(--ease-exit) forwards;
 }
 
 @keyframes chord-input-in {
@@ -218,11 +218,4 @@
 
 .sheet-editor:has(> .chord-input[data-docked]) [data-section-toolbar] {
   visibility: hidden;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chord-input[data-docked] {
-    transition: none;
-    animation: none;
-  }
 }

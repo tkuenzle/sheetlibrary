@@ -13,8 +13,8 @@ export function usePanel() {
   const dialog = useRef<HTMLDialogElement>(null);
 
   // As a sheet, the panel slides out before it closes, since a dialog leaves
-  // the page at once when it closes. With reduced motion there is no
-  // animation to wait for, so it closes at once.
+  // the page at once when it closes. With reduced motion the slide takes no
+  // time (see docs/motion.md), so it closes at once.
   function close() {
     const panel = dialog.current;
     if (!panel?.open || panel.hasAttribute("data-closing")) return;

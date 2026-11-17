@@ -92,7 +92,7 @@
 
 /* While a search loads, the results shown are out of date. */
 .library-list {
-  transition: opacity 150ms;
+  transition: opacity var(--motion-short) var(--ease-move);
 }
 
 .library-list[aria-busy="true"] {

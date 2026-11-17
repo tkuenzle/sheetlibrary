@@ -54,17 +54,17 @@
 
 .switch-handle {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  width: 16px;
-  height: 16px;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--corner-full);
   background: var(--text-muted);
+  /* 16px when off. It moves and grows without changing the layout. */
+  scale: calc(2 / 3);
   transition:
-    left 150ms ease-out,
-    width 150ms ease-out,
-    height 150ms ease-out,
-    top 150ms ease-out;
+    translate var(--motion-short) var(--ease-move),
+    scale var(--motion-short) var(--ease-move);
 }
 
 .switch[aria-checked="true"] {
@@ -73,22 +73,14 @@
 }
 
 .switch[aria-checked="true"] .switch-handle {
-  top: 2px;
-  left: 22px;
-  width: 24px;
-  height: 24px;
   background: var(--on-accent);
+  translate: 20px 0;
+  scale: 1;
 }
 
 .switch:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .switch-handle {
-    transition: none;
-  }
 }
 
 /* In forced colors mode the track and the handle keep system colors. */

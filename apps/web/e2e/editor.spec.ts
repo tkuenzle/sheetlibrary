@@ -553,6 +553,24 @@ test.describe("the key", () => {
     await expect(panel(page)).toBeHidden();
   });
 
+  test("opens and closes at once on a phone with reduced motion", async ({
+    page,
+  }, testInfo) => {
+    test.skip(!isPhone(testInfo), "The panel is a sheet only on a phone");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await slowAnimations(page);
+    await keyButton(page).click();
+    await expect(panel(page)).toBeVisible();
+    expect(
+      await panel(page).evaluate(
+        (element) => getComputedStyle(element).animationDuration,
+      ),
+    ).toBe("0s");
+    await page.keyboard.press("Escape");
+    // A slide out would take 1.5 seconds at a tenth of the speed.
+    await expect(panel(page)).toBeHidden({ timeout: 500 });
+  });
+
   test("closes with Escape and gives the focus back", async ({ page }) => {
     await keyButton(page).click();
     await expect(panel(page)).toBeVisible();

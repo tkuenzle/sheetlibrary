@@ -547,6 +547,25 @@ test.describe("the shell", () => {
       await expect(heading(page)).toBeFocused();
     });
 
+    // Scenario "Opening the navigation" of design-system's reduced motion.
+    test("opens and closes at once with reduced motion", async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto("/sheets");
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send("Animation.enable");
+      await cdp.send("Animation.setPlaybackRate", { playbackRate: 0.1 });
+      await menuButton(page).click();
+      await expect(panel(page)).toBeVisible();
+      const durations = await panel(page).evaluate((element) => [
+        getComputedStyle(element).animationDuration,
+        getComputedStyle(element, "::backdrop").animationDuration,
+      ]);
+      expect(durations).toEqual(["0s", "0s"]);
+      await panel(page).getByRole("button", { name: "Close" }).click();
+      // A slide out would take 1.5 seconds at a tenth of the speed.
+      await expect(panel(page)).toBeHidden({ timeout: 500 });
+    });
+
     test("stays open until the picked page is there, so the old one doesn't show again", async ({
       page,
     }) => {

@@ -354,6 +354,57 @@ test("has the same bar on a phone", async ({ page }) => {
   expect(sideways).toBe(false);
 });
 
+// The switch's handle: 16px at the start when off, 24px at the end when on,
+// moved and grown without changing the layout.
+test("moves the Lyrics only handle without moving the layout", async ({
+  page,
+}) => {
+  const id = await createSheet(page, "Amazing Grace");
+  await page.goto(`/sheets/${id}`);
+  const view = await openView(page);
+  const toggle = view.getByRole("switch", { name: "Lyrics only" });
+  const handle = toggle.locator(".switch-handle");
+  const track = await box(toggle);
+  const off = await box(handle);
+  expect(off.width).toBeCloseTo(16, 0);
+  expect(off.x - track.x).toBeCloseTo(8, 0);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
+  await expect.poll(async () => (await box(handle)).width).toBeCloseTo(24, 0);
+  const on = await box(handle);
+  expect(track.x + track.width - (on.x + on.width)).toBeCloseTo(4, 0);
+  expect(
+    await handle.evaluate((element) => (element as HTMLElement).offsetLeft),
+  ).toBe(2);
+});
+
+async function box(locator: Locator) {
+  const found = await locator.boundingBox();
+  if (!found) throw new Error("Not shown");
+  return found;
+}
+
+// Scenario "Lyrics only" of design-system's reduced motion.
+test("moves the Lyrics only handle at once with reduced motion", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const id = await createSheet(page, "Amazing Grace");
+  await page.goto(`/sheets/${id}`);
+  const view = await openView(page);
+  const toggle = view.getByRole("switch", { name: "Lyrics only" });
+  await toggle.click();
+  const handle = toggle.locator(".switch-handle");
+  expect(
+    await handle.evaluate((element) => getComputedStyle(element).translate),
+  ).toBe("20px");
+  expect(
+    await handle.evaluate(
+      (element) => getComputedStyle(element).transitionDuration,
+    ),
+  ).toBe("0s, 0s");
+});
+
 // Turns "Lyrics only" on or off in View.
 async function toggleLyrics(page: Page) {
   const view = await openView(page);

@@ -721,6 +721,43 @@ test.describe("the active section", () => {
     await expect(page.locator(".section").first()).not.toHaveClass(/is-active/);
   });
 
+  // Scenario "Fading into the next section".
+  test("fades its colors when it becomes active", async ({ page }) => {
+    await clickChar(page, "before", "Was blind");
+    const second = page.locator(".section").nth(1);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Animation.enable");
+    await cdp.send("Animation.setPlaybackRate", { playbackRate: 0.1 });
+    await clickChar(page, "before", "'Twas");
+    await expect(second).toHaveClass(/is-active/);
+    const fading = await second.evaluate((section) =>
+      section
+        .getAnimations()
+        .map((animation) =>
+          animation instanceof CSSTransition
+            ? animation.transitionProperty
+            : "",
+        ),
+    );
+    expect(fading).toContain("background-color");
+    expect(fading).not.toContain("height");
+  });
+
+  // Scenario "Active section with reduced motion".
+  test("looks active at once with reduced motion", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await clickChar(page, "before", "Was blind");
+    await clickChar(page, "before", "'Twas");
+    const second = page.locator(".section").nth(1);
+    await expect(second).toHaveClass(/is-active/);
+    expect(
+      await second.evaluate((section) => ({
+        transitions: section.getAnimations().length,
+        background: getComputedStyle(section).backgroundColor,
+      })),
+    ).toEqual({ transitions: 0, background: "rgb(255, 255, 255)" });
+  });
+
   test("keeps a selection inside its section", async ({ page }) => {
     // The active section's lines are taller, so make it active first.
     await clickChar(page, "before", "blind");
@@ -1455,11 +1492,16 @@ test.describe("the section toolbar", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await tapChar(page, "wretch", 1);
     await press(page, addChordButton(page));
-    expect(await chordInputAnimation(page)).toBe("none");
-    expect(await cancelChordInput(page)).toEqual({
-      shown: false,
-      closing: false,
-      animation: "",
+    expect(
+      await page
+        .locator(".chord-input")
+        .evaluate((form) => getComputedStyle(form).animationDuration),
+    ).toBe("0s");
+    // The slide out takes no time and ends at once, well before the timer
+    // that closes it when a slide doesn't end (300ms).
+    await cancelChordInput(page);
+    await expect(page.locator(".chord-input")).toHaveCount(0, {
+      timeout: 250,
     });
   });
 
