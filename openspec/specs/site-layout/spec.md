@@ -146,11 +146,15 @@ In a window up to 640px wide, "New sheet" SHALL be one square button with a plus
 - **THEN** "Add sheets" is beside the heading, and the floating button is "New sheet"
 
 ### Requirement: The "New sheet" menu on phones
-On a phone, "New sheet" SHALL open its three ways as large buttons stacked above it, over the dimmed screen, and turn into a "Close" button while they are open. Escape, "Close" and a tap on the dimmed screen SHALL close them, with focus back on "New sheet".
+On a phone, "New sheet" SHALL open its three ways as large buttons stacked above it, over the dimmed screen, and turn into a "Close" button while they are open. The ways SHALL rise above the button one after another, the nearest first, while the screen dims. Escape, "Close" and a tap on the dimmed screen SHALL close them, faster than they came in, with focus back on "New sheet".
 
 #### Scenario: Opening the menu on a phone
 - **WHEN** a person on a phone selects "New sheet"
 - **THEN** "Write a new sheet", "From photos…" and "From Ultimate Guitar…" show above the button over the dimmed screen, and the button reads "Close"
+
+#### Scenario: The ways rise in turn
+- **WHEN** a person on a phone selects "New sheet"
+- **THEN** "From Ultimate Guitar…", nearest the button, starts to rise first, then "From photos…", then "Write a new sheet"
 
 ### Requirement: Account in the shell
 The shell SHALL show the first letter of the person's email, in upper case and in a circle, as a link named "Account" to the account page. It SHALL sit at the bottom of the rail, and at the top right of the screen on phones, on the line of the heading. On the account page, it SHALL be marked as the current page.
