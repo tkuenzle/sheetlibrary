@@ -4,6 +4,7 @@ import type { PhotoAnswer } from "chordsheet";
 import { useEffect, useId, useReducer, useRef, useState } from "react";
 
 import { Button, IconButton } from "../ui/button";
+import { closeAfterExit, exitOnEscape } from "../ui/exit";
 import { Icon } from "../ui/icon";
 import type { IconName } from "../ui/icons";
 import { Note } from "../ui/note";
@@ -56,7 +57,7 @@ export function PhotoImportDialog({
   }, [open]);
 
   function close() {
-    dialog.current?.close();
+    closeAfterExit(dialog.current);
   }
 
   return (
@@ -64,6 +65,7 @@ export function PhotoImportDialog({
       ref={dialog}
       className="photo-import-dialog"
       aria-labelledby={titleId}
+      onKeyDown={exitOnEscape}
       onClose={onClose}
       // The content fills the dialog, so a click on the dialog itself was
       // on the backdrop.

@@ -9,6 +9,7 @@
   .view-panel {
     inset: calc(100% + var(--space-s)) 0 auto auto;
     width: 320px;
+    transform-origin: top right;
   }
 
   .view-panel-content {

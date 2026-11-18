@@ -4,6 +4,7 @@ import "./name-dialog.css";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "./button";
+import { closeAfterExit, exitOnEscape } from "./exit";
 import { Note } from "./note";
 
 // A modal that asks for a name, such as a version's. The field starts with
@@ -48,6 +49,7 @@ export function NameDialog({
       ref={dialog}
       className="confirm-dialog"
       aria-labelledby={titleId}
+      onKeyDown={exitOnEscape}
       onClose={onClose}
     >
       {open && (
@@ -59,7 +61,9 @@ export function NameDialog({
           maxLength={maxLength}
           failure={failure}
           onSave={onSave}
-          onCancel={() => dialog.current?.close()}
+          onCancel={() => {
+            closeAfterExit(dialog.current);
+          }}
         />
       )}
     </dialog>

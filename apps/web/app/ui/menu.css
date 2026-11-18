@@ -17,6 +17,25 @@
     gap: 2px;
   }
 
+  /* It grows from the button's corner, and shrinks back into it. */
+  .menu-list {
+    transform-origin: top right;
+    animation: overlay-grow-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .menu-list[data-closing] {
+    animation: overlay-grow-out var(--motion-short) var(--ease-exit) forwards;
+  }
+
+  .menu-below-start > .menu-list,
+  .menu-beside > .menu-list {
+    transform-origin: top left;
+  }
+
+  .menu-above-end > .menu-list {
+    transform-origin: bottom right;
+  }
+
   .menu-below-end > .menu-list {
     top: calc(100% + var(--space-xs));
     right: 0;

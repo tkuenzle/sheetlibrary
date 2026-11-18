@@ -1,5 +1,6 @@
 @import "@fontsource-variable/schibsted-grotesk";
 @import "./ui/tokens.css";
+@import "./ui/overlay-moves.css";
 
 @layer base {
   :root {

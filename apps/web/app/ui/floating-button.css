@@ -76,6 +76,47 @@
     background: var(--scrim);
   }
 
+  /* The screen dims, "Close" fades in, and the items rise one after another
+     from the button, each a little after the one under it (--i, set on each
+     item). Closing, they all sink and fade at once, faster (see ui/exit.ts).
+     The step is a sixth of an item's rise, so it is no time with reduced
+     motion. */
+  .floating-menu[open]::backdrop {
+    animation: overlay-fade-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .floating-menu[open] .floating-menu-item {
+    animation: floating-menu-rise var(--motion-medium) var(--ease-enter)
+      calc(var(--i, 0) * var(--motion-medium) / 6) backwards;
+  }
+
+  .floating-menu[open] .floating-menu-close {
+    animation: overlay-fade-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .floating-menu[data-closing]::backdrop,
+  .floating-menu[data-closing] .floating-menu-close {
+    animation: overlay-fade-out var(--motion-short) var(--ease-exit) forwards;
+  }
+
+  .floating-menu[data-closing] .floating-menu-item {
+    animation: floating-menu-sink var(--motion-short) var(--ease-exit) forwards;
+  }
+
+  @keyframes floating-menu-rise {
+    from {
+      opacity: 0;
+      translate: 0 var(--space-l);
+    }
+  }
+
+  @keyframes floating-menu-sink {
+    to {
+      opacity: 0;
+      translate: 0 var(--space-l);
+    }
+  }
+
   /* The items stacked above the button's spot, at its right edge. In a short
      window, as with large text, they scroll rather than leave the screen. The
      padding keeps room for their shadows inside the scrolling box. */

@@ -3,11 +3,13 @@ import "./confirm-dialog.css";
 import { type Ref, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "./button";
+import { closeAfterExit, exitOnEscape } from "./exit";
 import { Note } from "./note";
 
 // A modal question before an action that can't be undone, such as deleting
 // a sheet. Focus starts on Cancel, so an Enter pressed out of habit doesn't
-// confirm. Escape cancels; a click on the scrim does nothing. While
+// confirm. Escape cancels; a click on the scrim does nothing. Cancelling
+// plays the exit (see ui/exit.ts). While
 // `onConfirm` runs, the buttons are disabled and Escape does nothing. If it
 // fails, `failure` shows under the text and the buttons work again. Once it
 // succeeds, the dialog stays as it is until `open` turns false or the page
@@ -49,7 +51,7 @@ export function ConfirmDialog({
   }, [open]);
 
   function close() {
-    dialog.current?.close();
+    closeAfterExit(dialog.current);
   }
 
   async function run() {
@@ -70,6 +72,7 @@ export function ConfirmDialog({
       role="alertdialog"
       aria-labelledby={titleId}
       aria-describedby={textId}
+      onKeyDown={busy ? undefined : exitOnEscape}
       onCancel={(event) => {
         if (busy) event.preventDefault();
       }}

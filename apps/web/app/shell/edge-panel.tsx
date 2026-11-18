@@ -1,6 +1,8 @@
 import "./edge-panel.css";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
+
+import { closeAfterExit } from "../ui/exit";
 
 // How the content closes the panel, as "Close" does: sliding out.
 export interface EdgePanelControls {
@@ -11,8 +13,8 @@ export interface EdgePanelControls {
 // edge, over the dimmed page. The sheet's help and the opened rail use it.
 // The caller has the button that opens it and sets `open`; the panel says
 // when it has closed. Its content is only rendered while it is open. It
-// slides in, and slides out before it closes, since a dialog leaves the page
-// at once when it closes. With reduced motion, the slide takes no time.
+// slides in, and slides out before it closes (see ui/exit.ts). With reduced
+// motion, the slide takes no time.
 export function EdgePanel({
   side,
   open,
@@ -33,7 +35,6 @@ export function EdgePanel({
   children: (controls: EdgePanelControls) => ReactNode;
 } & ({ "aria-labelledby": string } | { "aria-label": string })) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -48,27 +49,9 @@ export function EdgePanel({
     };
   }, [open, closeWhen]);
 
-  // Closes once the slide out is done. With reduced motion it takes no time
-  // (see docs/motion.md), so it closes at once.
-  useEffect(() => {
-    const panel = dialog.current;
-    if (!closing || !panel) return;
-    let cancelled = false;
-    void Promise.allSettled(
-      panel
-        .getAnimations({ subtree: true })
-        .map((animation) => animation.finished),
-    ).then(() => {
-      if (!cancelled) panel.close();
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [closing]);
-
   const controls: EdgePanelControls = {
     slideOut: () => {
-      setClosing(true);
+      closeAfterExit(dialog.current);
     },
   };
 
@@ -77,12 +60,8 @@ export function EdgePanel({
       ref={dialog}
       className={className ? `edge-panel ${className}` : "edge-panel"}
       data-side={side}
-      data-closing={closing || undefined}
       {...name}
-      onClose={() => {
-        setClosing(false);
-        onClosed();
-      }}
+      onClose={onClosed}
       // Escape slides the panel out too, instead of closing it at once.
       onKeyDown={(event) => {
         if (event.key !== "Escape") return;

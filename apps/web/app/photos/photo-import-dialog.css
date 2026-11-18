@@ -26,6 +26,24 @@
     background: var(--scrim);
   }
 
+  /* It grows from the centre over a fading scrim, and shrinks back faster
+     (see ui/exit.ts). On a phone it slides instead (below). */
+  .photo-import-dialog[open] {
+    animation: overlay-grow-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .photo-import-dialog[open]::backdrop {
+    animation: overlay-fade-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .photo-import-dialog[data-closing] {
+    animation: overlay-grow-out var(--motion-short) var(--ease-exit) forwards;
+  }
+
+  .photo-import-dialog[data-closing]::backdrop {
+    animation: overlay-fade-out var(--motion-short) var(--ease-exit) forwards;
+  }
+
   .photo-import {
     display: flex;
     flex-direction: column;
@@ -237,13 +255,22 @@
     margin-top: var(--space-s);
   }
 
-  /* Phone-wide: a sheet from the bottom, as wide as the screen. */
+  /* Phone-wide: a sheet from the bottom, as wide as the screen. It slides
+     up from the bottom edge, and back down. */
   @media (max-width: 640px) {
     .photo-import-dialog {
       width: 100vw;
       max-height: calc(100dvh - var(--space-2xl));
       margin: auto 0 0;
       border-radius: var(--corner-large) var(--corner-large) 0 0;
+    }
+
+    .photo-import-dialog[open] {
+      animation: overlay-slide-in var(--motion-medium) var(--ease-enter);
+    }
+
+    .photo-import-dialog[data-closing] {
+      animation: overlay-slide-out var(--motion-short) var(--ease-exit) forwards;
     }
 
     .photo-import {

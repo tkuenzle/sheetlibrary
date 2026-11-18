@@ -52,6 +52,7 @@ import {
 import { flushSync } from "react-dom";
 
 import { phone } from "../breakpoints";
+import { usePresence } from "../ui/exit";
 import { ChordInput } from "./chord-input";
 import { SectionLabelField } from "./section-label-field";
 import { SectionToolbar } from "./section-toolbar";
@@ -146,8 +147,6 @@ export function SheetEditor({
     sheetKey && shownKey ? { from: sheetKey, to: shownKey } : null;
   const shownRef = useRef(shown);
   const [chordInput, setChordInput] = useState<OpenChordInput | null>(null);
-  // A docked chord input that closed and is sliding out of view.
-  const [leaving, setLeaving] = useState<OpenChordInput | null>(null);
   const [toolbar, setToolbar] = useState<SectionToolbarState | null>(null);
   const [labelField, setLabelField] = useState<LabelField | null>(null);
 
@@ -225,13 +224,11 @@ export function SheetEditor({
   }
 
   function showInput(next: OpenChordInput | null) {
-    const current = chordInputRef.current;
     chordInputRef.current = next;
     // Render the input right away, so focusing it still counts as part of
     // the tap. Otherwise iOS doesn't open the keyboard.
     flushSync(() => {
       setChordInput(next);
-      setLeaving(!next && current?.docked ? current : null);
     });
   }
 
@@ -480,7 +477,11 @@ export function SheetEditor({
     // The editor is created once. Its handlers only read refs.
   }, []);
 
-  const shownInput = chordInput ?? leaving;
+  // A chord input that closed stays while its exit plays.
+  const { shown: shownInput, closing: inputClosing } = usePresence(
+    chordInput,
+    formRef,
+  );
 
   return (
     <div
@@ -522,7 +523,7 @@ export function SheetEditor({
           left={shownInput.left}
           top={shownInput.top}
           docked={shownInput.docked}
-          closing={!chordInput}
+          closing={inputClosing}
           initial={shownInput.initial}
           editing={shownInput.kind === "edit" ? shownInput.chord : null}
           sheetChords={shownInput.sheetChords}
@@ -531,9 +532,6 @@ export function SheetEditor({
           onCommit={commitInput}
           onRemove={deleteChord}
           onCancel={closeInput}
-          onClosed={() => {
-            setLeaving(null);
-          }}
         />
       )}
     </div>

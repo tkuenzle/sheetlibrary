@@ -40,6 +40,24 @@
     background: var(--scrim);
   }
 
+  /* It grows from the centre over a fading scrim, and shrinks back faster
+     (see ui/exit.ts). */
+  .import-dialog[open] {
+    animation: overlay-grow-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .import-dialog[open]::backdrop {
+    animation: overlay-fade-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .import-dialog[data-closing] {
+    animation: overlay-grow-out var(--motion-short) var(--ease-exit) forwards;
+  }
+
+  .import-dialog[data-closing]::backdrop {
+    animation: overlay-fade-out var(--motion-short) var(--ease-exit) forwards;
+  }
+
   .import-form {
     display: flex;
     flex-direction: column;

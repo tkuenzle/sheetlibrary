@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { phone } from "../breakpoints";
+import { closeAfterExit, stopExit } from "../ui/exit";
 
 // A button beside the sheet's title that opens a panel: a dialog under the
 // button, or a bottom sheet on a phone. It opens with the marked item
@@ -12,23 +13,14 @@ export function usePanel() {
   const button = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
 
-  // As a sheet, the panel slides out before it closes, since a dialog leaves
-  // the page at once when it closes. With reduced motion the slide takes no
-  // time (see docs/motion.md), so it closes at once.
+  // The panel plays its exit before it closes (see ui/exit.ts). Under the
+  // button the page stays usable, so the focus goes back to the button as it
+  // starts; a sheet gives it back once it has closed.
   function close() {
     const panel = dialog.current;
     if (!panel?.open || panel.hasAttribute("data-closing")) return;
-    if (!panel.matches(":modal")) {
-      panel.close();
-      return;
-    }
-    panel.setAttribute("data-closing", "");
-    void Promise.allSettled(
-      panel.getAnimations({ subtree: true }).map((a) => a.finished),
-    ).then(() => {
-      panel.removeAttribute("data-closing");
-      panel.close();
-    });
+    if (!panel.matches(":modal")) button.current?.focus();
+    closeAfterExit(panel);
   }
 
   useEffect(() => {
@@ -87,17 +79,30 @@ export function usePanel() {
       ref: button,
       "aria-haspopup": "dialog" as const,
       "aria-expanded": open,
+      // While the panel leaves, the button brings it back.
       onClick: () => {
-        if (open) close();
+        const panel = dialog.current;
+        if (stopExit(panel)) {
+          panel?.querySelector<HTMLElement>("[aria-pressed=true]")?.focus();
+        } else if (open) close();
         else setOpen(true);
       },
     },
     // Spread on the dialog.
     dialogProps: {
       ref: dialog,
+      // The focus goes back to the button, unless it moved on while the
+      // panel left, as to the sheet after a click there.
       onClose: () => {
         setOpen(false);
-        button.current?.focus();
+        const active = document.activeElement;
+        if (
+          !active ||
+          active === document.body ||
+          dialog.current?.contains(active)
+        ) {
+          button.current?.focus();
+        }
       },
       // As a sheet, the dialog fills its box, so a click on it itself was
       // on the backdrop.

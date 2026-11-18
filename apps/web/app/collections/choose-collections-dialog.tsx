@@ -4,6 +4,7 @@ import "./choose-collections-dialog.css";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../ui/button";
+import { closeAfterExit, exitOnEscape } from "../ui/exit";
 import { NameDialog } from "../ui/name-dialog";
 import { Note } from "../ui/note";
 import {
@@ -52,6 +53,8 @@ export function ChooseCollectionsDialog({
       ref={dialog}
       className="confirm-dialog choose-collections-dialog"
       aria-labelledby={titleId}
+      // The "New collection" dialog inside handles its own Escape first.
+      onKeyDown={exitOnEscape}
       // React passes the "New collection" dialog's close up to this one, so
       // only this dialog's own close counts.
       onClose={(event) => {
@@ -63,7 +66,9 @@ export function ChooseCollectionsDialog({
           titleId={titleId}
           sheet={sheet}
           onChange={onChange}
-          onDone={() => dialog.current?.close()}
+          onDone={() => {
+            closeAfterExit(dialog.current);
+          }}
         />
       )}
     </dialog>

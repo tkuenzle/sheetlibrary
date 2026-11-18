@@ -1,0 +1,47 @@
+/*
+  The moves overlays share (see docs/motion.md, "Overlays"). Each overlay
+  plays them with a duration and a curve from the motion tokens: the `-in`
+  move as it opens, the `-out` move, `forwards`, while it is `data-closing`.
+  Only opacity, scale and translate change, so they run off the main thread.
+*/
+
+/* Menus, panels under their button, and dialogs. */
+@keyframes overlay-grow-in {
+  from {
+    opacity: 0;
+    scale: 0.95;
+  }
+}
+
+@keyframes overlay-grow-out {
+  to {
+    opacity: 0;
+    scale: 0.95;
+  }
+}
+
+/* Scrims, and what only fades. */
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes overlay-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Bottom sheets on a phone. */
+@keyframes overlay-slide-in {
+  from {
+    translate: 0 100%;
+  }
+}
+
+@keyframes overlay-slide-out {
+  to {
+    translate: 0 100%;
+  }
+}
