@@ -44,6 +44,7 @@ function createSheet(page: Page, title: string) {
 }
 
 interface Move {
+  finished?: boolean;
   // The kind page-moves.ts set on <html>.
   move?: string;
   // Why the browser skipped the move, such as two elements with one name.
@@ -84,6 +85,9 @@ async function recordMoves(page: Page) {
           move.skipped = String(error);
         },
       );
+      void transition.finished.then(() => {
+        move.finished = true;
+      });
       return transition;
     };
   });
@@ -92,12 +96,14 @@ async function recordMoves(page: Page) {
 const moves = (page: Page) =>
   page.evaluate(() => (window as unknown as { moves: Move[] }).moves);
 
-// Waits for `count` moves to be set up, and gives the last one.
+// Waits for `count` moves to have played, and gives the last one. A tap
+// while a move plays makes the browser skip the next move, so tests wait
+// for each move before the next tap.
 async function lastMove(page: Page, count: number): Promise<Move> {
   await expect
     .poll(async () => {
       const all = await moves(page);
-      return all.length === count && all.every((m) => m.move ?? m.skipped);
+      return all.length === count && all.every((m) => m.finished);
     })
     .toBe(true);
   const move = (await moves(page)).at(count - 1);
@@ -120,6 +126,8 @@ test("fades between the shell's screens, and not while searching", async ({
 }) => {
   const name = `Faded ${newMark()}`;
   await create(page, "/api/collections", { name });
+  // Sheets shows the search only with a sheet in the library.
+  await createSheet(page, name);
   await recordMoves(page);
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
@@ -129,11 +137,13 @@ test("fades between the shell's screens, and not while searching", async ({
     .first()
     .click();
   await expect(heading(page)).toHaveText("Collections");
+  await lastMove(page, 1);
   await page
     .getByRole("main")
     .getByRole("link", { name: new RegExp(name) })
     .click();
   await expect(heading(page)).toHaveText(name);
+  await lastMove(page, 2);
   await page.getByRole("link", { name: "Sheets", exact: true }).first().click();
   await expect(heading(page)).toHaveText("Sheets");
   const fade = await lastMove(page, 3);
@@ -164,8 +174,10 @@ test("moves pages in no time with reduced motion", async ({ page }) => {
     .first()
     .click();
   await expect(heading(page)).toHaveText("Collections");
+  await lastMove(page, 1);
   await page.goBack();
   await expect(heading(page)).toHaveText("Sheets");
+  await lastMove(page, 2);
   await page.getByRole("main").getByRole("link", { name: title }).click();
   await expect(heading(page)).toHaveText(title);
   await lastMove(page, 3);
@@ -219,6 +231,7 @@ test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
 
   await card.click();
   await expect(heading(page)).toHaveText(title);
+  await lastMove(page, 3);
   await page.goBack();
   await expect(heading(page)).toHaveText("Sheets");
   await lastMove(page, 4);
@@ -245,6 +258,7 @@ test("drops back into the list where it was scrolled", async ({ page }) => {
 
   await last.click();
   await expect(heading(page)).toHaveText(title ?? "");
+  await lastMove(page, 1);
   await page.goBack();
   await expect(heading(page)).toHaveText("Sheets");
   const drop = await lastMove(page, 2);
@@ -268,6 +282,7 @@ test("changes only the bar between play and edit", async ({ page }) => {
 
   await edit.click();
   await expect(line).toBeVisible();
+  await lastMove(page, 1);
   // Done right after a change, which waits for the save.
   const box = await line.boundingBox();
   if (!box) throw new Error("no box");
@@ -276,13 +291,75 @@ test("changes only the bar between play and edit", async ({ page }) => {
   await done.click();
   await expect(page).toHaveURL(new RegExp(`/sheets/${id}$`));
   await expect(page.getByText("sound again")).toBeVisible();
+  await lastMove(page, 2);
 
   await edit.click();
   await expect(line).toBeVisible();
+  await lastMove(page, 3);
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`/sheets/${id}$`));
   await lastMove(page, 4);
   const all = await moves(page);
   expect(all.map((m) => m.move)).toEqual(["mode", "mode", "mode", "mode"]);
   expect(all.some(movesTitle)).toBe(false);
+});
+
+// Scenario "The page that is open": "Sheet Library" or "Sheets" on Sheets,
+// right after the drop from a sheet.
+test("doesn't move into the page that is open", async ({ page }) => {
+  const title = `Same ${newMark()}`;
+  await createSheet(page, title);
+  await recordMoves(page);
+  await page.goto("/sheets");
+  await page.waitForLoadState("networkidle");
+  await page
+    .locator(".sheet-list-row")
+    .filter({ hasText: title })
+    .getByRole("link")
+    .click();
+  await expect(heading(page)).toHaveText(title);
+  await lastMove(page, 1);
+  await page.getByRole("link", { name: "Back" }).click();
+  await expect(heading(page)).toHaveText("Sheets");
+  await lastMove(page, 2);
+
+  await page.getByRole("link", { name: "Sheets", exact: true }).first().click();
+  expect(await lastMove(page, 3)).toMatchObject({
+    move: "none",
+    animations: [],
+  });
+});
+
+// Scenario "A slow answer".
+test("changes at once when the new page's data comes late", async ({
+  page,
+}) => {
+  const title = `Late ${newMark()}`;
+  const id = await createSheet(page, title);
+  await recordMoves(page);
+  await page.goto("/sheets");
+  await page.waitForLoadState("networkidle");
+  const row = page
+    .locator(".sheet-list-row")
+    .filter({ hasText: title })
+    .getByRole("link");
+  await page.route(new RegExp(`/sheets/${id}\\.data`), async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await route.continue();
+  });
+  await row.click();
+  await expect(heading(page)).toHaveText(title);
+  expect(await lastMove(page, 1)).toMatchObject({
+    move: "none",
+    animations: [],
+  });
+
+  // A quick answer still moves.
+  await page.unroute(new RegExp(`/sheets/${id}\\.data`));
+  await page.goBack();
+  await expect(heading(page)).toHaveText("Sheets");
+  await lastMove(page, 2);
+  await row.click();
+  await expect(heading(page)).toHaveText(title);
+  expect(await lastMove(page, 3)).toMatchObject({ move: "rise" });
 });

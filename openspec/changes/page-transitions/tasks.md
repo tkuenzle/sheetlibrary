@@ -37,6 +37,11 @@
 - [x] 7.2 With the browser-check skill, on a phone with the CPU slowed down 6×, go through each move and back; verify each looks as the design's table says, the rail stays still, and the title lands on the heading (play and edit don't line up; see #161)
 - [ ] 7.3 Ask the person to try the moves on an iPhone on the preview, swiping back included; verify the sheet doesn't drop after the swipe
 
+## 8. Review follow-ups
+
+- [x] 8.1 Set the kind on every move, `none` for the page that is open; verify with an e2e test that "Sheets" on Sheets after a drop plays no move
+- [x] 8.2 Give `none` when the new page's data took longer than `SLOW_WAIT`, measured in its own `<PageMoves />`; verify with a unit test of the threshold and an e2e test that a sheet whose data is held back 600ms shows without rising, and rises again once it's quick
+
 ## Workflow follow-up
 
 - Archive the change once the PR is reviewed, then close #136 with the PR.

@@ -37,6 +37,10 @@ The rail and the bar at the bottom get no name of their own. In a fade, their pi
 
 **Moves made in code ask too.** `useSheetMoves().go()` passes `viewTransition` when it opens an address. A step back plays the move React Router remembered. Edit mode's held move, made again after saving, goes through the same path.
 
+**A late page cuts.** React Router starts the move only once the new page's data is there, so on a slow connection the move came on top of the wait. The root measures from the start of the wait (`useNavigation()` leaving idle) to the start of the move (React Router's transition context turning on), and a wait longer than `SLOW_WAIT`, the loading bar's delay, gives `none`. The measuring sits in its own `<PageMoves />` in the root, so a wait doesn't render the pages again. Considered: skeletons now, so a move starts at the tap. That splits every loader into a fast and a slow part, which is #137.
+
+**Every move sets its kind.** A link to the page that is open asks for a move too. The kind is set on each new location, and a move to the same path is `none`, so a kind from an earlier move can't play again.
+
 **The browser's own move wins.** A `popstate` listener reads `hasUAVisualTransition`. When the browser already showed a move, as Safari does after a swipe from the edge, the root sets `data-move="none"`, and the CSS gives the pictures no animation. The new page shows at once, after the browser's swipe.
 
 ## Risks / Trade-offs

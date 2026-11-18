@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isLate,
   moveKind,
   type PageKind,
   pageKind,
@@ -68,8 +69,8 @@ describe("moveKind", () => {
     expect(moveKind(edit, play)).toBe("mode");
   });
 
-  // Scenario "Swiping back".
-  it("doesn't move when the browser showed its own move", () => {
+  // Scenarios "Swiping back" and "A slow answer".
+  it("doesn't move when the browser showed its own move, or the data came late", () => {
     expect(moveKind(play, shell, true)).toBe("none");
   });
 
@@ -78,6 +79,15 @@ describe("moveKind", () => {
     expect(moveKind(play, { kind: "play", sheet: "b" })).toBe("none");
     expect(moveKind(null, play)).toBe("none");
     expect(moveKind(shell, null)).toBe("none");
+  });
+});
+
+describe("isLate", () => {
+  // Scenario "A slow answer": late once the loading bar would show.
+  it("is late after the loading bar's wait", () => {
+    expect(isLate(150)).toBe(false);
+    expect(isLate(200)).toBe(false);
+    expect(isLate(201)).toBe(true);
   });
 });
 

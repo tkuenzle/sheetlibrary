@@ -12,6 +12,8 @@ Pages change with a hard cut. `docs/motion.md` says how page changes move: the s
 - Play to Edit and back: a short fade, without sliding. "Done" moves like the browser's back. The two pages are laid out differently, so the sheet doesn't stay exactly in place yet; lining them up is #161.
 - How a move looks follows from where it goes, not from the browser's history: to a sheet it rises, from a sheet to a screen of the shell it drops, between the shell's screens it fades.
 - When the browser plays its own move, as on an iPhone when swiping back, the app's move doesn't play on top.
+- When the new page's data comes later than the loading bar waits (200ms), the page changes at once: the person has already waited, and a move would add to it. Skeletons in #137 will let moves start right after the tap.
+- A link to the page that is open, such as "Sheet Library" on Sheets, doesn't move.
 - With reduced motion, nothing moves. The tokens already make that 0s.
 - `docs/motion.md` says that page changes use View Transitions, and how.
 - No new dependency. Browsers without View Transitions keep the hard cut.

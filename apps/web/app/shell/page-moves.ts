@@ -4,7 +4,10 @@ import {
   UNSAFE_ViewTransitionContext as ViewTransitionContext,
   useLocation,
   useMatches,
+  useNavigation,
 } from "react-router";
+
+import { SLOW_WAIT } from "./slow-wait";
 
 // How a page change moves. See docs/motion.md ("Page changes") and
 // openspec/specs/site-layout.
@@ -41,29 +44,44 @@ export function pageKind(
   return null;
 }
 
-// `browserMoved`: the browser already showed a move of its own for this
-// step in the history, as Safari does after a swipe back from the edge.
-export function moveKind(
-  from: PageKind,
-  to: PageKind,
-  browserMoved = false,
-): MoveKind {
-  if (browserMoved || !from || !to) return "none";
+// No move (`none`) when `cut`: the browser already showed a move of its own
+// for this step in the history, as Safari does after a swipe back, or the
+// new page's data came late (see `isLate`).
+export function moveKind(from: PageKind, to: PageKind, cut = false): MoveKind {
+  if (cut || !from || !to) return "none";
   if (from.kind === "shell") return to.kind === "shell" ? "fade" : "rise";
   if (to.kind === "shell") return "drop";
   return from.sheet === to.sheet && from.kind !== to.kind ? "mode" : "none";
 }
 
-// Used once, in the root. Sets `data-move` on <html> when the page changes,
-// so the CSS in page-moves.css knows which move to play. It runs in a layout
-// effect: React Router renders the new page inside the browser's update
-// callback, and the browser styles the move only after that.
-export function usePageMoves() {
+// A move starts once the new page's data is there. When that took longer
+// than the loading bar waits before it shows, the person has already
+// waited, and a move would only add to it, so the page changes at once.
+export function isLate(waitedMs: number): boolean {
+  return waitedMs > SLOW_WAIT;
+}
+
+// Rendered once, in the root, apart from the pages, so that waiting for a
+// page doesn't render them again. Sets `data-move` on <html> on every move,
+// so the CSS in page-moves.css knows which move to play; a move to the page
+// that is open, such as "Sheet Library" on Sheets, is `none`. It runs in a
+// layout effect: React Router renders the new page inside the browser's
+// update callback, and the browser styles the move only after that.
+export function PageMoves() {
   const location = useLocation();
   const matches = useMatches();
-  const shown = useRef<{ path: string; kind: PageKind } | null>(null);
-  const browserMoved = useRef(false);
+  const waiting = useNavigation().state !== "idle";
+  const { isTransitioning } = useContext(ViewTransitionContext);
   const kind = pageKind(matches);
+  const shown = useRef<{
+    key: string;
+    path: string;
+    kind: PageKind;
+  } | null>(null);
+  const browserMoved = useRef(false);
+  const waitStarted = useRef<number | null>(null);
+  const late = useRef(false);
+
   useEffect(() => {
     // Fires when the step in the history starts, before React Router has
     // the new page's data and renders it.
@@ -75,17 +93,32 @@ export function usePageMoves() {
       window.removeEventListener("popstate", onPopState);
     };
   }, []);
+
+  // How long the data took: from the start of the wait to the moment React
+  // Router has it and starts the move.
+  useLayoutEffect(() => {
+    if (waiting) waitStarted.current = performance.now();
+  }, [waiting]);
+  useLayoutEffect(() => {
+    const started = waitStarted.current;
+    if (!isTransitioning || started === null) return;
+    late.current = isLate(performance.now() - started);
+  }, [isTransitioning]);
+
   useLayoutEffect(() => {
     const last = shown.current;
-    shown.current = { path: location.pathname, kind };
-    if (!last || last.path === location.pathname) return;
-    document.documentElement.dataset.move = moveKind(
-      last.kind,
-      kind,
-      browserMoved.current,
-    );
+    if (last?.key === location.key) return;
+    shown.current = { key: location.key, path: location.pathname, kind };
+    if (!last) return;
+    document.documentElement.dataset.move =
+      last.path === location.pathname
+        ? "none"
+        : moveKind(last.kind, kind, browserMoved.current || late.current);
     browserMoved.current = false;
+    waitStarted.current = null;
+    late.current = false;
   });
+  return null;
 }
 
 // The sheet's title moves between its row and the sheet's heading. The

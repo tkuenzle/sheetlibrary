@@ -40,3 +40,17 @@ When the browser shows its own move for going back or forward, as when swiping b
 #### Scenario: Swiping back
 - **WHEN** a person on an iPhone opens a sheet from `/sheets` and swipes back from the edge
 - **THEN** the list shows after the browser's swipe, without the sheet dropping again
+
+### Requirement: No move after a long wait
+When the new page's data takes longer than the loading bar waits before it shows, the page SHALL change without a move.
+
+#### Scenario: A slow answer
+- **WHEN** a person on a slow connection selects a row on `/sheets`, and the sheet takes a second to arrive
+- **THEN** the sheet shows at once when it arrives, without rising
+
+### Requirement: No move into the page that is open
+A link to the page that is open SHALL NOT move.
+
+#### Scenario: The page that is open
+- **WHEN** a person on `/sheets` goes back from a sheet and then selects "Sheet Library"
+- **THEN** Sheets shows again without a move
