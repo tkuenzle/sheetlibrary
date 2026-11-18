@@ -72,6 +72,20 @@
     outline: 1px solid transparent;
   }
 
+  /* Under its button, it grows from the button's side and shrinks back. On
+     a phone it slides instead (below). */
+  .key-panel {
+    transform-origin: top left;
+  }
+
+  .key-panel[open] {
+    animation: overlay-grow-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .key-panel[data-closing] {
+    animation: overlay-grow-out var(--motion-short) var(--ease-exit) forwards;
+  }
+
   .key-panel-content {
     display: flex;
     flex-direction: column;

@@ -52,11 +52,19 @@ Page changes use the browser's View Transitions, through React Router's `viewTra
 
 ## Overlays
 
-- **Menus** fade and grow a little from their button.
+- **Menus** fade and grow a little from their button. So do the panels that hang under their button on wider screens (the key, capo and View panels), and the chord input under its letter.
 - **Dialogs** fade and grow a little from the centre, over a fading scrim.
-- **Panels and bottom sheets** slide in from their edge, over a fading scrim: the opened rail, the help, the key panel and View on a phone, and the docked chord input.
-- **The "New sheet" menu on a phone:** its ways rise above the button one after another.
+- **Panels and bottom sheets** slide in from their edge, over a fading scrim: the opened rail, the help, the key, capo and View panels and photo import on a phone, and the docked chord input.
+- **The "New sheet" menu on a phone:** its ways rise above the button one after another, the nearest first, and "Close" fades in with the scrim. They leave together.
 - **Leaving** is the same move backwards, and faster.
+
+Only `opacity`, `scale` and `translate` move (see "Off the main thread"). Coming in is a keyframe animation on `[open]` or on the element as it mounts. Leaving goes through `apps/web/app/ui/exit.ts`:
+
+- **A dialog** is marked `data-closing`, its CSS plays a `forwards` exit, and `closeAfterExit()` closes it once its animations have finished. A dialog leaves the top layer the moment it closes, so it can't close first.
+- **Something rendered only while open**, such as a menu's list, stays through its exit with `usePresence()`, which keeps it shown and `closing` until its animations have finished.
+- **While it leaves, it is inert**, so a second tap on Cancel does nothing. A menu gives focus back as it starts to leave. A modal dialog can't: the page behind it is inert until it closes, and then the browser puts focus back on the opener.
+- **Escape** is caught at `keydown` and plays the exit. A close that skips it, such as Android's back, still closes, and leaves no marks behind.
+- **No exit** when the page closes the overlay, as when it leaves, or when a confirm dialog's action worked and the page moves on.
 
 ## Calm
 
@@ -92,6 +100,7 @@ Use the tokens, never numbers. The `chord-editor` package takes its duration fro
 - **The save state** changes its text at once. It is a status, not an event.
 - **Text and chords** never move on their own. A chord moves only while it is dragged, and lifts above the finger.
 - **Old search results** stay as they are while a search loads. "Searching…" in the field and the loading bar show the wait. A dim was tried, with and without a fade: the new results often arrived just after it started, so the list blinked or seemed to jump.
+- **Tooltips** show and hide at once. They only repeat a control's name.
 - **The active section** changes its look at once. The person moved the cursor there, so a fade would tell them nothing.
 
 ## Reduced motion

@@ -1,6 +1,15 @@
 import "./floating-button.css";
 
-import { type ComponentProps, useEffect, useId, useRef, useState } from "react";
+import {
+  type ComponentProps,
+  type CSSProperties,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
+
+import { closeAfterExit, exitOnEscape } from "./exit";
 
 import { Icon } from "./icon";
 import type { IconName } from "./icons";
@@ -42,7 +51,9 @@ export function FloatingButton({
 // first item takes the focus; the arrow keys, Home and End move between the
 // items. Escape, "Close" or a tap on the dimmed screen closes it, with the
 // focus back on the button. A picked item closes it and leaves the focus to
-// the item's action.
+// the item's action. The items rise one after another, the one nearest the
+// button first; closing, they leave together (see ui/exit.ts). A picked item
+// closes it at once, so the focus is back on the button for its action.
 export function FloatingMenu({
   label,
   icon,
@@ -67,7 +78,7 @@ export function FloatingMenu({
   }, [open]);
 
   function close() {
-    dialog.current?.close();
+    closeAfterExit(dialog.current);
   }
 
   return (
@@ -88,6 +99,7 @@ export function FloatingMenu({
         ref={dialog}
         className="floating-menu"
         aria-label={label}
+        onKeyDown={exitOnEscape}
         onClose={() => {
           setOpen(false);
           button.current?.focus();
@@ -122,18 +134,20 @@ export function FloatingMenu({
                 next.focus();
               }}
             >
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <button
                   key={item.label}
                   type="button"
                   role="menuitem"
                   tabIndex={-1}
                   className="button button-tonal floating-menu-item"
+                  // Its place from the button, for when it rises.
+                  style={{ "--i": items.length - 1 - index } as CSSProperties}
                   disabled={item.disabled}
                   onClick={() => {
                     // Closing puts the focus back on the button first, so
                     // the item's action can move it on.
-                    close();
+                    dialog.current?.close();
                     item.onSelect();
                   }}
                 >

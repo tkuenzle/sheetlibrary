@@ -364,6 +364,14 @@ test("moves the Lyrics only handle without moving the layout", async ({
   const view = await openView(page);
   const toggle = view.getByRole("switch", { name: "Lyrics only" });
   const handle = toggle.locator(".switch-handle");
+  // Measured once the panel has grown in, which scales what is in it.
+  await expect
+    .poll(() =>
+      view.evaluate(
+        (element) => element.getAnimations({ subtree: true }).length,
+      ),
+    )
+    .toBe(0);
   const track = await box(toggle);
   const off = await box(handle);
   expect(off.width).toBeCloseTo(16, 0);

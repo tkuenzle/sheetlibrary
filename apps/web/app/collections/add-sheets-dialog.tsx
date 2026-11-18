@@ -9,6 +9,7 @@ import type { loader as libraryLoader } from "../routes/sheets";
 import { isSearch } from "../sheets/search";
 import { SEARCH_PAUSE } from "../sheets/search-field";
 import { Button } from "../ui/button";
+import { closeAfterExit, exitOnEscape } from "../ui/exit";
 import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 
@@ -45,6 +46,7 @@ export function AddSheetsDialog({
       ref={dialog}
       className="confirm-dialog add-sheets-dialog"
       aria-labelledby={titleId}
+      onKeyDown={exitOnEscape}
       onClose={onClose}
     >
       {open && (
@@ -52,7 +54,9 @@ export function AddSheetsDialog({
           titleId={titleId}
           collection={collection}
           holds={holds}
-          onDone={() => dialog.current?.close()}
+          onDone={() => {
+            closeAfterExit(dialog.current);
+          }}
         />
       )}
     </dialog>

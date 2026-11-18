@@ -10,6 +10,7 @@ import {
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../ui/button";
+import { closeAfterExit, exitOnEscape } from "../ui/exit";
 import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 
@@ -106,13 +107,13 @@ export function ImportDialog({
   }, [open]);
 
   function close() {
-    if (!busy) dialog.current?.close();
+    if (!busy) closeAfterExit(dialog.current);
   }
 
   function importSheet(sheet: ChordSheet, capo: number) {
     const result = onImport(sheet, capo);
     if (!result) {
-      dialog.current?.close();
+      closeAfterExit(dialog.current);
       return;
     }
     setBusy(true);
@@ -129,6 +130,7 @@ export function ImportDialog({
       ref={dialog}
       className="import-dialog"
       aria-labelledby={titleId}
+      onKeyDown={busy ? undefined : exitOnEscape}
       onCancel={(event) => {
         if (busy) event.preventDefault();
       }}

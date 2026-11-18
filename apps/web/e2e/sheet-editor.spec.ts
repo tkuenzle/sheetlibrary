@@ -311,6 +311,47 @@ test.describe("adding and editing chords", () => {
     );
   });
 
+  // Scenario "Opening the chord input" (design-system).
+  test("grows the chord input from its letter, and shrinks it back on Cancel", async ({
+    page,
+  }) => {
+    test.skip(await isTouch(page), "Needs a mouse");
+    await page.setViewportSize({ width: 1200, height: 800 });
+    await clickChar(page, "before", "wretch");
+    await page.keyboard.press("ControlOrMeta+k");
+    await expect(chordInput(page)).toBeFocused();
+    const form = page.locator(".chord-input");
+    expect(await chordInputAnimation(page)).toBe("overlay-grow-in");
+    expect(
+      await form.evaluate(
+        (element) => getComputedStyle(element).transformOrigin,
+      ),
+    ).toBe("0px 0px");
+    // Closed, it stays a moment to shrink, takes no input, and the focus is
+    // already back in the editor.
+    expect(
+      await page.evaluate(() => {
+        const cancel = [
+          ...document.querySelectorAll(".chord-input button"),
+        ].find((button) => button.textContent === "Cancel");
+        if (!(cancel instanceof HTMLElement)) throw new Error("no Cancel");
+        cancel.click();
+        const closing = document.querySelector(".chord-input");
+        return {
+          animation: closing ? getComputedStyle(closing).animationName : "",
+          inert: closing instanceof HTMLElement && closing.inert,
+          focusInEditor:
+            document.activeElement?.closest(".ProseMirror") !== null,
+        };
+      }),
+    ).toEqual({
+      animation: "overlay-grow-out",
+      inert: true,
+      focusInEditor: true,
+    });
+    await expect(form).toHaveCount(0);
+  });
+
   test("changes and deletes a chord by clicking its label", async ({
     page,
   }) => {
@@ -1460,8 +1501,7 @@ test.describe("the section toolbar", () => {
         .locator(".chord-input")
         .evaluate((form) => getComputedStyle(form).animationDuration),
     ).toBe("0s");
-    // The slide out takes no time and ends at once, well before the timer
-    // that closes it when a slide doesn't end (300ms).
+    // The slide out takes no time, so it is gone at once.
     await cancelChordInput(page);
     await expect(page.locator(".chord-input")).toHaveCount(0, {
       timeout: 250,

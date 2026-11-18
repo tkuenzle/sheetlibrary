@@ -1,8 +1,15 @@
 @layer components {
-  /* The chord input, below the chord's letter. */
+  /* The chord input, below the chord's letter. It grows from the letter and
+     shrinks back into it, like a menu. Docked, it slides instead (below). */
   .chord-input {
     position: absolute;
     z-index: 1;
+    transform-origin: top left;
+    animation: overlay-grow-in var(--motion-medium) var(--ease-enter);
+  }
+
+  .chord-input[data-closing] {
+    animation: overlay-grow-out var(--motion-short) var(--ease-exit) forwards;
   }
 
   /* Over the popover's own rules, which come later. */
@@ -169,7 +176,7 @@
     animation: chord-input-in var(--motion-medium) var(--ease-enter);
   }
 
-  /* Sliding out once closed, as the key picker does (see SheetEditor). */
+  /* Sliding out once closed, as the key panel does on a phone. */
   .chord-input[data-docked][data-closing] {
     animation: chord-input-out var(--motion-short) var(--ease-exit) forwards;
   }

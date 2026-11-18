@@ -3,6 +3,7 @@ import "./menu.css";
 import { type CSSProperties, useEffect, useId, useRef, useState } from "react";
 
 import { Button, IconButton } from "./button";
+import { usePresence } from "./exit";
 import { Icon } from "./icon";
 import type { IconName } from "./icons";
 import { Popover } from "./popover";
@@ -55,7 +56,8 @@ export function nextMenuItem<T>(
 // It opens with the first item focused; the arrow keys, Home and End move
 // between the items. Escape or a click outside closes it, with the focus back
 // on the button. A picked item closes it and leaves the focus to the item's
-// action. With `fixed`, the list is placed against the window where it would
+// action. The list grows from the button and shrinks back into it, taking no
+// input while it leaves; the focus is back as it starts. With `fixed`, the list is placed against the window where it would
 // open, so a scrolling box around the menu doesn't cut it off.
 export function Menu({
   label,
@@ -86,6 +88,7 @@ export function Menu({
   const wrapper = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const menuId = useId();
+  const { shown, closing } = usePresence(open || null, list);
 
   function menuItems() {
     return [
@@ -154,7 +157,7 @@ export function Menu({
       ) : (
         <IconButton icon={icon} label={label} {...toggle} />
       )}
-      {open && (
+      {shown && (
         <Popover
           ref={list}
           id={menuId}
@@ -163,6 +166,8 @@ export function Menu({
           className="menu-list"
           style={fixed ? fixedAt : undefined}
           tabIndex={-1}
+          data-closing={closing ? "" : undefined}
+          inert={closing}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               event.preventDefault();
