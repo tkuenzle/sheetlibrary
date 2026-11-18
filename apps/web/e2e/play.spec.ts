@@ -370,8 +370,13 @@ test("moves the Lyrics only handle without moving the layout", async ({
   expect(off.x - track.x).toBeCloseTo(8, 0);
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-checked", "true");
-  await expect.poll(async () => (await box(handle)).width).toBeCloseTo(24, 0);
+  // Measured once the handle has stopped: its size and place move together,
+  // so waiting for the size alone could read the place a pixel short.
+  await expect
+    .poll(() => handle.evaluate((element) => element.getAnimations().length))
+    .toBe(0);
   const on = await box(handle);
+  expect(on.width).toBeCloseTo(24, 0);
   expect(track.x + track.width - (on.x + on.width)).toBeCloseTo(4, 0);
   expect(
     await handle.evaluate((element) => (element as HTMLElement).offsetLeft),
