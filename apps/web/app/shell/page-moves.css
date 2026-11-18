@@ -50,14 +50,26 @@
     animation: none;
   }
 
-  /* The sheet's title, between its row and the heading. */
-  html[data-move]::view-transition-group(sheet-title) {
-    animation-duration: var(--motion-long);
-    animation-timing-function: var(--ease-move);
+  /* The sheet's title, between its row and the heading. Instead of the
+     browser's move, which animates the box's width and height on the main
+     thread, the box keeps its size and place in the new page and starts
+     scaled and shifted onto the old one, from the numbers page-moves.ts
+     measured. `translate` and `scale` run off the main thread. */
+  html[data-move="rise"]::view-transition-group(sheet-title),
+  html[data-move="drop"]::view-transition-group(sheet-title) {
+    transform-origin: 0 0;
+    animation: title-move var(--motion-long) var(--ease-move) both;
   }
 
   html[data-move="drop"]::view-transition-group(sheet-title) {
     animation-duration: var(--motion-short);
+  }
+
+  @keyframes title-move {
+    from {
+      translate: var(--title-dx, 0) var(--title-dy, 0);
+      scale: var(--title-sx, 1) var(--title-sy, 1);
+    }
   }
 
   /* Any other change that asked for a move, and one the browser already

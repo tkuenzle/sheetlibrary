@@ -45,6 +45,7 @@ function createSheet(page: Page, title: string) {
 
 interface Move {
   finished?: boolean;
+  titleStart?: { x: number; y: number; width: number; height: number };
   // The kind page-moves.ts set on <html>.
   move?: string;
   // Why the browser skipped the move, such as two elements with one name.
@@ -66,6 +67,23 @@ async function recordMoves(page: Page) {
       transition.ready.then(
         () => {
           move.move = document.documentElement.dataset.move;
+          // The title's box where the move starts: its box in the new page,
+          // scaled and shifted by the move's first frame.
+          const group = getComputedStyle(
+            document.documentElement,
+            "::view-transition-group(sheet-title)",
+          );
+          const html = document.documentElement.style;
+          const number = (name: string, empty: number) =>
+            Number.parseFloat(html.getPropertyValue(name)) || empty;
+          const at = new DOMMatrix(group.transform);
+          const [sx, sy] = [number("--title-sx", 1), number("--title-sy", 1)];
+          move.titleStart = {
+            x: number("--title-dx", 0) + sx * at.e,
+            y: number("--title-dy", 0) + sy * at.f,
+            width: sx * Number.parseFloat(group.width),
+            height: sy * Number.parseFloat(group.height),
+          };
           move.scrollY = window.scrollY;
           move.animations = document.getAnimations().flatMap((animation) => {
             const effect = animation.effect;
@@ -114,6 +132,21 @@ async function lastMove(page: Page, count: number): Promise<Move> {
 const kinds = async (page: Page) => (await moves(page)).map((m) => m.move);
 
 const heading = (page: Page) => page.getByRole("heading", { level: 1 });
+
+// Within 2px. The browser puts the title's box at whole pixels in the new
+// page, and the move's scale makes that up to a pixel or so more.
+function expectBox(
+  actual: Move["titleStart"],
+  expected: { x: number; y: number; width: number; height: number } | null,
+) {
+  expect(actual).toBeDefined();
+  expect(expected).not.toBeNull();
+  for (const side of ["x", "y", "width", "height"] as const) {
+    expect(
+      Math.abs((actual?.[side] ?? 0) - (expected?.[side] ?? 0)),
+    ).toBeLessThan(2);
+  }
+}
 
 const movesTitle = (move: Move) =>
   move.animations?.some(
@@ -211,20 +244,31 @@ test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
     .getByRole("link", { name: new RegExp(title) });
   await expect(card).toBeVisible();
 
+  await row.scrollIntoViewIfNeeded();
+  const rowTitle = await row.locator(".library-title").boundingBox();
   await row.click();
   await expect(heading(page)).toHaveText(title);
   const rise = await lastMove(page, 1);
   expect(rise).toMatchObject({ move: "rise" });
   expect(movesTitle(rise)).toBe(true);
+  // The title moves by translate and scale only, from the row's box.
+  expect(
+    rise.animations?.find(
+      (a) => a.pseudo === "::view-transition-group(sheet-title)",
+    ),
+  ).toMatchObject({ name: "title-move", duration: 300 });
+  expectBox(rise.titleStart, rowTitle);
   expect(
     rise.animations?.find((a) => a.pseudo === "::view-transition-new(root)"),
   ).toMatchObject({ name: "page-rise", duration: 300 });
 
+  const headingBox = await heading(page).boundingBox();
   await page.getByRole("link", { name: "Back" }).click();
   await expect(heading(page)).toHaveText("Sheets");
   const drop = await lastMove(page, 2);
   expect(drop).toMatchObject({ move: "drop" });
   expect(movesTitle(drop)).toBe(true);
+  expectBox(drop.titleStart, headingBox);
   expect(
     drop.animations?.find((a) => a.pseudo === "::view-transition-old(root)"),
   ).toMatchObject({ name: "page-drop", duration: 150 });

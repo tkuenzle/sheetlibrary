@@ -6,6 +6,7 @@ import {
   type PageKind,
   pageKind,
   sheetTitleName,
+  titleMoveStart,
 } from "./page-moves";
 
 const shell: PageKind = { kind: "shell" };
@@ -122,5 +123,24 @@ describe("sheetTitleName", () => {
     };
     expect(sheetTitleName("a", null, move)).toBeUndefined();
     expect(sheetTitleName("a", null, null)).toBeUndefined();
+  });
+});
+
+describe("titleMoveStart", () => {
+  // The row's title, 17px, and the heading, twice as large, further up.
+  const row = { x: 32, y: 169, width: 150, height: 22 };
+  const heading = { x: 16, y: 64, width: 300, height: 44 };
+
+  it("starts the heading's box scaled and shifted onto the row's", () => {
+    const { dx, dy, sx, sy } = titleMoveStart(row, heading);
+    expect([sx, sy]).toEqual([0.5, 0.5]);
+    // A point at x lands at dx + sx * x: the heading's corner on the row's.
+    expect(dx + sx * heading.x).toBe(row.x);
+    expect(dy + sy * heading.y).toBe(row.y);
+    expect(sx * heading.width).toBe(row.width);
+  });
+
+  it("starts in place when the boxes are the same", () => {
+    expect(titleMoveStart(row, row)).toEqual({ dx: 0, dy: 0, sx: 1, sy: 1 });
   });
 });

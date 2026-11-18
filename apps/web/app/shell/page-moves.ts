@@ -99,10 +99,14 @@ export function PageMoves() {
   useLayoutEffect(() => {
     if (waiting) waitStarted.current = performance.now();
   }, [waiting]);
+  // The title's box in the old page, measured when the move starts: the row
+  // is named by then, and the browser takes its picture right after.
+  const titleFrom = useRef<Box | null>(null);
   useLayoutEffect(() => {
+    if (!isTransitioning) return;
+    titleFrom.current = titleBox();
     const started = waitStarted.current;
-    if (!isTransitioning || started === null) return;
-    late.current = isLate(performance.now() - started);
+    if (started !== null) late.current = isLate(performance.now() - started);
   }, [isTransitioning]);
 
   useLayoutEffect(() => {
@@ -118,7 +122,63 @@ export function PageMoves() {
     waitStarted.current = null;
     late.current = false;
   });
+
+  // The title's box in the new page, and from both boxes where its move
+  // starts. A passive effect, so it runs after React Router has restored
+  // the scroll in a layout effect, and before React Router lets the browser
+  // take its picture of the new page.
+  const measured = useRef<string | null>(null);
+  useEffect(() => {
+    if (measured.current === location.key) return;
+    measured.current = location.key;
+    const from = titleFrom.current;
+    const to = from && titleBox();
+    titleFrom.current = null;
+    const style = document.documentElement.style;
+    const start = to && titleMoveStart(from, to);
+    for (const [name, value] of Object.entries({
+      "--title-dx": start && `${String(start.dx)}px`,
+      "--title-dy": start && `${String(start.dy)}px`,
+      "--title-sx": start && String(start.sx),
+      "--title-sy": start && String(start.sy),
+    })) {
+      if (value) style.setProperty(name, value);
+      else style.removeProperty(name);
+    }
+  });
   return null;
+}
+
+// The title moves by `translate` and `scale` only, which the browser runs
+// off the main thread. Its own move animates the box's width and height,
+// which it can't. The box keeps its size and place in the new page; the
+// move starts it scaled and shifted onto its box in the old page. `scale`
+// and `translate` apply on top of the browser's own `transform`, which puts
+// the box in its place, so with the origin at the top left a point at x
+// lands at dx + sx * x.
+
+export interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function titleMoveStart(
+  from: Box,
+  to: Box,
+): { dx: number; dy: number; sx: number; sy: number } {
+  const sx = from.width / to.width;
+  const sy = from.height / to.height;
+  return { dx: from.x - sx * to.x, dy: from.y - sy * to.y, sx, sy };
+}
+
+// The element that has the title's name on the page now.
+function titleBox(): Box | null {
+  const named = document.querySelector(
+    `[style*="view-transition-name: ${TITLE_NAME}"]`,
+  );
+  return named ? named.getBoundingClientRect() : null;
 }
 
 // The sheet's title moves between its row and the sheet's heading. The
@@ -127,6 +187,8 @@ export function PageMoves() {
 // skips the whole move, and Recent and the list on Sheets can show the same
 // sheet. So a row's link puts its list in the location's state, and only
 // the row in that list takes the name, going in and coming back.
+
+const TITLE_NAME = "sheet-title";
 
 export type SheetListName = "list" | "recent";
 
@@ -155,13 +217,13 @@ export function sheetTitleName(
         ? [next, current]
         : [null, null];
   if (!sheetEnd || otherEnd.pathname.startsWith(`${path}/`)) return undefined;
-  if (list === null) return "sheet-title";
+  if (list === null) return TITLE_NAME;
   const state: unknown = sheetEnd.state;
   const from =
     state !== null && typeof state === "object" && "openedFrom" in state
       ? state.openedFrom
       : null;
-  return from === list ? "sheet-title" : undefined;
+  return from === list ? TITLE_NAME : undefined;
 }
 
 // React Router only gives the move's two locations through this unsafe

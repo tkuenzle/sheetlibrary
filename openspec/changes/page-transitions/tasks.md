@@ -41,6 +41,7 @@
 
 - [x] 8.1 Set the kind on every move, `none` for the page that is open; verify with an e2e test that "Sheets" on Sheets after a drop plays no move
 - [x] 8.2 Give `none` when the new page's data took longer than `SLOW_WAIT`, measured in its own `<PageMoves />`; verify with a unit test of the threshold and an e2e test that a sheet whose data is held back 600ms shows without rising, and rises again once it's quick
+- [x] 8.3 Move the title with `translate` and `scale` only, from boxes measured in the old and the new page, and size both titles to their text; verify with an e2e test that the title's move is `title-move` and starts on the row's box (and on the heading's for the drop), and with a trace that it runs off the main thread
 
 ## Workflow follow-up
 
