@@ -3,7 +3,7 @@
 ## 1. Spike
 
 - [x] 1.1 In the scratchpad, give a sheet row and Back `viewTransition` and set `data-move` on `<html>` in a layout effect; in Chromium, verify that a rule on `html[data-move=rise]::view-transition-new(root)` applies to the move (its animation shows in `document.getAnimations()`), and that `/sheets` keeps its scroll in the new picture on Back
-- [ ] 1.2 Ask the person to swipe back on an iPhone on a preview with a `popstate` logger; record in design.md whether Safari reports `hasUAVisualTransition`, and adjust the "browser's own move" decision if it doesn't
+- [x] 1.2 Ask the person to swipe back on an iPhone on a preview with a `popstate` logger; record in design.md whether Safari reports `hasUAVisualTransition`, and adjust the "browser's own move" decision if it doesn't
 
 ## 2. Kinds of move
 
@@ -35,7 +35,7 @@
 
 - [x] 7.1 Run `pnpm lint`, `pnpm test` and the full e2e suite; verify they pass (on an empty local database, as in CI)
 - [x] 7.2 With the browser-check skill, on a phone with the CPU slowed down 6×, go through each move and back; verify each looks as the design's table says, the rail stays still, and the title lands on the heading (play and edit don't line up; see #161)
-- [ ] 7.3 Ask the person to try the moves on an iPhone on the preview, swiping back included; verify the sheet doesn't drop after the swipe
+- [x] 7.3 Ask the person to try the moves on an iPhone on the preview, swiping back included; verify the sheet doesn't drop after the swipe
 
 ## 8. Review follow-ups
 

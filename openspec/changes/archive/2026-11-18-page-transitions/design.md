@@ -47,7 +47,7 @@ The rail and the bar at the bottom get no name of their own. In a fade, their pi
 
 ## Risks / Trade-offs
 
-- [Safari may not report `hasUAVisualTransition` on `popstate`] → A spike in Safari on an iPhone comes first. Without it, look for another sign of a swipe, or turn off the move on back in Safari.
+- [Safari may not report `hasUAVisualTransition` on `popstate`] → Checked in the iOS Simulator: after a swipe back the sheet doesn't drop again. Safari reports it from version 18. After the swipe, the sheet shows again for a moment until the list's data arrives; that happens on `main` too, since React Router keeps the old page while it loads.
 - [Taps during a move land on the browser's pictures, not the page] → Moves are 300ms at most, and 150ms for drop and mode.
 - [Two elements with the same name skip the move] → The e2e tests check that the move ran, on `/sheets` with recent sheets showing.
 - [The list's scroll is restored after the browser's picture] → React Router restores it in a layout effect during the update callback, so the new picture has it. The e2e test for going back checks the row's position.
