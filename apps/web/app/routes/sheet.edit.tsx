@@ -270,9 +270,12 @@ export function SheetView({
         void navigate(-1);
         return;
       }
+      // A step back plays the move React Router remembered; a new address
+      // asks for one, as the move that was held did.
       void navigate(`${to.pathname}${to.search}`, {
         replace: blockedAs.current === "REPLACE",
         state: to.state as unknown,
+        viewTransition: true,
       });
     },
     [navigate],

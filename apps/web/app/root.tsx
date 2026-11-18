@@ -1,4 +1,5 @@
 import "./app.css";
+import "./shell/page-moves.css";
 
 import lyricsFont from "@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url";
 import {
@@ -18,6 +19,7 @@ import { cloudflareContext, sessionContext } from "./context";
 import { NotFoundView } from "./routes/not-found";
 import { useFocusOnNavigation } from "./shell/focus";
 import { PageLoading } from "./shell/page-loading";
+import { usePageMoves } from "./shell/page-moves";
 import { revalidateAfterChanges } from "./shell/revalidate";
 import { initialOf, SignedInContext } from "./shell/signed-in";
 import { TopBar } from "./shell/top-bar";
@@ -122,6 +124,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 export default function App() {
   const { signedIn } = useLoaderData<typeof loader>();
   useFocusOnNavigation();
+  usePageMoves();
   return (
     <SignedInContext value={signedIn}>
       <Outlet />
