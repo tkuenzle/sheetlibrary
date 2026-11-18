@@ -20,6 +20,8 @@
   }
 
   .play-heading h1 {
+    /* As wide as its text, for the title's move (see shell/page-moves.css). */
+    width: fit-content;
     margin: 0;
     font: 800 var(--font-size-title) / 1.05 var(--font);
     letter-spacing: -0.035em;

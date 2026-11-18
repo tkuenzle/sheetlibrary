@@ -22,6 +22,7 @@ import {
   useSheetKey,
   withAddressParam,
 } from "../editor/sheet-title";
+import { useSheetTitleName } from "../shell/page-moves";
 import { focusSheetMenu, SheetBar, SheetFrameBar } from "../shell/sheet-bar";
 import { ViewButton } from "../shell/view-button";
 import { SheetView } from "../sheet-view/sheet-view";
@@ -197,6 +198,8 @@ export function PlayView({
   // The text size this device keeps (see sheets/text-size.ts).
   textStep?: number;
 }) {
+  // The heading takes the title's name while it moves from the row.
+  const titleName = useSheetTitleName(sheet.id, null);
   // The versions are kept here and changed from each answer of the API,
   // without loading the page again. The address follows the open one.
   const [savedVersions, setSavedVersions] = useState(loadedVersions);
@@ -301,7 +304,7 @@ export function PlayView({
       />
       <main className="play-page">
         <div className="play-heading">
-          <h1>{sheet.title}</h1>
+          <h1 style={{ viewTransitionName: titleName }}>{sheet.title}</h1>
           {(sheet.artist ?? open) && (
             <p className="play-artist">
               {sheet.artist}

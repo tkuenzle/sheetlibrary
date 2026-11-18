@@ -1,6 +1,6 @@
 # Motion
 
-How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89; page changes and overlays are built in #136.
+How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89. Page changes are built in #136, overlays in #160.
 
 ## Why things move
 
@@ -24,8 +24,31 @@ Motion shows where something came from and where it went. It is never decoration
 - **The shell never moves.** The rail, its compact form and the bar at the bottom stay still on every change. Only the content takes part.
 - **Peers fade.** Sheets, Collections and a collection fade into each other. Nothing slides between them: the rail's order is not a direction.
 - **A sheet rises.** Opening a sheet lifts it over the shell, and Back reverses it, whether by the arrow or the browser. From a row, the row's title turns into the sheet's heading.
-- **Edit is a mode, not a page.** Play to Edit and back keeps the sheet where it is. The bar takes its tonal color and its buttons change; the editing tools come in.
+- **Edit is a mode, not a page.** Play to Edit and back keeps the sheet where it is. The bar takes its tonal color and its buttons change; the editing tools come in. The two pages don't line up yet, so for now the whole page fades briefly (#161).
 - **A set has a direction.** Stepping through a set (#154) can slide to the next or the previous sheet, since the songs have an order.
+
+## Page changes
+
+Page changes use the browser's View Transitions, through React Router's `viewTransition` on a `<Link>` or a `navigate()`. The browser takes a picture of the old page and of the new one, and `apps/web/app/shell/page-moves.css` animates the two. A sheet's route is outside the shell, so on the frame it appears the shell is gone; only a picture of the old page lets the sheet rise over it.
+
+- **Only moves that ask move.** The rail, the bottom bar, Collections, the sheet rows, Recent, "Edit", and the sheet's moves (`useSheetMoves().go()`) ask. A search, a key or a capo changes only the address and stays instant. React Router plays a move again when the browser steps back between the same two pages.
+- **The kind follows from the two pages.** `shell/page-moves.ts` sets `data-move` on `<html>` when the page changes:
+
+| `data-move` | From, to                                       | Move                                                    |
+| ----------- | ---------------------------------------------- | ------------------------------------------------------- |
+| `fade`      | a shell screen to another                      | the pictures fade into each other, `--motion-long`      |
+| `rise`      | a shell screen to a sheet                      | the new picture rises over the old one, `--motion-long` |
+| `drop`      | a sheet to a shell screen                      | the old picture drops off the new one, `--motion-short` |
+| `mode`      | play and edit of one sheet                     | the pictures fade into each other, `--motion-short`     |
+| `none`      | anything else, or after the browser's own move | at once                                                 |
+
+- **Not the history's direction.** React Router reports "POP" for back and forward alike, and a link from a sheet to a collection is a push that should drop.
+- **The rail has no name of its own.** In a fade, its pixels are the same in both pictures, and the browser's fade blends them so they stay solid. A named rail would be painted above everything else and cover a rising sheet.
+- **The title moves through a shared name.** A row's title and the sheet's heading are named `sheet-title` while their sheet is in the move. One element per page may have a name, or the browser skips the whole move. Recent and the list on Sheets can show the same sheet, so a row's link puts its list in the location's state, and only the row in that list is named. Its move animates only `translate` and `scale`, from boxes `page-moves.ts` measures, so it runs off the main thread, unlike the browser's own move, which animates width and height. Both titles are `width: fit-content`, so their boxes have the same shape.
+- **A late page cuts.** A move starts once the new page's data is there. When that took longer than the loading bar waits (`SLOW_WAIT`, 200ms), the person has already waited, so the page changes at once. Skeletons (#137) will let moves start right after the tap.
+- **The page that is open doesn't move.** A link to it, such as "Sheet Library" on Sheets, is `none`.
+- **The browser's own move wins.** After a swipe back on an iPhone, Safari has already shown a move (`hasUAVisualTransition` on `popstate`), so the move is `none`.
+- **Taps wait.** While a move plays, taps land on the pictures, not the page. That is why moves stay at 300ms or less.
 
 ## Overlays
 
@@ -39,18 +62,27 @@ Motion shows where something came from and where it went. It is never decoration
 
 - **No springs and no overshoot.** Things arrive and stop.
 - **Exits are faster than entries.** Waiting for something to leave feels slow.
-- **Only `opacity` and `transform` move.** Layout properties such as `left` or `width` are never animated, so nothing around the moving part shifts.
+- **Nothing around a moving part shifts.** See the next section.
+
+## Off the main thread
+
+Every animation runs off the main thread. On a phone, the main thread is busiest exactly when things move: a new page renders, the sheet lays out its chords, data arrives. An animation that needs the main thread misses every frame it misses, and stutters. One the browser runs on its own (composited) keeps going.
+
+- **Animate only `opacity`, `transform`, `translate`, `scale` and `rotate`.** Never `width`, `height`, `top`, `left`, `inset`, `margin` or `padding`, which lay out the page each frame, and never colors, shadows or `background`, which paint it each frame. To grow something, scale it. To move it, translate it. The Lyrics only switch's handle is a small example: it stays 24px and is scaled down when off.
+- **A change of color is not animated.** Change it at once, or fade an element of the new color in with `opacity`.
+- **View transitions are no exception.** The browser's own move of a named element animates its box's `width` and `height` when the two boxes differ in size, and that runs on the main thread. Replace it with `translate` and `scale` from boxes you measure, as the sheet's title does (see "Page changes").
+- **Check it with a trace.** Record a performance trace with the `blink.animations` category while the animation runs. Chrome lists each animation it couldn't run off the main thread with `compositeFailed`, and names the cause in `unsupportedProperties`. The browser's `-ua-mix-blend-mode-plus-lighter` in a view transition is listed too; it doesn't move anything and can stay.
 
 ## Tokens
 
-| Token             | Value                        | For                                                            |
-| ----------------- | ---------------------------- | -------------------------------------------------------------- |
-| `--motion-short`  | 150ms                        | Leaving, and small changes of state: a switch, a fade of color |
-| `--motion-medium` | 200ms                        | Overlays coming in: menus, dialogs, panels                     |
-| `--motion-long`   | 300ms                        | Page changes and the title turning into the heading            |
-| `--ease-enter`    | `cubic-bezier(0, 0, 0, 1)`   | Things arriving (Material 3's standard decelerate)             |
-| `--ease-exit`     | `cubic-bezier(0.3, 0, 1, 1)` | Things leaving (standard accelerate)                           |
-| `--ease-move`     | `cubic-bezier(0.2, 0, 0, 1)` | Things that stay on screen and change (standard)               |
+| Token             | Value                        | For                                                   |
+| ----------------- | ---------------------------- | ----------------------------------------------------- |
+| `--motion-short`  | 150ms                        | Leaving, and small changes of state, such as a switch |
+| `--motion-medium` | 200ms                        | Overlays coming in: menus, dialogs, panels            |
+| `--motion-long`   | 300ms                        | Page changes and the title turning into the heading   |
+| `--ease-enter`    | `cubic-bezier(0, 0, 0, 1)`   | Things arriving (Material 3's standard decelerate)    |
+| `--ease-exit`     | `cubic-bezier(0.3, 0, 1, 1)` | Things leaving (standard accelerate)                  |
+| `--ease-move`     | `cubic-bezier(0.2, 0, 0, 1)` | Things that stay on screen and change (standard)      |
 
 Use the tokens, never numbers. The `chord-editor` package takes its duration from `--chord-editor-motion`, which the app sets to `--motion-short`.
 

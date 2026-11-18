@@ -89,6 +89,7 @@ export function SheetBar(props: SheetBarProps) {
           className="button button-tonal sheet-bar-edit-link"
           to={props.editTo}
           state={fromPlayState}
+          viewTransition
           aria-label="Edit"
         >
           <Icon name="edit" />

@@ -6,6 +6,7 @@ import { Link, useFetcher, useFetchers, useRevalidator } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
 import { spokenKey } from "../editor/key-button";
+import { openedFrom, useSheetTitleName } from "../shell/page-moves";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu, type MenuItem } from "../ui/menu";
 import { Note } from "../ui/note";
@@ -283,6 +284,7 @@ function Row({
   onFailed: (intent: string | undefined) => void;
 }) {
   const fetcher = useFetcher<RowAnswer>({ key: rowKey(sheet.id) });
+  const titleName = useSheetTitleName(sheet.id, "list");
   const answer = fetcher.state === "idle" ? fetcher.data : undefined;
   const failedNow = answer?.ok === false;
   const reportFailed = useRef(onFailed);
@@ -297,8 +299,16 @@ function Row({
 
   return (
     <li className="sheet-list-row" data-sheet={sheet.id}>
-      <Link className="library-columns" to={`/sheets/${sheet.id}`}>
-        <span className="library-title">
+      <Link
+        className="library-columns"
+        to={`/sheets/${sheet.id}`}
+        state={openedFrom("list")}
+        viewTransition
+      >
+        <span
+          className="library-title"
+          style={{ viewTransitionName: titleName }}
+        >
           {sheet.titleParts ? <Marked parts={sheet.titleParts} /> : sheet.title}
         </span>
         <span className="library-details">

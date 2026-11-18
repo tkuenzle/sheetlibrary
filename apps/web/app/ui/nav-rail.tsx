@@ -70,7 +70,7 @@ export function NavRail({
   compact?: boolean;
 }) {
   const nameLink = name && !compact && (
-    <Link className="nav-rail-name" to={name.href}>
+    <Link className="nav-rail-name" to={name.href} viewTransition>
       {name.label}
     </Link>
   );
@@ -112,6 +112,7 @@ function RailItem({ item, compact }: { item: NavItem; compact: boolean }) {
           className="nav-rail-item"
           to={item.href}
           aria-current={currentOf(item)}
+          viewTransition
         >
           <span className="nav-rail-icon">
             <NavGlyph item={item} />
@@ -128,6 +129,7 @@ function RailItem({ item, compact }: { item: NavItem; compact: boolean }) {
         className="nav-rail-item"
         to={item.href}
         aria-current={item.current ? "page" : undefined}
+        viewTransition
       >
         <NavGlyph item={item} />
         {item.label}
@@ -140,6 +142,7 @@ function RailItem({ item, compact }: { item: NavItem; compact: boolean }) {
                 className="nav-rail-sub-item"
                 to={child.href}
                 aria-current={child.current ? "page" : undefined}
+                viewTransition
               >
                 <span className="nav-rail-sub-label">{child.label}</span>
                 {child.count && (

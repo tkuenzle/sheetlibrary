@@ -79,7 +79,7 @@ export function CollectionsView({
       <ul className="collections-cards">
         {collections.map((collection) => (
           <li key={collection.id}>
-            <Link to={`/collections/${collection.id}`}>
+            <Link to={`/collections/${collection.id}`} viewTransition>
               <span className="collections-name">{collection.name}</span>
               <span className="collections-count">
                 {sheetCount(collection.count)}

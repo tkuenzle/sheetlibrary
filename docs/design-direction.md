@@ -107,7 +107,7 @@ The tokens are in `apps/web/app/ui/tokens.css`. Each color is written as `light-
 
 ## Motion
 
-Calm and short, with Material 3's standard curves and no overshoot. Peers in the shell fade into each other, a sheet rises over the shell, and Edit is a mode that only changes the bar. The shell never moves. With reduced motion nothing moves. The concept and the tokens are in `docs/motion.md`.
+Calm and short, with Material 3's standard curves and no overshoot. Peers in the shell fade into each other, a sheet rises over the shell, and Edit is a mode that only changes the bar. The shell never moves. With reduced motion nothing moves. Every animation runs off the main thread: only `opacity` and transforms move. The concept, the tokens and the rules are in `docs/motion.md`.
 
 ## Components
 

@@ -39,7 +39,7 @@ A `/design` page SHALL show each base component in the light and the lamplight s
 - **THEN** the site responds with 404
 
 ### Requirement: Still with reduced motion
-When the system asks for reduced motion, nothing on any page SHALL move or fade. Panels, inputs and switches SHALL open, close and change at once. Signs that something is going on, such as the loading bar and the photo import's sign, SHALL stand still.
+When the system asks for reduced motion, nothing on any page SHALL move or fade. Panels, inputs and switches SHALL open, close and change at once, and so SHALL pages. Signs that something is going on, such as the loading bar and the photo import's sign, SHALL stand still.
 
 #### Scenario: Opening the navigation
 - **WHEN** reduced motion is on and a visitor opens the full rail in a window 800px wide
@@ -48,6 +48,10 @@ When the system asks for reduced motion, nothing on any page SHALL move or fade.
 #### Scenario: Lyrics only
 - **WHEN** reduced motion is on and a visitor turns on "Lyrics only" in View
 - **THEN** the switch's handle is at its end right away
+
+#### Scenario: Opening a sheet
+- **WHEN** reduced motion is on and a person selects a row on `/sheets`
+- **THEN** the sheet shows right away, without rising
 
 ### Requirement: Same look however a page is reached
 A page SHALL look the same whether it was loaded in full or reached by a move from any other page.

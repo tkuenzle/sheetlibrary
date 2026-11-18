@@ -1,4 +1,5 @@
 import "./app.css";
+import "./shell/page-moves.css";
 
 import lyricsFont from "@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url";
 import {
@@ -18,6 +19,7 @@ import { cloudflareContext, sessionContext } from "./context";
 import { NotFoundView } from "./routes/not-found";
 import { useFocusOnNavigation } from "./shell/focus";
 import { PageLoading } from "./shell/page-loading";
+import { PageMoves } from "./shell/page-moves";
 import { revalidateAfterChanges } from "./shell/revalidate";
 import { initialOf, SignedInContext } from "./shell/signed-in";
 import { TopBar } from "./shell/top-bar";
@@ -124,6 +126,7 @@ export default function App() {
   useFocusOnNavigation();
   return (
     <SignedInContext value={signedIn}>
+      <PageMoves />
       <Outlet />
     </SignedInContext>
   );

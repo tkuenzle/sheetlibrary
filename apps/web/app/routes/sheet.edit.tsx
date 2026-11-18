@@ -217,12 +217,18 @@ export function SheetView({
     autosave.edited();
   }
 
+  // Set once the page leaves for good, by a move that was let through.
+  const leaving = useRef(false);
+
   // A reload or closing the tab with edits that aren't saved asks first,
-  // with the browser's own prompt.
+  // with the browser's own prompt. Not once the person has chosen to leave:
+  // the page stays on screen for the move to the next one, after the
+  // address has changed.
   const unsaved = autosave.state !== "saved";
   useEffect(() => {
     if (!unsaved) return;
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (leaving.current) return;
       event.preventDefault();
     };
     window.addEventListener("beforeunload", onBeforeUnload);
@@ -239,7 +245,6 @@ export function SheetView({
   // The blocked move is made again by the page, not with the blocker's
   // `proceed()`, which waits for React Router to undo a browser back first
   // and could lose the move when the save came back at the same moment.
-  const leaving = useRef(false);
   // While a save for a blocked move runs, more moves are let go of, so a
   // second back press doesn't step back twice.
   const saving = useRef(false);
@@ -270,9 +275,12 @@ export function SheetView({
         void navigate(-1);
         return;
       }
+      // A step back plays the move React Router remembered; a new address
+      // asks for one, as the move that was held did.
       void navigate(`${to.pathname}${to.search}`, {
         replace: blockedAs.current === "REPLACE",
         state: to.state as unknown,
+        viewTransition: true,
       });
     },
     [navigate],

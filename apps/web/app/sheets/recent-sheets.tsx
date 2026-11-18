@@ -2,6 +2,7 @@ import "./recent-sheets.css";
 
 import { Link, useFetcher } from "react-router";
 
+import { openedFrom, useSheetTitleName } from "../shell/page-moves";
 import { KeyText, type ListSheet, type RowAnswer, rowKey } from "./sheet-list";
 
 // "Recent" on Sheets: the sheets the person opened last, as cards that open
@@ -24,11 +25,21 @@ export function RecentSheets({ sheets }: { sheets: ListSheet[] }) {
 // comes back with it if the delete doesn't get through.
 function RecentCard({ sheet }: { sheet: ListSheet }) {
   const fetcher = useFetcher<RowAnswer>({ key: rowKey(sheet.id) });
+  const titleName = useSheetTitleName(sheet.id, "recent");
   if (fetcher.state !== "idle" || fetcher.data?.ok === true) return null;
   return (
     <li>
-      <Link to={`/sheets/${sheet.id}`}>
-        <span className="recent-sheets-title">{sheet.title}</span>
+      <Link
+        to={`/sheets/${sheet.id}`}
+        state={openedFrom("recent")}
+        viewTransition
+      >
+        <span
+          className="recent-sheets-title"
+          style={{ viewTransitionName: titleName }}
+        >
+          {sheet.title}
+        </span>
         {sheet.artist && <span>{sheet.artist}</span>}
         {sheet.key && (
           <span className="recent-sheets-key">

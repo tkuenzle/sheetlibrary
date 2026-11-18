@@ -59,6 +59,8 @@
 
   /* A title takes up to two lines, so most titles show whole. */
   .recent-sheets a > .recent-sheets-title {
+    /* As wide as its text, for the title's move (see shell/page-moves.css). */
+    width: fit-content;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
