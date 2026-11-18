@@ -62,18 +62,27 @@ Page changes use the browser's View Transitions, through React Router's `viewTra
 
 - **No springs and no overshoot.** Things arrive and stop.
 - **Exits are faster than entries.** Waiting for something to leave feels slow.
-- **Only `opacity` and `transform` move.** Layout properties such as `left` or `width` are never animated, so nothing around the moving part shifts.
+- **Nothing around a moving part shifts.** See the next section.
+
+## Off the main thread
+
+Every animation runs off the main thread. On a phone, the main thread is busiest exactly when things move: a new page renders, the sheet lays out its chords, data arrives. An animation that needs the main thread misses every frame it misses, and stutters. One the browser runs on its own (composited) keeps going.
+
+- **Animate only `opacity`, `transform`, `translate`, `scale` and `rotate`.** Never `width`, `height`, `top`, `left`, `inset`, `margin` or `padding`, which lay out the page each frame, and never colors, shadows or `background`, which paint it each frame. To grow something, scale it. To move it, translate it. The Lyrics only switch's handle is a small example: it stays 24px and is scaled down when off.
+- **A change of color is not animated.** Change it at once, or fade an element of the new color in with `opacity`.
+- **View transitions are no exception.** The browser's own move of a named element animates its box's `width` and `height` when the two boxes differ in size, and that runs on the main thread. Replace it with `translate` and `scale` from boxes you measure, as the sheet's title does (see "Page changes").
+- **Check it with a trace.** Record a performance trace with the `blink.animations` category while the animation runs. Chrome lists each animation it couldn't run off the main thread with `compositeFailed`, and names the cause in `unsupportedProperties`. The browser's `-ua-mix-blend-mode-plus-lighter` in a view transition is listed too; it doesn't move anything and can stay.
 
 ## Tokens
 
-| Token             | Value                        | For                                                            |
-| ----------------- | ---------------------------- | -------------------------------------------------------------- |
-| `--motion-short`  | 150ms                        | Leaving, and small changes of state: a switch, a fade of color |
-| `--motion-medium` | 200ms                        | Overlays coming in: menus, dialogs, panels                     |
-| `--motion-long`   | 300ms                        | Page changes and the title turning into the heading            |
-| `--ease-enter`    | `cubic-bezier(0, 0, 0, 1)`   | Things arriving (Material 3's standard decelerate)             |
-| `--ease-exit`     | `cubic-bezier(0.3, 0, 1, 1)` | Things leaving (standard accelerate)                           |
-| `--ease-move`     | `cubic-bezier(0.2, 0, 0, 1)` | Things that stay on screen and change (standard)               |
+| Token             | Value                        | For                                                   |
+| ----------------- | ---------------------------- | ----------------------------------------------------- |
+| `--motion-short`  | 150ms                        | Leaving, and small changes of state, such as a switch |
+| `--motion-medium` | 200ms                        | Overlays coming in: menus, dialogs, panels            |
+| `--motion-long`   | 300ms                        | Page changes and the title turning into the heading   |
+| `--ease-enter`    | `cubic-bezier(0, 0, 0, 1)`   | Things arriving (Material 3's standard decelerate)    |
+| `--ease-exit`     | `cubic-bezier(0.3, 0, 1, 1)` | Things leaving (standard accelerate)                  |
+| `--ease-move`     | `cubic-bezier(0.2, 0, 0, 1)` | Things that stay on screen and change (standard)      |
 
 Use the tokens, never numbers. The `chord-editor` package takes its duration from `--chord-editor-motion`, which the app sets to `--motion-short`.
 
