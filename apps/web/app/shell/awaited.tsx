@@ -1,6 +1,8 @@
 import { type ReactNode, Suspense, useEffect, useState } from "react";
 import { Await, useAsyncError, useNavigate } from "react-router";
 
+import { moveEnded } from "./page-moves";
+
 // For the pages whose data comes after the page, in <Await> with a
 // skeleton (see openspec/specs/site-layout). A move to such a page doesn't
 // wait for its data, so what the server answers arrives here.
@@ -19,30 +21,15 @@ export function fromAnotherPage(url: URL): boolean {
 
 // The page's data for a client loader to hand over unawaited, once it has
 // arrived and the page's move has ended. Rows that arrive while the page
-// still moves in wait, so they don't swap in mid-move. Without a move, as
-// when a page loads again or with reduced motion, nothing waits. Data that
+// still moves in wait, so they don't swap in mid-move (see moveEnded in
+// page-moves.ts). Without a move, as when a page loads again, nothing
+// waits. Data that
 // arrives before the move has started goes into its picture, so the page
 // moves in whole.
 export async function afterMove<T>(data: Promise<T>): Promise<T> {
   const value = await data;
   await moveEnded();
   return value;
-}
-
-// When the view transition that plays now, if any, has finished: its
-// animations run on the `::view-transition` pseudo-elements.
-function moveEnded(): Promise<unknown> {
-  if (typeof document === "undefined") return Promise.resolve();
-  const moving = document.getAnimations().filter((animation) => {
-    const effect = animation.effect;
-    return (
-      effect instanceof KeyframeEffect &&
-      (effect.pseudoElement?.startsWith("::view-transition") ?? false)
-    );
-  });
-  return Promise.all(
-    moving.map((animation) => animation.finished.catch(() => undefined)),
-  );
 }
 
 // A page's data, whole or on its way. On its way, after a move, it renders

@@ -54,6 +54,36 @@ export function moveKind(from: PageKind, to: PageKind, cut = false): MoveKind {
   return from.sheet === to.sheet && from.kind !== to.kind ? "mode" : "none";
 }
 
+// When the page's move that plays now has finished, or at once when none
+// plays. A page whose data arrives during its move shows it then (see
+// afterMove in awaited.tsx). The browser gives the running move from the
+// moment it starts. A browser without `activeViewTransition` is asked for
+// the animations on the move's pseudo-elements instead, which exist only
+// once the move plays: data that arrives just before shows in its first
+// frames, while the new page is still transparent.
+export function moveEnded(): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
+  const settled = (finished: Promise<unknown>) =>
+    finished.then(
+      () => undefined,
+      () => undefined,
+    );
+  // Undefined in a browser without it, whatever the DOM types say.
+  const move = (document as { activeViewTransition?: ViewTransition | null })
+    .activeViewTransition;
+  if (move !== undefined) {
+    return move ? settled(move.finished) : Promise.resolve();
+  }
+  const moving = document.getAnimations().filter((animation) => {
+    const effect = animation.effect;
+    return (
+      effect instanceof KeyframeEffect &&
+      (effect.pseudoElement?.startsWith("::view-transition") ?? false)
+    );
+  });
+  return settled(Promise.all(moving.map((animation) => animation.finished)));
+}
+
 // A move starts once the new page's data is there. When that took longer
 // than the loading bar waits before it shows, the person has already
 // waited, and a move would only add to it, so the page changes at once.
