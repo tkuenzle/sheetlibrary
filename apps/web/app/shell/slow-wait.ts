@@ -5,21 +5,30 @@ import { useEffect, useState } from "react";
 // both use it. See openspec/specs/site-layout.
 export const SLOW_WAIT = 200;
 
+// How long skeleton bars stay at least once they show, in milliseconds, so
+// they never flash. See openspec/specs/site-layout.
+export const SKELETON_HOLD = 400;
+
 // Starts a wait: calls `show` once it has gone on for `delay`. The returned
-// function ends it, cancelling `show`, or calling `hide` if it was shown.
+// function ends it, cancelling `show`, or calling `hide` if it was shown:
+// at once, or once it has shown for `hold`.
 export function startWait(
   show: () => void,
   hide: () => void,
   delay = SLOW_WAIT,
+  hold = 0,
 ): () => void {
-  let shown = false;
+  let shownAt: number | null = null;
   const timer = setTimeout(() => {
-    shown = true;
+    shownAt = Date.now();
     show();
   }, delay);
   return () => {
     clearTimeout(timer);
-    if (shown) hide();
+    if (shownAt === null) return;
+    const left = shownAt + hold - Date.now();
+    if (left > 0) setTimeout(hide, left);
+    else hide();
   };
 }
 

@@ -238,3 +238,64 @@ test("shows the account page at once, with bars for its data", async ({
   await expect(page.locator("main .skeleton-bar")).toHaveCount(0);
   await expect(heading(page)).toBeFocused();
 });
+
+// Notes when Choose collections' bars show and go, from the next page
+// load on: shown means in the list's room and no longer unseen.
+async function recordDialogBars(page: Page) {
+  await page.addInitScript(() => {
+    const log: { shown?: number; gone?: number } = {};
+    (window as unknown as { barsLog: typeof log }).barsLog = log;
+    new MutationObserver(() => {
+      const shown = !!document.querySelector(
+        ".choose-collections-scroll:not(.skeleton-waiting) .choose-collections-skeleton",
+      );
+      if (shown && log.shown === undefined) log.shown = performance.now();
+      if (!shown && log.shown !== undefined && log.gone === undefined) {
+        log.gone = performance.now();
+      }
+    }).observe(document, { subtree: true, childList: true, attributes: true });
+  });
+}
+
+const barsLog = (page: Page) =>
+  page.evaluate(
+    () =>
+      (window as unknown as { barsLog: { shown?: number; gone?: number } })
+        .barsLog,
+  );
+
+async function openChooseCollections(page: Page, ms: number) {
+  const mark = newMark();
+  const title = `Chosen ${mark}`;
+  await create(page, "/api/collections", { name: `Pick ${mark}` });
+  await create(page, "/api/sheets", { title, content });
+  await recordDialogBars(page);
+  await page.goto(`/sheets?q=${mark}`);
+  await expect(rows(page)).toHaveCount(1);
+  await page.route(/\/api\/sheets\/[^/]+\/collections$/, async (route) => {
+    await wait(ms);
+    await route.continue();
+  });
+  await page.getByRole("button", { name: `More for ${title}` }).click();
+  await page.getByRole("menuitem", { name: "Choose collections…" }).click();
+  const list = page.getByRole("dialog").locator("fieldset");
+  await expect(list.getByRole("checkbox").first()).toBeVisible();
+  return list;
+}
+
+// Scenario "A quick list": no bars for a moment's wait.
+test("shows no bars when the collections come quickly", async ({ page }) => {
+  await openChooseCollections(page, 50);
+  await wait(500);
+  expect((await barsLog(page)).shown).toBeUndefined();
+});
+
+// Scenario "Choose collections": slow, the bars show, and once shown they
+// stay for a moment, also when the list comes just after.
+test("keeps the bars a moment once they show", async ({ page }) => {
+  await openChooseCollections(page, 300);
+  await expect.poll(async () => (await barsLog(page)).gone).toBeDefined();
+  const log = await barsLog(page);
+  expect(log.shown).toBeDefined();
+  expect((log.gone ?? 0) - (log.shown ?? 0)).toBeGreaterThanOrEqual(390);
+});

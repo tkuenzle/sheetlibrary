@@ -43,6 +43,12 @@
     }
   }
 
+  /* Bars in their first moment (useSkeleton): they keep their room, unseen,
+     so a quick answer shows none. */
+  .skeleton-waiting .skeleton-bar {
+    visibility: hidden;
+  }
+
   /* A sign that repeats stands still, as the loading bar does. */
   @media (prefers-reduced-motion: reduce) {
     .skeleton-bar {

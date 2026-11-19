@@ -9,7 +9,7 @@ A page shows all at once when its data is there. Until then the old page stays, 
 - On a move inside the app, the new page shows right after the tap, with a skeleton where its data will be. The move plays with the skeleton, and the rows fill in when they arrive.
 - The skeleton is the real page: the frame, the heading, and whatever the browser already knows. Data still on its way shows as bars inside the real row's frame, at the real row's height, so nothing shifts when it arrives.
 - What the browser already knows shows for real: a collection's name and count from the rail, so the skeleton has that many rows, up to a screenful; a sheet's title and artist from the row it was opened from. The account page's email is a bar like the rest of its data, since the root loader only passes the initial.
-- Skeletons on Sheets, a collection, a sheet and the account page, and in the lists of "Add sheets" and "Choose collections". Collections already has all its data and shows at once.
+- Skeletons on Sheets, a collection, a sheet and the account page, and in the lists of "Add sheets" and "Choose collections". A dialog's bars show only after 200ms and then stay at least 400ms, so they never flash. Collections already has all its data and shows at once.
 - The data shows as soon as it arrives, also while the page is still moving in. On a fast connection that is mostly before the page shows at all.
 - A page that loads again on its own, such as after a row's delete or during a search, keeps what it shows. No skeleton.
 - A first load comes full from the server, with no skeleton.

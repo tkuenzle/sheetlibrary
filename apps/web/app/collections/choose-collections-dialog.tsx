@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { closeAfterExit, exitOnEscape } from "../ui/exit";
 import { NameDialog } from "../ui/name-dialog";
 import { Note } from "../ui/note";
-import { Bar } from "../ui/skeleton";
+import { Bar, useSkeleton } from "../ui/skeleton";
 import {
   COLLECTION_NAME_MAX,
   type SheetCollection,
@@ -133,19 +133,31 @@ function ChooseCollectionsContent({
     });
   }
 
+  // A quick list shows without bars; slow, the bars stay a moment (see
+  // useSkeleton). A failure shows at once.
+  const skeleton = useSkeleton(loaded.kind === "loading");
+  const shown: Loaded =
+    skeleton !== "none" && loaded.kind !== "failed"
+      ? { kind: "loading" }
+      : loaded;
+
   return (
     <div className="choose-collections">
       <div className="choose-collections-top">
         <h2 id={titleId}>Choose collections</h2>
         <p>{sheet.title}</p>
       </div>
-      <CollectionChoices loaded={loaded} onToggle={toggle} />
+      <CollectionChoices
+        loaded={shown}
+        waiting={skeleton === "waiting"}
+        onToggle={toggle}
+      />
       {failed && <Note>The change couldn’t be saved. Try again.</Note>}
       <div className="confirm-actions choose-collections-actions">
         <Button
           variant="text"
           icon="add"
-          disabled={loaded.kind !== "loaded"}
+          disabled={shown.kind !== "loaded"}
           onClick={() => {
             setNaming(true);
           }}
@@ -189,17 +201,26 @@ function ChooseCollectionsContent({
 const SKELETON_WIDTHS = [6, 8, 10, 7, 5];
 
 // The collections with their tick boxes, or what stands in for them while
-// they load (rows of bars), when they couldn't load, or when there are none.
+// they load (rows of bars, unseen while `waiting`), when they couldn't
+// load, or when there are none.
 export function CollectionChoices({
   loaded,
+  waiting = false,
   onToggle,
 }: {
   loaded: Loaded;
+  waiting?: boolean;
   onToggle: (collection: SheetCollection, holds: boolean) => void;
 }) {
   if (loaded.kind === "loading") {
     return (
-      <div className="choose-collections-scroll">
+      <div
+        className={
+          waiting
+            ? "choose-collections-scroll skeleton-waiting"
+            : "choose-collections-scroll"
+        }
+      >
         <div
           className="choose-collections-list"
           aria-label="Collections"

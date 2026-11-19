@@ -36,11 +36,15 @@ A page that loads its data again without a move to another page, such as after a
 - **THEN** the page shows "Campfire" with bars, not the sheets of "Christmas"
 
 ### Requirement: Bars in the dialogs that load
-"Add sheets" and "Choose collections" SHALL show bars in their list while it loads. Controls that need the list SHALL wait until it is there.
+"Add sheets" and "Choose collections" SHALL show bars in their list while it loads, but only when it takes longer than 200ms; until then the list's room SHALL stay empty. Once shown, the bars SHALL stay for at least 400ms, so they never flash. Controls that need the list SHALL wait until it is there.
 
 #### Scenario: Choose collections
 - **WHEN** a person picks "Choose collections…" in a sheet's menu, and the collections are slow to arrive
 - **THEN** the dialog shows its title and rows of bars, "New collection" can't be picked yet, and "Done" closes it
+
+#### Scenario: A quick list
+- **WHEN** a person picks "Choose collections…", and the collections arrive after 50ms
+- **THEN** the collections show without any bars before them
 
 ## MODIFIED Requirements
 

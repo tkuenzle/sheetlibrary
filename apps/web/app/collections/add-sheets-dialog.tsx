@@ -12,7 +12,7 @@ import { Button } from "../ui/button";
 import { closeAfterExit, exitOnEscape } from "../ui/exit";
 import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
-import { Bar } from "../ui/skeleton";
+import { Bar, useSkeleton } from "../ui/skeleton";
 
 // "Add sheets" on a collection's page: the person's sheets with a tick box
 // each, found with the library's own loader, so the list and the search are
@@ -128,7 +128,12 @@ function AddSheetsContent({
     if (adding.state === "idle" && adding.data?.ok) onDone();
   }, [adding.state, adding.data, onDone]);
 
-  const list = sheets.data && "sheets" in sheets.data ? sheets.data.sheets : [];
+  // Until the first list is there, rows of bars: unseen for a moment, so a
+  // quick list shows without them, and held a moment once seen (see
+  // useSkeleton). A later search keeps the list it shows while it loads.
+  const skeleton = useSkeleton(!sheets.data);
+  const loaded = skeleton === "none" ? sheets.data : undefined;
+  const list = loaded && "sheets" in loaded ? loaded.sheets : [];
   const busy = adding.state !== "idle";
   const failed = adding.state === "idle" && adding.data?.ok === false;
 
@@ -172,13 +177,15 @@ function AddSheetsContent({
         </div>
       </div>
       <ul
-        className="add-sheets-list"
+        className={
+          skeleton === "waiting"
+            ? "add-sheets-list skeleton-waiting"
+            : "add-sheets-list"
+        }
         aria-label="Sheets"
         aria-busy={sheets.state !== "idle" || undefined}
       >
-        {/* Until the first list is there, rows of bars. A later search
-            keeps the list it shows while it loads. */}
-        {!sheets.data &&
+        {skeleton !== "none" &&
           SKELETON_ROWS.map(([title, artist], i) => (
             <li key={i} aria-hidden="true">
               <div className="add-sheets-skeleton">
@@ -225,7 +232,7 @@ function AddSheetsContent({
           );
         })}
       </ul>
-      {sheets.state === "idle" && sheets.data && list.length === 0 && (
+      {sheets.state === "idle" && loaded && list.length === 0 && (
         <p className="add-sheets-none">
           {search === "" ? "No sheets yet" : `No sheets match “${q.trim()}”`}
         </p>

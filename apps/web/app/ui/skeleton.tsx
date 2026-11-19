@@ -1,5 +1,37 @@
 import "./skeleton.css";
 
+import { useEffect, useRef, useState } from "react";
+
+import { SKELETON_HOLD, SLOW_WAIT, startWait } from "../shell/slow-wait";
+
+// What to show for something that loads where no page move covers it, as in
+// a dialog: "waiting" for its first moment, while it keeps its room with
+// the bars invisible, so a quick answer shows no bars at all; then "bars",
+// which stay for at least SKELETON_HOLD, also after it has loaded, so they
+// never flash; then "none", and what loaded shows. See
+// openspec/specs/site-layout ("Bars in the dialogs that load").
+export function useSkeleton(loading: boolean): "waiting" | "bars" | "none" {
+  const [bars, setBars] = useState(false);
+  // A load that starts again while the bars are held keeps them.
+  const loadingNow = useRef(loading);
+  useEffect(() => {
+    loadingNow.current = loading;
+    if (!loading) return;
+    return startWait(
+      () => {
+        setBars(true);
+      },
+      () => {
+        if (!loadingNow.current) setBars(false);
+      },
+      SLOW_WAIT,
+      SKELETON_HOLD,
+    );
+  }, [loading]);
+  if (bars) return "bars";
+  return loading ? "waiting" : "none";
+}
+
 // A bar where data is still on its way, inside the real markup of what it
 // stands for. It sits in the line like a word, so the line keeps the height
 // of the text it stands for, and the row around it keeps its own. `width`
