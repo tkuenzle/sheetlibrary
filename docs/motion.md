@@ -48,10 +48,10 @@ Page changes use the browser's View Transitions, through React Router's `viewTra
 - **A page moves in with its skeleton.** Sheets, a collection, a sheet and the account page don't wait for their data: their client loaders hand it over as a promise, so the move starts right after the tap, and the new picture shows the page with bars where the data will be. Collections has its data already.
 
   ```
-  tap -- move, page with bars --> data arrives --> rows (once the move has ended)
+  tap -- move, page with bars --> data arrives --> rows
   ```
 
-- **Rows don't swap in mid-move.** Data that arrives while the page still moves in waits for the move to finish (`afterMove` in `shell/awaited.tsx`, which asks `moveEnded` in `shell/page-moves.ts`). Data that arrives before the move has started goes into the new picture, so the page moves in whole. A page that loads again without a move, after a change on a row or during a search, keeps what it shows. For now the rows replace the bars at once.
+- **Rows show as they arrive.** Data that arrives while the page still moves in shows at once, in the middle of the move. On a fast connection it is mostly there before the new picture shows, so the page moves in whole. A page that loads again without a move, after a change on a row or during a search, keeps what it shows. For now the rows replace the bars at once.
 - **A late page cuts.** A move starts once the new page's data is there. When that took longer than the loading bar waits (`SLOW_WAIT`, 200ms), the person has already waited, so the page changes at once. With skeletons this only happens to pages that wait for their data, such as Edit.
 - **The page that is open doesn't move.** A link to it, such as "Sheet Library" on Sheets, is `none`.
 - **The browser's own move wins.** After a swipe back on an iPhone, Safari has already shown a move (`hasUAVisualTransition` on `popstate`), so the move is `none`.

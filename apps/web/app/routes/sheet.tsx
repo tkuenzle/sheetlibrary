@@ -34,7 +34,7 @@ import {
   useSheetKey,
   withAddressParam,
 } from "../editor/sheet-title";
-import { afterMove, fromAnotherPage, PageData } from "../shell/awaited";
+import { fromAnotherPage, PageData } from "../shell/awaited";
 import { useFocusCarriesOver } from "../shell/focus";
 import { rowDetails, useSheetTitleName } from "../shell/page-moves";
 import { focusSheetMenu, SheetBar, SheetFrameBar } from "../shell/sheet-bar";
@@ -158,7 +158,7 @@ export async function clientLoader({
     typeof window !== "undefined" &&
     window.location.pathname === `${url.pathname}/edit`;
   if (fromEdit || !fromAnotherPage(url)) return await serverLoader();
-  return { page: afterMove(serverLoader()) };
+  return { page: serverLoader() };
 }
 
 // A sheet that can't be loaded shows a note under the top bar. See

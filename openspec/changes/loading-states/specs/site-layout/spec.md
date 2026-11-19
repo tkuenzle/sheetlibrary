@@ -24,13 +24,6 @@ A skeleton SHALL show for real what the browser already knows. A collection SHAL
 - **WHEN** a person selects "Stille Nacht" on `/sheets`, and the sheet is slow to arrive
 - **THEN** the sheet rises with "Stille Nacht" and its artist in the heading, and bars in place of its lines
 
-### Requirement: No rows in the middle of a move
-When the data arrives while the page is still moving in, the bars SHALL stay until the move has ended.
-
-#### Scenario: A fast answer
-- **WHEN** a person selects "Christmas" in the rail, and its sheets arrive after 50ms
-- **THEN** the page fades in with bars, and the rows show as the fade ends
-
 ### Requirement: No skeleton when a page loads again
 A page that loads its data again without a move to another page, such as after a change on one of its rows or during a search, SHALL keep what it shows until the new data is there.
 

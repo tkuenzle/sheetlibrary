@@ -1,8 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   isLate,
-  moveEnded,
   moveKind,
   openedFrom,
   type PageKind,
@@ -177,76 +176,5 @@ describe("titleMoveStart", () => {
 
   it("starts in place when the boxes are the same", () => {
     expect(titleMoveStart(row, row)).toEqual({ dx: 0, dy: 0, sx: 1, sy: 1 });
-  });
-});
-
-// Data that arrives during a move waits for it (shell/awaited.tsx).
-describe("moveEnded", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  // A promise that settles when `settle` is called, and whether it has.
-  function later() {
-    let settle: () => void = () => undefined;
-    const promise = new Promise<void>((resolve) => {
-      settle = resolve;
-    });
-    return { promise, settle };
-  }
-
-  async function ended(promise: Promise<void>) {
-    let done = false;
-    void promise.then(() => {
-      done = true;
-    });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    return done;
-  }
-
-  it("waits for the move the browser says plays", async () => {
-    const finished = later();
-    vi.stubGlobal("document", {
-      activeViewTransition: { finished: finished.promise },
-    });
-    const waiting = moveEnded();
-    expect(await ended(waiting)).toBe(false);
-    finished.settle();
-    expect(await ended(waiting)).toBe(true);
-  });
-
-  it("doesn't wait without a move", async () => {
-    vi.stubGlobal("document", { activeViewTransition: null });
-    expect(await ended(moveEnded())).toBe(true);
-  });
-
-  it("doesn't wait for a move that was skipped", async () => {
-    vi.stubGlobal("document", {
-      activeViewTransition: { finished: Promise.reject(new Error("skipped")) },
-    });
-    expect(await ended(moveEnded())).toBe(true);
-  });
-
-  // A browser without activeViewTransition: the move's animations.
-  it("waits for the move's animations otherwise", async () => {
-    class KeyframeEffect {
-      constructor(readonly pseudoElement: string | null) {}
-    }
-    vi.stubGlobal("KeyframeEffect", KeyframeEffect);
-    const finished = later();
-    vi.stubGlobal("document", {
-      getAnimations: () => [
-        {
-          effect: new KeyframeEffect("::view-transition-new(root)"),
-          finished: finished.promise,
-        },
-        // Not the move: a menu that grows.
-        { effect: new KeyframeEffect(null), finished: later().promise },
-      ],
-    });
-    const waiting = moveEnded();
-    expect(await ended(waiting)).toBe(false);
-    finished.settle();
-    expect(await ended(waiting)).toBe(true);
   });
 });

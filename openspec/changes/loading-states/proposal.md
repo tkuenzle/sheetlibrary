@@ -10,7 +10,7 @@ A page shows all at once when its data is there. Until then the old page stays, 
 - The skeleton is the real page: the frame, the heading, and whatever the browser already knows. Data still on its way shows as bars inside the real row's frame, at the real row's height, so nothing shifts when it arrives.
 - What the browser already knows shows for real: a collection's name and count from the rail, so the skeleton has that many rows, up to a screenful; a sheet's title and artist from the row it was opened from. The account page's email is a bar like the rest of its data, since the root loader only passes the initial.
 - Skeletons on Sheets, a collection, a sheet and the account page, and in the lists of "Add sheets" and "Choose collections". Collections already has all its data and shows at once.
-- On a fast connection, the skeleton stays until the move ends, and the rows come in then, never in the middle of the move.
+- The data shows as soon as it arrives, also while the page is still moving in. On a fast connection that is mostly before the page shows at all.
 - A page that loads again on its own, such as after a row's delete or during a search, keeps what it shows. No skeleton.
 - A first load comes full from the server, with no skeleton.
 - The bars are a new part of the design system. They pulse in opacity, and stand still with reduced motion.
@@ -44,6 +44,7 @@ None.
 - Edit: should it get a skeleton, or use what Play just loaded, instead of waiting?
 - Recent shows in the skeleton, then goes away for a library that turns out to have none. Is that fine?
 - How fast do the bars pulse? Repeating signs have no motion token yet.
+- Rows that arrive while the page moves in replace the bars in the middle of the move. Does that look like a flicker on a phone? If it does, they could wait for the move to end.
 - On a slow connection the rows arrive after the move. Do they replace the bars at once, or fade in?
 - A sheet opened from somewhere without a row, such as a collection's link on a sheet, has no title to show. Is a bar in the heading fine there?
 - Deleting from the sheet's menu still waits in the confirm dialog. Should it go back to the list at once, and bring the row back with a note if the server says no?

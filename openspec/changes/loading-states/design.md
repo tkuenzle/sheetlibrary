@@ -7,7 +7,7 @@ The pages' server loaders read D1 in the same worker, so they are fast. On a mov
 ## Goals / Non-Goals
 
 **Goals:**
-- No timers in the pages: the skeleton gives way when the data is there and the move has ended.
+- No timers in the pages: the skeleton gives way when the data is there.
 - The server loaders stay as they are.
 
 **Non-Goals:**
@@ -34,9 +34,9 @@ The root loader passes only the account's initial, since its data is on every pa
 
 `openedFrom()` in `shell/page-moves.ts` grows to carry the title and artist next to the list's name. Without that state, the heading is a bar too. A collection's skeleton draws `min(count, 8)` rows. Its `meta()` takes the name from the shell's match, since the loader data is a promise.
 
-**`<Suspense>` and `<Await>`, and the data waits for the move.** Each page renders its data in `<Await>`, with the skeleton as the `<Suspense>` fallback. The promise the client loader hands over is `afterMove(serverLoader())` (`shell/awaited.tsx`): once the data has arrived, it waits for the page's move to finish, if one plays (`moveEnded` in `shell/page-moves.ts`, which owns the moves). It asks the browser for the running view transition (`document.activeViewTransition`), which is there from the moment the move starts. A browser without it is asked for the animations on the move's `::view-transition` pseudo-elements instead. So rows that arrive while the page moves in come in as the move ends. Without a move, as when a page loads again, nothing waits. Data that arrives before the move has started goes into the new picture, so the page moves in whole.
+**`<Suspense>` and `<Await>`, and the data shows as it arrives.** Each page renders its data in `<Await>`, with the skeleton as the `<Suspense>` fallback. The client loader hands over `serverLoader()` as it is, so the data shows as soon as it arrives, also while the page still moves in. On a fast connection that is mostly before the new picture shows, so the page moves in whole.
 
-The plan was to let React hold the skeleton: React 19 doesn't swap a fallback for its content until about 300ms after it appeared (`FALLBACK_THROTTLE_MS`). The spike showed it doesn't for this update. With the data held back 50ms, the rows were in the page before the fade had started. With `afterMove`, data held back 250ms left the skeleton exactly as the move finished, and data held back 50ms joined the page within a few milliseconds of the fade's start, while the new picture is still transparent. Considered: a timer that shows the skeleton only after 200ms. The browser takes the new page's picture at the tap, so the page would move in empty. Considered: waiting a fixed `--motion-long` after the tap. It would also hold the rows back when no move plays.
+The plan was to let React hold the skeleton until the move ends: React 19 doesn't swap a fallback for its content until about 300ms after it appeared (`FALLBACK_THROTTLE_MS`). The spike showed it doesn't for this update: with the data held back 50ms, the rows were in the page before the fade had started. Holding the rows back in our own code until the move had ended (asking the browser for `document.activeViewTransition`, with a fallback for browsers without it) worked, but was dropped as more than this needs. Whether rows that arrive mid-move look like a flicker is left to the check on a phone. Considered: a timer that shows the skeleton only after 200ms. The browser takes the new page's picture at the tap, so the page would move in empty.
 
 **Only a move from another page hands over a promise.** A search, a reload after a change on a row, and "Try again" load the page that is open. Its client loader waits for them as before (`fromAnotherPage` in `shell/awaited.tsx`: the address still names the open page while the loaders run). So the page keeps what it shows, and React Router's navigation stays "loading" until the data is there, which a search's "Searching…" reads. The spike had shown that React keeps the shown rows for a new promise too, but "Searching…" would have gone at once. A dialog's fetcher that loads the library's list asks for the list itself with `?list` (`LIST_ONLY`), since a fetcher's load runs the client loader too and looks like a move.
 
@@ -52,7 +52,7 @@ The plan was to let React hold the skeleton: React 19 doesn't swap a fallback fo
 
 ## Risks / Trade-offs
 
-- [In a browser without `activeViewTransition`, data that arrives after the move has started but before its animations exist swaps in at the fade's first frames] → The new picture is still transparent then. An e2e test with data held back 250ms checks that the skeleton stays until the move ends.
+- [Rows that arrive while the page moves in replace the bars mid-move, which may look like a flicker] → Checked on an iPhone on the preview. If it does, the rows can wait for the move to end, as tried in this change.
 - [The skeleton's frame differs from the real page and things jump] → Bars sit in the real row markup. Checked against the "Loading" boards on the design canvas, and in the browser with a slow connection.
 - [A redirect inside the promise shows the skeleton for a moment first] → Rare (expired session, a version that is gone). Acceptable.
 - [Recent shows bars and then disappears for a library without recent sheets] → Rare; listed as an open question in the proposal.

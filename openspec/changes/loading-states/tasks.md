@@ -15,7 +15,7 @@
 
 - [x] 3.1 Hand over the rows as a promise in `routes/collection.tsx`, render them in `<Await>` with a `<Suspense>` keyed by the collection's id, the name and count from the shell's data, and `meta()` from the shell's match; verify with a unit test that the skeleton has `min(count, 8)` rows
 - [x] 3.2 Throw a rejected promise on to the route's `ErrorBoundary`, follow a redirect, and show "not found" for a 404; verify with the existing e2e test "shows the note inside the shell offline" and a test for a collection that is gone
-- [x] 3.3 Add e2e tests: with the data held back 2s, the page fades in with "Christmas", its count and bars, then shows the rows; with 250ms, the bars stay until the move ends; from one collection to another, the old rows never show under the new name
+- [x] 3.3 Add e2e tests: with the data held back 2s, the page fades in with "Christmas", its count and bars, then shows the rows; with 250ms, the bars stay until the move ends (dropped: the rows show as they arrive); from one collection to another, the old rows never show under the new name
 
 ## 4. Sheets
 
@@ -45,7 +45,7 @@
 
 - [x] 9.1 Run `pnpm lint`, `pnpm test` and the full e2e suite; verify they pass
 - [x] 9.2 With the browser-check skill, on a phone with the CPU slowed 6× and a slow network, open each page and dialog; verify the skeleton matches the "Loading" boards, nothing shifts when the data arrives, and the bars stand still with reduced motion
-- [ ] 9.3 Ask the person to try the moves on an iPhone on the preview, on a fast connection; verify the rows don't flicker in during the move
+- [ ] 9.3 Ask the person to try the moves on an iPhone on the preview, on a fast connection; note whether rows that arrive during the move look like a flicker
 
 ## Workflow follow-up
 

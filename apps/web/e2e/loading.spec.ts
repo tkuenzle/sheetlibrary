@@ -69,27 +69,13 @@ async function startOnCollections(page: Page) {
   await page.waitForLoadState("networkidle");
 }
 
-// Notes when the page's move ends and when its skeleton leaves, from the
-// next page load on.
+// Notes whether a skeleton showed, from the next page load on.
 async function recordSkeleton(page: Page) {
   await page.addInitScript(() => {
-    const log: { moveEnded?: number; skeletonGone?: number; seen?: boolean } =
-      {};
+    const log: { seen?: boolean } = {};
     (window as unknown as { skeletonLog: typeof log }).skeletonLog = log;
-    const start = document.startViewTransition.bind(document);
-    document.startViewTransition = (...args) => {
-      const transition = start(...args);
-      void transition.finished.then(() => {
-        log.moveEnded = performance.now();
-      });
-      return transition;
-    };
     new MutationObserver(() => {
-      const shown = !!document.querySelector(".sheet-list-skeleton");
-      if (shown) log.seen = true;
-      if (log.seen && !shown && log.skeletonGone === undefined) {
-        log.skeletonGone = performance.now();
-      }
+      if (document.querySelector(".sheet-list-skeleton")) log.seen = true;
     }).observe(document, { subtree: true, childList: true });
   });
 }
@@ -115,37 +101,6 @@ test("shows a slow collection at once, with its name, count and bars", async ({
   await expect(rows(page)).toHaveCount(3);
   await expect(bars(page)).toHaveCount(0);
   await expect(heading(page)).toBeFocused();
-});
-
-// Scenario "A fast answer": data that arrives while the page moves in
-// waits for the move to end.
-test("keeps the bars until the move has ended", async ({ page }) => {
-  const mark = newMark();
-  const name = `Moving ${mark}`;
-  await createCollection(page, name, [`One ${mark}`]);
-  await recordSkeleton(page);
-  await startOnCollections(page);
-  await holdBack(page, collectionData, 250);
-  await openCollection(page, name);
-  await expect(rows(page)).toHaveCount(1);
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          (window as unknown as { skeletonLog: { moveEnded?: number } })
-            .skeletonLog.moveEnded,
-      ),
-    )
-    .toBeDefined();
-  const log = await page.evaluate(
-    () =>
-      (
-        window as unknown as {
-          skeletonLog: { moveEnded: number; skeletonGone: number };
-        }
-      ).skeletonLog,
-  );
-  expect(log.skeletonGone).toBeGreaterThanOrEqual(log.moveEnded - 1);
 });
 
 // Scenario "Another collection".
