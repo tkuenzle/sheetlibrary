@@ -51,7 +51,7 @@ Page changes use the browser's View Transitions, through React Router's `viewTra
   tap -- move, page with bars --> data arrives --> rows
   ```
 
-- **A dialog's bars never flash.** No move covers them, so in Add sheets and Choose collections the bars stay unseen for the first 200ms, keeping their room, and once seen they stay at least 400ms (`useSkeleton` in `ui/skeleton.tsx`).
+- **Bars never flash.** Where no move covers them, in Add sheets and Choose collections, and on a page that changes without a move (after Safari's own swipe back, or with reduced motion), the bars stay unseen for the first 200ms, keeping their room, and once seen stay at least 400ms (`useSkeleton` in `ui/skeleton.tsx`, `PageSkeleton` and `holdBars` in `shell/awaited.tsx`). While a move plays, they show from the start.
 - **Rows show as they arrive.** Data that arrives while the page still moves in shows at once, in the middle of the move. On a fast connection it is mostly there before the new picture shows, so the page moves in whole. A page that loads again without a move, after a change on a row or during a search, keeps what it shows. For now the rows replace the bars at once.
 - **A late page cuts.** A move starts once the new page's data is there. When that took longer than the loading bar waits (`SLOW_WAIT`, 200ms), the person has already waited, so the page changes at once. With skeletons this only happens to pages that wait for their data, such as Edit.
 - **The page that is open doesn't move.** A link to it, such as "Sheet Library" on Sheets, is `none`.

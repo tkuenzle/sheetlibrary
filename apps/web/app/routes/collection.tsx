@@ -46,7 +46,7 @@ import { Menu } from "../ui/menu";
 import { NameDialog } from "../ui/name-dialog";
 import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/collection";
-import { fromAnotherPage, PageData } from "../shell/awaited";
+import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
 import { useFocusCarriesOver } from "../shell/focus";
 import { revalidateUnlessUnchanged } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
@@ -150,7 +150,7 @@ export async function clientLoader({
   url,
 }: Route.ClientLoaderArgs) {
   if (!fromAnotherPage(url)) return await serverLoader();
-  return { page: serverLoader() };
+  return { page: holdBars(serverLoader()) };
 }
 
 // A change from a row that doesn't get through keeps the list on screen.

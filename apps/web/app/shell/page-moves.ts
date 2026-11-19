@@ -54,6 +54,20 @@ export function moveKind(from: PageKind, to: PageKind, cut = false): MoveKind {
   return from.sheet === to.sheet && from.kind !== to.kind ? "mode" : "none";
 }
 
+// Whether a move plays for the page change that is being shown: a view
+// transition runs, its kind isn't "none" (as after Safari's own swipe back),
+// and motion isn't reduced. Read it in a layout effect of the new page:
+// <PageMoves /> renders before the pages, so the kind is set by then.
+export function movePlays(): boolean {
+  // Undefined in a browser without it, whatever the DOM types say.
+  const running = (document as { activeViewTransition?: ViewTransition | null })
+    .activeViewTransition;
+  if (running === null) return false;
+  const kind = document.documentElement.dataset.move;
+  if (!kind || kind === "none") return false;
+  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 // A move starts once the new page's data is there. When that took longer
 // than the loading bar waits before it shows, the person has already
 // waited, and a move would only add to it, so the page changes at once.

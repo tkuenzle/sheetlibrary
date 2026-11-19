@@ -45,7 +45,12 @@
 
 - [x] 9.1 Run `pnpm lint`, `pnpm test` and the full e2e suite; verify they pass
 - [x] 9.2 With the browser-check skill, on a phone with the CPU slowed 6× and a slow network, open each page and dialog; verify the skeleton matches the "Loading" boards, nothing shifts when the data arrives, and the bars stand still with reduced motion
-- [ ] 9.3 Ask the person to try the moves on an iPhone on the preview, on a fast connection; note whether rows that arrive during the move look like a flicker
+- [x] 9.3 Ask the person to try the moves on an iPhone on the preview, on a fast connection; note whether rows that arrive during the move look like a flicker
+
+## 10. After the iPhone check
+
+- [x] 10.1 Show a dialog's bars only after 200ms, and keep them at least 400ms once shown; verify with e2e tests for a quick and a slow list in Choose collections
+- [x] 10.2 Do the same for a page when no move plays; verify with e2e tests with reduced motion for a quick and a slow collection
 
 ## Workflow follow-up
 

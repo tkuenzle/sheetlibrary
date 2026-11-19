@@ -1,5 +1,14 @@
-import { type ReactNode, Suspense, useEffect, useState } from "react";
+import {
+  type ReactNode,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from "react";
 import { Await, useAsyncError, useNavigate } from "react-router";
+
+import { movePlays } from "./page-moves";
+import { SKELETON_HOLD, SLOW_WAIT } from "./slow-wait";
 
 // For the pages whose data comes after the page, in <Await> with a
 // skeleton (see openspec/specs/site-layout). A move to such a page doesn't
@@ -14,6 +23,70 @@ import { Await, useAsyncError, useNavigate } from "react-router";
 export function fromAnotherPage(url: URL): boolean {
   return (
     typeof window === "undefined" || window.location.pathname !== url.pathname
+  );
+}
+
+// When the bars of the page's skeleton showed, if they showed after their
+// first moment because no move played. Data that arrives while they are
+// held waits (holdBars). Null while a move plays or before they show.
+let barsShownAt: number | null = null;
+// Whether the data of the latest move has arrived. Its skeleton's bars
+// then don't show any more: React may still keep the skeleton for a moment
+// before it shows what arrived, and bars showing in that moment would only
+// flash.
+let dataArrived = true;
+
+// The page's data for a client loader to hand over unawaited: once it has
+// arrived, and, when the skeleton's bars showed without a move, once they
+// have shown for SKELETON_HOLD, so they never flash. A failure goes on at
+// once.
+export async function holdBars<T>(data: Promise<T>): Promise<T> {
+  dataArrived = false;
+  const value = await data;
+  dataArrived = true;
+  const shownAt = barsShownAt;
+  if (shownAt !== null) {
+    const left = shownAt + SKELETON_HOLD - Date.now();
+    if (left > 0) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, left);
+      });
+    }
+  }
+  return value;
+}
+
+// A page's skeleton, as PageData shows it. While a move plays, its bars show
+// from the start: the move needs a page to show, and rows that swap in
+// while the page moves in are fine. Without a move, as after Safari's own
+// swipe back or with reduced motion, nothing covers them: they keep their
+// room unseen for SLOW_WAIT, and once seen are held (holdBars). See
+// openspec/specs/site-layout.
+function PageSkeleton({ children }: { children: ReactNode }) {
+  const [waiting, setWaiting] = useState(true);
+  useLayoutEffect(() => {
+    barsShownAt = null;
+    if (movePlays()) {
+      setWaiting(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (dataArrived) return;
+      barsShownAt = Date.now();
+      setWaiting(false);
+    }, SLOW_WAIT);
+    return () => {
+      clearTimeout(timer);
+      barsShownAt = null;
+    };
+  }, []);
+  return (
+    <div
+      className={waiting ? "skeleton-waiting" : undefined}
+      style={{ display: "contents" }}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -37,7 +110,7 @@ export function PageData<T>({
   const [streamed] = useState(() => data instanceof Promise);
   if (!streamed && !(data instanceof Promise)) return children(data);
   return (
-    <Suspense fallback={skeleton}>
+    <Suspense fallback={<PageSkeleton>{skeleton}</PageSkeleton>}>
       <Await resolve={data} errorElement={<AwaitError />}>
         {children}
       </Await>

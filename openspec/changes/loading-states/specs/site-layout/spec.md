@@ -35,6 +35,17 @@ A page that loads its data again without a move to another page, such as after a
 - **WHEN** a person on the collection "Christmas" selects "Campfire" in the rail, and its sheets are slow to arrive
 - **THEN** the page shows "Campfire" with bars, not the sheets of "Christmas"
 
+### Requirement: No flashing bars without a move
+When a page changes without a move, as after Safari's own swipe back or with reduced motion, its bars SHALL show only when its data takes longer than 200ms; until then their room SHALL stay empty. Once shown, they SHALL stay for at least 400ms. While a move plays, the bars SHALL show from the start of the move.
+
+#### Scenario: A quick page without a move
+- **WHEN** reduced motion is on and a person selects "Christmas" in the rail, and its sheets arrive after 50ms
+- **THEN** the sheets show without any bars before them
+
+#### Scenario: A slow page without a move
+- **WHEN** reduced motion is on and the sheets of "Christmas" take a second to arrive
+- **THEN** bars show in the rows' room after a moment, and stay until the sheets are there
+
 ### Requirement: Bars in the dialogs that load
 "Add sheets" and "Choose collections" SHALL show bars in their list while it loads, but only when it takes longer than 200ms; until then the list's room SHALL stay empty. Once shown, the bars SHALL stay for at least 400ms, so they never flash. Controls that need the list SHALL wait until it is there.
 

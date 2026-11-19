@@ -21,7 +21,7 @@ import {
 import { RecentSheets, RecentSheetsSkeleton } from "../sheets/recent-sheets";
 import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList, SheetListSkeleton } from "../sheets/sheet-list";
-import { fromAnotherPage, PageData } from "../shell/awaited";
+import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
 import { useFocusCarriesOver } from "../shell/focus";
 import { UNTITLED } from "../sheets/details";
 import { type NewSheetWay, useNewSheet } from "../sheets/new-sheet";
@@ -153,7 +153,7 @@ export async function clientLoader({
   if (!fromAnotherPage(url) || url.searchParams.has(LIST_ONLY)) {
     return await load();
   }
-  return { page: load() };
+  return { page: holdBars(load()) };
 }
 
 // A row's change that didn't get through loads nothing again.

@@ -299,3 +299,65 @@ test("keeps the bars a moment once they show", async ({ page }) => {
   expect(log.shown).toBeDefined();
   expect((log.gone ?? 0) - (log.shown ?? 0)).toBeGreaterThanOrEqual(390);
 });
+
+// Notes when a page's bars show, unseen no longer, and when they go, from
+// the next page load on.
+async function recordPageBars(page: Page) {
+  await page.addInitScript(() => {
+    const log: { shown?: number; gone?: number } = {};
+    (window as unknown as { pageBarsLog: typeof log }).pageBarsLog = log;
+    new MutationObserver(() => {
+      const shown = [
+        ...document.querySelectorAll("main .sheet-list-skeleton"),
+      ].some((row) => !row.closest(".skeleton-waiting"));
+      if (shown && log.shown === undefined) log.shown = performance.now();
+      if (!shown && log.shown !== undefined && log.gone === undefined) {
+        log.gone = performance.now();
+      }
+    }).observe(document, { subtree: true, childList: true, attributes: true });
+  });
+}
+
+const pageBarsLog = (page: Page) =>
+  page.evaluate(
+    () =>
+      (window as unknown as { pageBarsLog: { shown?: number; gone?: number } })
+        .pageBarsLog,
+  );
+
+// Requirement "No flashing bars without a move": with reduced motion no
+// move plays, so a quick answer shows no bars.
+test("shows no bars for a quick page without a move", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const mark = newMark();
+  const name = `Quick ${mark}`;
+  await createCollection(page, name, [`One ${mark}`]);
+  await recordPageBars(page);
+  await startOnCollections(page);
+  await holdBack(page, collectionData, 50);
+  await openCollection(page, name);
+  await expect(rows(page)).toHaveCount(1);
+  await wait(500);
+  expect((await pageBarsLog(page)).shown).toBeUndefined();
+});
+
+// Once a page's bars show without a move, they stay a moment. The data is
+// held back long enough that they show: the request starts before the
+// skeleton does.
+test("keeps a page's bars a moment once they show without a move", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const mark = newMark();
+  const name = `Held ${mark}`;
+  await createCollection(page, name, [`One ${mark}`]);
+  await recordPageBars(page);
+  await startOnCollections(page);
+  await holdBack(page, collectionData, 700);
+  await openCollection(page, name);
+  await expect(rows(page)).toHaveCount(1);
+  await expect.poll(async () => (await pageBarsLog(page)).gone).toBeDefined();
+  const log = await pageBarsLog(page);
+  expect(log.shown).toBeDefined();
+  expect((log.gone ?? 0) - (log.shown ?? 0)).toBeGreaterThanOrEqual(390);
+});

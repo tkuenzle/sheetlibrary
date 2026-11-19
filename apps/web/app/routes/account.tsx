@@ -19,7 +19,7 @@ import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/account";
-import { fromAnotherPage, PageData } from "../shell/awaited";
+import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
 import { useFocusCarriesOver } from "../shell/focus";
 import { RouteError } from "../shell/route-error";
 
@@ -65,7 +65,7 @@ export async function clientLoader({
   url,
 }: Route.ClientLoaderArgs) {
   if (!fromAnotherPage(url)) return await serverLoader();
-  return { page: serverLoader() };
+  return { page: holdBars(serverLoader()) };
 }
 
 function passkeyName(passkey: PasskeyItem) {
