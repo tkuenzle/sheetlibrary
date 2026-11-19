@@ -24,8 +24,9 @@
   }
 
   /* Relative, so a key's read-out text (.visually-hidden) stays inside its
-     card, and a card scrolled out of the row doesn't widen the page. */
-  .recent-sheets a {
+     card, and a card scrolled out of the row doesn't widen the page. A card
+     that is loading (RecentSheetsSkeleton) takes a card's frame. */
+  .recent-sheets :is(a, .recent-sheets-skeleton) {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -51,14 +52,14 @@
     outline-offset: 2px;
   }
 
-  .recent-sheets a > span {
+  .recent-sheets :is(a, .recent-sheets-skeleton) > span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   /* A title takes up to two lines, so most titles show whole. */
-  .recent-sheets a > .recent-sheets-title {
+  .recent-sheets :is(a, .recent-sheets-skeleton) > .recent-sheets-title {
     /* As wide as its text, for the title's move (see shell/page-moves.css). */
     width: fit-content;
     display: -webkit-box;
@@ -97,7 +98,7 @@
       scroll-snap-align: start;
     }
 
-    .recent-sheets a {
+    .recent-sheets :is(a, .recent-sheets-skeleton) {
       padding: 14px var(--space-l);
     }
   }

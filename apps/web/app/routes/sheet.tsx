@@ -7,8 +7,20 @@ import {
   transposeSheet,
   versionKey,
 } from "chordsheet";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { data, Link, redirect, useRevalidator } from "react-router";
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  data,
+  Link,
+  redirect,
+  useLocation,
+  useRevalidator,
+} from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
 import { sheetCollections } from "../collections/collections.server";
@@ -22,7 +34,9 @@ import {
   useSheetKey,
   withAddressParam,
 } from "../editor/sheet-title";
-import { useSheetTitleName } from "../shell/page-moves";
+import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
+import { useFocusCarriesOver } from "../shell/focus";
+import { rowDetails, useSheetTitleName } from "../shell/page-moves";
 import { focusSheetMenu, SheetBar, SheetFrameBar } from "../shell/sheet-bar";
 import { ViewButton } from "../shell/view-button";
 import { SheetView } from "../sheet-view/sheet-view";
@@ -46,25 +60,37 @@ import {
 } from "../sheets/versions";
 import { takeHandedView } from "../sheets/view-hand-off";
 import { type ListedVersion, VersionsPart } from "../sheets/versions-part";
+import { IconButton } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Icon } from "../ui/icon";
 import { NameDialog } from "../ui/name-dialog";
+import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/sheet";
 import { RouteError } from "../shell/route-error";
 
 // A stored sheet to play or print, at /sheets/:id. See
 // openspec/specs/play-page.
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  // Missing when the page couldn't be loaded.
+export function meta({ loaderData, location }: Route.MetaArgs) {
+  // Missing when the page couldn't be loaded. On a move from a row, the
+  // sheet is still on its way, so the title comes from the row.
   const data = loaderData;
+  const title =
+    data && "page" in data
+      ? rowDetails(location.state)?.title
+      : data?.sheet
+        ? data.sheet.title
+        : data
+          ? null
+          : undefined;
   return [
     {
-      title: !data
-        ? "Sheet Library"
-        : data.sheet
-          ? `${data.sheet.title} | Sheet Library`
-          : "Sheet not found | Sheet Library",
+      title:
+        title === undefined
+          ? "Sheet Library"
+          : title === null
+            ? "Sheet not found | Sheet Library"
+            : `${title} | Sheet Library`,
     },
     { name: "robots", content: "noindex" },
   ];
@@ -118,6 +144,23 @@ export async function loader({
   };
 }
 
+// On a move from another page, the sheet doesn't wait for its data: it rises
+// at once, with the title and artist of the row it was opened from, and
+// the rest follows. From its own edit mode, which is a mode and not another
+// page, and when it loads again, it waits as before. A first load doesn't
+// run this, so the server renders the sheet whole. See
+// openspec/specs/site-layout.
+export async function clientLoader({
+  serverLoader,
+  url,
+}: Route.ClientLoaderArgs) {
+  const fromEdit =
+    typeof window !== "undefined" &&
+    window.location.pathname === `${url.pathname}/edit`;
+  if (fromEdit || !fromAnotherPage(url)) return await serverLoader();
+  return { page: holdBars(serverLoader()) };
+}
+
 // A sheet that can't be loaded shows a note under the top bar. See
 // openspec/specs/site-layout.
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -131,18 +174,37 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   );
 }
 
-export default function PlayPage({ loaderData }: Route.ComponentProps) {
-  const { sheet, shownKey, capo } = loaderData;
-  return sheet ? (
+// The sheet's data: whole after a first load, on its way after a move. It
+// is keyed by the sheet, so another sheet shows its own skeleton.
+export default function PlayPage({ loaderData, params }: Route.ComponentProps) {
+  const page = "page" in loaderData ? loaderData.page : loaderData;
+  return (
+    <PageData
+      key={params.id}
+      data={page}
+      skeleton={<PlaySkeleton sheetId={params.id} />}
+    >
+      {(loaded) => <LoadedPlay loaded={loaded} />}
+    </PageData>
+  );
+}
+
+// The sheet once its data is there, or "not found".
+function LoadedPlay({
+  loaded,
+}: {
+  loaded: Exclude<Route.ComponentProps["loaderData"], { page: unknown }>;
+}) {
+  return loaded.sheet ? (
     <PlayView
-      sheet={sheet}
-      versions={loaderData.versions}
-      collections={loaderData.collections}
-      versionId={loaderData.versionId}
-      shownKey={shownKey}
-      capo={capo}
-      lyricsOnly={loaderData.lyricsOnly}
-      textStep={loaderData.textStep}
+      sheet={loaded.sheet}
+      versions={loaded.versions}
+      collections={loaded.collections}
+      versionId={loaded.versionId}
+      shownKey={loaded.shownKey}
+      capo={loaded.capo}
+      lyricsOnly={loaded.lyricsOnly}
+      textStep={loaded.textStep}
     />
   ) : (
     <NotFound />
@@ -493,6 +555,124 @@ export function PlayView({
           setDialog(null);
         }}
       />
+    </>
+  );
+}
+
+// Lines of bars for a sheet that loads, in `em` of the lyrics: where each
+// chord sits, and how long the line's lyrics are. Two sections, as on the
+// canvas board "A sheet, loading".
+const SKELETON_SECTIONS = [
+  [
+    { chords: [0], lyrics: 11 },
+    { chords: [0, 5], lyrics: 9 },
+    { chords: [0, 6], lyrics: 13 },
+    { chords: [0, 7], lyrics: 12 },
+    { chords: [0, 9], lyrics: 10 },
+  ],
+  [
+    { chords: [0], lyrics: 11 },
+    { chords: [0, 4], lyrics: 8 },
+    { chords: [0, 6], lyrics: 12 },
+  ],
+];
+
+// The sheet while its data is on its way: the top bar, the title and artist
+// of the row it was opened from, and bars for the chips and the lines.
+// Without a row, as for a sheet opened from a link elsewhere, the title and
+// artist are bars too. Back and Edit work; View and the menu wait for the
+// sheet. The title takes its name for the move from the row, so it moves
+// while the rest loads.
+export function PlaySkeleton({ sheetId }: { sheetId: string }) {
+  const location = useLocation();
+  const row = rowDetails(location.state);
+  const lyrics = new URLSearchParams(location.search).has("lyrics");
+  const titleName = useSheetTitleName(sheetId, null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  useFocusCarriesOver(heading);
+  const moves = useSheetMoves();
+  const step = readTextStep(
+    typeof document === "undefined" ? null : document.cookie,
+  );
+  return (
+    <>
+      <SheetBar
+        mode="play"
+        onBack={() => void moves.go(backFromPlay(moves.history()))}
+        editTo={`/sheets/${sheetId}/edit${location.search}`}
+        view={
+          <div className="view-button">
+            <IconButton icon="formatSize" label="View" disabled />
+          </div>
+        }
+        menu={sheetMenuItems({
+          onChoose: () => undefined,
+          onDelete: () => undefined,
+        }).map((item) => ({ ...item, disabled: true }))}
+      />
+      <main className="play-page" aria-busy="true">
+        <div className="play-heading">
+          <h1
+            ref={heading}
+            tabIndex={-1}
+            style={{ viewTransitionName: titleName }}
+          >
+            {row ? row.title : <Bar width={6} />}
+          </h1>
+          {(!row || row.artist) && (
+            <p className="play-artist">
+              {row ? row.artist : <Bar width={8} />}
+            </p>
+          )}
+          {!lyrics && (
+            <div className="play-chips" aria-hidden="true">
+              <Bar width={10} chip accent />
+              <Bar width={5} chip />
+            </div>
+          )}
+        </div>
+        <div
+          className={lyrics ? "sheet-view is-lyrics-only" : "sheet-view"}
+          style={{ "--sheet-view-font-size": textSize(step) } as CSSProperties}
+          aria-hidden="true"
+        >
+          {SKELETON_SECTIONS.map((lines, i) => (
+            <section className="sheet-view-section" key={i}>
+              <div className="sheet-view-label">
+                <Bar width={4} />
+              </div>
+              {lines.map((line, j) =>
+                lyrics ? (
+                  <p className="sheet-view-line sheet-view-lyrics-line" key={j}>
+                    <Bar width={line.lyrics} />
+                  </p>
+                ) : (
+                  <p className="sheet-view-line" key={j}>
+                    <span className="sheet-view-piece">
+                      <span className="sheet-view-chords">
+                        {line.chords.map((at, k) => (
+                          <span
+                            className="sheet-view-chord"
+                            key={k}
+                            style={{ marginLeft: `${String(at)}em` }}
+                          >
+                            <Bar width={1.4} accent />
+                          </span>
+                        ))}
+                      </span>
+                      <span className="sheet-view-lyrics">
+                        <span className="sheet-view-text">
+                          <Bar width={line.lyrics} />
+                        </span>
+                      </span>
+                    </span>
+                  </p>
+                ),
+              )}
+            </section>
+          ))}
+        </div>
+      </main>
     </>
   );
 }

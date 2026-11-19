@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SLOW_WAIT, startWait } from "./slow-wait";
+import { SKELETON_HOLD, SLOW_WAIT, startWait } from "./slow-wait";
 
 describe("startWait", () => {
   beforeEach(() => {
@@ -28,6 +28,28 @@ describe("startWait", () => {
     vi.advanceTimersByTime(SLOW_WAIT);
     expect(show).toHaveBeenCalledOnce();
     expect(hide).not.toHaveBeenCalled();
+    end();
+    expect(hide).toHaveBeenCalledOnce();
+  });
+
+  // Skeleton bars: once shown, they stay for the hold, so they never flash.
+  it("keeps a shown wait for its hold, also when it ends sooner", () => {
+    const show = vi.fn();
+    const hide = vi.fn();
+    const end = startWait(show, hide, SLOW_WAIT, SKELETON_HOLD);
+    vi.advanceTimersByTime(SLOW_WAIT + 50);
+    end();
+    expect(hide).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(SKELETON_HOLD - 51);
+    expect(hide).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(hide).toHaveBeenCalledOnce();
+  });
+
+  it("hides at once a wait that showed for longer than its hold", () => {
+    const hide = vi.fn();
+    const end = startWait(vi.fn(), hide, SLOW_WAIT, SKELETON_HOLD);
+    vi.advanceTimersByTime(SLOW_WAIT + SKELETON_HOLD);
     end();
     expect(hide).toHaveBeenCalledOnce();
   });

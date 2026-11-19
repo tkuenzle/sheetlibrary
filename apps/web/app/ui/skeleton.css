@@ -1,0 +1,66 @@
+@layer components {
+  /* A bar where data is on its way (skeleton.tsx), as on the canvas row
+     "Loading" of the page "UX overhaul". About as tall as the letters of
+     the text it stands for, in the middle of its line. */
+  .skeleton-bar {
+    display: inline-block;
+    max-width: 100%;
+    height: 0.8em;
+    border-radius: 0.4em;
+    background: var(--quiet);
+    vertical-align: middle;
+    animation: skeleton-pulse 1.4s ease-in-out infinite alternate;
+  }
+
+  .skeleton-bar-accent {
+    background: var(--accent-soft);
+  }
+
+  /* A tick box, as in a dialog's list. */
+  .skeleton-bar-box {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+  }
+
+  /* As tall and round as a chip, such as a sheet's key button
+     (editor/key-button.css). */
+  .skeleton-bar-chip {
+    height: 40px;
+    border-radius: 20px;
+    font-size: 14px;
+    vertical-align: top;
+  }
+
+  /* It fades only, so it runs off the main thread (docs/motion.md). */
+  @keyframes skeleton-pulse {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0.5;
+    }
+  }
+
+  /* Bars in their first moment (useSkeleton): they keep their room, unseen,
+     so a quick answer shows none. */
+  .skeleton-waiting .skeleton-bar {
+    visibility: hidden;
+  }
+
+  /* A sign that repeats stands still, as the loading bar does. */
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-bar {
+      animation: none;
+    }
+  }
+
+  /* Forced colors drop the backgrounds, so the bar takes a system color. */
+  @media (forced-colors: active) {
+    .skeleton-bar {
+      background: GrayText;
+      forced-color-adjust: none;
+    }
+  }
+}

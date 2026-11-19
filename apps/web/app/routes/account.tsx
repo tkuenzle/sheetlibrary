@@ -3,8 +3,8 @@ import "../ui/group-list.css";
 import "./sign-in.css";
 import "./account.css";
 
-import { useId, useState } from "react";
-import { redirect, useLoaderData, useRevalidator } from "react-router";
+import { useId, useRef, useState } from "react";
+import { redirect, useRevalidator } from "react-router";
 
 import {
   addPasskey,
@@ -17,7 +17,10 @@ import { cloudflareContext, sessionContext } from "../context";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
+import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/account";
+import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
+import { useFocusCarriesOver } from "../shell/focus";
 import { RouteError } from "../shell/route-error";
 
 // The signed-in person's email, passkeys and sign-out. It sits in the shell
@@ -51,6 +54,18 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       createdAt: passkey.createdAt.toISOString(),
     })),
   };
+}
+
+// On a move from another page, the page doesn't wait for the passkeys: it
+// shows at once with bars, and they follow. After a change to the passkeys,
+// it waits and keeps them. A first load doesn't run this. See
+// openspec/specs/site-layout.
+export async function clientLoader({
+  serverLoader,
+  url,
+}: Route.ClientLoaderArgs) {
+  if (!fromAnotherPage(url)) return await serverLoader();
+  return { page: holdBars(serverLoader()) };
 }
 
 function passkeyName(passkey: PasskeyItem) {
@@ -161,29 +176,53 @@ export function AccountView({
   onRemove,
   onSignOut,
 }: {
-  email: string;
-  passkeys: PasskeyItem[];
+  // Null while they load: the page shows bars in their place. The root
+  // loader only passes the initial, so the email loads with the passkeys.
+  email: string | null;
+  passkeys: PasskeyItem[] | null;
   failed: boolean;
   onAdd: () => void;
   onRename: (id: string, name: string) => void;
   onRemove: (id: string) => void;
   onSignOut: () => void;
 }) {
+  const loading = passkeys === null;
+  const heading = useRef<HTMLHeadingElement>(null);
+  useFocusCarriesOver(loading ? heading : null);
   return (
     <div className="account">
-      <h1>Account</h1>
+      <h1 ref={heading} tabIndex={-1}>
+        Account
+      </h1>
       <section className="account-section" aria-labelledby="account-email">
         <h2 id="account-email">Email</h2>
         <ul className="group-list">
           <li className="account-row">
-            <span className="account-email">{email}</span>
+            <span className="account-email">{email ?? <Bar width={12} />}</span>
           </li>
         </ul>
       </section>
       <section className="account-section" aria-labelledby="account-passkeys">
         <h2 id="account-passkeys">Passkeys</h2>
-        <ul className="group-list">
-          {passkeys.length === 0 ? (
+        <ul className="group-list" aria-busy={loading || undefined}>
+          {passkeys === null ? (
+            SKELETON_PASSKEYS.map((width, i) => (
+              <li
+                className="account-row account-passkey"
+                key={i}
+                aria-hidden="true"
+              >
+                <div className="account-passkey-text">
+                  <span className="account-passkey-name">
+                    <Bar width={width} />
+                  </span>
+                  <span className="account-passkey-added">
+                    <Bar width={7} />
+                  </span>
+                </div>
+              </li>
+            ))
+          ) : passkeys.length === 0 ? (
             <li className="account-row">
               <span className="account-empty">No passkeys yet.</span>
             </li>
@@ -234,8 +273,33 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return <RouteError error={error} />;
 }
 
-export default function Account() {
-  const { email, passkeys } = useLoaderData<typeof loader>();
+// Widths in `em` of the bars for the passkeys' names while they load.
+const SKELETON_PASSKEYS = [8, 5];
+
+// The page's data: whole after a first load, on its way after a move.
+export default function Account({ loaderData }: Route.ComponentProps) {
+  const page = "page" in loaderData ? loaderData.page : loaderData;
+  return (
+    <PageData
+      data={page}
+      skeleton={<LoadedAccount email={null} passkeys={null} />}
+    >
+      {(loaded) => (
+        <LoadedAccount email={loaded.email} passkeys={loaded.passkeys} />
+      )}
+    </PageData>
+  );
+}
+
+// The page with its actions, once its data is there, or with bars while
+// it loads. Adding a passkey and signing out don't wait for it.
+function LoadedAccount({
+  email,
+  passkeys,
+}: {
+  email: string | null;
+  passkeys: PasskeyItem[] | null;
+}) {
   const revalidator = useRevalidator();
   const [failed, setFailed] = useState(false);
 

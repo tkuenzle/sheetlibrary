@@ -4,7 +4,10 @@ import { renderToString } from "react-dom/server";
 import { createRoutesStub, RouterContextProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { CollectionChoices } from "../collections/choose-collections-dialog";
+import {
+  ChooseCollectionsDialog,
+  CollectionChoices,
+} from "../collections/choose-collections-dialog";
 import { createCollection } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
@@ -16,7 +19,7 @@ import {
 } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheet";
-import { loader, meta, PlayView } from "./sheet";
+import { loader, meta, PlaySkeleton, PlayView } from "./sheet";
 
 // The play view inside a router, as on its page.
 function render(view: ReactNode) {
@@ -372,6 +375,42 @@ describe("play view", () => {
       );
       expect(failed).toContain("The collections couldn’t be loaded.");
     });
+
+    // Requirement "Bars in the dialogs that load".
+    it("shows rows of bars while the collections load", () => {
+      const html = renderToString(
+        <CollectionChoices
+          loaded={{ kind: "loading" }}
+          onToggle={() => undefined}
+        />,
+      );
+      expect(html).not.toContain("Loading collections");
+      expect(html).toContain('aria-busy="true"');
+      expect(html.match(/choose-collections-skeleton/g)).toHaveLength(5);
+      expect(html).toContain("skeleton-bar skeleton-bar-box");
+    });
+
+    it("lets New collection wait for the list, and Done close", () => {
+      const Stub = createRoutesStub([
+        {
+          path: "/",
+          Component: () => (
+            <ChooseCollectionsDialog
+              open
+              sheet={{ id: "abcdefghijkl", title: "Amazing Grace" }}
+              onClose={() => undefined}
+            />
+          ),
+        },
+      ]);
+      const html = renderToString(<Stub />);
+      expect(html).toMatch(
+        /<button[^>]*disabled=""[^>]*>.*?New collection<\/button>/,
+      );
+      expect(html).toMatch(
+        /<button type="button" class="button button-filled">Done<\/button>/,
+      );
+    });
   });
 
   describe("lyrics only", () => {
@@ -526,5 +565,69 @@ describe("play view", () => {
       { title: "Amazing Grace | Sheet Library" },
       { name: "robots", content: "noindex" },
     ]);
+  });
+});
+
+function renderSkeleton(state: unknown, search = "") {
+  const Stub = createRoutesStub([
+    {
+      path: "/sheets/:id",
+      Component: () => <PlaySkeleton sheetId="stille000000" />,
+    },
+  ]);
+  return renderToString(
+    <Stub
+      initialEntries={[{ pathname: "/sheets/stille000000", search, state }]}
+    />,
+  );
+}
+
+// Requirement "What the skeleton already knows".
+describe("play view while the sheet loads", () => {
+  it("shows the row's title and artist, and bars for the chips and lines", () => {
+    const html = renderSkeleton({
+      openedFrom: "list",
+      title: "Stille Nacht",
+      artist: "Franz Xaver Gruber",
+    });
+    expect(html).toMatch(/<h1[^>]*>Stille Nacht<\/h1>/);
+    expect(html).toMatch(/<p class="play-artist">Franz Xaver Gruber<\/p>/);
+    expect(html).toContain("skeleton-bar-chip");
+    expect(html).toContain('class="sheet-view"');
+    expect(html).toContain('aria-busy="true"');
+  });
+
+  it("shows bars for the title and artist without a row", () => {
+    const html = renderSkeleton(null);
+    expect(html).toMatch(/<h1[^>]*><span class="skeleton-bar"/);
+    expect(html).toMatch(/<p class="play-artist"><span class="skeleton-bar"/);
+  });
+
+  it("has no artist line for a row without an artist", () => {
+    const html = renderSkeleton({ openedFrom: "recent", title: "Sternsinger" });
+    expect(html).not.toContain("play-artist");
+  });
+
+  it("shows lyrics only without chips or chords", () => {
+    const html = renderSkeleton({ title: "Stille Nacht" }, "?lyrics");
+    expect(html).not.toContain("skeleton-bar-chip");
+    expect(html).toContain("is-lyrics-only");
+    expect(html).not.toContain("sheet-view-chord");
+  });
+
+  it("lets Back and Edit work, and View and the menu wait", () => {
+    const html = renderSkeleton({ title: "Stille Nacht" });
+    expect(html).toMatch(/href="\/sheets\/stille000000\/edit"/);
+    expect(html).toMatch(
+      /aria-label="View"[^>]*disabled=""|disabled=""[^>]*aria-label="View"/,
+    );
+  });
+
+  it("names the page from the row while the sheet loads", () => {
+    const named = meta({
+      loaderData: { page: new Promise(() => undefined) },
+      location: { state: { openedFrom: "list", title: "Stille Nacht" } },
+    } as unknown as Route.MetaArgs);
+    expect(named).toContainEqual({ title: "Stille Nacht | Sheet Library" });
   });
 });

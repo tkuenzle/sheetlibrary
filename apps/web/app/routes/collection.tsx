@@ -11,7 +11,11 @@ import {
 } from "react-router";
 
 import { AddSheetsDialog } from "../collections/add-sheets-dialog";
-import { COLLECTION_NAME_MAX, sheetCount } from "../collections/collections";
+import {
+  COLLECTION_NAME_MAX,
+  type CollectionListItem,
+  sheetCount,
+} from "../collections/collections";
 import {
   deleteCollection,
   renameCollection,
@@ -28,36 +32,68 @@ import {
 } from "../collections/new-collection";
 import { cloudflareContext, sessionContext } from "../context";
 import { NotFound } from "../sheets/not-found";
-import { readSheetOrder, type SheetOrder } from "../sheets/order";
+import {
+  keptSheetOrder,
+  readSheetOrder,
+  type SheetOrder,
+} from "../sheets/order";
 import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
-import { SheetList } from "../sheets/sheet-list";
+import { SheetList, SheetListSkeleton } from "../sheets/sheet-list";
 import { deleteSheet } from "../sheets/sheets.server";
-import { Button } from "../ui/button";
+import { Button, IconButton } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu } from "../ui/menu";
 import { NameDialog } from "../ui/name-dialog";
+import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/collection";
+import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
+import { useFocusCarriesOver } from "../shell/focus";
 import { revalidateUnlessUnchanged } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
+import { shellRouteId, useShellCollections } from "./shell";
 
 // One collection, at /collections/:id: its sheets in the shared list, whose
 // row menus add "Remove from …", "Add sheets", and the collection's menu with
 // "Rename" and "Delete". It sits in the shell (routes/shell.tsx). See
 // openspec/specs/collection-page and openspec/specs/sheet-list.
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  // Missing when the page couldn't be loaded.
-  const data = loaderData;
+// The most rows of bars while the sheets load: about a screenful.
+const SKELETON_ROWS = 8;
+
+export function meta({ loaderData, matches, params }: Route.MetaArgs) {
+  // Missing when the page couldn't be loaded. On a move inside the app the
+  // sheets are still on their way, so the name comes from the rail.
+  const name =
+    loaderData && "page" in loaderData
+      ? shellCollection(matches, params.id)?.name
+      : loaderData?.collection
+        ? loaderData.collection.name
+        : loaderData && "collection" in loaderData
+          ? null
+          : undefined;
   return [
     {
-      title: !data
-        ? "Sheet Library"
-        : data.collection
-          ? `${data.collection.name} | Sheet Library`
-          : "Collection not found | Sheet Library",
+      title:
+        name === undefined
+          ? "Sheet Library"
+          : name === null
+            ? "Collection not found | Sheet Library"
+            : `${name} | Sheet Library`,
     },
     { name: "robots", content: "noindex" },
   ];
+}
+
+// The collection as the rail lists it, from the shell's data.
+function shellCollection(
+  matches: Route.MetaArgs["matches"],
+  id: string,
+): CollectionListItem | undefined {
+  const shell = matches.find((match) => match?.id === shellRouteId);
+  const collections = (
+    shell?.loaderData as { collections?: CollectionListItem[] } | undefined
+  )?.collections;
+  return collections?.find((collection) => collection.id === id);
 }
 
 // The collection, and the order this device keeps for the list.
@@ -104,6 +140,19 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   return ok ? { ok } : data({ ok }, { status: 404 });
 }
 
+// On a move from another page, the page doesn't wait for the sheets: it
+// shows at once with what the rail knows, and the sheets follow. Loading
+// again, as after a change on a row, it waits and keeps its sheets. A first
+// load doesn't run this, so the server renders the page whole. See
+// openspec/specs/site-layout.
+export async function clientLoader({
+  serverLoader,
+  url,
+}: Route.ClientLoaderArgs) {
+  if (!fromAnotherPage(url)) return await serverLoader();
+  return { page: holdBars(serverLoader()) };
+}
+
 // A change from a row that doesn't get through keeps the list on screen.
 export async function clientAction({
   request,
@@ -123,14 +172,41 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return <RouteError error={error} />;
 }
 
-export default function CollectionPage({ loaderData }: Route.ComponentProps) {
+// The page's data: whole after a first load, on its way after a move. It is
+// keyed by the collection, so another collection shows its own skeleton,
+// not the sheets of the last one.
+export default function CollectionPage({
+  loaderData,
+  params,
+}: Route.ComponentProps) {
+  const listed = useShellCollections().find(
+    (collection) => collection.id === params.id,
+  );
+  const page = "page" in loaderData ? loaderData.page : loaderData;
+  return (
+    <PageData
+      key={params.id}
+      data={page}
+      skeleton={<CollectionSkeleton listed={listed} />}
+    >
+      {(loaded) => <LoadedCollection loaded={loaded} />}
+    </PageData>
+  );
+}
+
+// The collection once its data is there, or "not found".
+function LoadedCollection({
+  loaded,
+}: {
+  loaded: { collection: Collection | null; order?: SheetOrder };
+}) {
   const navigate = useNavigate();
   const { revalidate } = useRevalidator();
-  if (!loaderData.collection) return <NotFound what="collection" />;
+  if (!loaded.collection) return <NotFound what="collection" />;
   return (
     <CollectionView
-      collection={loaderData.collection}
-      order={loaderData.order}
+      collection={loaded.collection}
+      order={loaded.order}
       onRenamed={revalidate}
       onDeleted={() => {
         // Deleted with a plain fetch, so the rail is told to drop it
@@ -259,6 +335,61 @@ export function CollectionView({
         }}
         onClose={closed}
       />
+    </div>
+  );
+}
+
+// The page while its sheets are on their way, as on the canvas board "A
+// collection, loading": the name and count from the rail, and as many rows
+// of bars as it holds, up to a screenful. The buttons wait for the sheets.
+// Without the rail's entry, as for a collection made elsewhere just now,
+// the name and count are bars too.
+export function CollectionSkeleton({
+  listed,
+}: {
+  listed?: Pick<CollectionListItem, "name" | "count">;
+}) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useFocusCarriesOver(heading);
+  const count = listed?.count;
+  return (
+    <div className="library library-with-sheets collection">
+      <div className="collection-heading">
+        <div className="collection-title">
+          <h1 ref={heading} tabIndex={-1}>
+            {listed ? listed.name : <Bar width={6} />}
+          </h1>
+          <p>
+            {count === undefined ? (
+              <Bar width={4} />
+            ) : count === 0 ? (
+              "No sheets yet"
+            ) : (
+              sheetCount(count)
+            )}
+          </p>
+        </div>
+        {count !== 0 && (
+          <div className="library-actions library-actions-beside">
+            <Button icon="add" variant="tonal" disabled>
+              Add sheets
+            </Button>
+          </div>
+        )}
+        <div className="menu">
+          <IconButton
+            icon="moreVert"
+            label="More for this collection"
+            disabled
+          />
+        </div>
+      </div>
+      {count !== 0 && (
+        <SheetListSkeleton
+          rows={Math.min(count ?? SKELETON_ROWS, SKELETON_ROWS)}
+          order={keptSheetOrder()}
+        />
+      )}
     </div>
   );
 }

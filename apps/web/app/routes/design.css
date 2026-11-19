@@ -82,6 +82,11 @@
     position: absolute;
   }
 
+  /* The bar takes the size of the text it stands for: a title's here. */
+  .design-skeleton-title {
+    font: 700 17px / 1.3 var(--font);
+  }
+
   /* A page error, in a frame that stands for the content area. */
   .design-page-error {
     flex: 1 1 280px;

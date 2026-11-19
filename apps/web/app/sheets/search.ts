@@ -5,6 +5,11 @@
 export const SEARCH_MIN = 2;
 
 // Whether the field's text is long enough to search.
+// In an address of the library, as a dialog's fetcher loads it: the list
+// itself, which the library's client loader waits for, rather than a page
+// that shows bars while it loads. The server ignores it.
+export const LIST_ONLY = "list";
+
 export function isSearch(q: string): boolean {
   return q.trim().length >= SEARCH_MIN;
 }
