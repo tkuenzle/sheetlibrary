@@ -8,6 +8,7 @@ import { type NavItem, NavRail } from "../ui/nav-rail";
 import { Note } from "../ui/note";
 import { PageError } from "../ui/page-error";
 import { Popover } from "../ui/popover";
+import { Bar } from "../ui/skeleton";
 import { Toolbar } from "../ui/toolbar";
 
 // The base components in both styles, for review. Only in previews and the
@@ -234,6 +235,17 @@ function Style({ theme, name }: { theme: string; name: string }) {
         <h3>Loading bar, standing still</h3>
         <div className="design-loading">
           <LoadingBar still />
+        </div>
+      </div>
+
+      <div>
+        <h3>Skeleton bars, for a title, an artist and a key</h3>
+        <div className="design-row">
+          <span className="design-skeleton-title">
+            <Bar width={9} />
+          </span>
+          <Bar width={6} />
+          <Bar width={1.6} accent />
         </div>
       </div>
 

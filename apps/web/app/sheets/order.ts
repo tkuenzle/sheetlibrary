@@ -55,6 +55,14 @@ export function keepSheetOrder(
   target.cookie = `${NAME}=${order}; Path=/; Max-Age=${String(maxAge)}; SameSite=Lax${secure}`;
 }
 
+// The order this device keeps, read in the browser, as a list that is still
+// loading shows it. The default without a document.
+export function keptSheetOrder(): SheetOrder {
+  return readSheetOrder(
+    typeof document === "undefined" ? null : document.cookie,
+  );
+}
+
 export function orderLabel(order: SheetOrder): string {
   return SHEET_ORDERS.find((entry) => entry.order === order)?.label ?? "";
 }

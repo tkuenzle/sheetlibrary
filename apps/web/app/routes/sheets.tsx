@@ -7,18 +7,25 @@ import {
   Link,
   redirect,
   type ShouldRevalidateFunctionArgs,
+  useSearchParams,
 } from "react-router";
 
 import { closeOffer, offerClosed } from "../auth/passkey-offer";
 import { hasPasskey } from "../auth/passkeys.server";
 import { cloudflareContext, sessionContext } from "../context";
-import { readSheetOrder, type SheetOrder } from "../sheets/order";
-import { RecentSheets } from "../sheets/recent-sheets";
+import {
+  keptSheetOrder,
+  readSheetOrder,
+  type SheetOrder,
+} from "../sheets/order";
+import { RecentSheets, RecentSheetsSkeleton } from "../sheets/recent-sheets";
 import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
-import { SheetList } from "../sheets/sheet-list";
+import { SheetList, SheetListSkeleton } from "../sheets/sheet-list";
+import { afterMove, fromAnotherPage, PageData } from "../shell/awaited";
+import { useFocusCarriesOver } from "../shell/focus";
 import { UNTITLED } from "../sheets/details";
 import { type NewSheetWay, useNewSheet } from "../sheets/new-sheet";
-import { isSearch } from "../sheets/search";
+import { isSearch, LIST_ONLY } from "../sheets/search";
 import { SearchField, useSearchPending } from "../sheets/search-field";
 import { revalidateUnlessUnchanged } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
@@ -125,15 +132,28 @@ export async function clientAction({
 
 // In the browser, a search that can't reach the server doesn't fail the
 // page: the screen keeps the results it shows, and says so. Any other error
-// goes to the boundary below. Not on the first load, which the server
-// renders. See openspec/specs/library-search.
-export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
-  try {
-    return await serverLoader();
-  } catch (error) {
-    if (errorKind(error, isOnline()) !== "unreachable") throw error;
-    return { failed: true as const, error };
+// goes to the boundary below. On a move from another page, the page doesn't
+// wait for its sheets: it shows at once with bars, and they follow. A
+// search, or loading again after a change on a row, waits as before. Not on
+// the first load, which the server renders. A dialog's list (LIST_ONLY)
+// waits too. See openspec/specs/library-search
+// and openspec/specs/site-layout.
+export async function clientLoader({
+  serverLoader,
+  url,
+}: Route.ClientLoaderArgs) {
+  const load = async () => {
+    try {
+      return await serverLoader();
+    } catch (error) {
+      if (errorKind(error, isOnline()) !== "unreachable") throw error;
+      return { failed: true as const, error };
+    }
+  };
+  if (!fromAnotherPage(url) || url.searchParams.has(LIST_ONLY)) {
+    return await load();
   }
+  return { page: afterMove(load()) };
 }
 
 // A row's change that didn't get through loads nothing again.
@@ -157,7 +177,16 @@ export default function Library({ loaderData }: Route.ComponentProps) {
     window.history.replaceState(window.history.state, "", url);
   }, []);
 
-  const shown = useLastLoaded(loaderData);
+  const page = "page" in loaderData ? loaderData.page : loaderData;
+  return (
+    <PageData data={page} skeleton={<LibrarySkeleton />}>
+      {(loaded) => <LoadedLibrary loaded={loaded} />}
+    </PageData>
+  );
+}
+
+function LoadedLibrary({ loaded }: { loaded: LibraryAnswer }) {
+  const shown = useLastLoaded(loaded);
   return (
     <LibraryView
       sheets={shown.sheets}
@@ -166,22 +195,51 @@ export default function Library({ loaderData }: Route.ComponentProps) {
       q={shown.q}
       offerPasskey={shown.offerPasskey}
       order={shown.order}
-      searchFailed={"failed" in loaderData}
+      searchFailed={"failed" in loaded}
     />
   );
 }
 
-type LibraryData = Exclude<
+// What the loader answers, once it is there: the sheets, or that a search
+// couldn't reach the server.
+type LibraryAnswer = Exclude<
   Route.ComponentProps["loaderData"],
-  { failed: true }
+  { page: unknown }
 >;
+
+type LibraryData = Exclude<LibraryAnswer, { failed: true }>;
+
+// Sheets while its sheets are on their way, as on the canvas boards
+// "Sheets, loading": the heading, a search field that works, and bars for
+// Recent and the list. A search in the address has no Recent.
+export function LibrarySkeleton() {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useFocusCarriesOver(heading);
+  const [params] = useSearchParams();
+  const q = params.get("q") ?? "";
+  return (
+    <div className="library library-with-sheets">
+      <h1 ref={heading} tabIndex={-1}>
+        Sheets
+      </h1>
+      <SearchField q={q} count={null} handsOver />
+      {!isSearch(q) && <RecentSheetsSkeleton />}
+      <SheetListSkeleton
+        rows={SKELETON_ROWS}
+        order={keptSheetOrder()}
+        heading="All sheets"
+      />
+    </div>
+  );
+}
+
+// The rows of bars while the sheets load: about a screenful.
+const SKELETON_ROWS = 8;
 
 // The last data that loaded, kept while a search can't reach the server.
 // With nothing loaded yet, as when Sheets opens offline, the screen fails
 // and its boundary shows.
-export function useLastLoaded(
-  loaderData: Route.ComponentProps["loaderData"],
-): LibraryData {
+export function useLastLoaded(loaderData: LibraryAnswer): LibraryData {
   const [last, setLast] = useState<LibraryData | null>(
     "failed" in loaderData ? null : loaderData,
   );

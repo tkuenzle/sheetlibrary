@@ -3,6 +3,7 @@ import "./recent-sheets.css";
 import { Link, useFetcher } from "react-router";
 
 import { openedFrom, useSheetTitleName } from "../shell/page-moves";
+import { Bar } from "../ui/skeleton";
 import { KeyText, type ListSheet, type RowAnswer, rowKey } from "./sheet-list";
 
 // "Recent" on Sheets: the sheets the person opened last, as cards that open
@@ -31,7 +32,7 @@ function RecentCard({ sheet }: { sheet: ListSheet }) {
     <li>
       <Link
         to={`/sheets/${sheet.id}`}
-        state={openedFrom("recent")}
+        state={openedFrom("recent", sheet)}
         viewTransition
       >
         <span
@@ -48,5 +49,40 @@ function RecentCard({ sheet }: { sheet: ListSheet }) {
         )}
       </Link>
     </li>
+  );
+}
+
+// Widths in `em` for the bars of the cards while they load.
+const CARD_WIDTHS = [
+  [7, 8],
+  [6, 5],
+  [9, 3],
+  [8, 4],
+];
+
+// "Recent" while the sheets are on their way: four cards with bars for the
+// title, the artist and the key, as on the canvas board "Sheets, loading".
+export function RecentSheetsSkeleton() {
+  return (
+    <section className="recent-sheets" aria-labelledby="recent-sheets">
+      <h2 id="recent-sheets">Recent</h2>
+      <ul aria-busy="true" aria-hidden="true">
+        {CARD_WIDTHS.map(([title = 7, artist = 5], i) => (
+          <li key={i}>
+            <div className="recent-sheets-skeleton">
+              <span className="recent-sheets-title">
+                <Bar width={title} />
+              </span>
+              <span>
+                <Bar width={artist} />
+              </span>
+              <span className="recent-sheets-key">
+                <Bar width={1.6} accent />
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

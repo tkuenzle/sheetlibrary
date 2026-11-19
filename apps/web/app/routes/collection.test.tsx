@@ -19,6 +19,7 @@ import type { Route } from "./+types/collection";
 import {
   action,
   clientAction,
+  CollectionSkeleton,
   CollectionView,
   loader,
   meta,
@@ -283,6 +284,80 @@ describe("collection page", () => {
       meta({ loaderData: { collection: null } } as unknown as Route.MetaArgs),
     ).toContainEqual({ title: "Collection not found | Sheet Library" });
   });
+
+  // On a move inside the app the sheets are still on their way, so the
+  // name comes from the rail.
+  it("names the page from the rail while its sheets load", () => {
+    const named = meta({
+      loaderData: { page: new Promise(() => undefined) },
+      params: { id: "xmas00000000" },
+      matches: [
+        undefined,
+        {
+          id: "routes/shell",
+          loaderData: {
+            collections: [
+              { id: "xmas00000000", name: "Christmas", count: 2, titles: [] },
+            ],
+          },
+        },
+      ],
+    } as unknown as Route.MetaArgs);
+    expect(named).toContainEqual({ title: "Christmas | Sheet Library" });
+  });
+});
+
+function renderSkeleton(
+  listed?: Parameters<typeof CollectionSkeleton>[0]["listed"],
+) {
+  const Stub = createRoutesStub([
+    {
+      path: "/collections/:id",
+      Component: () => <CollectionSkeleton listed={listed} />,
+    },
+  ]);
+  return renderToString(<Stub initialEntries={["/collections/xmas"]} />);
+}
+
+const skeletonRows = (html: string) =>
+  html.match(/class="library-columns sheet-list-skeleton"/g)?.length ?? 0;
+
+// Requirement "What the skeleton already knows".
+describe("collection page while its sheets load", () => {
+  it("shows the name and count from the rail, and a row of bars per sheet", () => {
+    const html = renderSkeleton({ name: "Christmas", count: 3 });
+    expect(html).toMatch(/<h1[^>]*>Christmas<\/h1><p>3 sheets<\/p>/);
+    expect(skeletonRows(html)).toBe(3);
+    expect(html).toContain('aria-busy="true"');
+  });
+
+  it("shows a screenful of rows at most", () => {
+    expect(skeletonRows(renderSkeleton({ name: "Campfire", count: 21 }))).toBe(
+      8,
+    );
+  });
+
+  it("has no rows for an empty collection", () => {
+    const html = renderSkeleton({ name: "Learning", count: 0 });
+    expect(html).toMatch(/<p>No sheets yet<\/p>/);
+    expect(skeletonRows(html)).toBe(0);
+  });
+
+  it("shows bars for the name and count without the rail's entry", () => {
+    const html = renderSkeleton();
+    expect(html).toMatch(/<h1[^>]*><span class="skeleton-bar"/);
+    expect(skeletonRows(html)).toBe(8);
+  });
+
+  it("lets the buttons wait for the sheets", () => {
+    const html = renderSkeleton({ name: "Christmas", count: 3 });
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*>.*?Add sheets<\/button>/,
+    );
+    expect(html).toMatch(
+      /<button[^>]*aria-label="More for this collection"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="More for this collection"/,
+    );
+  });
 });
 
 describe("Add sheets", () => {
@@ -311,6 +386,30 @@ describe("Add sheets", () => {
     expect(html).toMatch(/<input type="search" aria-label="Search sheets"/);
     expect(html).toMatch(
       /type="button"[^>]*>Cancel<\/button><button type="submit"[^>]*disabled=""[^>]*>Add sheets<\/button>/,
+    );
+  });
+
+  // Requirement "Bars in the dialogs that load": rows of bars until the
+  // list is there, and "Add sheets" waits.
+  it("shows rows of bars while the sheets load", () => {
+    const Stub = createRoutesStub([
+      {
+        path: "/",
+        Component: () => (
+          <AddSheetsDialog
+            open
+            collection={christmas}
+            holds={new Set()}
+            onClose={() => undefined}
+          />
+        ),
+      },
+    ]);
+    const html = renderToString(<Stub />);
+    expect(html.match(/class="add-sheets-skeleton"/g)).toHaveLength(6);
+    expect(html).toContain("skeleton-bar skeleton-bar-box");
+    expect(html).toMatch(
+      /<button type="submit"[^>]*disabled=""[^>]*>Add sheets/,
     );
   });
 });

@@ -132,6 +132,38 @@ test("shows the loading bar and the page errors", async ({ page }) => {
   }
 });
 
+// Skeleton bars: as tall as the letters of their text, and they pulse by
+// fading, unless motion is reduced. See openspec/specs/design-system.
+test("shows the skeleton bars, still with reduced motion", async ({ page }) => {
+  const bars = page.locator('[data-theme="light"] .skeleton-bar');
+  await expect(bars).toHaveCount(3);
+  const title = await bars.first().boundingBox();
+  expect(title?.width).toBeCloseTo(9 * 17, 0);
+  expect(title?.height).toBeCloseTo(17 * 0.8, 0);
+  const pulse = () =>
+    bars.first().evaluate((bar) =>
+      bar.getAnimations().map((animation) => ({
+        name: (animation as CSSAnimation).animationName,
+        // Only opacity changes, so it runs off the main thread.
+        properties: (animation.effect as KeyframeEffect)
+          .getKeyframes()
+          .flatMap((frame) =>
+            Object.keys(frame).filter(
+              (key) =>
+                !["offset", "easing", "composite", "computedOffset"].includes(
+                  key,
+                ),
+            ),
+          ),
+      })),
+    );
+  expect(await pulse()).toEqual([
+    { name: "skeleton-pulse", properties: ["opacity", "opacity"] },
+  ]);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(await pulse()).toEqual([]);
+});
+
 test.describe("tooltips", () => {
   test("shows a tooltip after a moment on hover", async ({
     page,
@@ -210,4 +242,13 @@ test("components keep an outline in forced colors mode", async ({ page }) => {
   expect(bar).not.toBe("rgba(0, 0, 0, 0)");
   // Not the light style's accent, which forced colors would drop.
   expect(bar).not.toBe("rgb(31, 107, 79)");
+
+  // Nor do the skeleton bars: they take a system color too.
+  const skeleton = await page
+    .locator('[data-theme="light"] .skeleton-bar')
+    .first()
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(skeleton).not.toBe("rgba(0, 0, 0, 0)");
+  // Not the light style's quiet color, which forced colors would drop.
+  expect(skeleton).not.toBe("rgb(220, 228, 221)");
 });

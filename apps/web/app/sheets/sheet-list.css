@@ -57,7 +57,7 @@
     align-items: center;
   }
 
-  .sheet-list-row > a {
+  .sheet-list-row > :is(a, .sheet-list-skeleton) {
     flex: 1;
     min-width: 0;
   }
@@ -66,7 +66,14 @@
     margin-right: var(--space-s);
   }
 
-  .library-list a {
+  /* The room a row's menu button takes, while the row is loading. */
+  .sheet-list-skeleton-menu {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* A row that is loading (SheetListSkeleton) takes a row's frame. */
+  .library-list :is(a, .sheet-list-skeleton) {
     min-height: 64px;
     border-radius: inherit;
     color: var(--text-muted);
@@ -143,7 +150,7 @@
       padding-left: var(--space-s);
     }
 
-    .library-list a {
+    .library-list :is(a, .sheet-list-skeleton) {
       display: flex;
       flex-direction: column;
       justify-content: center;

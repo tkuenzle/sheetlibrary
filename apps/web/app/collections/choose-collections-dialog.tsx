@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { closeAfterExit, exitOnEscape } from "../ui/exit";
 import { NameDialog } from "../ui/name-dialog";
 import { Note } from "../ui/note";
+import { Bar } from "../ui/skeleton";
 import {
   COLLECTION_NAME_MAX,
   type SheetCollection,
@@ -184,8 +185,11 @@ function ChooseCollectionsContent({
   );
 }
 
+// Widths in `em` of the bars for the names while the collections load.
+const SKELETON_WIDTHS = [6, 8, 10, 7, 5];
+
 // The collections with their tick boxes, or what stands in for them while
-// they load, when they couldn't load, or when there are none.
+// they load (rows of bars), when they couldn't load, or when there are none.
 export function CollectionChoices({
   loaded,
   onToggle,
@@ -194,7 +198,24 @@ export function CollectionChoices({
   onToggle: (collection: SheetCollection, holds: boolean) => void;
 }) {
   if (loaded.kind === "loading") {
-    return <p className="choose-collections-none">Loading collections…</p>;
+    return (
+      <div className="choose-collections-scroll">
+        <div
+          className="choose-collections-list"
+          aria-label="Collections"
+          aria-busy="true"
+        >
+          {SKELETON_WIDTHS.map((width, i) => (
+            <div className="choose-collections-skeleton" key={i}>
+              <Bar box />
+              <span>
+                <Bar width={width} />
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
   if (loaded.kind === "failed") {
     return (
