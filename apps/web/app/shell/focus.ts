@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation } from "react-router";
 
 // Where the focus goes after a move to another page without a full load. A
@@ -40,6 +40,23 @@ export function useFocusOnNavigation() {
     if (!movesFocus({ from, to: location.pathname, focusInPage })) return;
     focusHeading();
   }, [location]);
+}
+
+// For a skeleton's heading, which gives way to the page's own when the data
+// arrives. If it has the focus then, as after a move, the page's heading
+// takes it, so the focus isn't lost. The cleanup runs while the heading is
+// still on the page, before the page's own is there.
+export function useFocusCarriesOver(
+  heading: RefObject<HTMLElement | null> | null,
+) {
+  useLayoutEffect(() => {
+    const element = heading?.current;
+    return () => {
+      if (element && document.activeElement === element) {
+        queueMicrotask(focusHeading);
+      }
+    };
+  }, [heading]);
 }
 
 // Puts the focus on the page's heading, without scrolling. Also used when a

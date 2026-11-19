@@ -7,9 +7,12 @@ import { Link, useFetcher, useFetchers, useRevalidator } from "react-router";
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
 import { spokenKey } from "../editor/key-button";
 import { openedFrom, useSheetTitleName } from "../shell/page-moves";
+import { Button } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
+import { Icon } from "../ui/icon";
 import { Menu, type MenuItem } from "../ui/menu";
 import { Note } from "../ui/note";
+import { Bar } from "../ui/skeleton";
 import {
   keepSheetOrder,
   type ListedSheet,
@@ -302,7 +305,7 @@ function Row({
       <Link
         className="library-columns"
         to={`/sheets/${sheet.id}`}
-        state={openedFrom("list")}
+        state={openedFrom("list", sheet)}
         viewTransition
       >
         <span
@@ -367,4 +370,75 @@ function Marked({ parts }: { parts: TextPart[] }) {
       {part.hit ? <mark>{part.text}</mark> : part.text}
     </Fragment>
   ));
+}
+
+// Widths in `em` for the bars of a list that is loading, so the rows don't
+// all look alike.
+const TITLE_WIDTHS = [9, 7, 11, 6, 13, 8, 10, 7];
+const ARTIST_WIDTHS = [8, 10, 5, 12, 4, 9, 6, 11];
+
+// The list while its sheets are on their way: the same frame and rows, with
+// bars in place of the titles, artists and keys. The order control shows
+// the order this device keeps, and waits for the rows. See
+// openspec/specs/site-layout.
+export function SheetListSkeleton({
+  rows,
+  order,
+  heading,
+}: {
+  rows: number;
+  order: SheetOrder;
+  // As on SheetList, with a bar in place of the count.
+  heading?: string;
+}) {
+  return (
+    <div className="library-list sheet-list" aria-busy="true">
+      <div className="sheet-list-order">
+        {heading && (
+          <h2 className="sheet-list-heading">
+            {`${heading} `}
+            <span className="sheet-list-count">
+              <Bar width={1.4} />
+            </span>
+          </h2>
+        )}
+        <div className="menu">
+          <Button
+            variant="text"
+            icon="swapVert"
+            className="menu-toggle-text"
+            disabled
+          >
+            {orderLabel(order)}
+            <Icon name="expandMore" />
+          </Button>
+        </div>
+      </div>
+      <div className="library-columns library-labels" aria-hidden="true">
+        <span>Title</span>
+        <span>Artist</span>
+        <span>Key</span>
+      </div>
+      <ul className="group-list" aria-hidden="true">
+        {Array.from({ length: rows }, (_, i) => (
+          <li key={i} className="sheet-list-row">
+            <div className="library-columns sheet-list-skeleton">
+              <span className="library-title">
+                <Bar width={TITLE_WIDTHS[i % TITLE_WIDTHS.length] ?? 8} />
+              </span>
+              <span className="library-details">
+                <span>
+                  <Bar width={ARTIST_WIDTHS[i % ARTIST_WIDTHS.length] ?? 8} />
+                </span>{" "}
+                <span className="library-key">
+                  <Bar width={1.6} accent />
+                </span>
+              </span>
+            </div>
+            <span className="menu sheet-list-skeleton-menu" />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }

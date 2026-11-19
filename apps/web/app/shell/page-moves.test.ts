@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   isLate,
   moveKind,
+  openedFrom,
   type PageKind,
   pageKind,
+  rowDetails,
   sheetTitleName,
   titleMoveStart,
 } from "./page-moves";
@@ -89,6 +91,38 @@ describe("isLate", () => {
     expect(isLate(150)).toBe(false);
     expect(isLate(200)).toBe(false);
     expect(isLate(201)).toBe(true);
+  });
+});
+
+// Requirement "What the skeleton already knows": a row's link carries its
+// title and artist for the sheet's heading.
+describe("openedFrom and rowDetails", () => {
+  it("carries the row's list, title and artist", () => {
+    const state = openedFrom("list", {
+      title: "Stille Nacht",
+      artist: "Franz Xaver Gruber",
+    });
+    expect(state).toEqual({
+      openedFrom: "list",
+      title: "Stille Nacht",
+      artist: "Franz Xaver Gruber",
+    });
+    expect(rowDetails(state)).toEqual({
+      title: "Stille Nacht",
+      artist: "Franz Xaver Gruber",
+    });
+  });
+
+  it("leaves out an artist the row doesn't have", () => {
+    const state = openedFrom("recent", { title: "Sternsinger" });
+    expect(state).toEqual({ openedFrom: "recent", title: "Sternsinger" });
+    expect(rowDetails(state)).toEqual({ title: "Sternsinger" });
+  });
+
+  it("gives nothing for a sheet opened another way", () => {
+    expect(rowDetails(null)).toBeNull();
+    expect(rowDetails({ openedFrom: "list" })).toBeNull();
+    expect(rowDetails("Stille Nacht")).toBeNull();
   });
 });
 

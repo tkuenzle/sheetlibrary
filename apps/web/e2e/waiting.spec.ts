@@ -51,21 +51,27 @@ const collectionLink = (page: Page, name: string) =>
 test.describe("signed in", () => {
   test.use({ storageState: authFile });
 
-  // Scenario "A slow move". Collections has no data of its own, so the
-  // move is to a collection, which loads its sheets.
+  // Scenario "A slow move". The shell's screens and a sheet show a
+  // skeleton rather than wait (e2e/loading.spec.ts), so the move is to
+  // Edit, which still waits for its data.
   test("shows the bar while a page is slow to load", async ({ page }) => {
-    const name = `Slow ${newMark()}`;
-    await createCollection(page, name);
-    await page.goto(wide(page) ? "/sheets" : "/collections");
+    const response = await page.request.post("/api/sheets", {
+      data: {
+        title: `Slow ${newMark()}`,
+        content: { format: "chordsheet", version: 1, sections: [] },
+      },
+    });
+    const { id } = (await response.json()) as { id: string };
+    await page.goto(`/sheets/${id}`);
     await page.waitForLoadState("networkidle");
-    await page.route(/\/collections\/[^/]+\.data/, async (route) => {
+    await page.route(/\/sheets\/[^/]+\/edit\.data/, async (route) => {
       await wait(1500);
       await route.continue();
     });
-    await collectionLink(page, name).click();
+    await page.getByRole("link", { name: "Edit" }).click();
     await expect(bar(page)).toBeVisible();
     expect((await bar(page).boundingBox())?.y).toBe(0);
-    await expect(heading(page)).toHaveText(name);
+    await expect(page).toHaveURL(`/sheets/${id}/edit`);
     await expect(bar(page)).toHaveCount(0);
   });
 

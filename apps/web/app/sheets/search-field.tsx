@@ -1,6 +1,12 @@
 import "./search-field.css";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Form, useLocation, useNavigate, useNavigation } from "react-router";
 
 import { useSlowWait } from "../shell/slow-wait";
@@ -28,6 +34,7 @@ export function SearchField({
   q,
   count,
   pending = false,
+  handsOver = false,
 }: {
   // The search the page shows.
   q: string;
@@ -35,10 +42,14 @@ export function SearchField({
   count: number | null;
   // Whether a new search is loading.
   pending?: boolean;
+  // A skeleton's field, which gives way to the page's own when the sheets
+  // arrive (see useTypingCarriesOver).
+  handsOver?: boolean;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const input = useRef<HTMLInputElement>(null);
+  useTypingCarriesOver(handsOver ? input : null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // The input is uncontrolled, so what is typed before the scripts load is
   // kept. This only follows whether it is empty, for "Clear search".
@@ -131,6 +142,36 @@ export function SearchField({
       )}
     </Form>
   );
+}
+
+// For a skeleton's search field: what was typed in it, and its focus, go to
+// the page's own field when the sheets arrive, so typing goes on. The
+// cleanup runs while the field is still on the page. The page's field gets
+// the text before its own effect runs, and that effect searches text that
+// differs from the address.
+function useTypingCarriesOver(
+  input: RefObject<HTMLInputElement | null> | null,
+) {
+  useLayoutEffect(() => {
+    const field = input?.current;
+    if (!field) return;
+    return () => {
+      const focused = document.activeElement === field;
+      const { value, selectionStart, selectionEnd } = field;
+      if (!focused && value === field.defaultValue) return;
+      queueMicrotask(() => {
+        const next = document.querySelector<HTMLInputElement>(
+          "main input[type=search]",
+        );
+        if (!next || next === field) return;
+        next.value = value;
+        if (focused) {
+          next.focus({ preventScroll: true });
+          next.setSelectionRange(selectionStart, selectionEnd);
+        }
+      });
+    };
+  }, [input]);
 }
 
 function countText(count: number | null): string {

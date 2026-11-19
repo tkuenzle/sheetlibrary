@@ -70,3 +70,38 @@ describe("account page", () => {
     expect(meta()).toContainEqual({ title: "Account | Sheet Library" });
   });
 });
+
+// Requirement "A skeleton while a page loads": bars for the email and the
+// passkeys, and the actions that don't need them stay.
+describe("account page while it loads", () => {
+  const noop = () => undefined;
+  const html = renderToString(
+    <AccountView
+      email={null}
+      passkeys={null}
+      failed={false}
+      onAdd={noop}
+      onRename={noop}
+      onRemove={noop}
+      onSignOut={noop}
+    />,
+  );
+
+  it("shows bars for the email and two passkeys", () => {
+    expect(html).toMatch(/<h1[^>]*>Account<\/h1>/);
+    expect(html).toMatch(/class="account-email"><span class="skeleton-bar"/);
+    expect(
+      html.match(/class="account-passkey-name"><span class="skeleton-bar"/g),
+    ).toHaveLength(2);
+    expect(html).toContain('aria-busy="true"');
+    expect(html).not.toContain("No passkeys yet");
+  });
+
+  it("keeps Add passkey and Sign out", () => {
+    expect(html).toMatch(
+      /<button[^>]*class="button button-tonal account-add"[^>]*>/,
+    );
+    expect(html).not.toMatch(/account-add"[^>]*disabled/);
+    expect(html).toContain("Sign out");
+  });
+});

@@ -1,6 +1,6 @@
 # Motion
 
-How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89. Page changes are built in #136, overlays in #160.
+How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89. Page changes are built in #136, overlays in #160, skeletons in #137.
 
 ## Why things move
 
@@ -45,7 +45,15 @@ Page changes use the browser's View Transitions, through React Router's `viewTra
 - **Not the history's direction.** React Router reports "POP" for back and forward alike, and a link from a sheet to a collection is a push that should drop.
 - **The rail has no name of its own.** In a fade, its pixels are the same in both pictures, and the browser's fade blends them so they stay solid. A named rail would be painted above everything else and cover a rising sheet.
 - **The title moves through a shared name.** A row's title and the sheet's heading are named `sheet-title` while their sheet is in the move. One element per page may have a name, or the browser skips the whole move. Recent and the list on Sheets can show the same sheet, so a row's link puts its list in the location's state, and only the row in that list is named. Its move animates only `translate` and `scale`, from boxes `page-moves.ts` measures, so it runs off the main thread, unlike the browser's own move, which animates width and height. Both titles are `width: fit-content`, so their boxes have the same shape.
-- **A late page cuts.** A move starts once the new page's data is there. When that took longer than the loading bar waits (`SLOW_WAIT`, 200ms), the person has already waited, so the page changes at once. Skeletons (#137) will let moves start right after the tap.
+- **A page moves in with its skeleton.** Sheets, a collection, a sheet and the account page don't wait for their data: their client loaders hand it over as a promise, so the move starts right after the tap, and the new picture shows the page with bars where the data will be. Collections has its data already.
+
+  ```
+  tap -- move, page with bars --> data arrives --> rows
+  ```
+
+- **Bars never flash.** Where no move covers them, in Add sheets and Choose collections, and on a page that changes without a move (after Safari's own swipe back, or with reduced motion), the bars stay unseen for the first 200ms, keeping their room, and once seen stay at least 400ms (`useSkeleton` in `ui/skeleton.tsx`, `PageSkeleton` and `holdBars` in `shell/awaited.tsx`). While a move plays, they show from the start.
+- **Rows show as they arrive.** Data that arrives while the page still moves in shows at once, in the middle of the move. On a fast connection it is mostly there before the new picture shows, so the page moves in whole. A page that loads again without a move, after a change on a row or during a search, keeps what it shows. For now the rows replace the bars at once.
+- **A late page cuts.** A move starts once the new page's data is there. When that took longer than the loading bar waits (`SLOW_WAIT`, 200ms), the person has already waited, so the page changes at once. With skeletons this only happens to pages that wait for their data, such as Edit.
 - **The page that is open doesn't move.** A link to it, such as "Sheet Library" on Sheets, is `none`.
 - **The browser's own move wins.** After a swipe back on an iPhone, Safari has already shown a move (`hasUAVisualTransition` on `popstate`), so the move is `none`.
 - **Taps wait.** While a move plays, taps land on the pictures, not the page. That is why moves stay at 300ms or less.
@@ -92,7 +100,7 @@ Every animation runs off the main thread. On a phone, the main thread is busiest
 | `--ease-exit`     | `cubic-bezier(0.3, 0, 1, 1)` | Things leaving (standard accelerate)                  |
 | `--ease-move`     | `cubic-bezier(0.2, 0, 0, 1)` | Things that stay on screen and change (standard)      |
 
-Use the tokens, never numbers. The `chord-editor` package takes its duration from `--chord-editor-motion`, which the app sets to `--motion-short`.
+Use the tokens, never numbers. Signs that repeat are the exception for now: the loading bar slides and the skeleton bars pulse over 1.4s, by fading only. A token for them is open (#137). The `chord-editor` package takes its duration from `--chord-editor-motion`, which the app sets to `--motion-short`.
 
 ## What stays still
 
@@ -109,4 +117,4 @@ With reduced motion, nothing moves or fades: things open, close and change at on
 
 - `tokens.css` sets the three durations to `0s`. A part that uses the tokens needs no rule of its own. Its animations still run and end at once, so code that waits for them to finish keeps working.
 - Don't write `animation: none` to turn motion off: it fires no `animationend`, and parts that wait for it never close.
-- Signs that repeat stand still instead: the loading bar fills its width, and the photo import's sign stops pulsing. These keep their own reduced-motion rule, and so does the `chord-editor` package, so it works without the app.
+- Signs that repeat stand still instead: the loading bar fills its width, and the photo import's sign and the skeleton bars stop pulsing. These keep their own reduced-motion rule, and so does the `chord-editor` package, so it works without the app.

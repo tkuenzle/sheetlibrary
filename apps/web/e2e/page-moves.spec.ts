@@ -374,11 +374,46 @@ test("doesn't move into the page that is open", async ({ page }) => {
   });
 });
 
-// Scenario "A slow answer".
+// Scenario "A slow answer": Edit still waits for its data, so a late one
+// changes at once. A sheet doesn't wait (see the next test).
 test("changes at once when the new page's data comes late", async ({
   page,
 }) => {
   const title = `Late ${newMark()}`;
+  const id = await createSheet(page, title);
+  await recordMoves(page);
+  await page.goto(`/sheets/${id}`);
+  await page.waitForLoadState("networkidle");
+  const edit = page.getByRole("banner").getByRole("link", { name: "Edit" });
+  const line = page.locator(".ProseMirror .line").first();
+  const editData = new RegExp(`/sheets/${id}/edit\\.data`);
+  await page.route(editData, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await route.continue();
+  });
+  await edit.click();
+  await expect(line).toBeVisible();
+  expect(await lastMove(page, 1)).toMatchObject({
+    move: "none",
+    animations: [],
+  });
+
+  // A quick answer still moves.
+  await page.unroute(editData);
+  await page.goBack();
+  await expect(heading(page)).toHaveText(title);
+  await lastMove(page, 2);
+  await edit.click();
+  await expect(line).toBeVisible();
+  expect(await lastMove(page, 3)).toMatchObject({ move: "mode" });
+});
+
+// Scenario "A sheet from a row": a sheet whose data is slow still rises,
+// with its title, which moves from the row, and bars for the rest.
+test("raises a slow sheet at once, with its title moving from the row", async ({
+  page,
+}) => {
+  const title = `Slow sheet ${newMark()}`;
   const id = await createSheet(page, title);
   await recordMoves(page);
   await page.goto("/sheets");
@@ -387,23 +422,24 @@ test("changes at once when the new page's data comes late", async ({
     .locator(".sheet-list-row")
     .filter({ hasText: title })
     .getByRole("link");
+  await row.scrollIntoViewIfNeeded();
+  const rowTitle = await row.locator(".library-title").boundingBox();
   await page.route(new RegExp(`/sheets/${id}\\.data`), async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     await route.continue();
   });
   await row.click();
   await expect(heading(page)).toHaveText(title);
-  expect(await lastMove(page, 1)).toMatchObject({
-    move: "none",
-    animations: [],
-  });
-
-  // A quick answer still moves.
-  await page.unroute(new RegExp(`/sheets/${id}\\.data`));
-  await page.goBack();
-  await expect(heading(page)).toHaveText("Sheets");
-  await lastMove(page, 2);
-  await row.click();
-  await expect(heading(page)).toHaveText(title);
-  expect(await lastMove(page, 3)).toMatchObject({ move: "rise" });
+  await expect(
+    page.locator("main .sheet-view .skeleton-bar").first(),
+  ).toBeVisible();
+  const rise = await lastMove(page, 1);
+  expect(rise).toMatchObject({ move: "rise" });
+  expect(movesTitle(rise)).toBe(true);
+  expectBox(rise.titleStart, rowTitle);
+  await expect(
+    page.getByText("Amazing grace, how sweet the sound"),
+  ).toBeVisible();
+  await expect(page.locator("main .skeleton-bar")).toHaveCount(0);
+  await expect(heading(page)).toBeFocused();
 });

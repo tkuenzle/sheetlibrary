@@ -1,6 +1,6 @@
 import { renderToString } from "react-dom/server";
 import { createRoutesStub, RouterContextProvider } from "react-router";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { addPasskey } from "../auth/passkeys.test-helper";
 import { cloudflareContext, sessionContext } from "../context";
@@ -15,13 +15,15 @@ import {
 } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheets";
-import Library, {
+import {
   action,
   clientAction,
   clientLoader,
+  LibrarySkeleton,
   LibraryView,
   loader,
   meta,
+  useLastLoaded,
 } from "./sheets";
 
 describe("library loader and action", () => {
@@ -624,8 +626,19 @@ describe("a search that doesn't go through", () => {
     addedAt: Date.now(),
   };
   const offline = new TypeError("Failed to fetch");
+  // A search: the page that is open loads again, online.
+  beforeEach(() => {
+    vi.stubGlobal("window", { location: { pathname: "/sheets" } });
+    vi.stubGlobal("navigator", { onLine: true });
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
   const load = (serverLoader: () => Promise<unknown>) =>
-    clientLoader({ serverLoader } as unknown as Route.ClientLoaderArgs);
+    clientLoader({
+      serverLoader,
+      url: new URL("https://sheetlibrary.com/sheets?q=grace"),
+    } as unknown as Route.ClientLoaderArgs);
 
   it("doesn't fail the page when the server can't be reached", async () => {
     const data = await load(() => Promise.reject(offline));
@@ -667,18 +680,62 @@ describe("a search that doesn't go through", () => {
     const Stub = createRoutesStub([
       {
         path: "/sheets",
-        Component: () => (
-          <Library
-            {...({
-              loaderData: { failed: true, error: offline },
-            } as unknown as Route.ComponentProps)}
-          />
-        ),
+        Component: () => {
+          useLastLoaded({
+            failed: true,
+            error: offline,
+          } as unknown as Parameters<typeof useLastLoaded>[0]);
+          return null;
+        },
       },
     ]);
     expect(() => renderToString(<Stub initialEntries={["/sheets"]} />)).toThrow(
       offline,
     );
+  });
+});
+
+// Requirement "A skeleton while a page loads".
+describe("Sheets while its sheets load", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("hands the sheets over unawaited on a move from another page", async () => {
+    vi.stubGlobal("window", { location: { pathname: "/collections" } });
+    const results = { sheets: [], hasSheets: false, q: "" };
+    const data = await clientLoader({
+      serverLoader: () => Promise.resolve(results),
+      url: new URL("https://sheetlibrary.com/sheets"),
+    } as unknown as Route.ClientLoaderArgs);
+    expect(data).toHaveProperty("page");
+    await expect((data as { page: Promise<unknown> }).page).resolves.toBe(
+      results,
+    );
+  });
+
+  function renderSkeleton(url = "/sheets") {
+    const Stub = createRoutesStub([
+      { path: "/sheets", Component: LibrarySkeleton },
+    ]);
+    return renderToString(<Stub initialEntries={[url]} />);
+  }
+
+  it("shows the heading, the search field, and bars for Recent and the list", () => {
+    const html = renderSkeleton();
+    expect(html).toMatch(/<h1[^>]*>Sheets<\/h1>/);
+    expect(html).toContain('aria-label="Search sheets"');
+    expect(html).toContain("recent-sheets-skeleton");
+    expect(html).toMatch(
+      /All sheets <span class="sheet-list-count"><span class="skeleton-bar"/,
+    );
+    expect(html.match(/sheet-list-skeleton"/g)).toHaveLength(8);
+  });
+
+  it("has no Recent for a search in the address", () => {
+    const html = renderSkeleton("/sheets?q=grace");
+    expect(html).not.toContain("recent-sheets-skeleton");
+    expect(html).toContain('value="grace"');
   });
 });
 
