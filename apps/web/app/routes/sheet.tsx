@@ -36,8 +36,9 @@ import {
 } from "../editor/sheet-title";
 import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
 import { useFocusCarriesOver } from "../shell/focus";
-import { rowDetails, useSheetTitleName } from "../shell/page-moves";
+import { headingTitleName, rowDetails } from "../shell/page-moves";
 import { focusSheetMenu, SheetBar, SheetFrameBar } from "../shell/sheet-bar";
+import { TitleMove } from "../shell/title-move";
 import { ViewButton } from "../shell/view-button";
 import { SheetView } from "../sheet-view/sheet-view";
 import { deleteStoredSheet } from "../sheets/delete";
@@ -261,7 +262,7 @@ export function PlayView({
   textStep?: number;
 }) {
   // The heading takes the title's name while it moves from the row.
-  const titleName = useSheetTitleName(sheet.id, null);
+  const titleName = headingTitleName(sheet.id, useLocation().state);
   // The versions are kept here and changed from each answer of the API,
   // without loading the page again. The address follows the open one.
   const [savedVersions, setSavedVersions] = useState(loadedVersions);
@@ -366,7 +367,9 @@ export function PlayView({
       />
       <main className="play-page">
         <div className="play-heading">
-          <h1 style={{ viewTransitionName: titleName }}>{sheet.title}</h1>
+          <TitleMove name={titleName}>
+            <h1>{sheet.title}</h1>
+          </TitleMove>
           {(sheet.artist ?? open) && (
             <p className="play-artist">
               {sheet.artist}
@@ -587,7 +590,7 @@ export function PlaySkeleton({ sheetId }: { sheetId: string }) {
   const location = useLocation();
   const row = rowDetails(location.state);
   const lyrics = new URLSearchParams(location.search).has("lyrics");
-  const titleName = useSheetTitleName(sheetId, null);
+  const titleName = headingTitleName(sheetId, location.state);
   const heading = useRef<HTMLHeadingElement>(null);
   useFocusCarriesOver(heading);
   const moves = useSheetMoves();
@@ -612,13 +615,11 @@ export function PlaySkeleton({ sheetId }: { sheetId: string }) {
       />
       <main className="play-page" aria-busy="true">
         <div className="play-heading">
-          <h1
-            ref={heading}
-            tabIndex={-1}
-            style={{ viewTransitionName: titleName }}
-          >
-            {row ? row.title : <Bar width={6} />}
-          </h1>
+          <TitleMove name={titleName}>
+            <h1 ref={heading} tabIndex={-1}>
+              {row ? row.title : <Bar width={6} />}
+            </h1>
+          </TitleMove>
           {(!row || row.artist) && (
             <p className="play-artist">
               {row ? row.artist : <Bar width={8} />}

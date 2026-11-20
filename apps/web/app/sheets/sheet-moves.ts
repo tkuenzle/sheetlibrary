@@ -86,7 +86,7 @@ export function useSheetMoves(): {
     go: async (move) => {
       await ("step" in move
         ? navigate(move.step)
-        : navigate(move.to, { replace: move.replace, viewTransition: true }));
+        : navigate(move.to, { replace: move.replace }));
     },
   };
 }

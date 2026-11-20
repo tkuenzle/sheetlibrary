@@ -4,8 +4,8 @@ import { authFile } from "./servers";
 
 // How page changes move: the shell's screens fade, a sheet rises over the
 // shell and drops on Back, and play to edit only changes the bar. The tests
-// record each view transition the page starts and read, once the browser
-// has set up the move, which kind it is and what animates. See
+// record each view transition React starts and read, once the browser has
+// set up the move, its kind (the transition's type) and what animates. See
 // openspec/specs/site-layout and docs/motion.md.
 
 test.use({ storageState: authFile });
@@ -45,13 +45,20 @@ function createSheet(page: Page, title: string) {
 
 interface Move {
   finished?: boolean;
+  finishedAt?: number;
+  // The title's box where its move starts, and what its move animates.
   titleStart?: { x: number; y: number; width: number; height: number };
-  // The kind page-moves.ts set on <html>.
-  move?: string;
+  titleProperties?: string[];
+  // The transition's types: the kind of move page-moves.ts picked.
+  types?: string[];
   // Why the browser skipped the move, such as two elements with one name.
   skipped?: string;
   scrollY?: number;
   animations?: { name: string; pseudo: string; duration: number }[];
+  // The animation durations the move's pictures get from the CSS, by the
+  // names React gave them. Unlike `animations`, it doesn't miss animations
+  // that have already ended, as they do at once with reduced motion.
+  pictureDurations?: string[];
 }
 
 // Records every view transition from the next page load on.
@@ -60,44 +67,79 @@ async function recordMoves(page: Page) {
     const moves: Record<string, unknown>[] = [];
     (window as unknown as { moves: unknown }).moves = moves;
     const start = document.startViewTransition.bind(document);
-    document.startViewTransition = (...args) => {
-      const transition = start(...args);
-      const move: Record<string, unknown> = {};
+    document.startViewTransition = ((
+      update?: ViewTransitionUpdateCallback | StartViewTransitionOptions,
+    ) => {
+      const transition = start(update);
+      const types =
+        update && typeof update === "object" ? [...(update.types ?? [])] : [];
+      const move: Record<string, unknown> = { types };
       moves.push(move);
       transition.ready.then(
-        () => {
-          move.move = document.documentElement.dataset.move;
-          // The title's box where the move starts: its box in the new page,
-          // scaled and shifted by the move's first frame.
-          const group = getComputedStyle(
-            document.documentElement,
-            "::view-transition-group(sheet-title)",
+        async () => {
+          const names = [...document.querySelectorAll("*")]
+            .map((element) => getComputedStyle(element).viewTransitionName)
+            .filter((name) => name && name !== "none");
+          move.pictureDurations = names.flatMap((name) =>
+            ["old", "new"].map(
+              (picture) =>
+                getComputedStyle(
+                  document.documentElement,
+                  `::view-transition-${picture}(${name})`,
+                ).animationDuration,
+            ),
           );
-          const html = document.documentElement.style;
-          const number = (name: string, empty: number) =>
-            Number.parseFloat(html.getPropertyValue(name)) || empty;
-          const at = new DOMMatrix(group.transform);
-          const [sx, sy] = [number("--title-sx", 1), number("--title-sy", 1)];
-          move.titleStart = {
-            x: number("--title-dx", 0) + sx * at.e,
-            y: number("--title-dy", 0) + sy * at.f,
-            width: sx * Number.parseFloat(group.width),
-            height: sy * Number.parseFloat(group.height),
-          };
-          move.scrollY = window.scrollY;
-          move.animations = document.getAnimations().flatMap((animation) => {
+          // After React's own handler of `ready`, where the title's move
+          // gets its keyframes.
+          for (let i = 0; i < 3; i++) await Promise.resolve();
+          const animations = document.getAnimations().flatMap((animation) => {
             const effect = animation.effect;
             const pseudo =
               effect instanceof KeyframeEffect ? effect.pseudoElement : null;
-            if (!pseudo?.startsWith("::view-transition")) return [];
-            return [
-              {
-                name: (animation as CSSAnimation).animationName,
-                pseudo,
-                duration: effect?.getComputedTiming().duration,
-              },
-            ];
+            if (!effect || !pseudo?.startsWith("::view-transition")) return [];
+            return [{ animation, effect: effect as KeyframeEffect, pseudo }];
           });
+          move.animations = animations.map(({ animation, effect, pseudo }) => ({
+            name: (animation as CSSAnimation).animationName,
+            pseudo,
+            duration: effect.getComputedTiming().duration,
+          }));
+          // The title's box where the move starts: its box in the new
+          // page, shifted and scaled by the move's first keyframe, from the
+          // top left.
+          const title = animations.find(({ pseudo }) =>
+            pseudo.startsWith("::view-transition-group(title-"),
+          );
+          if (title) {
+            const frames = title.effect.getKeyframes();
+            const first: Keyframe = frames[0] ?? {};
+            move.titleProperties = [
+              ...new Set(frames.flatMap((frame) => Object.keys(frame))),
+            ].filter(
+              (key) =>
+                !["offset", "computedOffset", "easing", "composite"].includes(
+                  key,
+                ),
+            );
+            const [dx = 0, dy = 0] = String(first.translate ?? "0px 0px")
+              .split(" ")
+              .map(Number.parseFloat);
+            const [sx = 1, sy = sx] = String(first.scale ?? "1")
+              .split(" ")
+              .map(Number);
+            const group = getComputedStyle(
+              document.documentElement,
+              title.pseudo,
+            );
+            const at = new DOMMatrix(group.transform);
+            move.titleStart = {
+              x: dx + sx * at.e,
+              y: dy + sy * at.f,
+              width: sx * Number.parseFloat(group.width),
+              height: sy * Number.parseFloat(group.height),
+            };
+          }
+          move.scrollY = window.scrollY;
         },
         (error: unknown) => {
           move.skipped = String(error);
@@ -105,9 +147,10 @@ async function recordMoves(page: Page) {
       );
       void transition.finished.then(() => {
         move.finished = true;
+        move.finishedAt = performance.now();
       });
       return transition;
-    };
+    }) as typeof document.startViewTransition;
   });
 }
 
@@ -129,7 +172,15 @@ async function lastMove(page: Page, count: number): Promise<Move> {
   return move;
 }
 
-const kinds = async (page: Page) => (await moves(page)).map((m) => m.move);
+const kindOf = (move: Move) => move.types?.[0] ?? "none";
+
+const kinds = async (page: Page) => (await moves(page)).map(kindOf);
+
+// Waits for what the page loads, and gives how many moves have played.
+async function settledMoves(page: Page): Promise<number> {
+  await page.waitForLoadState("networkidle");
+  return (await moves(page)).length;
+}
 
 const heading = (page: Page) => page.getByRole("heading", { level: 1 });
 
@@ -148,10 +199,12 @@ function expectBox(
   }
 }
 
-const movesTitle = (move: Move) =>
-  move.animations?.some(
-    (a) => a.pseudo === "::view-transition-group(sheet-title)",
+const titleGroup = (move: Move) =>
+  move.animations?.find((a) =>
+    a.pseudo.startsWith("::view-transition-group(title-"),
   );
+
+const movesTitle = (move: Move) => titleGroup(move) !== undefined;
 
 // Scenario "From Sheets to Collections".
 test("fades between the shell's screens, and not while searching", async ({
@@ -216,9 +269,14 @@ test("moves pages in no time with reduced motion", async ({ page }) => {
   await lastMove(page, 3);
 
   const all = await moves(page);
-  expect(all.map((m) => m.move)).toEqual(["fade", "fade", "rise"]);
+  expect(all.map(kindOf)).toEqual(["fade", "fade", "rise"]);
   for (const move of all) {
-    expect(move.animations?.length).toBeGreaterThan(0);
+    expect(move.pictureDurations?.length).toBeGreaterThan(0);
+    // Such as "0s" or "0s, 0s" for a picture with two animations.
+    for (const duration of move.pictureDurations ?? []) {
+      const each = duration.split(",").map((one) => Number.parseFloat(one));
+      expect(each).toEqual(each.map(() => 0));
+    }
     for (const animation of move.animations ?? []) {
       expect(animation.duration).toBe(0);
     }
@@ -228,6 +286,10 @@ test("moves pages in no time with reduced motion", async ({ page }) => {
 // Scenarios "Opening a sheet" and "The browser's back", with Recent and the
 // list showing the same sheet.
 test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
   const title = `Risen ${newMark()}`;
   const id = await createSheet(page, title);
   // Opened once, so it is in Recent too.
@@ -249,29 +311,31 @@ test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
   await row.click();
   await expect(heading(page)).toHaveText(title);
   const rise = await lastMove(page, 1);
-  expect(rise).toMatchObject({ move: "rise" });
-  expect(movesTitle(rise)).toBe(true);
+  expect(kindOf(rise)).toBe("rise");
   // The title moves by translate and scale only, from the row's box.
-  expect(
-    rise.animations?.find(
-      (a) => a.pseudo === "::view-transition-group(sheet-title)",
-    ),
-  ).toMatchObject({ name: "title-move", duration: 300 });
+  expect(titleGroup(rise)).toMatchObject({ duration: 300 });
+  expect(rise.titleProperties?.sort()).toEqual(["scale", "translate"]);
   expectBox(rise.titleStart, rowTitle);
-  expect(
-    rise.animations?.find((a) => a.pseudo === "::view-transition-new(root)"),
-  ).toMatchObject({ name: "page-rise", duration: 300 });
+  expect(rise.animations?.find((a) => a.name === "page-rise")).toMatchObject({
+    pseudo: expect.stringContaining(
+      "::view-transition-new(",
+    ) as unknown as string,
+    duration: 300,
+  });
 
   const headingBox = await heading(page).boundingBox();
   await page.getByRole("link", { name: "Back" }).click();
   await expect(heading(page)).toHaveText("Sheets");
   const drop = await lastMove(page, 2);
-  expect(drop).toMatchObject({ move: "drop" });
-  expect(movesTitle(drop)).toBe(true);
+  expect(kindOf(drop)).toBe("drop");
+  expect(titleGroup(drop)).toMatchObject({ duration: 150 });
   expectBox(drop.titleStart, headingBox);
-  expect(
-    drop.animations?.find((a) => a.pseudo === "::view-transition-old(root)"),
-  ).toMatchObject({ name: "page-drop", duration: 150 });
+  expect(drop.animations?.find((a) => a.name === "page-drop")).toMatchObject({
+    pseudo: expect.stringContaining(
+      "::view-transition-old(",
+    ) as unknown as string,
+    duration: 150,
+  });
 
   await card.click();
   await expect(heading(page)).toHaveText(title);
@@ -279,9 +343,15 @@ test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
   await page.goBack();
   await expect(heading(page)).toHaveText("Sheets");
   await lastMove(page, 4);
+  // Forward is a step in the history too.
+  await page.goForward();
+  await expect(heading(page)).toHaveText(title);
+  await lastMove(page, 5);
   const all = await moves(page);
-  expect(all.map((m) => m.move)).toEqual(["rise", "drop", "rise", "drop"]);
+  expect(all.map(kindOf)).toEqual(["rise", "drop", "rise", "drop", "rise"]);
   expect(all.every(movesTitle)).toBe(true);
+  // Recent and the list show the sheet with names of their own.
+  expect(errors).toEqual([]);
 });
 
 // Scenario "Back to a search", and Back from a sheet opened from a link.
@@ -306,12 +376,13 @@ test("drops back into the list where it was scrolled", async ({ page }) => {
   await page.goBack();
   await expect(heading(page)).toHaveText("Sheets");
   const drop = await lastMove(page, 2);
-  expect(drop).toMatchObject({ move: "drop", scrollY: scrolled });
+  expect(kindOf(drop)).toBe("drop");
+  expect(drop.scrollY).toBe(scrolled);
 
   await page.goto(`/sheets/${fromLink}`);
   await page.getByRole("link", { name: "Back" }).click();
   await expect(page).toHaveURL(/\/sheets$/);
-  expect(await lastMove(page, 1)).toMatchObject({ move: "drop" });
+  expect(kindOf(await lastMove(page, 1))).toBe("drop");
 });
 
 // Scenarios "From playing to editing" and "Done".
@@ -344,7 +415,7 @@ test("changes only the bar between play and edit", async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`/sheets/${id}$`));
   await lastMove(page, 4);
   const all = await moves(page);
-  expect(all.map((m) => m.move)).toEqual(["mode", "mode", "mode", "mode"]);
+  expect(all.map(kindOf)).toEqual(["mode", "mode", "mode", "mode"]);
   expect(all.some(movesTitle)).toBe(false);
 });
 
@@ -368,10 +439,7 @@ test("doesn't move into the page that is open", async ({ page }) => {
   await lastMove(page, 2);
 
   await page.getByRole("link", { name: "Sheets", exact: true }).first().click();
-  expect(await lastMove(page, 3)).toMatchObject({
-    move: "none",
-    animations: [],
-  });
+  expect(await settledMoves(page)).toBe(2);
 });
 
 // Scenario "A slow answer": Edit still waits for its data, so a late one
@@ -393,19 +461,16 @@ test("changes at once when the new page's data comes late", async ({
   });
   await edit.click();
   await expect(line).toBeVisible();
-  expect(await lastMove(page, 1)).toMatchObject({
-    move: "none",
-    animations: [],
-  });
+  expect(await settledMoves(page)).toBe(0);
 
   // A quick answer still moves.
   await page.unroute(editData);
   await page.goBack();
   await expect(heading(page)).toHaveText(title);
-  await lastMove(page, 2);
+  await lastMove(page, 1);
   await edit.click();
   await expect(line).toBeVisible();
-  expect(await lastMove(page, 3)).toMatchObject({ move: "mode" });
+  expect(kindOf(await lastMove(page, 2))).toBe("mode");
 });
 
 // Scenario "A sheet from a row": a sheet whose data is slow still rises,
@@ -434,7 +499,7 @@ test("raises a slow sheet at once, with its title moving from the row", async ({
     page.locator("main .sheet-view .skeleton-bar").first(),
   ).toBeVisible();
   const rise = await lastMove(page, 1);
-  expect(rise).toMatchObject({ move: "rise" });
+  expect(kindOf(rise)).toBe("rise");
   expect(movesTitle(rise)).toBe(true);
   expectBox(rise.titleStart, rowTitle);
   await expect(
@@ -442,4 +507,78 @@ test("raises a slow sheet at once, with its title moving from the row", async ({
   ).toBeVisible();
   await expect(page.locator("main .skeleton-bar")).toHaveCount(0);
   await expect(heading(page)).toBeFocused();
+});
+
+// Requirement "Every page change moves", scenario "A new sheet": a page
+// change that no link starts moves by its kind too.
+test("raises a new sheet's edit mode", async ({ page }) => {
+  await createSheet(page, `New ${newMark()}`);
+  await recordMoves(page);
+  await page.goto("/sheets");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "New sheet" }).click();
+  await page.getByRole("menuitem", { name: "Write a new sheet" }).click();
+  await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit/);
+  expect(kindOf(await lastMove(page, 1))).toBe("rise");
+});
+
+// A fetcher loads without a page change, so it doesn't move.
+test("doesn't move while a dialog loads its list", async ({ page }) => {
+  const name = `Dialog ${newMark()}`;
+  const id = await create(page, "/api/collections", { name });
+  await recordMoves(page);
+  await page.goto(`/collections/${id}`);
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Add sheets" }).click();
+  await expect(
+    page.getByRole("dialog", { name: `Add sheets to “${name}”` }),
+  ).toBeVisible();
+  expect(await settledMoves(page)).toBe(0);
+});
+
+// Requirement "A skeleton while a page loads", scenario "Data during the
+// move": React shows what arrives once the move has ended.
+test("shows a sheet's lines once its rise has ended", async ({ page }) => {
+  const title = `Midway ${newMark()}`;
+  const id = await createSheet(page, title);
+  await recordMoves(page);
+  await page.addInitScript(() => {
+    const at = window as unknown as { linesAt?: number };
+    new MutationObserver(() => {
+      const text = document.querySelector("main")?.textContent ?? "";
+      if (at.linesAt === undefined && text.includes("Amazing grace")) {
+        at.linesAt = performance.now();
+      }
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await page.goto("/sheets");
+  await page.waitForLoadState("networkidle");
+  const row = page
+    .locator(".sheet-list-row")
+    .filter({ hasText: title })
+    .getByRole("link");
+  await row.scrollIntoViewIfNeeded();
+  await page.route(new RegExp(`/sheets/${id}\\.data`), async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    await page.evaluate(() => {
+      (window as unknown as { dataAt: number }).dataAt = performance.now();
+    });
+    await route.continue();
+  });
+  await row.click();
+  await expect(
+    page.locator("main .sheet-view .skeleton-bar").first(),
+  ).toBeVisible();
+  const rise = await lastMove(page, 1);
+  expect(kindOf(rise)).toBe("rise");
+  await expect(
+    page.getByText("Amazing grace, how sweet the sound"),
+  ).toBeVisible();
+  const { dataAt, linesAt } = await page.evaluate(() => {
+    const at = window as unknown as { dataAt: number; linesAt: number };
+    return { dataAt: at.dataAt, linesAt: at.linesAt };
+  });
+  // The data came while the sheet still rose, and showed after.
+  expect(dataAt).toBeLessThan(rise.finishedAt ?? 0);
+  expect(linesAt).toBeGreaterThanOrEqual(rise.finishedAt ?? Infinity);
 });

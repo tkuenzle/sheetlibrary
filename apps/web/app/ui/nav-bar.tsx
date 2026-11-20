@@ -22,7 +22,6 @@ export function NavBar({
           className="nav-bar-item"
           to={item.href}
           aria-current={currentOf(item)}
-          viewTransition
         >
           <span className="nav-bar-icon">
             <NavGlyph item={item} />

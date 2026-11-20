@@ -292,7 +292,7 @@ describe("collection page", () => {
       loaderData: { page: new Promise(() => undefined) },
       params: { id: "xmas00000000" },
       matches: [
-        undefined,
+        { id: "root", loaderData: {} },
         {
           id: "routes/shell",
           loaderData: {

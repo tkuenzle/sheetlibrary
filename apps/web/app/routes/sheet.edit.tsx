@@ -280,7 +280,6 @@ export function SheetView({
       void navigate(`${to.pathname}${to.search}`, {
         replace: blockedAs.current === "REPLACE",
         state: to.state as unknown,
-        viewTransition: true,
       });
     },
     [navigate],

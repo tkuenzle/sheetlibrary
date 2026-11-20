@@ -1,6 +1,6 @@
 # Motion
 
-How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89. Page changes are built in #136, overlays in #160, skeletons in #137.
+How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89. Page changes are built in #136 and moved to React's view transitions in #167, overlays in #160, skeletons in #137.
 
 ## Why things move
 
@@ -29,22 +29,25 @@ Motion shows where something came from and where it went. It is never decoration
 
 ## Page changes
 
-Page changes use the browser's View Transitions, through React Router's `viewTransition` on a `<Link>` or a `navigate()`. The browser takes a picture of the old page and of the new one, and `apps/web/app/shell/page-moves.css` animates the two. A sheet's route is outside the shell, so on the frame it appears the shell is gone; only a picture of the old page lets the sheet rise over it.
+Page changes use the browser's View Transitions, through React's `<ViewTransition>`. One boundary in `root.tsx` holds the page. React starts the move, the browser takes a picture of the old page and of the new one, and `apps/web/app/shell/page-moves.css` animates the two by the kind of move. A sheet's route is outside the shell, so on the frame it appears the shell is gone; only a picture of the old page lets the sheet rise over it.
 
-- **Only moves that ask move.** The rail, the bottom bar, Collections, the sheet rows, Recent, "Edit", and the sheet's moves (`useSheetMoves().go()`) ask. A search, a key or a capo changes only the address and stays instant. React Router plays a move again when the browser steps back between the same two pages.
-- **The kind follows from the two pages.** `shell/page-moves.ts` sets `data-move` on `<html>` when the page changes:
+- **Every page change moves.** Whatever starts it, a link, a button, a form or the browser's Back and Forward, a change between two pages moves by its kind. A search, a key or a capo changes only the address and stays instant.
+- **The kind follows from the two pages.** The root's client middleware (`pageMovesMiddleware` in `shell/page-moves.ts`) picks it once the new page's loaders are done, and hands it to React as the transition's type. The page's `<ViewTransition>` takes the type as its class:
 
-| `data-move` | From, to                                       | Move                                                    |
-| ----------- | ---------------------------------------------- | ------------------------------------------------------- |
-| `fade`      | a shell screen to another                      | the pictures fade into each other, `--motion-long`      |
-| `rise`      | a shell screen to a sheet                      | the new picture rises over the old one, `--motion-long` |
-| `drop`      | a sheet to a shell screen                      | the old picture drops off the new one, `--motion-short` |
-| `mode`      | play and edit of one sheet                     | the pictures fade into each other, `--motion-short`     |
-| `none`      | anything else, or after the browser's own move | at once                                                 |
+| Kind   | From, to                                       | Move                                                    |
+| ------ | ---------------------------------------------- | ------------------------------------------------------- |
+| `fade` | a shell screen to another                      | the pictures fade into each other, `--motion-long`      |
+| `rise` | a shell screen to a sheet                      | the new picture rises over the old one, `--motion-long` |
+| `drop` | a sheet to a shell screen                      | the old picture drops off the new one, `--motion-short` |
+| `mode` | play and edit of one sheet                     | the pictures fade into each other, `--motion-short`     |
+| none   | anything else, or after the browser's own move | at once: no type, so React doesn't move                 |
 
+- **The type rides on a pending action.** React Router starts its own Transition for the new page, with no way to add a type. So the middleware adds it inside an async action of its own that is still pending then, and React adds the types of a pending action to every Transition that finishes while it runs.
 - **Not the history's direction.** React Router reports "POP" for back and forward alike, and a link from a sheet to a collection is a push that should drop.
-- **The rail has no name of its own.** In a fade, its pixels are the same in both pictures, and the browser's fade blends them so they stay solid. A named rail would be painted above everything else and cover a rising sheet.
-- **The title moves through a shared name.** A row's title and the sheet's heading are named `sheet-title` while their sheet is in the move. One element per page may have a name, or the browser skips the whole move. Recent and the list on Sheets can show the same sheet, so a row's link puts its list in the location's state, and only the row in that list is named. Its move animates only `translate` and `scale`, from boxes `page-moves.ts` measures, so it runs off the main thread, unlike the browser's own move, which animates width and height. Both titles are `width: fit-content`, so their boxes have the same shape.
+- **A step back waits a moment.** React renders an update made during the browser's `popstate` at once, without a move, and a step back that loads nothing from the network finishes within it. So the middleware waits one task before it lets a step back load.
+- **The page is the one picture.** The root isn't captured (`view-transition-name: none`), and the page carries the background, so its picture is as opaque as the root's was. Its frame doesn't animate: its box changes size between pages, and the browser would animate its width and height.
+- **The rail has no name of its own.** It is part of the page's picture. In a fade, its pixels are the same in both pictures, and the browser's fade blends them so they stay solid. A named rail would be painted above everything else and cover a rising sheet.
+- **The title moves through a shared name.** A row's title and the sheet's heading are each in a named `<ViewTransition>` (`TitleMove` in `shell/title-move.tsx`), which takes part only in a rise or a drop. React fails when two boundaries share a name, and Recent and the list on Sheets can show the same sheet, so each list names its rows apart (`title-list-…`, `title-recent-…`), and the heading takes the name of the list in the location's state. Its move animates only `translate` and `scale`: in `onShare`, `moveTitle()` swaps the keyframes of the browser's own move, which would animate width and height, for ones from the same two boxes. An animation of its own instead would run on the main thread. Both titles are `width: fit-content`, so their boxes have the same shape.
 - **A page moves in with its skeleton.** Sheets, a collection, a sheet and the account page don't wait for their data: their client loaders hand it over as a promise, so the move starts right after the tap, and the new picture shows the page with bars where the data will be. Collections has its data already.
 
   ```
@@ -52,10 +55,10 @@ Page changes use the browser's View Transitions, through React Router's `viewTra
   ```
 
 - **Bars never flash.** Where no move covers them, in Add sheets and Choose collections, and on a page that changes without a move (after Safari's own swipe back, or with reduced motion), the bars stay unseen for the first 200ms, keeping their room, and once seen stay at least 400ms (`useSkeleton` in `ui/skeleton.tsx`, `PageSkeleton` and `holdBars` in `shell/awaited.tsx`). While a move plays, they show from the start.
-- **Rows show as they arrive.** Data that arrives while the page still moves in shows at once, in the middle of the move. On a fast connection it is mostly there before the new picture shows, so the page moves in whole. A page that loads again without a move, after a change on a row or during a search, keeps what it shows. For now the rows replace the bars at once.
+- **Rows show once the page is in.** React shows data that arrives while the page still moves in once the move has ended. On a fast connection it is mostly there before the new picture shows, so the page moves in whole. A page that loads again without a move, after a change on a row or during a search, keeps what it shows. For now the rows replace the bars at once.
 - **A late page cuts.** A move starts once the new page's data is there. When that took longer than the loading bar waits (`SLOW_WAIT`, 200ms), the person has already waited, so the page changes at once. With skeletons this only happens to pages that wait for their data, such as Edit.
-- **The page that is open doesn't move.** A link to it, such as "Sheet Library" on Sheets, is `none`.
-- **The browser's own move wins.** After a swipe back on an iPhone, Safari has already shown a move (`hasUAVisualTransition` on `popstate`), so the move is `none`.
+- **The page that is open doesn't move.** A link to it, such as "Sheet Library" on Sheets, has no kind.
+- **The browser's own move wins.** After a swipe back on an iPhone, Safari has already shown a move (`hasUAVisualTransition` on `popstate`). The step back then doesn't wait, so React changes the page at once, under the browser's picture, and it has no kind.
 - **Taps wait.** While a move plays, taps land on the pictures, not the page. That is why moves stay at 300ms or less.
 
 ## Overlays
@@ -86,7 +89,7 @@ Every animation runs off the main thread. On a phone, the main thread is busiest
 
 - **Animate only `opacity`, `transform`, `translate`, `scale` and `rotate`.** Never `width`, `height`, `top`, `left`, `inset`, `margin` or `padding`, which lay out the page each frame, and never colors, shadows or `background`, which paint it each frame. To grow something, scale it. To move it, translate it. The Lyrics only switch's handle is a small example: it stays 24px and is scaled down when off.
 - **A change of color is not animated.** Change it at once, or fade an element of the new color in with `opacity`.
-- **View transitions are no exception.** The browser's own move of a named element animates its box's `width` and `height` when the two boxes differ in size, and that runs on the main thread. Replace it with `translate` and `scale` from boxes you measure, as the sheet's title does (see "Page changes").
+- **View transitions are no exception.** The browser's own move of a named element animates its box's `width` and `height` when the two boxes differ in size, and that runs on the main thread. Replace it with `translate` and `scale` from the same boxes, as the sheet's title does, or don't animate the box at all, as the page's frame (see "Page changes").
 - **Check it with a trace.** Record a performance trace with the `blink.animations` category while the animation runs. Chrome lists each animation it couldn't run off the main thread with `compositeFailed`, and names the cause in `unsupportedProperties`. The browser's `-ua-mix-blend-mode-plus-lighter` in a view transition is listed too; it doesn't move anything and can stay.
 
 ## Tokens

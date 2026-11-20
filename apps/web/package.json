@@ -26,12 +26,12 @@
     "prosemirror-view": "^1.42.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router": "^8.4.0"
+    "react-router": "^8.5.2"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.64.0",
     "@playwright/test": "^1.64.1",
-    "@react-router/dev": "^8.4.0",
+    "@react-router/dev": "^8.5.2",
     "@types/fontkit": "^2.0.9",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

@@ -18,7 +18,7 @@ A spike on a throwaway branch tried the approach below in Chromium on the dev se
 
 ## Decisions
 
-**One root client middleware picks the kind.** React Router runs the root's `clientMiddleware` on every navigation, push or step back, even when no loader runs. It knows the target address. The page shown comes from a module value that a layout effect in the root sets, since on a step back the address has already changed.
+**One root client middleware picks the kind.** React Router runs the root's `clientMiddleware` on every navigation, push or step back, even when no loader runs. It knows the target's address and route pattern, but not its route ids, which React Router leaves out of a middleware's arguments, so the target's kind comes from the pattern (`patternKind()`, tested against `pageKind()` for every route). The page shown comes from a module value that a layout effect in the root sets, since on a step back the address has already changed.
 
 ```
 navigation --> root clientMiddleware
