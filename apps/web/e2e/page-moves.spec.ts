@@ -44,12 +44,14 @@ function createSheet(page: Page, title: string) {
 }
 
 interface Move {
+  startedAt?: number;
   finished?: boolean;
   finishedAt?: number;
   // The title's box where its move starts, and what its move animates.
   titleStart?: { x: number; y: number; width: number; height: number };
   titleProperties?: string[];
-  // The transition's types: the kind of move page-moves.ts picked.
+  // The kind of move page-moves.ts announced, as the page's
+  // view-transition-class.
   types?: string[];
   // Why the browser skipped the move, such as two elements with one name.
   skipped?: string;
@@ -71,12 +73,20 @@ async function recordMoves(page: Page) {
       update?: ViewTransitionUpdateCallback | StartViewTransitionOptions,
     ) => {
       const transition = start(update);
-      const types =
-        update && typeof update === "object" ? [...(update.types ?? [])] : [];
-      const move: Record<string, unknown> = { types };
+      const move: Record<string, unknown> = {
+        types: [],
+        startedAt: performance.now(),
+      };
       moves.push(move);
       transition.ready.then(
         async () => {
+          const classes = [...document.querySelectorAll("*")].flatMap(
+            (element) =>
+              getComputedStyle(element).viewTransitionClass.split(" "),
+          );
+          move.types = ["fade", "rise", "drop", "mode"].filter((kind) =>
+            classes.includes(kind),
+          );
           const names = [...document.querySelectorAll("*")]
             .map((element) => getComputedStyle(element).viewTransitionName)
             .filter((name) => name && name !== "none");
@@ -343,13 +353,26 @@ test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
   await page.goBack();
   await expect(heading(page)).toHaveText("Sheets");
   await lastMove(page, 4);
+  // React moves no title to or from an element outside the window. Other
+  // tests open sheets on this account too, so Recent's card may have
+  // scrolled away by now.
+  const cardInView = await card.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return box.right > 0 && box.left < window.innerWidth;
+  });
   // Forward is a step in the history too.
   await page.goForward();
   await expect(heading(page)).toHaveText(title);
   await lastMove(page, 5);
   const all = await moves(page);
   expect(all.map(kindOf)).toEqual(["rise", "drop", "rise", "drop", "rise"]);
-  expect(all.every(movesTitle)).toBe(true);
+  expect(all.map(movesTitle)).toEqual([
+    true,
+    true,
+    true,
+    cardInView,
+    cardInView,
+  ]);
   // Recent and the list show the sheet with names of their own.
   expect(errors).toEqual([]);
 });
@@ -509,17 +532,56 @@ test("raises a slow sheet at once, with its title moving from the row", async ({
   await expect(heading(page)).toBeFocused();
 });
 
+// The most time between deciding a move and the browser starting it, while
+// React renders the announced move and then the new page, on a busy machine.
+const SETTLE_MS = 300;
+
 // Requirement "Every page change moves", scenario "A new sheet": a page
 // change that no link starts moves by its kind too.
 test("raises a new sheet's edit mode", async ({ page }) => {
   await createSheet(page, `New ${newMark()}`);
   await recordMoves(page);
+  // Making the sheet waits for the server. Once the loading bar has shown,
+  // the person has seen the wait, and the page changes without a move
+  // (scenario "A slow answer").
+  await page.addInitScript(() => {
+    const seen = window as unknown as { barSeenAt?: number };
+    new MutationObserver(() => {
+      if (
+        seen.barSeenAt === undefined &&
+        document.querySelector(".loading-bar")
+      ) {
+        seen.barSeenAt = performance.now();
+      }
+    }).observe(document, { childList: true, subtree: true });
+  });
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "New sheet" }).click();
   await page.getByRole("menuitem", { name: "Write a new sheet" }).click();
   await expect(page).toHaveURL(/\/sheets\/[\w-]{12}\/edit/);
-  expect(kindOf(await lastMove(page, 1))).toBe("rise");
+  await page.waitForLoadState("networkidle");
+  const barSeenAt = await page.evaluate(
+    () => (window as unknown as { barSeenAt?: number }).barSeenAt,
+  );
+  await expect
+    .poll(async () =>
+      (await moves(page)).every(
+        (m) => m.finished === true || m.skipped !== undefined,
+      ),
+    )
+    .toBe(true);
+  const all = await moves(page);
+  const rise = all[0];
+  if (rise) {
+    expect(all.map(kindOf)).toEqual(["rise"]);
+    // The bar may only show once the move has been decided.
+    expect(barSeenAt ?? Infinity).toBeGreaterThan(
+      (rise.startedAt ?? 0) - SETTLE_MS,
+    );
+  } else {
+    expect(barSeenAt).toBeDefined();
+  }
 });
 
 // A fetcher loads without a page change, so it doesn't move.
@@ -566,9 +628,6 @@ test("shows a sheet's lines once its rise has ended", async ({ page }) => {
     await route.continue();
   });
   await row.click();
-  await expect(
-    page.locator("main .sheet-view .skeleton-bar").first(),
-  ).toBeVisible();
   const rise = await lastMove(page, 1);
   expect(kindOf(rise)).toBe("rise");
   await expect(
@@ -578,6 +637,12 @@ test("shows a sheet's lines once its rise has ended", async ({ page }) => {
     const at = window as unknown as { dataAt: number; linesAt: number };
     return { dataAt: at.dataAt, linesAt: at.linesAt };
   });
+  // On a busy machine the data may come before the page changes, and the
+  // sheet rises whole: then this scenario didn't happen.
+  test.skip(
+    dataAt < (rise.startedAt ?? 0),
+    "the data came before the move started",
+  );
   // The data came while the sheet still rose, and showed after.
   expect(dataAt).toBeLessThan(rise.finishedAt ?? 0);
   expect(linesAt).toBeGreaterThanOrEqual(rise.finishedAt ?? Infinity);

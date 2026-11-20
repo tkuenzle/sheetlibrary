@@ -1,20 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  announcedMove,
   durationMs,
   headingTitleName,
-  isLate,
   type MoveArgs,
   moveKind,
+  noteAnnounceRendered,
   noteStepInHistory,
   openedFrom,
   type PageKind,
   pageKind,
+  pageMoveClass,
   pageMovesMiddleware,
   patternKind,
   pickMove,
   rowDetails,
   showPage,
+  subscribeAnnounced,
   titleMoveFromKeyframes,
   titleMoveStart,
   titleName,
@@ -124,17 +127,6 @@ describe("moveKind", () => {
   });
 });
 
-describe("isLate", () => {
-  // Scenario "A slow answer": late once the loading bar would show.
-  it("is late after the loading bar's wait", () => {
-    expect(isLate(150)).toBe(false);
-    expect(isLate(200)).toBe(false);
-    expect(isLate(201)).toBe(true);
-  });
-});
-
-// Requirement "What the skeleton already knows": a row's link carries its
-// title and artist for the sheet's heading.
 describe("openedFrom and rowDetails", () => {
   it("carries the row's list, title and artist", () => {
     const state = openedFrom("list", {
@@ -200,14 +192,37 @@ describe("pageMovesMiddleware", () => {
     unstable_navigationType: navigationType,
   });
 
+  // Stands in for React, which renders an announced move at once.
+  let stopRendering = () => undefined as unknown;
+
   beforeEach(() => {
     vi.useFakeTimers();
     showPage({ path: "/sheets/a", kind: play });
+    stopRendering = subscribeAnnounced(() => {
+      if (announcedMove()) noteAnnounceRendered();
+    });
   });
 
   afterEach(() => {
+    stopRendering();
     vi.runAllTimers();
     vi.useRealTimers();
+  });
+
+  // Before React Router renders the new page, so the leaving title has its
+  // shared class already.
+  it("announces the move once the loaders are done", async () => {
+    let atLoaders: unknown = "unset";
+    await pageMovesMiddleware(toSheets("PUSH"), () => {
+      atLoaders = announcedMove();
+      return Promise.resolve("loaded");
+    });
+    expect(atLoaders).toBeNull();
+    expect(announcedMove()).toEqual({
+      from: "/sheets/a",
+      to: "/sheets",
+      kind: "drop",
+    });
   });
 
   // React renders an update made during `popstate` at once, without a move.
@@ -242,6 +257,18 @@ describe("pageMovesMiddleware", () => {
     );
     await Promise.resolve();
     expect(next).toHaveBeenCalledOnce();
+  });
+});
+
+describe("pageMoveClass", () => {
+  const move = { from: "/sheets", to: "/sheets/a", kind: "rise" as const };
+
+  // Only the render that reaches the target moves, so no other commit can
+  // take the move.
+  it("gives the kind only to the page the move leads to", () => {
+    expect(pageMoveClass(move, "/sheets/a")).toBe("rise");
+    expect(pageMoveClass(move, "/sheets")).toBe("none");
+    expect(pageMoveClass(null, "/sheets/a")).toBe("none");
   });
 });
 

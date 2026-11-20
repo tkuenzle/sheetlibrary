@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import {
   type Location,
   type Navigation,
@@ -6,6 +7,7 @@ import {
 } from "react-router";
 
 import { LoadingBar } from "../ui/loading-bar";
+import { noteLoadingBar } from "./page-moves";
 import { useSlowWait } from "./slow-wait";
 
 // Whether a navigation loads a page, for the loading bar. A search changes
@@ -31,5 +33,10 @@ export function PageLoading() {
   const navigation = useNavigation();
   const location = useLocation();
   const slow = useSlowWait(isPageLoad(navigation, location));
+  // A page change after a wait the person has seen doesn't move (see
+  // shell/page-moves.ts).
+  useLayoutEffect(() => {
+    noteLoadingBar(slow);
+  }, [slow]);
   return slow ? <LoadingBar /> : null;
 }

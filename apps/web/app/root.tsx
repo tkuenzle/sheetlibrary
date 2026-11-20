@@ -12,6 +12,7 @@ import {
   ScrollRestoration,
   type ShouldRevalidateFunctionArgs,
   useLoaderData,
+  useLocation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -23,7 +24,9 @@ import { PageLoading } from "./shell/page-loading";
 import {
   type MoveArgs,
   PageMoves,
+  pageMoveClass,
   pageMovesMiddleware,
+  useAnnouncedMove,
 } from "./shell/page-moves";
 import { revalidateAfterChanges } from "./shell/revalidate";
 import { initialOf, SignedInContext } from "./shell/signed-in";
@@ -133,23 +136,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
 export default function App() {
   const { signedIn } = useLoaderData<typeof loader>();
+  const { pathname } = useLocation();
+  const move = useAnnouncedMove();
   useFocusOnNavigation();
   return (
     <SignedInContext value={signedIn}>
       <PageMoves />
       {/* The page is the one picture of a page change, as the root was for
-          the browser's own moves; the kind of move picks its class. See
-          shell/page-moves.css. */}
-      <ViewTransition
-        default="none"
-        update={{
-          fade: "fade",
-          rise: "rise",
-          drop: "drop",
-          mode: "mode",
-          default: "none",
-        }}
-      >
+          the browser's own moves; the announced kind of move is its class in
+          the render that changes the page. See shell/page-moves.css. */}
+      <ViewTransition default="none" update={pageMoveClass(move, pathname)}>
         <div className="page-moves-page">
           <Outlet />
         </div>

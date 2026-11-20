@@ -1,7 +1,5 @@
-import { addTransitionType, startTransition, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 import { useLocation, useMatches } from "react-router";
-
-import { SLOW_WAIT } from "./slow-wait";
 
 // How a page change moves. See docs/motion.md ("Page changes") and
 // openspec/specs/site-layout.
@@ -78,7 +76,7 @@ export interface MovePage {
 
 // The move for a page change. `browserMoved`: the browser already showed a
 // move of its own for this step in the history, as Safari does after a
-// swipe back. `late`: the new page's data came late (see `isLate`). A
+// swipe back. `late`: the loading bar showed while the new page loaded. A
 // change that keeps the page, such as a search, a key or a capo, or a link
 // to the page that is open, doesn't move.
 export function pickMove(
@@ -90,30 +88,89 @@ export function pickMove(
   return moveKind(shown.kind, target.kind, browserMoved || late);
 }
 
+// The move announced for the next page change, from the page shown to the
+// target, until it has played. The page's <ViewTransition> takes its kind
+// as its class only in the render that reaches the target, and the titles
+// take their shared class while it is announced (see the middleware below).
+export interface AnnouncedMove {
+  from: string;
+  to: string;
+  kind: Exclude<MoveKind, "none">;
+}
+
+let announced: AnnouncedMove | null = null;
+const announcedListeners = new Set<() => void>();
+
+function setAnnounced(move: AnnouncedMove | null) {
+  if (announced === move) return;
+  announced = move;
+  for (const listener of announcedListeners) listener();
+}
+
+export function subscribeAnnounced(listener: () => void): () => void {
+  announcedListeners.add(listener);
+  return () => {
+    announcedListeners.delete(listener);
+  };
+}
+
+export function announcedMove(): AnnouncedMove | null {
+  return announced;
+}
+
+// An update through useSyncExternalStore renders at once and never in a
+// Transition, so React doesn't move for it.
+export function useAnnouncedMove(): AnnouncedMove | null {
+  return useSyncExternalStore(subscribeAnnounced, announcedMove, () => null);
+}
+
+// The class of the page's <ViewTransition> for the page at `pathname`: the
+// announced kind in the render that reaches its target, otherwise none. So
+// no other commit, such as React Router rendering the wait, can take the
+// move.
+export function pageMoveClass(
+  move: AnnouncedMove | null,
+  pathname: string,
+): string {
+  return move?.to === pathname ? move.kind : "none";
+}
+
+// Resolved by <PageMoves /> once the announced move has rendered.
+let announceRendered: (() => void) | null = null;
+export function noteAnnounceRendered() {
+  announceRendered?.();
+  announceRendered = null;
+}
+
+// Announces a move and waits until it has rendered, or for `limitMs` if
+// nothing renders it, as when no React tree runs.
+export function announceMove(
+  move: AnnouncedMove,
+  limitMs: number,
+): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      announceRendered = null;
+      resolve();
+    }, limitMs);
+    announceRendered = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    setAnnounced(move);
+  });
+}
+
 // Whether a move plays for the page change that is being shown: a view
-// transition runs with a kind of move as its type, and motion isn't
-// reduced. React passes the types on to the browser's view transition.
+// transition runs for an announced move, and motion isn't reduced. Read it
+// in a layout effect of the new page: the move is forgotten only once it has
+// played.
 export function movePlays(): boolean {
   // Undefined in a browser without it, whatever the DOM types say.
   const running = (document as { activeViewTransition?: ViewTransition | null })
     .activeViewTransition;
-  if (!running) return false;
-  const types = running.types as Iterable<string> | undefined;
-  if (!types || ![...types].some(isMoveKind)) return false;
+  if (!running || !announced) return false;
   return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-const moveKinds: readonly string[] = ["fade", "rise", "drop", "mode"];
-
-function isMoveKind(type: string): boolean {
-  return moveKinds.includes(type);
-}
-
-// A move starts once the new page's data is there. When that took longer
-// than the loading bar waits before it shows, the person has already
-// waited, and a move would only add to it, so the page changes at once.
-export function isLate(waitedMs: number): boolean {
-  return waitedMs > SLOW_WAIT;
 }
 
 // The page on screen, which <PageMoves /> keeps. On a push, the address
@@ -135,6 +192,15 @@ if (typeof window !== "undefined") {
   window.addEventListener("popstate", noteStepInHistory, { capture: true });
 }
 
+// Whether the loading bar shows, which <PageLoading /> notes as it renders.
+// A move starts once the new page's data is there. When the person has
+// already seen the wait, a move would only add to it, so the page changes
+// at once.
+let loadingBarShown = false;
+export function noteLoadingBar(shown: boolean) {
+  loadingBarShown = shown;
+}
+
 function nextTask(): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, 0);
@@ -153,54 +219,69 @@ export interface MoveArgs {
   unstable_navigationType?: string | null;
 }
 
+// How long the middleware waits for an announced move to render.
+export const ANNOUNCE_LIMIT = 500;
+
 // The root's client middleware: picks the move for every page change and
-// hands it to React as a transition type. See docs/motion.md ("Page
-// changes") and this change's design.
+// announces it before React Router renders the new page. See docs/motion.md
+// ("Page changes") and this change's design.
 //
 // - React renders an update made during `popstate` at once, without a
 //   move, and React Router finishes a step back within that event when no
 //   loader waits on the network. So a step back waits one task first,
 //   unless the browser already showed its own move: then the page should
 //   change at once, under the browser's picture.
-// - After the loaders, the type goes into an async action that is still
-//   pending when React Router calls `startTransition` for the new page, in
-//   the microtasks after this returns. React adds the types of a pending
-//   action to every Transition that finishes while it runs.
+// - After the loaders, it announces the move and waits for that render. The
+//   old page's titles then carry their shared class, which React reads from
+//   their last render as they leave. React Router renders the new page in
+//   the microtasks after this returns, and that render gives the page its
+//   class.
 export async function pageMovesMiddleware<T>(
   args: MoveArgs,
   next: () => Promise<T>,
 ): Promise<T> {
   if (args.unstable_initiator !== "navigation") return next();
+  setAnnounced(null);
   const back = args.unstable_navigationType === "POP";
   const moved = back && browserMoved;
   browserMoved = false;
   if (back && !moved) await nextTask();
-  const started = performance.now();
   const result = await next();
-  const late = isLate(performance.now() - started);
+  const late = loadingBarShown;
   const target = {
     path: args.url.pathname,
     kind: patternKind(args.pattern, args.params),
   };
   const kind = pickMove(shown, target, { browserMoved: moved, late });
-  if (kind !== "none") {
-    startTransition(async () => {
-      addTransitionType(kind);
-      await nextTask();
-    });
+  if (kind !== "none" && shown) {
+    await announceMove(
+      { from: shown.path, to: target.path, kind },
+      ANNOUNCE_LIMIT,
+    );
   }
   return result;
 }
 
 // Rendered once, in the root, apart from the pages, so that waiting for a
-// page doesn't render them again. Keeps the page shown for the middleware.
+// page doesn't render them again. Keeps the page shown for the middleware,
+// and lets an announced move go once it has played.
 export function PageMoves() {
   const { pathname } = useLocation();
   const kind = pageKind(useMatches());
   const kindKey = JSON.stringify(kind);
+  const move = useAnnouncedMove();
   useLayoutEffect(() => {
     showPage({ path: pathname, kind: JSON.parse(kindKey) as PageKind });
   }, [pathname, kindKey]);
+  useLayoutEffect(() => {
+    if (move) noteAnnounceRendered();
+  }, [move]);
+  // Once the page has changed, the move is forgotten, so that no later
+  // commit, such as the page's data showing, plays it again. A passive
+  // effect: React runs those once the move has ended.
+  useEffect(() => {
+    if (move && move.from !== pathname) setAnnounced(null);
+  }, [move, pathname]);
   return null;
 }
 
