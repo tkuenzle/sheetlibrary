@@ -30,4 +30,4 @@
 
 - [x] 5.1 Run `just check`; verify it passes
 - [x] 5.2 In the production build (`pnpm --filter web preview`), measure the time from a tap to the move's start for a row, the Back arrow and the browser's Back, before and after this change; note the numbers in the PR
-- [ ] 5.3 Ask for a check of Safari's swipe back on an iPhone in the PR preview: the list shows after the swipe without a second move
+- [x] 5.3 Ask for a check of Safari's swipe back on an iPhone in the PR preview: the list shows after the swipe without a second move
