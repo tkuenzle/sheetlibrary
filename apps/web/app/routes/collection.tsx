@@ -89,7 +89,7 @@ function shellCollection(
   matches: Route.MetaArgs["matches"],
   id: string,
 ): CollectionListItem | undefined {
-  const shell = matches.find((match) => match?.id === shellRouteId);
+  const shell = matches.find((match) => match.id === shellRouteId);
   const collections = (
     shell?.loaderData as { collections?: CollectionListItem[] } | undefined
   )?.collections;

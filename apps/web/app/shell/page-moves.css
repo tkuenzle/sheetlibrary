@@ -1,83 +1,81 @@
-/* How a page change moves, by the kind of move page-moves.ts sets on
-   <html>. The browser shows a picture of the old page and one of the new
-   page; these rules animate the two. See docs/motion.md ("Page changes").
-   Only the motion tokens, so with reduced motion every move takes 0s. */
+/* How a page change moves, by the kind of move, which React gives the
+   page's <ViewTransition> in root.tsx as its class. The browser shows a
+   picture of the old page and one of the new page; these rules animate the
+   two. See docs/motion.md ("Page changes"). Only the motion tokens, so with
+   reduced motion every move takes 0s. */
 @layer components {
+  /* The page is the one picture. The root isn't captured, and the page
+     carries the background, so its picture is as opaque as the root's. */
+  :root {
+    view-transition-name: none;
+  }
+
+  .page-moves-page {
+    min-height: 100dvh;
+    background: var(--page);
+  }
+
+  /* The page's frame doesn't move. Its box changes size between pages, and
+     the browser would animate its width and height on the main thread. */
+  ::view-transition-group(.fade),
+  ::view-transition-group(.mode),
+  ::view-transition-group(.rise),
+  ::view-transition-group(.drop) {
+    animation: none;
+  }
+
   /* Between the shell's screens, and between play and edit: the pictures
      fade into each other. The browser's own fade is kept, only slower or
      faster, since it blends the pictures so that pixels that are the same
      in both, such as the rail, stay solid. */
-  html[data-move="fade"]::view-transition-group(root),
-  html[data-move="fade"]::view-transition-old(root),
-  html[data-move="fade"]::view-transition-new(root) {
+  ::view-transition-old(.fade),
+  ::view-transition-new(.fade) {
     animation-duration: var(--motion-long);
     animation-timing-function: var(--ease-move);
   }
 
-  html[data-move="mode"]::view-transition-group(root),
-  html[data-move="mode"]::view-transition-old(root),
-  html[data-move="mode"]::view-transition-new(root) {
+  ::view-transition-old(.mode),
+  ::view-transition-new(.mode) {
     animation-duration: var(--motion-short);
     animation-timing-function: var(--ease-move);
-  }
-
-  /* The root's frame doesn't change, but its animation decides how long
-     the move takes, so it gets the move's duration. */
-  html[data-move="rise"]::view-transition-group(root) {
-    animation-duration: var(--motion-long);
-  }
-
-  html[data-move="drop"]::view-transition-group(root) {
-    animation-duration: var(--motion-short);
   }
 
   /* A sheet rises over the old page, which stays as it was. */
-  html[data-move="rise"]::view-transition-old(root) {
+  ::view-transition-old(.rise) {
     animation: none;
   }
 
-  html[data-move="rise"]::view-transition-new(root) {
+  ::view-transition-new(.rise) {
     animation: page-rise var(--motion-long) var(--ease-enter) both;
   }
 
   /* Back: the sheet drops, faster, above the page under it. */
-  html[data-move="drop"]::view-transition-old(root) {
+  ::view-transition-old(.drop) {
     z-index: 1;
     animation: page-drop var(--motion-short) var(--ease-exit) both;
   }
 
-  html[data-move="drop"]::view-transition-new(root) {
+  ::view-transition-new(.drop) {
     animation: none;
   }
 
-  /* The sheet's title, between its row and the heading. Instead of the
-     browser's move, which animates the box's width and height on the main
-     thread, the box keeps its size and place in the new page and starts
-     scaled and shifted onto the old one, from the numbers page-moves.ts
-     measured. `translate` and `scale` run off the main thread. */
-  html[data-move="rise"]::view-transition-group(sheet-title),
-  html[data-move="drop"]::view-transition-group(sheet-title) {
+  /* The sheet's title, between its row and the heading. Its group moves by
+     `translate` and `scale` from the top left (moveTitle() in
+     page-moves.ts). Its two pictures fade into each other in the move's
+     time. */
+  ::view-transition-group(.title-rise),
+  ::view-transition-group(.title-drop) {
     transform-origin: 0 0;
-    animation: title-move var(--motion-long) var(--ease-move) both;
   }
 
-  html[data-move="drop"]::view-transition-group(sheet-title) {
+  ::view-transition-old(.title-rise),
+  ::view-transition-new(.title-rise) {
+    animation-duration: var(--motion-long);
+  }
+
+  ::view-transition-old(.title-drop),
+  ::view-transition-new(.title-drop) {
     animation-duration: var(--motion-short);
-  }
-
-  @keyframes title-move {
-    from {
-      translate: var(--title-dx, 0) var(--title-dy, 0);
-      scale: var(--title-sx, 1) var(--title-sy, 1);
-    }
-  }
-
-  /* Any other change that asked for a move, and one the browser already
-     showed, as a swipe back on an iPhone: at once. */
-  html[data-move="none"]::view-transition-group(*),
-  html[data-move="none"]::view-transition-old(*),
-  html[data-move="none"]::view-transition-new(*) {
-    animation: none;
   }
 
   @keyframes page-rise {

@@ -235,7 +235,6 @@ function ShellLayout({
         to={account.href}
         aria-label={account.label}
         aria-current={account.current ? "page" : undefined}
-        viewTransition
       >
         <span className="nav-avatar" aria-hidden="true">
           {initial}

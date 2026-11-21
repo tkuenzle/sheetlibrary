@@ -2,6 +2,7 @@ import "./app.css";
 import "./shell/page-moves.css";
 
 import lyricsFont from "@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url";
+import { ViewTransition } from "react";
 import {
   isRouteErrorResponse,
   Links,
@@ -11,6 +12,7 @@ import {
   ScrollRestoration,
   type ShouldRevalidateFunctionArgs,
   useLoaderData,
+  useLocation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -19,7 +21,13 @@ import { cloudflareContext, sessionContext } from "./context";
 import { NotFoundView } from "./routes/not-found";
 import { useFocusOnNavigation } from "./shell/focus";
 import { PageLoading } from "./shell/page-loading";
-import { PageMoves } from "./shell/page-moves";
+import {
+  type MoveArgs,
+  PageMoves,
+  pageMoveClass,
+  pageMovesMiddleware,
+  useAnnouncedMove,
+} from "./shell/page-moves";
 import { revalidateAfterChanges } from "./shell/revalidate";
 import { initialOf, SignedInContext } from "./shell/signed-in";
 import { TopBar } from "./shell/top-bar";
@@ -40,6 +48,11 @@ export function links() {
     },
   ];
 }
+
+// Picks how each page change moves, in the browser. See shell/page-moves.ts.
+export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
+  (args, next) => pageMovesMiddleware(args as typeof args & MoveArgs, next),
+];
 
 // Reads who is signed in once per request, for every loader and action.
 export const middleware: Route.MiddlewareFunction[] = [
@@ -123,11 +136,20 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
 export default function App() {
   const { signedIn } = useLoaderData<typeof loader>();
+  const { pathname } = useLocation();
+  const move = useAnnouncedMove();
   useFocusOnNavigation();
   return (
     <SignedInContext value={signedIn}>
       <PageMoves />
-      <Outlet />
+      {/* The page is the one picture of a page change, as the root was for
+          the browser's own moves; the announced kind of move is its class in
+          the render that changes the page. See shell/page-moves.css. */}
+      <ViewTransition default="none" update={pageMoveClass(move, pathname)}>
+        <div className="page-moves-page">
+          <Outlet />
+        </div>
+      </ViewTransition>
     </SignedInContext>
   );
 }

@@ -6,7 +6,8 @@ import { Link, useFetcher, useFetchers, useRevalidator } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
 import { spokenKey } from "../editor/key-button";
-import { openedFrom, useSheetTitleName } from "../shell/page-moves";
+import { openedFrom, titleName } from "../shell/page-moves";
+import { TitleMove } from "../shell/title-move";
 import { Button } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Icon } from "../ui/icon";
@@ -287,7 +288,6 @@ function Row({
   onFailed: (intent: string | undefined) => void;
 }) {
   const fetcher = useFetcher<RowAnswer>({ key: rowKey(sheet.id) });
-  const titleName = useSheetTitleName(sheet.id, "list");
   const answer = fetcher.state === "idle" ? fetcher.data : undefined;
   const failedNow = answer?.ok === false;
   const reportFailed = useRef(onFailed);
@@ -306,14 +306,16 @@ function Row({
         className="library-columns"
         to={`/sheets/${sheet.id}`}
         state={openedFrom("list", sheet)}
-        viewTransition
       >
-        <span
-          className="library-title"
-          style={{ viewTransitionName: titleName }}
-        >
-          {sheet.titleParts ? <Marked parts={sheet.titleParts} /> : sheet.title}
-        </span>
+        <TitleMove name={titleName("list", sheet.id)}>
+          <span className="library-title">
+            {sheet.titleParts ? (
+              <Marked parts={sheet.titleParts} />
+            ) : (
+              sheet.title
+            )}
+          </span>
+        </TitleMove>
         <span className="library-details">
           <span>
             {sheet.artistParts ? (
