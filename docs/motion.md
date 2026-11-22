@@ -1,6 +1,6 @@
 # Motion
 
-How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89. Page changes are built in #136 and moved to React's view transitions in #167, overlays in #160, skeletons in #137.
+How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89. Page changes are built in #136 and moved to React's view transitions in #167, overlays in #160, skeletons in #137 and timed in #168.
 
 ## Why things move
 
@@ -48,17 +48,18 @@ Page changes use the browser's View Transitions, through React's `<ViewTransitio
 - **The page is the one picture.** The root isn't captured (`view-transition-name: none`), and the page carries the background, so its picture is as opaque as the root's was. Its frame doesn't animate: its box changes size between pages, and the browser would animate its width and height.
 - **The rail has no name of its own.** It is part of the page's picture. In a fade, its pixels are the same in both pictures, and the browser's fade blends them so they stay solid. A named rail would be painted above everything else and cover a rising sheet.
 - **The title moves through a shared name.** A row's title and the sheet's heading are each in a named `<ViewTransition>` (`TitleMove` in `shell/title-move.tsx`), which takes part only while a rise or a drop is announced. React reads a leaving title's class from its last render, which is why the move is announced before the page changes. React shares no element outside the window, so the title doesn't move to a row that is scrolled away. React fails when two boundaries share a name, and Recent and the list on Sheets can show the same sheet, so each list names its rows apart (`title-list-…`, `title-recent-…`), and the heading takes the name of the list in the location's state. Its move animates only `translate` and `scale`: in `onShare`, `moveTitle()` swaps the keyframes of the browser's own move, which would animate width and height, for ones from the same two boxes. An animation of its own instead would run on the main thread. Both titles are `width: fit-content`, so their boxes have the same shape.
-- **A page moves in with its skeleton.** Sheets, a collection, a sheet and the account page don't wait for their data: their client loaders hand it over as a promise, so the move starts right after the tap, and the new picture shows the page with bars where the data will be. Collections has its data already.
+- **A fast page moves in whole, a slow one with its skeleton.** Sheets, a collection, a sheet and the account page wait up to 150ms for their data (`HEAD_START`, `handOver()` in `shell/awaited.tsx`), a step back too. Data that comes in time moves in with the page. Otherwise the client loader hands it over as a promise, the move starts, and the new picture shows the page with bars where the data will be. A fast page feels snappy that way; a slow one only starts 150ms later, and it shows a skeleton anyway. Collections has its data already.
 
   ```
-  tap -- move, page with bars --> data arrives --> rows
+  fast:  tap -- up to 150ms, old page --> move, whole page
+  slow:  tap -- 150ms, old page --> move, page with bars --> data arrives --> rows
   ```
 
-- **Bars never flash.** Where no move covers them, in Add sheets and Choose collections, and on a page that changes without a move (after Safari's own swipe back, or with reduced motion), the bars stay unseen for the first 200ms, keeping their room, and once seen stay at least 400ms (`useSkeleton` in `ui/skeleton.tsx`, `PageSkeleton` and `holdBars` in `shell/awaited.tsx`). While a move plays, they show from the start.
-- **Rows show once the page is in.** React shows data that arrives while the page still moves in once the move has ended. On a fast connection it is mostly there before the new picture shows, so the page moves in whole. A page that loads again without a move, after a change on a row or during a search, keeps what it shows. For now the rows replace the bars at once.
-- **A late page cuts.** A move starts once the new page's data is there. When the loading bar has shown by then (after `SLOW_WAIT`, 200ms), the person has already waited, so the page changes at once. With skeletons this only happens to pages that wait for their data, such as Edit or Back to Sheets.
+- **Bars never flash.** A page's bars show at once, with or without a move. The data handed over is held until 400ms after the skeleton has shown (`SKELETON_HOLD`, `noteSkeletonShown()`), which can be well after the handover, as when the page waits for its stylesheet. React has a hold of its own for reveals, but it doesn't apply to a page's first one, which comes as soon as the move has ended. In Add sheets and Choose collections, the bars stay unseen for the first 200ms, keeping their room, and once seen stay at least 400ms (`useSkeleton` in `ui/skeleton.tsx`).
+- **Rows show once the page is in.** React shows data that arrives while the page still moves in once the move has ended. A page that loads again without a move, after a change on a row or during a search, keeps what it shows. For now the rows replace the bars at once.
+- **A late page cuts.** A move starts once the new page's data is there. When the loading bar has shown by then (after `SLOW_WAIT`, 200ms), the person has already waited, so the page changes at once. With skeletons this only happens to pages that wait for their data, such as Edit, or when code or data of the page's frame is slow, such as the shell's collections on the way back from a sheet.
 - **The page that is open doesn't move.** A link to it, such as "Sheet Library" on Sheets, has no kind.
-- **The browser's own move wins.** After a swipe back on an iPhone, Safari has already shown a move (`hasUAVisualTransition` on `popstate`). The step back then doesn't wait, so React changes the page at once, under the browser's picture, and it has no kind.
+- **The browser's own move wins.** After a swipe back on an iPhone, Safari has already shown a move (`hasUAVisualTransition` on `popstate`). The step back then doesn't wait, not even for the page's data (`browserMovedContext`), so React changes the page at once, under the browser's picture, with bars where data is still on its way, and it has no kind.
 - **Taps wait.** While a move plays, taps land on the pictures, not the page. That is why moves stay at 300ms or less.
 
 ## Overlays

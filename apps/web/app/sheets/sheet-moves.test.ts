@@ -4,6 +4,7 @@ import {
   afterDelete,
   backFromPlay,
   doneFromEdit,
+  fromEditMode,
   fromPlayState,
   sheetHistory,
 } from "./sheet-moves";
@@ -94,5 +95,19 @@ describe("sheet moves", () => {
         fromPlay: false,
       });
     });
+  });
+});
+
+describe("fromEditMode", () => {
+  const url = new URL("https://example.com/sheets/abc?key=A");
+
+  it("sees play after its own edit mode", () => {
+    expect(fromEditMode(url, "/sheets/abc/edit")).toBe(true);
+  });
+
+  it("doesn't count another page or another sheet's edit mode", () => {
+    expect(fromEditMode(url, "/sheets")).toBe(false);
+    expect(fromEditMode(url, "/sheets/xyz/edit")).toBe(false);
+    expect(fromEditMode(url, null)).toBe(false);
   });
 });

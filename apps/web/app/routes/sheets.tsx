@@ -21,7 +21,7 @@ import {
 import { RecentSheets, RecentSheetsSkeleton } from "../sheets/recent-sheets";
 import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList, SheetListSkeleton } from "../sheets/sheet-list";
-import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
+import { fromAnotherPage, handOver, PageData } from "../shell/awaited";
 import { useFocusCarriesOver } from "../shell/focus";
 import { UNTITLED } from "../sheets/details";
 import { type NewSheetWay, useNewSheet } from "../sheets/new-sheet";
@@ -132,13 +132,14 @@ export async function clientAction({
 
 // In the browser, a search that can't reach the server doesn't fail the
 // page: the screen keeps the results it shows, and says so. Any other error
-// goes to the boundary below. On a move from another page, the page doesn't
-// wait for its sheets: it shows at once with bars, and they follow. A
-// search, or loading again after a change on a row, waits as before. Not on
-// the first load, which the server renders. A dialog's list (LIST_ONLY)
-// waits too. See openspec/specs/library-search
+// goes to the boundary below. On a move from another page, the page waits a
+// moment for its sheets: if they come in time it moves in whole, otherwise
+// with bars, and they follow. A search, or loading again after a change on
+// a row, waits as before. Not on the first load, which the server renders.
+// A dialog's list (LIST_ONLY) waits too. See openspec/specs/library-search
 // and openspec/specs/site-layout.
 export async function clientLoader({
+  context,
   serverLoader,
   url,
 }: Route.ClientLoaderArgs) {
@@ -153,7 +154,7 @@ export async function clientLoader({
   if (!fromAnotherPage(url) || url.searchParams.has(LIST_ONLY)) {
     return await load();
   }
-  return { page: holdBars(load()) };
+  return await handOver(load(), context);
 }
 
 // A row's change that didn't get through loads nothing again.

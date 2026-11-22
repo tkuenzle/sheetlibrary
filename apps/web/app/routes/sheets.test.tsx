@@ -13,6 +13,9 @@ import {
   type SearchResult,
   type SheetListItem,
 } from "../sheets/sheets.server";
+import { noteSkeletonShown } from "../shell/awaited";
+import { browserMovedContext, showPage } from "../shell/page-moves";
+import { HEAD_START } from "../shell/slow-wait";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheets";
 import {
@@ -628,7 +631,7 @@ describe("a search that doesn't go through", () => {
   const offline = new TypeError("Failed to fetch");
   // A search: the page that is open loads again, online.
   beforeEach(() => {
-    vi.stubGlobal("window", { location: { pathname: "/sheets" } });
+    showPage({ path: "/sheets", kind: { kind: "shell" } });
     vi.stubGlobal("navigator", { onLine: true });
   });
   afterEach(() => {
@@ -636,6 +639,7 @@ describe("a search that doesn't go through", () => {
   });
   const load = (serverLoader: () => Promise<unknown>) =>
     clientLoader({
+      context: new RouterContextProvider(),
       serverLoader,
       url: new URL("https://sheetlibrary.com/sheets?q=grace"),
     } as unknown as Route.ClientLoaderArgs);
@@ -697,21 +701,50 @@ describe("a search that doesn't go through", () => {
 
 // Requirement "A skeleton while a page loads".
 describe("Sheets while its sheets load", () => {
+  const results = { sheets: [], hasSheets: false, q: "" };
+  // A move from Collections to Sheets.
+  const move = (
+    serverLoader: () => Promise<unknown>,
+    context = new RouterContextProvider(),
+  ) =>
+    clientLoader({
+      context,
+      serverLoader,
+      url: new URL("https://sheetlibrary.com/sheets"),
+    } as unknown as Route.ClientLoaderArgs) as Promise<{ page: unknown }>;
+  beforeEach(() => {
+    showPage({ path: "/collections", kind: { kind: "shell" } });
+  });
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
-  it("hands the sheets over unawaited on a move from another page", async () => {
-    vi.stubGlobal("window", { location: { pathname: "/collections" } });
-    const results = { sheets: [], hasSheets: false, q: "" };
-    const data = await clientLoader({
-      serverLoader: () => Promise.resolve(results),
-      url: new URL("https://sheetlibrary.com/sheets"),
-    } as unknown as Route.ClientLoaderArgs);
-    expect(data).toHaveProperty("page");
-    await expect((data as { page: Promise<unknown> }).page).resolves.toBe(
-      results,
-    );
+  it("moves in whole when the sheets come in a moment", async () => {
+    const data = await move(() => Promise.resolve(results));
+    expect(data.page).toBe(results);
+  });
+
+  it("hands the sheets over on their way when they are slow", async () => {
+    vi.useFakeTimers();
+    const slow = new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(results);
+      }, 1000);
+    });
+    const data = move(() => slow);
+    await vi.advanceTimersByTimeAsync(HEAD_START);
+    const { page } = await data;
+    expect(page).toBeInstanceOf(Promise);
+    noteSkeletonShown();
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(page).resolves.toBe(results);
+  });
+
+  it("doesn't wait after the browser's own move", async () => {
+    const context = new RouterContextProvider();
+    context.set(browserMovedContext, true);
+    const data = await move(() => Promise.resolve(results), context);
+    expect(data.page).toBeInstanceOf(Promise);
   });
 
   function renderSkeleton(url = "/sheets") {

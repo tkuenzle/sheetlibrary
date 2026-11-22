@@ -46,7 +46,7 @@ import { Menu } from "../ui/menu";
 import { NameDialog } from "../ui/name-dialog";
 import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/collection";
-import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
+import { fromAnotherPage, handOver, PageData } from "../shell/awaited";
 import { useFocusCarriesOver } from "../shell/focus";
 import { revalidateUnlessUnchanged } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
@@ -140,17 +140,19 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   return ok ? { ok } : data({ ok }, { status: 404 });
 }
 
-// On a move from another page, the page doesn't wait for the sheets: it
-// shows at once with what the rail knows, and the sheets follow. Loading
+// On a move from another page, the page waits a moment for the sheets: if
+// they come in time it moves in whole, otherwise with what the rail knows
+// and bars, and the sheets follow. Loading
 // again, as after a change on a row, it waits and keeps its sheets. A first
 // load doesn't run this, so the server renders the page whole. See
 // openspec/specs/site-layout.
 export async function clientLoader({
+  context,
   serverLoader,
   url,
 }: Route.ClientLoaderArgs) {
   if (!fromAnotherPage(url)) return await serverLoader();
-  return { page: holdBars(serverLoader()) };
+  return await handOver(serverLoader(), context);
 }
 
 // A change from a row that doesn't get through keeps the list on screen.

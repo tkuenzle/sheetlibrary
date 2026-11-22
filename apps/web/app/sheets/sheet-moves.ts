@@ -1,5 +1,7 @@
 import { type Location, useLocation, useNavigate } from "react-router";
 
+import { shownPath } from "../shell/page-moves";
+
 // Where Back, Done and Delete go from a sheet. See openspec/specs/site-layout
 // ("Back on a sheet") and the sheet-play-first change's design.
 //
@@ -89,4 +91,15 @@ export function useSheetMoves(): {
         : navigate(move.to, { replace: move.replace }));
     },
   };
+}
+
+// Whether the sheet's play view loads after its own edit mode, which is a
+// mode and not another page, so it waits for its data. Compared with the
+// page on screen, since "Done" can be a step back, which has already changed
+// the address when the loader runs.
+export function fromEditMode(
+  url: URL,
+  onScreen: string | null = shownPath(),
+): boolean {
+  return onScreen === `${url.pathname}/edit`;
 }

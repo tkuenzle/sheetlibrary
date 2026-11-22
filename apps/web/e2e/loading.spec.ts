@@ -2,10 +2,11 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { authFile } from "./servers";
 
-// Skeletons: a page moves in right after the tap, with bars where its data
-// will be, and the data fills in once it is there and the move has ended.
-// The tests hold a page's data back to see the skeleton. See
-// openspec/specs/site-layout ("A skeleton while a page loads"). The tests
+// Skeletons: a page waits a moment for its data. When the data is slower,
+// the page moves in with bars where its data will be, and the data fills in
+// once it is there and the move has ended. The tests hold a page's data back
+// to see the skeleton. See openspec/specs/site-layout ("A skeleton while a
+// page loads", "Bars never blink"). The tests
 // share one account, so every name carries a mark of its own.
 
 test.use({ storageState: authFile });
@@ -81,7 +82,7 @@ async function recordSkeleton(page: Page) {
 }
 
 // Scenarios "A slow collection" and "A collection's count".
-test("shows a slow collection at once, with its name, count and bars", async ({
+test("shows a slow collection with its name, count and bars", async ({
   page,
 }) => {
   const mark = newMark();
@@ -144,7 +145,7 @@ test("says a collection that is gone isn't found", async ({ page }) => {
 const sheetsData = /\/sheets\.data/;
 
 // Scenario "A slow collection", for Sheets.
-test("shows Sheets at once, with bars for Recent and the list", async ({
+test("shows slow Sheets with bars for Recent and the list", async ({
   page,
 }) => {
   const mark = newMark();
@@ -222,9 +223,7 @@ test("loads a page whole the first time, without bars", async ({ page }) => {
 });
 
 // The account page: bars for the email and the passkeys, which follow.
-test("shows the account page at once, with bars for its data", async ({
-  page,
-}) => {
+test("shows a slow account page with bars for its data", async ({ page }) => {
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
   await holdBack(page, /\/account\.data/, 1500);
@@ -300,21 +299,19 @@ test("keeps the bars a moment once they show", async ({ page }) => {
   expect((log.gone ?? 0) - (log.shown ?? 0)).toBeGreaterThanOrEqual(390);
 });
 
-// Notes when a page's bars show, unseen no longer, and when they go, from
-// the next page load on.
+// Notes when a page's bars show and when they go, from the next page load
+// on.
 async function recordPageBars(page: Page) {
   await page.addInitScript(() => {
     const log: { shown?: number; gone?: number } = {};
     (window as unknown as { pageBarsLog: typeof log }).pageBarsLog = log;
     new MutationObserver(() => {
-      const shown = [
-        ...document.querySelectorAll("main .sheet-list-skeleton"),
-      ].some((row) => !row.closest(".skeleton-waiting"));
+      const shown = !!document.querySelector("main .sheet-list-skeleton");
       if (shown && log.shown === undefined) log.shown = performance.now();
       if (!shown && log.shown !== undefined && log.gone === undefined) {
         log.gone = performance.now();
       }
-    }).observe(document, { subtree: true, childList: true, attributes: true });
+    }).observe(document, { subtree: true, childList: true });
   });
 }
 
@@ -325,39 +322,44 @@ const pageBarsLog = (page: Page) =>
         .pageBarsLog,
   );
 
-// Requirement "No flashing bars without a move": with reduced motion no
-// move plays, so a quick answer shows no bars.
-test("shows no bars for a quick page without a move", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  const mark = newMark();
-  const name = `Quick ${mark}`;
-  await createCollection(page, name, [`One ${mark}`]);
-  await recordPageBars(page);
-  await startOnCollections(page);
-  await holdBack(page, collectionData, 50);
-  await openCollection(page, name);
-  await expect(rows(page)).toHaveCount(1);
-  await wait(500);
-  expect((await pageBarsLog(page)).shown).toBeUndefined();
-});
-
-// Once a page's bars show without a move, they stay a moment. The data is
-// held back long enough that they show: the request starts before the
-// skeleton does.
-test("keeps a page's bars a moment once they show without a move", async ({
-  page,
-}) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+// Opens a collection whose sheets are held back `ms`, and gives how long its
+// bars showed, or undefined when they didn't.
+async function openHeldBack(page: Page, ms: number) {
   const mark = newMark();
   const name = `Held ${mark}`;
   await createCollection(page, name, [`One ${mark}`]);
   await recordPageBars(page);
   await startOnCollections(page);
-  await holdBack(page, collectionData, 700);
+  await holdBack(page, collectionData, ms);
   await openCollection(page, name);
   await expect(rows(page)).toHaveCount(1);
-  await expect.poll(async () => (await pageBarsLog(page)).gone).toBeDefined();
+  await wait(500);
   const log = await pageBarsLog(page);
-  expect(log.shown).toBeDefined();
-  expect((log.gone ?? 0) - (log.shown ?? 0)).toBeGreaterThanOrEqual(390);
+  if (log.shown === undefined) return undefined;
+  expect(log.gone).toBeDefined();
+  return (log.gone ?? 0) - log.shown;
+}
+
+for (const reducedMotion of ["no-preference", "reduce"] as const) {
+  const how = reducedMotion === "reduce" ? "without a move" : "with a move";
+
+  // Scenarios "A quick collection" and "A quick page without a move": a
+  // page whose data comes in a moment moves in whole.
+  test(`shows no bars for a quick page ${how}`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion });
+    expect(await openHeldBack(page, 50)).toBeUndefined();
+  });
+
+  // Scenario "Data just after the wait": the bars show, and stay a moment
+  // though the data comes soon after.
+  test(`keeps a page's bars a moment ${how}`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion });
+    expect(await openHeldBack(page, 200)).toBeGreaterThanOrEqual(390);
+  });
+}
+
+// Scenario "A slow page without a move".
+test("keeps a slow page's bars until its data is there", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(await openHeldBack(page, 700)).toBeGreaterThanOrEqual(390);
 });
