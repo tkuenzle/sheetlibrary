@@ -34,7 +34,7 @@ import {
   useSheetKey,
   withAddressParam,
 } from "../editor/sheet-title";
-import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
+import { fromAnotherPage, handOver, PageData } from "../shell/awaited";
 import { useFocusCarriesOver } from "../shell/focus";
 import { headingTitleName, rowDetails } from "../shell/page-moves";
 import { focusSheetMenu, SheetBar, SheetFrameBar } from "../shell/sheet-bar";
@@ -47,6 +47,7 @@ import { sheetMenuItems } from "../sheets/sheet-menu";
 import {
   afterDelete,
   backFromPlay,
+  fromEditMode,
   useSheetMoves,
 } from "../sheets/sheet-moves";
 import { readSheetWithVersions, recordOpening } from "../sheets/sheets.server";
@@ -145,21 +146,19 @@ export async function loader({
   };
 }
 
-// On a move from another page, the sheet doesn't wait for its data: it rises
-// at once, with the title and artist of the row it was opened from, and
-// the rest follows. From its own edit mode, which is a mode and not another
-// page, and when it loads again, it waits as before. A first load doesn't
-// run this, so the server renders the sheet whole. See
-// openspec/specs/site-layout.
+// On a move from another page, the sheet waits a moment for its data: if it
+// comes in time the sheet rises whole, otherwise with the title and artist
+// of the row it was opened from, and the rest follows. From its own edit
+// mode, which is a mode and not another page, and when it loads again, it
+// waits as before. A first load doesn't run this, so the server renders the
+// sheet whole. See openspec/specs/site-layout.
 export async function clientLoader({
+  context,
   serverLoader,
   url,
 }: Route.ClientLoaderArgs) {
-  const fromEdit =
-    typeof window !== "undefined" &&
-    window.location.pathname === `${url.pathname}/edit`;
-  if (fromEdit || !fromAnotherPage(url)) return await serverLoader();
-  return { page: holdBars(serverLoader()) };
+  if (fromEditMode(url) || !fromAnotherPage(url)) return await serverLoader();
+  return await handOver(serverLoader(), context);
 }
 
 // A sheet that can't be loaded shows a note under the top bar. See

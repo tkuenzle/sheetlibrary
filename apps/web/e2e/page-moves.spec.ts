@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 
 import { authFile } from "./servers";
 
@@ -433,6 +433,40 @@ test("drops back into the list where it was scrolled", async ({ page }) => {
   expect(kindOf(await lastMove(page, 1))).toBe("drop");
 });
 
+// Scenario "Back to a slow list": a step back in the history doesn't wait
+// for all of the list, though the address has already changed when its
+// loader runs. The sheet drops off the list's skeleton.
+test("drops a sheet onto the list's bars when the list is slow", async ({
+  page,
+}) => {
+  const title = `Slow back ${newMark()}`;
+  await createSheet(page, title);
+  await recordMoves(page);
+  await page.goto("/sheets");
+  await page.waitForLoadState("networkidle");
+  const row = page
+    .locator(".sheet-list-row")
+    .filter({ hasText: title })
+    .getByRole("link");
+  await row.scrollIntoViewIfNeeded();
+  await row.click();
+  await expect(heading(page)).toHaveText(title);
+  await lastMove(page, 1);
+
+  // Only the list: the shell's collections come in a request of their own.
+  await page.route(
+    /\/sheets\.data\?_routes=routes%2Fsheets$/,
+    async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await route.continue();
+    },
+  );
+  await page.getByRole("link", { name: "Back" }).click();
+  await expect(page.locator("main .sheet-list-skeleton").first()).toBeVisible();
+  expect(kindOf(await lastMove(page, 2))).toBe("drop");
+  await expect(row).toBeVisible();
+});
+
 // Scenarios "From playing to editing" and "Done".
 test("changes only the bar between play and edit", async ({ page }) => {
   const title = `Mode ${newMark()}`;
@@ -523,7 +557,7 @@ test("changes at once when the new page's data comes late", async ({
 
 // Scenario "A sheet from a row": a sheet whose data is slow still rises,
 // with its title, which moves from the row, and bars for the rest.
-test("raises a slow sheet at once, with its title moving from the row", async ({
+test("raises a slow sheet with its title moving from the row", async ({
   page,
 }) => {
   const title = `Slow sheet ${newMark()}`;
@@ -555,6 +589,32 @@ test("raises a slow sheet at once, with its title moving from the row", async ({
   ).toBeVisible();
   await expect(page.locator("main .skeleton-bar")).toHaveCount(0);
   await expect(heading(page)).toBeFocused();
+});
+
+// Scenario "A sheet whose code is slow": what React Router loads before the
+// sheet's loader runs, its route's code and maybe `/__manifest`, counts
+// toward the wait for the data, so the sheet still rises before the loading
+// bar shows.
+test("raises a sheet whose code is slow to load", async ({ page }) => {
+  const title = `Slow code ${newMark()}`;
+  const id = await createSheet(page, title);
+  await recordMoves(page);
+  await page.goto("/sheets");
+  await page.waitForLoadState("networkidle");
+  const hold = (ms: number) => async (route: Route) => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    await route.continue();
+  };
+  await page.route(/\/assets\/sheet-[^/]*\.js$/, hold(80));
+  await page.route(/\/__manifest\?/, hold(80));
+  await page.route(new RegExp(`/sheets/${id}\\.data`), hold(1000));
+  await page
+    .locator(".sheet-list-row")
+    .filter({ hasText: title })
+    .getByRole("link")
+    .click();
+  await expect(heading(page)).toHaveText(title);
+  expect(kindOf(await lastMove(page, 1))).toBe("rise");
 });
 
 // The most time between deciding a move and the browser starting it, while

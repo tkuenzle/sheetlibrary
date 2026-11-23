@@ -1,7 +1,9 @@
+import { RouterContextProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   announcedMove,
+  browserMovedContext,
   durationMs,
   headingTitleName,
   type MoveArgs,
@@ -184,8 +186,11 @@ describe("pickMove", () => {
 });
 
 describe("pageMovesMiddleware", () => {
-  const toSheets = (navigationType: string | null): MoveArgs => ({
+  const toSheets = (
+    navigationType: string | null,
+  ): MoveArgs & { context: RouterContextProvider } => ({
     url: new URL("https://example.com/sheets"),
+    context: new RouterContextProvider(),
     pattern: "/sheets",
     params: {},
     unstable_initiator: "navigation",
@@ -247,6 +252,21 @@ describe("pageMovesMiddleware", () => {
     void pageMovesMiddleware(toSheets("POP"), back);
     await Promise.resolve();
     expect(back).toHaveBeenCalledOnce();
+  });
+
+  // The page's loader reads it, and doesn't wait for its data after the
+  // browser's own move.
+  it("tells the loaders whether the browser moved", async () => {
+    const plain = toSheets("POP");
+    const done = pageMovesMiddleware(plain, () => Promise.resolve("loaded"));
+    await vi.advanceTimersByTimeAsync(0);
+    await done;
+    expect(plain.context.get(browserMovedContext)).toBe(false);
+
+    noteStepInHistory({ hasUAVisualTransition: true });
+    const swiped = toSheets("POP");
+    await pageMovesMiddleware(swiped, () => Promise.resolve("loaded"));
+    expect(swiped.context.get(browserMovedContext)).toBe(true);
   });
 
   it("leaves fetchers alone", async () => {

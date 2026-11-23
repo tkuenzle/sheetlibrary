@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SKELETON_HOLD, SLOW_WAIT, startWait } from "./slow-wait";
+import { HEAD_START, SKELETON_HOLD, SLOW_WAIT, startWait } from "./slow-wait";
 
 describe("startWait", () => {
   beforeEach(() => {
@@ -52,5 +52,15 @@ describe("startWait", () => {
     vi.advanceTimersByTime(SLOW_WAIT + SKELETON_HOLD);
     end();
     expect(hide).toHaveBeenCalledOnce();
+  });
+});
+
+describe("HEAD_START", () => {
+  // A page that waits for its data must not start the loading bar, or a
+  // slow page would change without a move (site-layout, "No move after a
+  // long wait").
+  it("is shorter than the wait before the loading bar shows", () => {
+    expect(HEAD_START).toBeGreaterThan(0);
+    expect(HEAD_START).toBeLessThan(SLOW_WAIT);
   });
 });

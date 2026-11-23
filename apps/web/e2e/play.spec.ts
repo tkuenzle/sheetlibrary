@@ -256,8 +256,12 @@ async function pickSize(page: Page, name: "Smaller text" | "Larger text") {
   await expect(view).toBeHidden();
 }
 
-// Picks an item of the sheet's menu.
+// Picks an item of the sheet's menu, once the sheet is there. A slow sheet
+// moves in with its skeleton, whose menu has its items disabled and closes
+// when the sheet arrives. The address changes before the new page shows, so
+// it waits for the sheet itself.
 async function pickFromMenu(page: Page, name: string) {
+  await expect(page.locator("main.play-page:not([aria-busy])")).toBeVisible();
   await bar(page).getByRole("button", { name: "More for this sheet" }).click();
   await page.getByRole("menuitem", { name }).click();
 }

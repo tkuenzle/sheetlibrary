@@ -19,7 +19,7 @@ import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/account";
-import { fromAnotherPage, holdBars, PageData } from "../shell/awaited";
+import { fromAnotherPage, handOver, PageData } from "../shell/awaited";
 import { useFocusCarriesOver } from "../shell/focus";
 import { RouteError } from "../shell/route-error";
 
@@ -56,16 +56,17 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
-// On a move from another page, the page doesn't wait for the passkeys: it
-// shows at once with bars, and they follow. After a change to the passkeys,
-// it waits and keeps them. A first load doesn't run this. See
-// openspec/specs/site-layout.
+// On a move from another page, the page waits a moment for the passkeys: if
+// they come in time it moves in whole, otherwise with bars, and they follow.
+// After a change to the passkeys, it waits and keeps them. A first load
+// doesn't run this. See openspec/specs/site-layout.
 export async function clientLoader({
+  context,
   serverLoader,
   url,
 }: Route.ClientLoaderArgs) {
   if (!fromAnotherPage(url)) return await serverLoader();
-  return { page: holdBars(serverLoader()) };
+  return await handOver(serverLoader(), context);
 }
 
 function passkeyName(passkey: PasskeyItem) {

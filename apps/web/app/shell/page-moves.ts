@@ -1,5 +1,10 @@
 import { useEffect, useLayoutEffect, useSyncExternalStore } from "react";
-import { useLocation, useMatches } from "react-router";
+import {
+  createContext,
+  type RouterContextProvider,
+  useLocation,
+  useMatches,
+} from "react-router";
 
 // How a page change moves. See docs/motion.md ("Page changes") and
 // openspec/specs/site-layout.
@@ -161,24 +166,20 @@ export function announceMove(
   });
 }
 
-// Whether a move plays for the page change that is being shown: a view
-// transition runs for an announced move, and motion isn't reduced. Read it
-// in a layout effect of the new page: the move is forgotten only once it has
-// played.
-export function movePlays(): boolean {
-  // Undefined in a browser without it, whatever the DOM types say.
-  const running = (document as { activeViewTransition?: ViewTransition | null })
-    .activeViewTransition;
-  if (!running || !announced) return false;
-  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 // The page on screen, which <PageMoves /> keeps. On a push, the address
 // still names it while the loaders run, but on a step back in the history
 // the address has already changed.
 let shown: MovePage | null = null;
 export function showPage(page: MovePage) {
   shown = page;
+}
+
+// The path of the page on screen, or null before the first one has shown.
+// A client loader reads it to tell a move to another page from the page
+// that is open loading again: on a step back the address has already
+// changed when the loaders run, but this still names the page being left.
+export function shownPath(): string | null {
+  return shown?.path ?? null;
 }
 
 // Whether the browser showed its own move for the latest step in the
@@ -201,6 +202,19 @@ export function noteLoadingBar(shown: boolean) {
   loadingBarShown = shown;
 }
 
+// When the page load being shown started, as the loading bar counts it, or
+// null between page loads. <PageLoading /> notes it as a page load starts,
+// so it includes what React Router does before the loaders run, such as
+// fetching `/__manifest` or the route's code. A page's client loader waits
+// for its data only until HEAD_START after it (handOver in awaited.tsx).
+let pageLoadStart: number | null = null;
+export function notePageLoadStart(at: number | null) {
+  pageLoadStart = at;
+}
+export function pageLoadStartedAt(): number | null {
+  return pageLoadStart;
+}
+
 function nextTask(): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, 0);
@@ -213,11 +227,20 @@ function nextTask(): Promise<void> {
 // navigation from a fetcher; the e2e tests in page-moves.spec.ts cover both.
 export interface MoveArgs {
   url: URL;
+  context: Pick<RouterContextProvider, "set">;
   pattern: string;
   params: Record<string, string | undefined>;
   unstable_initiator?: string;
   unstable_navigationType?: string | null;
 }
+
+// Whether the browser already showed its own move for this page change, as
+// Safari does after a swipe back. The middleware sets it for each
+// navigation, and a page's client loader reads it from its `context`: the
+// page then doesn't wait for its data first, so its skeleton replaces the
+// old page at once. See openspec/specs/site-layout ("No move on top of the
+// browser's").
+export const browserMovedContext = createContext<boolean>(false);
 
 // How long the middleware waits for an announced move to render.
 export const ANNOUNCE_LIMIT = 500;
@@ -245,6 +268,7 @@ export async function pageMovesMiddleware<T>(
   const back = args.unstable_navigationType === "POP";
   const moved = back && browserMoved;
   browserMoved = false;
+  args.context.set(browserMovedContext, moved);
   if (back && !moved) await nextTask();
   const result = await next();
   const late = loadingBarShown;
