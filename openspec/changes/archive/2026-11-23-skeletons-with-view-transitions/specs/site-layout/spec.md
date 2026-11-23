@@ -6,7 +6,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: A skeleton while a page loads
-On a move inside the app to Sheets, a collection, a sheet or the account page, also by a step back in the history, the new page SHALL wait for its data until at most 150ms after the tap. Time spent before its data is asked for, such as loading the page's code, SHALL count toward those 150ms. If the data arrives in that time, the page SHALL arrive with it, without bars. Otherwise the page SHALL show and move in without waiting longer. Where data is still on its way, the page SHALL show bars inside the real row's frame, at the real row's height. When the data arrives, it SHALL take the bars' place without anything around it shifting. A page loaded in full SHALL arrive with its data, without bars.
+On a move inside the app to Sheets, a collection, a sheet or the account page, the new page SHALL wait up to 150ms for its data, and arrive with it, without bars, if it comes in that time. Otherwise it SHALL show and move in, with bars inside the real row's frame, at the real row's height, where data is still on its way. When the data arrives, it SHALL take the bars' place without anything around it shifting. A page loaded in full SHALL arrive with its data, without bars.
 
 #### Scenario: A quick collection
 - **WHEN** a person on `/sheets` selects "Christmas" in the rail, and its sheets arrive after 50ms
@@ -15,10 +15,6 @@ On a move inside the app to Sheets, a collection, a sheet or the account page, a
 #### Scenario: A slow collection
 - **WHEN** a person on `/sheets` selects "Christmas" in the rail, and its sheets take two seconds to arrive
 - **THEN** the collection's page fades in after a moment with bars in place of the rows, and the rows show when they arrive
-
-#### Scenario: A sheet whose code is slow
-- **WHEN** a person opens a sheet for the first time in a session, its code takes 100ms to load, and its data is slow
-- **THEN** the sheet rises with bars, without the loading bar
 
 #### Scenario: Back to a slow list
 - **WHEN** a person opens a sheet from `/sheets`, selects Back, and the list takes two seconds to arrive
@@ -53,3 +49,12 @@ Once a page's bars show, they SHALL stay for at least 400ms, with or without a m
 #### Scenario: Data just after the wait
 - **WHEN** a person selects "Christmas" in the rail, and its sheets arrive after 200ms
 - **THEN** the page shows with bars, and the bars stay at least 400ms before the sheets replace them
+
+## ADDED Requirements
+
+### Requirement: The wait counts from the tap
+The wait for a page's data SHALL end at most 150ms after the tap, also on a step back in the history. Time spent before the data is asked for, such as loading the page's code, SHALL count toward those 150ms.
+
+#### Scenario: A sheet whose code is slow
+- **WHEN** a person opens a sheet for the first time in a session, its code takes 100ms to load, and its data is slow
+- **THEN** the sheet rises with bars, without the loading bar

@@ -273,11 +273,15 @@ A move between the play view and edit mode of the same sheet SHALL NOT slide or 
 - **THEN** edit mode fades briefly into the play view, without sliding
 
 ### Requirement: No move on top of the browser's
-When the browser shows its own move for going back or forward, as when swiping back on an iPhone, the page SHALL change without a move of its own.
+When the browser shows its own move for going back or forward, as when swiping back on an iPhone, the page SHALL change without a move of its own. It SHALL NOT wait for its data first: where data is still on its way, it SHALL show its bars at once.
 
 #### Scenario: Swiping back
 - **WHEN** a person on an iPhone opens a sheet from `/sheets` and swipes back from the edge
 - **THEN** the list shows after the browser's swipe, without the sheet dropping again
+
+#### Scenario: Swiping back to a slow list
+- **WHEN** a person on an iPhone swipes back from a sheet to `/sheets`, and the list takes two seconds to arrive
+- **THEN** the list's page with bars replaces the sheet as soon as the swipe ends
 
 ### Requirement: No move after a long wait
 When the new page's data takes longer than the loading bar waits before it shows, the page SHALL change without a move. This applies to pages without a skeleton.
@@ -305,11 +309,19 @@ A change from one page to another SHALL move by the kind of its two pages, wheth
 - **THEN** the results show without a move
 
 ### Requirement: A skeleton while a page loads
-On a move inside the app to Sheets, a collection, a sheet or the account page, the new page SHALL show right after the tap and move in, without waiting for its data. Where data is still on its way, the page SHALL show bars inside the real row's frame, at the real row's height. When the data arrives, it SHALL take the bars' place without anything around it shifting. A page loaded in full SHALL arrive with its data, without bars.
+On a move inside the app to Sheets, a collection, a sheet or the account page, the new page SHALL wait up to 150ms for its data, and arrive with it, without bars, if it comes in that time. Otherwise it SHALL show and move in, with bars inside the real row's frame, at the real row's height, where data is still on its way. When the data arrives, it SHALL take the bars' place without anything around it shifting. A page loaded in full SHALL arrive with its data, without bars.
+
+#### Scenario: A quick collection
+- **WHEN** a person on `/sheets` selects "Christmas" in the rail, and its sheets arrive after 50ms
+- **THEN** the collection's page fades in with its rows, without any bars
 
 #### Scenario: A slow collection
 - **WHEN** a person on `/sheets` selects "Christmas" in the rail, and its sheets take two seconds to arrive
-- **THEN** the collection's page fades in right away with bars in place of the rows, and the rows show when they arrive
+- **THEN** the collection's page fades in after a moment with bars in place of the rows, and the rows show when they arrive
+
+#### Scenario: Back to a slow list
+- **WHEN** a person opens a sheet from `/sheets`, selects Back, and the list takes two seconds to arrive
+- **THEN** the sheet drops off the list's page with bars in place of the rows, and the rows show when they arrive
 
 #### Scenario: A first load
 - **WHEN** a person opens `/collections/:id` in a new tab
@@ -344,8 +356,8 @@ A page that loads its data again without a move to another page, such as after a
 - **WHEN** a person on the collection "Christmas" selects "Campfire" in the rail, and its sheets are slow to arrive
 - **THEN** the page shows "Campfire" with bars, not the sheets of "Christmas"
 
-### Requirement: No flashing bars without a move
-When a page changes without a move, as after Safari's own swipe back or with reduced motion, its bars SHALL show only when its data takes longer than 200ms; until then their room SHALL stay empty. Once shown, they SHALL stay for at least 400ms. While a move plays, the bars SHALL show from the start of the move.
+### Requirement: Bars never blink
+Once a page's bars show, they SHALL stay for at least 400ms, with or without a move. A page whose data arrives within the time it waits SHALL show no bars at all, also without a move, as with reduced motion.
 
 #### Scenario: A quick page without a move
 - **WHEN** reduced motion is on and a person selects "Christmas" in the rail, and its sheets arrive after 50ms
@@ -354,6 +366,10 @@ When a page changes without a move, as after Safari's own swipe back or with red
 #### Scenario: A slow page without a move
 - **WHEN** reduced motion is on and the sheets of "Christmas" take a second to arrive
 - **THEN** bars show in the rows' room after a moment, and stay until the sheets are there
+
+#### Scenario: Data just after the wait
+- **WHEN** a person selects "Christmas" in the rail, and its sheets arrive after 200ms
+- **THEN** the page shows with bars, and the bars stay at least 400ms before the sheets replace them
 
 ### Requirement: Bars in the dialogs that load
 "Add sheets" and "Choose collections" SHALL show bars in their list while it loads, but only when it takes longer than 200ms; until then the list's room SHALL stay empty. Once shown, the bars SHALL stay for at least 400ms, so they never flash. Controls that need the list SHALL wait until it is there.
@@ -372,3 +388,10 @@ The app SHALL know every page an address can lead to from the first page load. A
 #### Scenario: A sheet opened for the first time
 - **WHEN** a person on `/sheets` opens a sheet they haven't opened in this session
 - **THEN** the app asks the server only for the sheet's data, not which page its address leads to
+
+### Requirement: The wait counts from the tap
+The wait for a page's data SHALL end at most 150ms after the tap, also on a step back in the history. Time spent before the data is asked for, such as loading the page's code, SHALL count toward those 150ms.
+
+#### Scenario: A sheet whose code is slow
+- **WHEN** a person opens a sheet for the first time in a session, its code takes 100ms to load, and its data is slow
+- **THEN** the sheet rises with bars, without the loading bar
