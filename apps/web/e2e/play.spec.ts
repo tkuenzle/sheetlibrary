@@ -88,13 +88,9 @@ test("transposes and sets a capo without a page load", async ({ page }) => {
   await page.evaluate(() => {
     (window as unknown as { stayed: boolean }).stayed = true;
   });
-  // React Router asks which routes the links on the page lead to
-  // (`/__manifest`), at a moment of its own; that isn't the transpose.
   const requests: string[] = [];
   page.on("request", (request) => {
-    if (!new URL(request.url()).pathname.startsWith("/__manifest")) {
-      requests.push(request.url());
-    }
+    requests.push(request.url());
   });
 
   await page.getByRole("button", { name: /^Key / }).click();

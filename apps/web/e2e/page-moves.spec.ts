@@ -377,6 +377,31 @@ test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+// Requirement "Pages known from the start": the first page brings every
+// route, so a sheet opened right after Sheets loads asks only for its data,
+// not which route its address leads to (`/__manifest`).
+test("opens a sheet without looking up its route", async ({ page }) => {
+  const title = `Known ${newMark()}`;
+  const id = await createSheet(page, title);
+  await page.goto("/sheets");
+  const row = page
+    .locator(".sheet-list-row")
+    .filter({ hasText: title })
+    .getByRole("link");
+  await row.waitFor();
+  const asked: string[] = [];
+  page.on("request", (request) => {
+    const { pathname } = new URL(request.url());
+    if (pathname === "/__manifest" || pathname.endsWith(".data")) {
+      asked.push(pathname);
+    }
+  });
+  await row.click();
+  await expect(heading(page)).toHaveText(title);
+  await page.waitForLoadState("networkidle");
+  expect(asked).toEqual([`/sheets/${id}.data`]);
+});
+
 // Scenario "Back to a search", and Back from a sheet opened from a link.
 test("drops back into the list where it was scrolled", async ({ page }) => {
   const mark = newMark();
