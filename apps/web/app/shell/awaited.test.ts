@@ -5,7 +5,9 @@ import {
   headStart,
   noteSkeletonShown,
   redirectTarget,
+  waitLeft,
 } from "./awaited";
+import { HEAD_START } from "./slow-wait";
 
 describe("redirectTarget", () => {
   it("gives where a redirect leads", () => {
@@ -136,5 +138,21 @@ describe("fromAnotherPage", () => {
 
   it("sees another page before any has shown", () => {
     expect(fromAnotherPage(url("/sheets"), null)).toBe(true);
+  });
+});
+
+describe("waitLeft", () => {
+  // The loader runs right after the tap, before the page load is noted.
+  it("waits it all without a start", () => {
+    expect(waitLeft(null, 1000)).toBe(HEAD_START);
+  });
+
+  // React Router fetched `/__manifest` or the route's code first.
+  it("waits only what is left since the start", () => {
+    expect(waitLeft(1000, 1120)).toBe(HEAD_START - 120);
+  });
+
+  it("doesn't wait once the time is up", () => {
+    expect(waitLeft(1000, 1000 + HEAD_START + 50)).toBe(0);
   });
 });

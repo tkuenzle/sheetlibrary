@@ -202,6 +202,19 @@ export function noteLoadingBar(shown: boolean) {
   loadingBarShown = shown;
 }
 
+// When the page load being shown started, as the loading bar counts it, or
+// null between page loads. <PageLoading /> notes it as a page load starts,
+// so it includes what React Router does before the loaders run, such as
+// fetching `/__manifest` or the route's code. A page's client loader waits
+// for its data only until HEAD_START after it (handOver in awaited.tsx).
+let pageLoadStart: number | null = null;
+export function notePageLoadStart(at: number | null) {
+  pageLoadStart = at;
+}
+export function pageLoadStartedAt(): number | null {
+  return pageLoadStart;
+}
+
 function nextTask(): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, 0);

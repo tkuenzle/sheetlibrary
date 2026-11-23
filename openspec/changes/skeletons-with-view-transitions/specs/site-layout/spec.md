@@ -6,7 +6,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: A skeleton while a page loads
-On a move inside the app to Sheets, a collection, a sheet or the account page, also by a step back in the history, the new page SHALL wait up to 150ms for its data. If the data arrives in that time, the page SHALL arrive with it, without bars. Otherwise the page SHALL show and move in without waiting longer. Where data is still on its way, the page SHALL show bars inside the real row's frame, at the real row's height. When the data arrives, it SHALL take the bars' place without anything around it shifting. A page loaded in full SHALL arrive with its data, without bars.
+On a move inside the app to Sheets, a collection, a sheet or the account page, also by a step back in the history, the new page SHALL wait for its data until at most 150ms after the tap. Time spent before its data is asked for, such as loading the page's code, SHALL count toward those 150ms. If the data arrives in that time, the page SHALL arrive with it, without bars. Otherwise the page SHALL show and move in without waiting longer. Where data is still on its way, the page SHALL show bars inside the real row's frame, at the real row's height. When the data arrives, it SHALL take the bars' place without anything around it shifting. A page loaded in full SHALL arrive with its data, without bars.
 
 #### Scenario: A quick collection
 - **WHEN** a person on `/sheets` selects "Christmas" in the rail, and its sheets arrive after 50ms
@@ -15,6 +15,10 @@ On a move inside the app to Sheets, a collection, a sheet or the account page, a
 #### Scenario: A slow collection
 - **WHEN** a person on `/sheets` selects "Christmas" in the rail, and its sheets take two seconds to arrive
 - **THEN** the collection's page fades in after a moment with bars in place of the rows, and the rows show when they arrive
+
+#### Scenario: A sheet whose code is slow
+- **WHEN** a person opens a sheet for the first time in a session, its code takes 100ms to load, and its data is slow
+- **THEN** the sheet rises with bars, without the loading bar
 
 #### Scenario: Back to a slow list
 - **WHEN** a person opens a sheet from `/sheets`, selects Back, and the list takes two seconds to arrive

@@ -34,6 +34,12 @@
 - [x] 6.1 Run the whole e2e suite, `pnpm lint` and the unit tests; verify all pass
 - [x] 6.2 Check in the browser with the `browser-check` skill: opening a collection and a sheet, and Back, on a fast and a throttled connection; verify no bars blink
 
+## 7. The wait counts from the tap
+
+- [x] 7.1 Note when a page load starts in `PageLoading` and clear it when it ends; make `handOver()` wait only what's left of `HEAD_START`; verify with unit tests for no start, a start 120ms ago, and one over 150ms ago
+- [x] 7.2 Add an e2e test for "A sheet whose code is slow": with the sheet route's code and `/__manifest` held back 80ms and its data held back, a first open still rises; verify it fails without 7.1 and passes with it
+- [x] 7.3 Update `docs/motion.md` and the PR description
+
 ## Workflow follow-up
 
 - Ask in the PR for the Safari check on an iPhone: swiping back to a slow list.

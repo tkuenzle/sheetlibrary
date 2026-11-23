@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 
 import { authFile } from "./servers";
 
@@ -589,6 +589,32 @@ test("raises a slow sheet with its title moving from the row", async ({
   ).toBeVisible();
   await expect(page.locator("main .skeleton-bar")).toHaveCount(0);
   await expect(heading(page)).toBeFocused();
+});
+
+// Scenario "A sheet whose code is slow": what React Router loads before the
+// sheet's loader runs, its route's code and maybe `/__manifest`, counts
+// toward the wait for the data, so the sheet still rises before the loading
+// bar shows.
+test("raises a sheet whose code is slow to load", async ({ page }) => {
+  const title = `Slow code ${newMark()}`;
+  const id = await createSheet(page, title);
+  await recordMoves(page);
+  await page.goto("/sheets");
+  await page.waitForLoadState("networkidle");
+  const hold = (ms: number) => async (route: Route) => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    await route.continue();
+  };
+  await page.route(/\/assets\/sheet-[^/]*\.js$/, hold(80));
+  await page.route(/\/__manifest\?/, hold(80));
+  await page.route(new RegExp(`/sheets/${id}\\.data`), hold(1000));
+  await page
+    .locator(".sheet-list-row")
+    .filter({ hasText: title })
+    .getByRole("link")
+    .click();
+  await expect(heading(page)).toHaveText(title);
+  expect(kindOf(await lastMove(page, 1))).toBe("rise");
 });
 
 // The most time between deciding a move and the browser starting it, while

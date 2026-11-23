@@ -12,7 +12,11 @@ import {
   useNavigate,
 } from "react-router";
 
-import { browserMovedContext, shownPath } from "./page-moves";
+import {
+  browserMovedContext,
+  pageLoadStartedAt,
+  shownPath,
+} from "./page-moves";
 import { HEAD_START, SKELETON_HOLD } from "./slow-wait";
 
 // For the pages whose data can come after the page, in <Await> with a
@@ -102,15 +106,27 @@ async function holdBars<T>(data: Promise<T>, holdMs: number): Promise<T> {
   return value;
 }
 
+// How long a page's client loader still waits for its data: what is left of
+// HEAD_START since the page load started. What React Router did before the
+// loader, such as fetching `/__manifest` or the route's code, counts, so the
+// wait never pushes a page past the loading bar on its own. Without a start
+// yet, the loader runs at about the start, and waits it all.
+export function waitLeft(startedAt: number | null, now: number): number {
+  if (startedAt === null) return HEAD_START;
+  return Math.min(HEAD_START, Math.max(0, HEAD_START - (now - startedAt)));
+}
+
 // headStart() for a page's client loader on a move from another page: it
-// waits HEAD_START, or not at all after the browser's own move, as Safari's
-// swipe back, so the page's skeleton replaces the old page at once. Bars are
-// held SKELETON_HOLD, as in the dialogs.
+// waits what is left of HEAD_START, or not at all after the browser's own
+// move, as Safari's swipe back, so the page's skeleton replaces the old page
+// at once. Bars are held SKELETON_HOLD, as in the dialogs.
 export function handOver<T>(
   data: Promise<T>,
   context: Pick<RouterContextProvider, "get">,
 ): Promise<{ page: T | Promise<T> }> {
-  const wait = context.get(browserMovedContext) ? 0 : HEAD_START;
+  const wait = context.get(browserMovedContext)
+    ? 0
+    : waitLeft(pageLoadStartedAt(), Date.now());
   return headStart(data, wait, SKELETON_HOLD);
 }
 

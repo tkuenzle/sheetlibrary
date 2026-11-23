@@ -51,6 +51,14 @@ Alternatives:
 
 `HEAD_START` stays below `SLOW_WAIT` (200ms), so the loading bar doesn't start while a page waits, and the late-cut rule doesn't apply to a fast page. A unit test checks this.
 
+### The wait counts from the tap
+
+The 150ms count from when the page change started, as the loading bar counts it, not from when the loader runs. Before the loader, React Router may fetch `/__manifest` for a path it hasn't discovered (#176), or load the route's code. Counting from the loader, that time came on top of the 150ms, the page passed the loading bar's 200ms, and it opened without a move: on the preview about one open in five. `PageLoading` notes the start in a layout effect when a page load begins, and `handOver()` waits only what's left. When the loader runs before that render, as without discovery, nothing is noted yet and it waits the full 150ms, which then starts at about the tap anyway.
+
+Alternatives:
+- The middleware's start time: React Router runs the middleware after discovery and the route's code, so it misses exactly that time.
+- A shorter wait: keeps the problem, only rarer.
+
 ### Hold the bars from when they show
 
 When the helper hands over the promise, it holds the data until `SKELETON_HOLD` (400ms, as for the dialogs) after the page's skeleton has shown. A layout effect in `PageData`'s fallback notes that moment (`noteSkeletonShown()`); a failure goes on at once. If no skeleton shows within 5s, the data goes on anyway, so a page can't hang.
