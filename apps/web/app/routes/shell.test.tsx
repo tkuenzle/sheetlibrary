@@ -4,7 +4,7 @@ import {
   RouterContextProvider,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CollectionListItem } from "../collections/collections";
 import { addSheets, createCollection } from "../collections/collections.server";
@@ -16,7 +16,17 @@ import { createSheet } from "../sheets/sheets.server";
 import { addUser } from "../sheets/sheets.test-helper";
 import { SignedInContext } from "../shell/signed-in";
 import type { Route } from "./+types/shell";
-import Shell, { loader, navItems, shouldRevalidate, ShellView } from "./shell";
+import { forgetKept } from "../shell/kept";
+import { historyStepContext } from "../shell/page-moves";
+import Shell, {
+  clientLoader,
+  keptShell,
+  loader,
+  navItems,
+  SHELL,
+  shouldRevalidate,
+  ShellView,
+} from "./shell";
 
 describe("shell loader", () => {
   let test: Awaited<ReturnType<typeof testEnv>>;
@@ -353,5 +363,42 @@ describe("Shell", () => {
     expect(html).not.toContain("<header");
     const [rail = ""] = navs(html);
     expect(link(rail, "/collections")).toContain('aria-current="page"');
+  });
+});
+
+// Requirement "The frame on a step back".
+describe("shell client loader", () => {
+  type Args = Parameters<typeof clientLoader>[0];
+  const fresh = { collections: [] as CollectionListItem[] };
+  const asLeft = {
+    collections: [
+      { id: "c1", name: "Christmas", count: 3 },
+    ] as CollectionListItem[],
+  };
+  const args = (back: boolean, serverLoader: () => Promise<typeof fresh>) => {
+    const context = new RouterContextProvider();
+    context.set(historyStepContext, back);
+    return { context, serverLoader } as unknown as Args;
+  };
+  afterEach(() => {
+    forgetKept();
+  });
+
+  it("shows the collections as it left them on a step back", async () => {
+    keptShell.keep(SHELL, asLeft);
+    const serverLoader = vi.fn(() => Promise.resolve(fresh));
+    expect(await clientLoader(args(true, serverLoader))).toBe(asLeft);
+    // The background load takes the request the step started.
+    expect(await clientLoader(args(false, serverLoader))).toBe(fresh);
+    expect(serverLoader).toHaveBeenCalledOnce();
+  });
+
+  it("asks the server without kept collections, or after a change", async () => {
+    const serverLoader = vi.fn(() => Promise.resolve(fresh));
+    expect(await clientLoader(args(true, serverLoader))).toBe(fresh);
+    keptShell.keep(SHELL, asLeft);
+    forgetKept();
+    expect(await clientLoader(args(true, serverLoader))).toBe(fresh);
+    expect(serverLoader).toHaveBeenCalledTimes(2);
   });
 });

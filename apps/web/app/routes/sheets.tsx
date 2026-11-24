@@ -1,8 +1,9 @@
 import "../ui/group-list.css";
 import "./sheets.css";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import {
+  Await,
   Form,
   Link,
   redirect,
@@ -21,7 +22,16 @@ import {
 import { RecentSheets, RecentSheetsSkeleton } from "../sheets/recent-sheets";
 import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList, SheetListSkeleton } from "../sheets/sheet-list";
-import { fromAnotherPage, handOver, PageData } from "../shell/awaited";
+import {
+  fromAnotherPage,
+  handOver,
+  handOverBack,
+  PageData,
+  SkeletonShown,
+  type WithLatePart,
+} from "../shell/awaited";
+import { addressOf, KeptPages, loadsKeptAgain, useKeep } from "../shell/kept";
+import { historyStepContext } from "../shell/page-moves";
 import { useFocusCarriesOver } from "../shell/focus";
 import { UNTITLED } from "../sheets/details";
 import { type NewSheetWay, useNewSheet } from "../sheets/new-sheet";
@@ -132,7 +142,12 @@ export async function clientAction({
 
 // In the browser, a search that can't reach the server doesn't fail the
 // page: the screen keeps the results it shows, and says so. Any other error
-// goes to the boundary below. On a move from another page, the page waits a
+// goes to the boundary below. On a step back or forward to a search, the
+// results show as they were left, and load again behind them
+// (shell/kept.ts). Opening a sheet changes Recent, so a step back to the
+// list waits a moment for the fresh page, and otherwise shows the list as it
+// was left with Recent on its way (handOverBack). On another move from
+// another page, the page waits a
 // moment for its sheets: if they come in time it moves in whole, otherwise
 // with bars, and they follow. A search, or loading again after a change on
 // a row, waits as before. Not on the first load, which the server renders.
@@ -151,15 +166,30 @@ export async function clientLoader({
       return { failed: true as const, error };
     }
   };
-  if (!fromAnotherPage(url) || url.searchParams.has(LIST_ONLY)) {
-    return await load();
+  if (url.searchParams.has(LIST_ONLY)) return await load();
+  if (context.get(historyStepContext)) {
+    const back = kept.step(addressOf(url), serverLoader);
+    if (back && isSearch(url.searchParams.get("q") ?? "")) {
+      return { page: back.kept };
+    }
+    if (back) return await handOverBack(back, "recent", context);
   }
+  if (!fromAnotherPage(url)) return await kept.again(addressOf(url), load);
   return await handOver(load(), context);
 }
 
-// A row's change that didn't get through loads nothing again.
+// What Sheets and each search showed last, for a step back to them.
+const kept = new KeptPages<
+  Awaited<ReturnType<Route.ClientLoaderArgs["serverLoader"]>>
+>();
+
+// A row's change that didn't get through loads nothing again. In the load
+// after a step back, it loads again only when it showed as it was left.
 export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
-  return revalidateUnlessUnchanged(args);
+  return (
+    loadsKeptAgain(kept, addressOf(args.nextUrl)) ??
+    revalidateUnlessUnchanged(args)
+  );
 }
 
 // A page that can't be loaded shows a note in the shell, which stays. See
@@ -188,6 +218,7 @@ export default function Library({ loaderData }: Route.ComponentProps) {
 
 function LoadedLibrary({ loaded }: { loaded: LibraryAnswer }) {
   const shown = useLastLoaded(loaded);
+  useKeep(kept, whole(loaded));
   return (
     <LibraryView
       sheets={shown.sheets}
@@ -201,14 +232,49 @@ function LoadedLibrary({ loaded }: { loaded: LibraryAnswer }) {
   );
 }
 
-// What the loader answers, once it is there: the sheets, or that a search
+// "Recent", whole or on its way. On its way, it shows its bars until it is
+// there, held as a page's (see "Bars never blink" in
+// openspec/specs/site-layout).
+function RecentOnItsWay({
+  recent,
+}: {
+  recent: SheetListItem[] | Promise<SheetListItem[]>;
+}) {
+  if (!(recent instanceof Promise)) return <RecentSheets sheets={recent} />;
+  return (
+    <Suspense
+      fallback={
+        <>
+          <RecentSheetsSkeleton />
+          <SkeletonShown />
+        </>
+      }
+    >
+      <Await resolve={recent}>
+        {(sheets) => <RecentSheets sheets={sheets} />}
+      </Await>
+    </Suspense>
+  );
+}
+
+// What the server answers.
+type SheetsData = Awaited<ReturnType<Route.ClientLoaderArgs["serverLoader"]>>;
+
+// What the loader answers, once it is there: the sheets, the list as it was
+// left with Recent on its way (after a step back), or that a search
 // couldn't reach the server.
-type LibraryAnswer = Exclude<
-  Route.ComponentProps["loaderData"],
-  { page: unknown }
->;
+type LibraryAnswer =
+  | SheetsData
+  | WithLatePart<SheetsData, "recent">
+  | { failed: true; error: unknown };
 
 type LibraryData = Exclude<LibraryAnswer, { failed: true }>;
+
+// The answer whole, to keep for a step back, or null.
+function whole(answer: LibraryAnswer): SheetsData | null {
+  if ("failed" in answer || answer.recent instanceof Promise) return null;
+  return answer as SheetsData;
+}
 
 // Sheets while its sheets are on their way, as on the canvas boards
 // "Sheets, loading": the heading, a search field that works, and bars for
@@ -364,8 +430,10 @@ export function LibraryView({
 }: {
   // All sheets, or the results of the search in `q`.
   sheets: (SheetListItem | SearchResult)[];
-  // The sheets opened last, for "Recent". None while searching.
-  recent?: SheetListItem[];
+  // The sheets opened last, for "Recent". None while searching. On its way
+  // after a step back that showed the list as it was left, since opening a
+  // sheet changes them.
+  recent?: SheetListItem[] | Promise<SheetListItem[]>;
   hasSheets?: boolean;
   q?: string;
   offerPasskey?: boolean;
@@ -416,7 +484,7 @@ export function LibraryView({
           Couldn’t search. Showing the last results.
         </p>
       )}
-      {!searching && <RecentSheets sheets={recent} />}
+      {!searching && <RecentOnItsWay recent={recent} />}
       {searching && sheets.length === 0 ? (
         <section
           className="library-empty"

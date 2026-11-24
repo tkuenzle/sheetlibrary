@@ -20,6 +20,8 @@ import { listCollections } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { EdgePanel } from "../shell/edge-panel";
 import { focusHeading } from "../shell/focus";
+import { KeptPages, loadsKeptAgain } from "../shell/kept";
+import { historyStepContext } from "../shell/page-moves";
 import { revalidateAfterChanges } from "../shell/revalidate";
 import {
   newSheetItems,
@@ -51,10 +53,40 @@ export async function loader({ context }: Route.LoaderArgs) {
   return { collections: await listCollections(env.DB, session.user.id) };
 }
 
+// What the shell showed last, for a step back to one of its screens.
+export const keptShell = new KeptPages<
+  Awaited<ReturnType<Route.ClientLoaderArgs["serverLoader"]>>
+>();
+export const SHELL = "shell";
+
+// On a step back or forward, the navigation shows its collections as it
+// left them, at once, and they load again behind it (shell/kept.ts). So Back
+// from a sheet, which sits outside the shell, doesn't wait for them. A first
+// load doesn't run this. See openspec/specs/site-layout ("The frame on a
+// step back").
+export async function clientLoader({
+  context,
+  serverLoader,
+}: Route.ClientLoaderArgs) {
+  if (context.get(historyStepContext)) {
+    const back = keptShell.step(SHELL, serverLoader);
+    if (back) return back.kept;
+  }
+  return await keptShell.again(SHELL, serverLoader);
+}
+
+// Keeps the collections the shell shows, for a step back.
+function useKeepShell(data: Route.ComponentProps["loaderData"]) {
+  useEffect(() => {
+    keptShell.keep(SHELL, data);
+  }, [data]);
+}
+
 // The collections only load again after a change, not on every move. See
-// shell/revalidate.ts.
+// shell/revalidate.ts. In the load after a step back, only when they showed
+// as they were left (shell/kept.ts).
 export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
-  return revalidateAfterChanges(args);
+  return loadsKeptAgain(keptShell, SHELL) ?? revalidateAfterChanges(args);
 }
 
 // The collections the shell loaded, for a screen inside it.
@@ -101,6 +133,7 @@ export function navItems(
 export default function Shell({ loaderData }: Route.ComponentProps) {
   const { pathname } = useLocation();
   const signedIn = use(SignedInContext);
+  useKeepShell(loaderData);
   return (
     <ShellView
       pathname={pathname}

@@ -165,6 +165,54 @@ test("shows slow Sheets with bars for Recent and the list", async ({
   await expect(heading(page)).toBeFocused();
 });
 
+// Scenario "Cards of one height" (library-page): a card is as tall with an
+// artist, a key and a long title as without, and so are its bars. So the
+// cards take the bars' place without the list below moving.
+test("gives Recent's cards and their bars one height", async ({ page }) => {
+  const mark = newMark();
+  const opened = [
+    await create(page, "/api/sheets", {
+      title: `A title long enough to take a second line ${mark}`,
+      artist: "Someone",
+      content: {
+        format: "chordsheet",
+        version: 1,
+        sections: [
+          {
+            label: "Verse",
+            lines: [{ text: "Amazing grace", chords: [{ at: 0, root: "G" }] }],
+          },
+        ],
+      },
+    }),
+    await create(page, "/api/sheets", { title: `Hi ${mark}`, content }),
+  ];
+  for (const id of opened) {
+    await page.goto(`/sheets/${id}`);
+    await expect(heading(page)).toContainText(mark);
+  }
+  await page.goto("/sheets");
+  const cards = page.locator("main .recent-sheets a");
+  await expect(cards.filter({ hasText: mark })).toHaveCount(2);
+  const heights = await cards.evaluateAll((all) =>
+    all.map((card) => Math.round(card.getBoundingClientRect().height)),
+  );
+  expect(new Set(heights).size).toBe(1);
+
+  await page.goto("/collections");
+  await page.waitForLoadState("networkidle");
+  await holdBack(page, sheetsData, 2000);
+  await mainNav(page)
+    .getByRole("link", { name: "Sheets", exact: true })
+    .click();
+  const bars = page.locator("main .recent-sheets-skeleton");
+  await expect(bars).toHaveCount(4);
+  const barHeights = await bars.evaluateAll((all) =>
+    all.map((card) => Math.round(card.getBoundingClientRect().height)),
+  );
+  expect(barHeights).toEqual(barHeights.map(() => heights[0]));
+});
+
 // Scenario "After deleting from a row".
 test("keeps the other rows while the list loads again after a delete", async ({
   page,

@@ -20,6 +20,11 @@ import { getAuth } from "./auth/auth.server";
 import { cloudflareContext, sessionContext } from "./context";
 import { NotFoundView } from "./routes/not-found";
 import { useFocusOnNavigation } from "./shell/focus";
+import {
+  isLoadingKeptAgain,
+  keptMiddleware,
+  LoadKeptAgain,
+} from "./shell/kept";
 import { PageLoading } from "./shell/page-loading";
 import {
   type MoveArgs,
@@ -51,6 +56,8 @@ export function links() {
 
 // Picks how each page change moves, in the browser. See shell/page-moves.ts.
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
+  // Forgets the pages kept for Back after a change. See shell/kept.ts.
+  (args, next) => keptMiddleware(args, next),
   (args, next) => pageMovesMiddleware(args as typeof args & MoveArgs, next),
 ];
 
@@ -73,9 +80,10 @@ export function loader({ context }: Route.LoaderArgs) {
 }
 
 // Who is signed in only changes with a full load: signing in opens a link,
-// and signing out loads the home page. See shell/revalidate.ts.
+// and signing out loads the home page. See shell/revalidate.ts. It sits out
+// the load after a step back (shell/kept.ts).
 export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
-  return revalidateAfterChanges(args);
+  return !isLoadingKeptAgain() && revalidateAfterChanges(args);
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -142,6 +150,7 @@ export default function App() {
   return (
     <SignedInContext value={signedIn}>
       <PageMoves />
+      <LoadKeptAgain />
       {/* The page is the one picture of a page change, as the root was for
           the browser's own moves; the announced kind of move is its class in
           the render that changes the page. See shell/page-moves.css. */}

@@ -1,5 +1,6 @@
 import type { ChordSheet, Sheet } from "chordsheet";
 
+import { sendChange } from "../changes";
 import { UNTITLED } from "./details";
 
 // The import into the library: a new sheet with what was read, from Ultimate
@@ -14,7 +15,7 @@ export const NOT_IMPORTED = "The sheet couldn’t be imported. Try again.";
 export async function importSheet(
   content: ChordSheet,
   { title, artist }: { title?: string; artist?: string } = {},
-  fetchFn: typeof fetch = (...args) => fetch(...args),
+  fetchFn: typeof fetch = sendChange,
 ): Promise<{ id: string } | { error: string }> {
   try {
     const response = await fetchFn("/api/sheets", {

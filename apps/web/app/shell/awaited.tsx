@@ -12,8 +12,10 @@ import {
   useNavigate,
 } from "react-router";
 
+import { addressOf, type KeptPages, useKeep } from "./kept";
 import {
   browserMovedContext,
+  historyStepContext,
   pageLoadStartedAt,
   shownPath,
 } from "./page-moves";
@@ -124,10 +126,59 @@ export function handOver<T>(
   data: Promise<T>,
   context: Pick<RouterContextProvider, "get">,
 ): Promise<{ page: T | Promise<T> }> {
-  const wait = context.get(browserMovedContext)
+  return headStart(data, moveWait(context), SKELETON_HOLD);
+}
+
+// How long a page's client loader waits for its data on this move.
+function moveWait(context: Pick<RouterContextProvider, "get">): number {
+  return context.get(browserMovedContext)
     ? 0
     : waitLeft(pageLoadStartedAt(), Date.now());
-  return headStart(data, wait, SKELETON_HOLD);
+}
+
+// The page as it was left, with one part still on its way.
+export type WithLatePart<T, K extends keyof T> = Omit<T, K> & {
+  [P in K]: T[P] | Promise<T[P]>;
+};
+
+// handOver() for a step back to a page kept for it whose part `late` the
+// page left behind may have changed since, as opening a sheet changes
+// Sheets' Recent. The page waits for its fresh data as on any other move,
+// and arrives whole if it comes in time. Otherwise it shows as it was left,
+// at once after the browser's own move, with `late` on its way from the
+// fresh data, its bars held SKELETON_HOLD. When the fresh data fails, the
+// page keeps what it showed. See openspec/specs/site-layout ("Back to
+// Sheets").
+export async function handOverBack<T, K extends keyof T>(
+  back: { kept: T; fresh: Promise<T> },
+  late: K,
+  context: Pick<RouterContextProvider, "get">,
+): Promise<{ page: T | WithLatePart<T, K> }> {
+  const fresh = back.fresh.catch(() => back.kept);
+  const first = await headStart(fresh, moveWait(context));
+  if (!(first.page instanceof Promise)) return { page: first.page };
+  const part = await headStart(
+    fresh.then((data) => data[late]),
+    0,
+    SKELETON_HOLD,
+  );
+  return { page: { ...back.kept, [late]: part.page } };
+}
+
+// For a page's client loader on a step back or forward in the history: the
+// page as it was left, if it was kept, and a fresh request started for the
+// load that follows in the background (shell/kept.ts). Null otherwise, for
+// the page to load as on any other move. See openspec/specs/site-layout
+// ("Back shows the page as it was left").
+export function backAsLeft<T>(
+  kept: KeptPages<T>,
+  url: URL,
+  context: Pick<RouterContextProvider, "get">,
+  request: () => Promise<T>,
+): { page: T } | null {
+  if (!context.get(historyStepContext)) return null;
+  const back = kept.step(addressOf(url), request);
+  return back && { page: back.kept };
 }
 
 // A page's data, whole or on its way. On its way, after a move whose data
@@ -138,17 +189,28 @@ export function handOver<T>(
 // while the page stays, so that its parts keep their state, such as a
 // search field's focus, as the page loads again. Key it by what the page
 // shows, so another collection or sheet chooses anew.
+//
+// With `kept`, it keeps the data once it is whole, for a step back to the
+// page (shell/kept.ts).
 export function PageData<T>({
   data,
   skeleton,
+  kept,
   children,
 }: {
   data: T | Promise<T>;
   skeleton: ReactNode;
+  kept?: KeptPages<T>;
   children: (data: T) => ReactNode;
 }) {
   const [streamed] = useState(() => data instanceof Promise);
-  if (!streamed && !(data instanceof Promise)) return children(data);
+  const render = (whole: T) => (
+    <>
+      {kept && <Keep kept={kept} data={whole} />}
+      {children(whole)}
+    </>
+  );
+  if (!streamed && !(data instanceof Promise)) return render(data);
   return (
     <Suspense
       fallback={
@@ -159,14 +221,20 @@ export function PageData<T>({
       }
     >
       <Await resolve={data} errorElement={<AwaitError />}>
-        {children}
+        {render}
       </Await>
     </Suspense>
   );
 }
 
+function Keep<T>({ kept, data }: { kept: KeptPages<T>; data: T }) {
+  useKeep(kept, data);
+  return null;
+}
+
 // Marks when a page's skeleton shows, for the data held for it (headStart).
-function SkeletonShown() {
+// Render it beside the bars in a <Suspense> fallback.
+export function SkeletonShown() {
   useLayoutEffect(() => {
     noteSkeletonShown();
   }, []);

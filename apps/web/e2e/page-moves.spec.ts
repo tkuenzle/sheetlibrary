@@ -433,10 +433,10 @@ test("drops back into the list where it was scrolled", async ({ page }) => {
   expect(kindOf(await lastMove(page, 1))).toBe("drop");
 });
 
-// Scenario "Back to a slow list": a step back in the history doesn't wait
-// for all of the list, though the address has already changed when its
-// loader runs. The sheet drops off the list's skeleton.
-test("drops a sheet onto the list's bars when the list is slow", async ({
+// Scenario "Back to a slow list": after a change, a step back loads the
+// list as on any other move, though the address has already changed when
+// its loader runs. The sheet drops off the list's skeleton.
+test("drops a sheet onto the list's bars when the list is slow after a change", async ({
   page,
 }) => {
   const title = `Slow back ${newMark()}`;
@@ -452,19 +452,341 @@ test("drops a sheet onto the list's bars when the list is slow", async ({
   await row.click();
   await expect(heading(page)).toHaveText(title);
   await lastMove(page, 1);
+  await rename(page, title, `${title} again`);
 
   // Only the list: the shell's collections come in a request of their own.
-  await page.route(
-    /\/sheets\.data\?_routes=routes%2Fsheets$/,
-    async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      await route.continue();
-    },
-  );
+  await holdBack(page, /\/sheets\.data\?_routes=routes%2Fsheets$/, 2000);
   await page.getByRole("link", { name: "Back" }).click();
   await expect(page.locator("main .sheet-list-skeleton").first()).toBeVisible();
-  expect(kindOf(await lastMove(page, 2))).toBe("drop");
+  await expect(
+    page.locator(".sheet-list-row").filter({ hasText: `${title} again` }),
+  ).toBeVisible();
+});
+
+// Holds back the requests whose address matches.
+async function holdBack(page: Page, url: RegExp, ms: number) {
+  await page.route(url, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    await route.continue();
+  });
+}
+
+// Renames the open sheet in edit mode and goes back to play with Done. The
+// change goes through the app, as a person makes it.
+async function rename(page: Page, from: string, to: string) {
+  await page.getByRole("link", { name: "Edit" }).click();
+  await page.getByRole("button", { name: from }).click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type(to);
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toHaveText("Saved");
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(heading(page)).toHaveText(to);
+}
+
+// Notes whether a page showed bars, from the next page load on.
+async function recordBars(page: Page) {
+  await page.addInitScript(() => {
+    const log: { bars: boolean; recentBars: boolean; titles: string[] } = {
+      bars: false,
+      recentBars: false,
+      titles: [],
+    };
+    (window as unknown as { barsLog: typeof log }).barsLog = log;
+    new MutationObserver(() => {
+      if (document.querySelector("main .sheet-list-skeleton")) log.bars = true;
+      if (document.querySelector("main .recent-sheets-skeleton")) {
+        log.recentBars = true;
+      }
+      for (const row of document.querySelectorAll("main .sheet-list-row")) {
+        log.titles.push(row.textContent);
+      }
+    }).observe(document, { subtree: true, childList: true });
+  });
+}
+
+const barsLog = (page: Page) =>
+  page.evaluate(
+    () =>
+      (
+        window as unknown as {
+          barsLog: { bars: boolean; recentBars: boolean; titles: string[] };
+        }
+      ).barsLog,
+  );
+
+const clearBarsLog = (page: Page) =>
+  page.evaluate(() => {
+    const log = (
+      window as unknown as {
+        barsLog: { bars: boolean; recentBars: boolean; titles: string[] };
+      }
+    ).barsLog;
+    log.bars = false;
+    log.recentBars = false;
+    log.titles = [];
+  });
+
+// A collection holding a sheet for each of `titles`, opened from the rail,
+// or on a phone from Collections.
+async function openNewCollection(page: Page, titles: string[]) {
+  const name = `Kept ${newMark()}`;
+  const id = await create(page, "/api/collections", { name });
+  for (const title of titles) {
+    const sheet = await createSheet(page, title);
+    const response = await page.request.put(
+      `/api/sheets/${sheet}/collections/${id}`,
+    );
+    expect(response.ok()).toBe(true);
+  }
+  const wide = (page.viewportSize()?.width ?? 0) >= 1024;
+  await page.goto(wide ? "/sheets" : "/collections");
+  await page.waitForLoadState("networkidle");
+  await (
+    wide
+      ? page.getByRole("navigation", { name: "Main" })
+      : page.getByRole("main")
+  )
+    .getByRole("link", { name: new RegExp(name) })
+    .click();
+  await expect(heading(page)).toHaveText(name);
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(titles.length);
+  return name;
+}
+
+// Scenario "Back to a slow collection": the collection shows as it was
+// left, without waiting for the server, and the heading moves into its row.
+test("drops a sheet onto the collection as it was left", async ({ page }) => {
+  const mark = newMark();
+  const titles = [`One ${mark}`, `Two ${mark}`, `Three ${mark}`];
+  await recordMoves(page);
+  await recordBars(page);
+  const name = await openNewCollection(page, titles);
+  const before = await settledMoves(page);
+  await page
+    .locator(".sheet-list-row")
+    .filter({ hasText: titles[1] })
+    .getByRole("link")
+    .click();
+  await expect(heading(page)).toHaveText(titles[1] ?? "");
+  await lastMove(page, before + 1);
+  await clearBarsLog(page);
+
+  // Everything: the collection, the shell's collections and the root.
+  await holdBack(page, /\.data/, 2000);
+  await page.getByRole("link", { name: "Back" }).click();
+  const drop = await lastMove(page, before + 2);
+  expect(kindOf(drop)).toBe("drop");
+  expect(movesTitle(drop)).toBe(true);
+  await expect(heading(page)).toHaveText(name);
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(3);
+  // The load behind it changes nothing on screen.
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(3);
+  expect((await barsLog(page)).bars).toBe(false);
+});
+
+// Scenario "Fresh data after Back": a sheet added on another device shows
+// once the load behind the page is done.
+test("brings in what changed elsewhere after Back", async ({ page }) => {
+  const mark = newMark();
+  await openNewCollection(page, [`First ${mark}`]);
+  const id = /\/collections\/([^/]+)$/.exec(page.url())?.[1] ?? "";
+  await page.locator(".sheet-list-row").getByRole("link").click();
+  await expect(heading(page)).toHaveText(`First ${mark}`);
+  // Playwright's own request, as from another device: it forgets nothing.
+  const other = await createSheet(page, `Second ${mark}`);
+  const response = await page.request.put(
+    `/api/sheets/${other}/collections/${id}`,
+  );
+  expect(response.ok()).toBe(true);
+  await holdBack(page, /\.data/, 1000);
+  await page.getByRole("link", { name: "Back" }).click();
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(1);
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(2);
+});
+
+// Scenario "Slow collections": Back from a sheet doesn't wait for the
+// shell's collections.
+test("doesn't wait for the rail's collections on Back", async ({ page }) => {
+  const mark = newMark();
+  const name = await openNewCollection(page, [`Rail ${mark}`]);
+  await page.locator(".sheet-list-row").getByRole("link").click();
+  await expect(heading(page)).toHaveText(`Rail ${mark}`);
+  await holdBack(page, /_routes=routes%2Fshell/, 3000);
+  await page.getByRole("link", { name: "Back" }).click();
+  await expect(heading(page)).toHaveText(name, { timeout: 1500 });
+});
+
+// Scenario "Offline Back": the collection shows as it was left, and stays,
+// without a note.
+test("shows the collection as it was left offline", async ({
+  page,
+  context,
+}) => {
+  const mark = newMark();
+  const name = await openNewCollection(page, [`Offline ${mark}`]);
+  await page.locator(".sheet-list-row").getByRole("link").click();
+  await expect(heading(page)).toHaveText(`Offline ${mark}`);
+  await context.setOffline(true);
+  await page.getByRole("link", { name: "Back" }).click();
+  await expect(heading(page)).toHaveText(name);
+  await page.waitForTimeout(1500);
+  await expect(heading(page)).toHaveText(name);
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+  await context.setOffline(false);
+});
+
+// Scenario "A renamed sheet": a change forgets what Back would show.
+test("never shows a sheet's old title on Back after a rename", async ({
+  page,
+}) => {
+  const title = `Old ${newMark()}`;
+  await createSheet(page, title);
+  await recordBars(page);
+  await page.goto(`/sheets?q=${title.split(" ")[1] ?? ""}`);
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(1);
+  await page.locator(".sheet-list-row").getByRole("link").click();
+  await expect(heading(page)).toHaveText(title);
+  await rename(page, title, `New ${title}`);
+  await clearBarsLog(page);
+  await page.getByRole("link", { name: "Back" }).click();
+  await expect(
+    page.locator(".sheet-list-row").filter({ hasText: `New ${title}` }),
+  ).toBeVisible();
+  const { titles } = await barsLog(page);
+  expect(
+    titles.some(
+      (text) => text.includes(title) && !text.includes(`New ${title}`),
+    ),
+  ).toBe(false);
+});
+
+// Requirement "Back shows the page as it was left": a search scrolled far
+// down comes back at once with its rows and its scroll, though the server
+// is slow.
+test("brings back a search and its scroll at once on Back", async ({
+  page,
+}) => {
+  const mark = newMark();
+  await Promise.all(
+    Array.from({ length: 40 }, (_, i) =>
+      createSheet(page, `Scroll ${mark} ${String(i).padStart(2, "0")}`),
+    ),
+  );
+  await recordMoves(page);
+  await recordBars(page);
+  await page.goto(`/sheets?q=${mark}`);
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(40);
+  const before = await settledMoves(page);
+  const row = page.locator(".sheet-list-row").last().getByRole("link");
+  await row.scrollIntoViewIfNeeded();
+  const scrolled = await page.evaluate(() => window.scrollY);
+  expect(scrolled).toBeGreaterThan(1000);
+  const title = (await row.textContent()) ?? "";
+  await row.click();
+  await expect(heading(page)).toContainText(`Scroll ${mark}`);
+  expect(title).toContain(await heading(page).innerText());
+  await lastMove(page, before + 1);
+  await clearBarsLog(page);
+
+  await holdBack(page, /\.data/, 2000);
+  await page.getByRole("link", { name: "Back" }).click();
+  const drop = await lastMove(page, before + 2);
+  expect(kindOf(drop)).toBe("drop");
+  expect(drop.scrollY).toBe(scrolled);
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(40);
+  expect((await barsLog(page)).bars).toBe(false);
+});
+
+// Opens a new sheet from its row on Sheets, and gives its row's link.
+async function openFromSheets(page: Page, title: string) {
+  await createSheet(page, title);
+  await page.goto("/sheets");
+  await page.waitForLoadState("networkidle");
+  const before = (await moves(page)).length;
+  const row = page
+    .locator(".sheet-list-row")
+    .filter({ hasText: title })
+    .getByRole("link");
+  await row.scrollIntoViewIfNeeded();
+  await row.click();
+  await expect(heading(page)).toHaveText(title);
+  await lastMove(page, before + 1);
+  await clearBarsLog(page);
+  return { row, before: before + 1 };
+}
+
+const recentCards = (page: Page) => page.locator("main .recent-sheets a");
+
+// Scenario "Back to Sheets when slow": the list as it was left, at once,
+// with bars only in Recent, which opening the sheet changed.
+test("drops a sheet onto the list as it was left, with bars in Recent", async ({
+  page,
+}) => {
+  const title = `Recent back ${newMark()}`;
+  await recordMoves(page);
+  await recordBars(page);
+  const { row, before } = await openFromSheets(page, title);
+  await holdBack(page, /\.data/, 2000);
+  await page.getByRole("link", { name: "Back" }).click();
+  expect(kindOf(await lastMove(page, before + 1))).toBe("drop");
   await expect(row).toBeVisible();
+  await expect(page.locator("main .recent-sheets-skeleton")).toHaveCount(4);
+  // The cards take the bars' place. Which sheets they show isn't checked:
+  // other tests open sheets on this account too, and in the 2s held back
+  // they can push this one out of Recent.
+  await expect(page.locator("main .recent-sheets-skeleton")).toHaveCount(0);
+  await expect(recentCards(page).first()).toBeVisible();
+  const log = await barsLog(page);
+  expect(log.bars).toBe(false);
+  expect(log.recentBars).toBe(true);
+});
+
+// Scenario "Back to a quick list": the fresh list, without bars, with the
+// sheet first in Recent.
+test("drops a sheet onto the fresh list when it comes quickly", async ({
+  page,
+}) => {
+  const title = `Quick back ${newMark()}`;
+  await recordMoves(page);
+  await recordBars(page);
+  const { before } = await openFromSheets(page, title);
+  await holdBack(page, /\.data/, 50);
+  await page.getByRole("link", { name: "Back" }).click();
+  expect(kindOf(await lastMove(page, before + 1))).toBe("drop");
+  // Other tests open sheets on this account too, so it may not stay first.
+  await expect(recentCards(page).filter({ hasText: title })).toHaveCount(1);
+  const log = await barsLog(page);
+  expect(log.bars).toBe(false);
+  expect(log.recentBars).toBe(false);
+});
+
+// Scenario "Swiping back to a slow list": after the browser's own move, the
+// list as it was left replaces the sheet at once, with bars in Recent. The
+// test stands in for Safari, which says so on the step's popstate event.
+test("shows the list as it was left at once after the browser's own move", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(PopStateEvent.prototype, "hasUAVisualTransition", {
+      get: () => (window as unknown as { swiped?: boolean }).swiped === true,
+    });
+  });
+  const title = `Swiped ${newMark()}`;
+  await recordMoves(page);
+  await recordBars(page);
+  const { row, before } = await openFromSheets(page, title);
+  await holdBack(page, /\.data/, 2000);
+  await page.evaluate(() => {
+    (window as unknown as { swiped?: boolean }).swiped = true;
+  });
+  await page.goBack();
+  await expect(row).toBeVisible({ timeout: 1000 });
+  await expect(page.locator("main .recent-sheets-skeleton")).toHaveCount(4);
+  expect((await moves(page)).length).toBe(before);
+  expect((await barsLog(page)).bars).toBe(false);
 });
 
 // Scenarios "From playing to editing" and "Done".

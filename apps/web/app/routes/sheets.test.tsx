@@ -260,7 +260,7 @@ function render(
     q?: string;
     hasSheets?: boolean;
     searchFailed?: boolean;
-    recent?: SheetListItem[];
+    recent?: SheetListItem[] | Promise<SheetListItem[]>;
   } = {},
 ) {
   const Stub = createRoutesStub([
@@ -276,6 +276,26 @@ function render(
 
 describe("library page", () => {
   const today = Date.now();
+
+  // Requirement "Back to Sheets": the list as it was left, with bars only
+  // in Recent while it is on its way.
+  it("shows the list with bars in Recent while Recent is on its way", () => {
+    const html = render(
+      [
+        {
+          id: "abcdefghijkl",
+          title: "Hallelujah",
+          updatedAt: today,
+          addedAt: today,
+        },
+      ],
+      false,
+      { recent: new Promise<SheetListItem[]>(() => undefined) },
+    );
+    expect(html).toContain("Hallelujah");
+    expect(html).toContain("recent-sheets-skeleton");
+    expect(html).not.toContain("sheet-list-skeleton");
+  });
 
   // Requirement "My sheets": the rows are the shared list's.
   it("lists the sheets A to Z, each linking to it, with its artist", () => {

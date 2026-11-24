@@ -1,12 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { RouterContextProvider } from "react-router";
+
 import {
+  backAsLeft,
   fromAnotherPage,
+  handOverBack,
   headStart,
   noteSkeletonShown,
   redirectTarget,
   waitLeft,
 } from "./awaited";
+import { forgetKept, KeptPages } from "./kept";
+import { browserMovedContext, historyStepContext } from "./page-moves";
 import { HEAD_START } from "./slow-wait";
 
 describe("redirectTarget", () => {
@@ -154,5 +160,118 @@ describe("waitLeft", () => {
 
   it("doesn't wait once the time is up", () => {
     expect(waitLeft(1000, 1000 + HEAD_START + 50)).toBe(0);
+  });
+});
+
+describe("backAsLeft", () => {
+  const step = (back: boolean) => {
+    const context = new RouterContextProvider();
+    context.set(historyStepContext, back);
+    return context;
+  };
+  const url = new URL("https://example.com/collections/c1");
+  afterEach(() => {
+    forgetKept();
+  });
+
+  it("gives the page as it was left on a step in the history", async () => {
+    const kept = new KeptPages<string>();
+    kept.keep("/collections/c1", "as left");
+    const request = vi.fn(() => Promise.resolve("fresh"));
+    expect(backAsLeft(kept, url, step(true), request)).toEqual({
+      page: "as left",
+    });
+    // The background load takes the request started for it.
+    expect(await kept.again("/collections/c1", request)).toBe("fresh");
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("gives nothing for a page not kept, or another move", () => {
+    const kept = new KeptPages<string>();
+    const request = vi.fn(() => Promise.resolve("fresh"));
+    expect(backAsLeft(kept, url, step(true), request)).toBeNull();
+    kept.keep("/collections/c1", "as left");
+    expect(backAsLeft(kept, url, step(false), request)).toBeNull();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("gives nothing on a step after a change", () => {
+    const kept = new KeptPages<string>();
+    kept.keep("/collections/c1", "as left");
+    forgetKept();
+    expect(
+      backAsLeft(kept, url, step(true), () => Promise.resolve("fresh")),
+    ).toBeNull();
+  });
+});
+
+// Requirement "Back to Sheets".
+describe("handOverBack", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const after = <T>(ms: number, value: T) =>
+    new Promise<T>((resolve) => {
+      setTimeout(() => {
+        resolve(value);
+      }, ms);
+    });
+  const kept = { sheets: ["a", "b"], recent: ["b"] };
+  const fresh = { sheets: ["a", "b"], recent: ["a", "b"] };
+  const moved = (browserMoved: boolean) => {
+    const context = new RouterContextProvider();
+    context.set(browserMovedContext, browserMoved);
+    return context;
+  };
+
+  it("gives the fresh page whole when it arrives in time", async () => {
+    const result = handOverBack(
+      { kept, fresh: after(50, fresh) },
+      "recent",
+      moved(false),
+    );
+    await vi.advanceTimersByTimeAsync(50);
+    await expect(result).resolves.toEqual({ page: fresh });
+  });
+
+  it("gives the page as it was left with Recent on its way when late", async () => {
+    const result = handOverBack(
+      { kept, fresh: after(1000, fresh) },
+      "recent",
+      moved(false),
+    );
+    await vi.advanceTimersByTimeAsync(HEAD_START);
+    const { page } = await result;
+    expect(page.sheets).toBe(kept.sheets);
+    expect(page.recent).toBeInstanceOf(Promise);
+    noteSkeletonShown();
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(page.recent).resolves.toEqual(fresh.recent);
+  });
+
+  it("doesn't wait after the browser's own move", async () => {
+    const result = handOverBack(
+      { kept, fresh: after(50, fresh) },
+      "recent",
+      moved(true),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    const { page } = await result;
+    expect(page.recent).toBeInstanceOf(Promise);
+  });
+
+  it("keeps what the page showed when the fresh page fails", async () => {
+    const failing = Promise.reject(new Error("offline"));
+    const result = handOverBack(
+      { kept, fresh: failing },
+      "recent",
+      moved(false),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    await expect(result).resolves.toEqual({ page: kept });
   });
 });

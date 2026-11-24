@@ -1,4 +1,5 @@
 import type { Key } from "chordsheet";
+import { sendChange } from "../changes";
 
 // A sheet's versions: a name and a key, for who or what it is played for.
 // The rules here hold in the browser and on the server. See
@@ -27,7 +28,7 @@ export function readVersionKey(text: string): Key | null {
 }
 
 type Fetch = typeof fetch;
-const browserFetch: Fetch = (...args) => fetch(...args);
+const browserFetch: Fetch = sendChange;
 
 async function send(
   path: string,

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   announcedMove,
   browserMovedContext,
+  historyStepContext,
   durationMs,
   headingTitleName,
   type MoveArgs,
@@ -267,6 +268,19 @@ describe("pageMovesMiddleware", () => {
     const swiped = toSheets("POP");
     await pageMovesMiddleware(swiped, () => Promise.resolve("loaded"));
     expect(swiped.context.get(browserMovedContext)).toBe(true);
+  });
+
+  // A page's loader reads it, and may show what it showed when it was left.
+  it("tells the loaders whether the change is a step in the history", async () => {
+    const back = toSheets("POP");
+    const done = pageMovesMiddleware(back, () => Promise.resolve("loaded"));
+    await vi.advanceTimersByTimeAsync(0);
+    await done;
+    expect(back.context.get(historyStepContext)).toBe(true);
+
+    const push = toSheets("PUSH");
+    await pageMovesMiddleware(push, () => Promise.resolve("loaded"));
+    expect(push.context.get(historyStepContext)).toBe(false);
   });
 
   it("leaves fetchers alone", async () => {
