@@ -1,6 +1,14 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
-import { authFile } from "./servers";
+import {
+  addToCollection,
+  createCollection,
+  createSheet,
+  delay,
+  expect,
+  newMark,
+  test,
+} from "./fixtures";
 
 // Skeletons: a page waits a moment for its data. When the data is slower,
 // the page moves in with bars where its data will be, and the data fills in
@@ -9,46 +17,20 @@ import { authFile } from "./servers";
 // page loads", "Bars never blink"). The tests
 // share one account, so every name carries a mark of its own.
 
-test.use({ storageState: authFile });
+test.use({ signedIn: true });
 
 const wait = (ms: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 
-function newMark(): string {
-  return Array.from(crypto.getRandomValues(new Uint8Array(10)), (n) =>
-    String.fromCharCode(97 + (n % 26)),
-  ).join("");
-}
-
-async function create(page: Page, url: string, data: object): Promise<string> {
-  const response = await page.request.post(url, { data });
-  expect(response.status()).toBe(201);
-  return ((await response.json()) as { id: string }).id;
-}
-
-const content = { format: "chordsheet", version: 1, sections: [] };
-
 // A collection holding a sheet for each of `titles`.
-async function createCollection(page: Page, name: string, titles: string[]) {
-  const id = await create(page, "/api/collections", { name });
+async function collectionWith(page: Page, name: string, titles: string[]) {
+  const id = await createCollection(page, name);
   for (const title of titles) {
-    const sheet = await create(page, "/api/sheets", { title, content });
-    const response = await page.request.put(
-      `/api/sheets/${sheet}/collections/${id}`,
-    );
-    expect(response.ok()).toBe(true);
+    await addToCollection(page, await createSheet(page, { title }), id);
   }
   return id;
-}
-
-// Holds back the data of the pages whose path matches.
-async function holdBack(page: Page, path: RegExp, ms: number) {
-  await page.route(path, async (route) => {
-    await wait(ms);
-    await route.continue();
-  });
 }
 
 const collectionData = /\/collections\/[^/]+\.data/;
@@ -87,13 +69,13 @@ test("shows a slow collection with its name, count and bars", async ({
 }) => {
   const mark = newMark();
   const name = `Slow ${mark}`;
-  await createCollection(page, name, [
+  await collectionWith(page, name, [
     `One ${mark}`,
     `Two ${mark}`,
     `Three ${mark}`,
   ]);
   await startOnCollections(page);
-  await holdBack(page, collectionData, 2000);
+  await delay(page, collectionData, 2000);
   await openCollection(page, name);
   await expect(heading(page)).toHaveText(name);
   await expect(page.locator(".collection-title p")).toHaveText("3 sheets");
@@ -112,12 +94,12 @@ test("never shows the last collection's sheets under another's name", async ({
   const mark = newMark();
   const first = `First ${mark}`;
   const second = `Second ${mark}`;
-  await createCollection(page, first, [`Only in first ${mark}`]);
-  await createCollection(page, second, [`Only in second ${mark}`]);
+  await collectionWith(page, first, [`Only in first ${mark}`]);
+  await collectionWith(page, second, [`Only in second ${mark}`]);
   await startOnCollections(page);
   await openCollection(page, first);
   await expect(rows(page)).toHaveCount(1);
-  await holdBack(page, collectionData, 1500);
+  await delay(page, collectionData, 1500);
   await openCollection(page, second);
   await expect(heading(page)).toHaveText(second);
   await expect(bars(page)).toHaveCount(1);
@@ -133,7 +115,7 @@ test("never shows the last collection's sheets under another's name", async ({
 test("says a collection that is gone isn't found", async ({ page }) => {
   const mark = newMark();
   const name = `Gone ${mark}`;
-  const id = await createCollection(page, name, []);
+  const id = await collectionWith(page, name, []);
   await startOnCollections(page);
   const response = await page.request.delete(`/api/collections/${id}`);
   expect(response.ok()).toBe(true);
@@ -149,10 +131,10 @@ test("shows slow Sheets with bars for Recent and the list", async ({
   page,
 }) => {
   const mark = newMark();
-  await create(page, "/api/sheets", { title: `Slow ${mark}`, content });
+  await createSheet(page, { title: `Slow ${mark}` });
   await page.goto("/collections");
   await page.waitForLoadState("networkidle");
-  await holdBack(page, sheetsData, 2000);
+  await delay(page, sheetsData, 2000);
   await mainNav(page)
     .getByRole("link", { name: "Sheets", exact: true })
     .click();
@@ -171,7 +153,7 @@ test("shows slow Sheets with bars for Recent and the list", async ({
 test("gives Recent's cards and their bars one height", async ({ page }) => {
   const mark = newMark();
   const opened = [
-    await create(page, "/api/sheets", {
+    await createSheet(page, {
       title: `A title long enough to take a second line ${mark}`,
       artist: "Someone",
       content: {
@@ -185,7 +167,7 @@ test("gives Recent's cards and their bars one height", async ({ page }) => {
         ],
       },
     }),
-    await create(page, "/api/sheets", { title: `Hi ${mark}`, content }),
+    await createSheet(page, { title: `Hi ${mark}` }),
   ];
   for (const id of opened) {
     await page.goto(`/sheets/${id}`);
@@ -201,7 +183,7 @@ test("gives Recent's cards and their bars one height", async ({ page }) => {
 
   await page.goto("/collections");
   await page.waitForLoadState("networkidle");
-  await holdBack(page, sheetsData, 2000);
+  await delay(page, sheetsData, 2000);
   await mainNav(page)
     .getByRole("link", { name: "Sheets", exact: true })
     .click();
@@ -218,11 +200,11 @@ test("keeps the other rows while the list loads again after a delete", async ({
   page,
 }) => {
   const mark = newMark();
-  await create(page, "/api/sheets", { title: `Keep ${mark}`, content });
-  await create(page, "/api/sheets", { title: `Delete ${mark}`, content });
+  await createSheet(page, { title: `Keep ${mark}` });
+  await createSheet(page, { title: `Delete ${mark}` });
   await page.goto(`/sheets?q=${mark}`);
   await expect(rows(page)).toHaveCount(2);
-  await holdBack(page, sheetsData, 1500);
+  await delay(page, sheetsData, 1500);
   await page.getByRole("button", { name: `More for Delete ${mark}` }).click();
   await page.getByRole("menuitem", { name: "Delete" }).click();
   await page.getByRole("button", { name: "Delete", exact: true }).click();
@@ -236,10 +218,10 @@ test("keeps the other rows while the list loads again after a delete", async ({
 // Typing in the skeleton's search field goes on in the page's own.
 test("keeps what was typed while Sheets loads", async ({ page }) => {
   const mark = newMark();
-  await create(page, "/api/sheets", { title: `Typed ${mark}`, content });
+  await createSheet(page, { title: `Typed ${mark}` });
   await page.goto("/collections");
   await page.waitForLoadState("networkidle");
-  await holdBack(page, sheetsData, 1500);
+  await delay(page, sheetsData, 1500);
   await mainNav(page)
     .getByRole("link", { name: "Sheets", exact: true })
     .click();
@@ -257,7 +239,7 @@ test("keeps what was typed while Sheets loads", async ({ page }) => {
 // is long: React's server would send a long list apart, after its
 // skeleton, if it sat in a <Suspense>.
 test("loads a page whole the first time, without bars", async ({ page }) => {
-  await create(page, "/api/sheets", { title: `Whole ${newMark()}`, content });
+  await createSheet(page, { title: `Whole ${newMark()}` });
   await recordSkeleton(page);
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
@@ -274,7 +256,7 @@ test("loads a page whole the first time, without bars", async ({ page }) => {
 test("shows a slow account page with bars for its data", async ({ page }) => {
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
-  await holdBack(page, /\/account\.data/, 1500);
+  await delay(page, /\/account\.data/, 1500);
   await page.getByRole("link", { name: "Account" }).first().click();
   await expect(heading(page)).toHaveText("Account");
   await expect(page.locator(".account-email .skeleton-bar")).toBeVisible();
@@ -314,8 +296,8 @@ const barsLog = (page: Page) =>
 async function openChooseCollections(page: Page, ms: number) {
   const mark = newMark();
   const title = `Chosen ${mark}`;
-  await create(page, "/api/collections", { name: `Pick ${mark}` });
-  await create(page, "/api/sheets", { title, content });
+  await createCollection(page, `Pick ${mark}`);
+  await createSheet(page, { title });
   await recordDialogBars(page);
   await page.goto(`/sheets?q=${mark}`);
   await expect(rows(page)).toHaveCount(1);
@@ -375,10 +357,10 @@ const pageBarsLog = (page: Page) =>
 async function openHeldBack(page: Page, ms: number) {
   const mark = newMark();
   const name = `Held ${mark}`;
-  await createCollection(page, name, [`One ${mark}`]);
+  await collectionWith(page, name, [`One ${mark}`]);
   await recordPageBars(page);
   await startOnCollections(page);
-  await holdBack(page, collectionData, ms);
+  await delay(page, collectionData, ms);
   await openCollection(page, name);
   await expect(rows(page)).toHaveCount(1);
   await wait(500);

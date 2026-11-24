@@ -25,6 +25,37 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter web exec playwright install --with-deps chromium
       - run: just check
+      # Names the flaky and failed end-to-end tests in the run's summary,
+      # also when the run passes because a retry did.
+      - name: List flaky and failed end-to-end tests
+        if: always()
+        run: |
+          results=apps/web/test-results/results.json
+          [ -f "$results" ] || exit 0
+          rows=$(jq -r '
+            .. | objects | select(has("specs")) | .specs[] | . as $spec
+            | .tests[] | select(.status == "flaky" or .status == "unexpected")
+            | "| \(if .status == "flaky" then "flaky" else "failed" end) | \(.projectName) | \($spec.file):\($spec.line) \($spec.title) |"
+          ' "$results")
+          {
+            echo "### End-to-end tests"
+            if [ -z "$rows" ]; then
+              echo "No flaky or failed tests."
+            else
+              echo "| Result | Project | Test |"
+              echo "| --- | --- | --- |"
+              echo "$rows"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      # Traces of retried tests and screenshots of failures.
+      - name: Upload end-to-end results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: apps/web/test-results
+          if-no-files-found: ignore
+          retention-days: 14
 
   spec-check:
     name: OpenSpec validation

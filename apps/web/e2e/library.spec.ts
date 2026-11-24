@@ -1,7 +1,7 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
 import { findLink } from "./emails";
-import { authFile } from "./servers";
+import { createSheet, expect, newMark, test } from "./fixtures";
 
 // The Sheets screen of the library, at /sheets, in the shell.
 
@@ -218,7 +218,7 @@ test("a new account signs in to an empty library and starts a sheet", async ({
 });
 
 test.describe("signed in", () => {
-  test.use({ storageState: authFile });
+  test.use({ signedIn: true });
 
   // Scenario "Signed in" (home page).
   test("the home page opens the library", async ({ page }) => {
@@ -291,7 +291,7 @@ test.describe("signed in", () => {
 
 // Scenarios of openspec/specs/site-layout for the shell.
 test.describe("the shell", () => {
-  test.use({ storageState: authFile });
+  test.use({ signedIn: true });
 
   const wide = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1024;
 
@@ -709,22 +709,7 @@ test.describe("the shell", () => {
 // with other tests, so each test looks only at the sheets it made, found by
 // a mark in their titles.
 test.describe("the sheet list", () => {
-  test.use({ storageState: authFile });
-
-  async function createSheet(page: Page, title: string): Promise<string> {
-    const response = await page.request.post("/api/sheets", {
-      data: {
-        title,
-        content: { format: "chordsheet", version: 1, sections: [] },
-      },
-    });
-    expect(response.status()).toBe(201);
-    return ((await response.json()) as { id: string }).id;
-  }
-
-  function newMark(): string {
-    return `m${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
-  }
+  test.use({ signedIn: true });
 
   // The titles of this test's rows, in the order shown.
   function titles(page: Page, mark: string) {
@@ -740,8 +725,8 @@ test.describe("the sheet list", () => {
     const grace = `Amazing Grace ${mark}`;
     const stille = `Stille Nacht ${mark}`;
     // Stille Nacht is edited last.
-    await createSheet(page, grace);
-    await createSheet(page, stille);
+    await createSheet(page, { title: grace });
+    await createSheet(page, { title: stille });
 
     await page.goto("/sheets");
     await expect(titles(page, mark)).toHaveText([grace, stille]);
@@ -827,7 +812,7 @@ test.describe("the sheet list", () => {
   test("deletes a sheet from its row, after asking", async ({ page }) => {
     const mark = newMark();
     const title = `Stille Nacht ${mark}`;
-    await createSheet(page, title);
+    await createSheet(page, { title: title });
     await page.goto("/sheets");
     const menuButton = page.getByRole("button", { name: `More for ${title}` });
 
@@ -868,7 +853,7 @@ test.describe("the sheet list", () => {
   }) => {
     const mark = newMark();
     const title = `Stille Nacht ${mark}`;
-    await createSheet(page, title);
+    await createSheet(page, { title: title });
     await page.goto("/sheets");
 
     await context.setOffline(true);
@@ -889,7 +874,7 @@ test.describe("the sheet list", () => {
 });
 
 test.describe("the import", () => {
-  test.use({ storageState: authFile });
+  test.use({ signedIn: true });
 
   const verse = ["[Verse 1]", "C     G", "Hello world"].join("\n");
 
@@ -973,7 +958,7 @@ test.describe("the import", () => {
 // Scenarios of openspec/specs/library-search. The account is shared with
 // other tests and runs, so each test searches a word of its own.
 test.describe("search", () => {
-  test.use({ storageState: authFile });
+  test.use({ signedIn: true });
 
   // A word no other sheet holds: letters only, so it is one word.
   const word = () =>

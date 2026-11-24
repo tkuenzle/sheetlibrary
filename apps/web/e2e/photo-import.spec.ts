@@ -1,6 +1,6 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
-import { authFile } from "./servers";
+import { expect, test } from "./fixtures";
 
 // POST /api/photo-import. The servers use the fake model, which answers
 // "Amazing Grace" for any photos.
@@ -26,7 +26,7 @@ async function sheetIds(page: Page) {
 }
 
 test.describe("signed in", () => {
-  test.use({ storageState: authFile });
+  test.use({ signedIn: true });
 
   // Scenarios "A song read", "Library unchanged" and "End-to-end test".
   test("reads two photos into Amazing Grace, and creates no sheet", async ({

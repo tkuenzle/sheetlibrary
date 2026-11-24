@@ -1,11 +1,16 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
-import { authFile } from "./servers";
+import { createSheet, expect, test } from "./fixtures";
 
 // The page for a stored sheet. Sheets are made through the API, since the
 // library page comes later (#51).
 
-test.use({ storageState: authFile });
+test.use({ signedIn: true });
+
+// Amazing Grace, through the API.
+function createGrace(page: Page, artist?: string): Promise<string> {
+  return createSheet(page, { title: "Amazing Grace", artist, content });
+}
 
 const content = {
   format: "chordsheet",
@@ -22,14 +27,6 @@ const content = {
     },
   ],
 };
-
-async function createSheet(page: Page, artist?: string): Promise<string> {
-  const response = await page.request.post("/api/sheets", {
-    data: { title: "Amazing Grace", artist, content },
-  });
-  expect(response.status()).toBe(201);
-  return ((await response.json()) as { id: string }).id;
-}
 
 async function openSheet(page: Page, id: string) {
   await page.goto(`/sheets/${id}/edit`);
@@ -63,7 +60,7 @@ function prompts(page: Page, leave: boolean) {
 }
 
 test("shows the sheet with its title", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   await expect(page).toHaveTitle("Amazing Grace | Sheet Library");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Amazing Grace",
@@ -73,7 +70,7 @@ test("shows the sheet with its title", async ({ page }) => {
 
 // Scenarios "Reload after editing", "Leaving after the save" and "Typing".
 test("saves edits on its own, and a reload shows them", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   await typeAtEnd(page, " again");
   await expect(status(page)).toHaveText("");
   await expect(status(page)).toHaveText("Saved");
@@ -86,7 +83,7 @@ test("saves edits on its own, and a reload shows them", async ({ page }) => {
 });
 
 test("saves a set key, and a reload shows it", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   const keyButton = page.getByRole("button", { name: /^Key / });
   await expect(keyButton).toHaveText("Key G");
   await keyButton.click();
@@ -110,7 +107,7 @@ function keyPanel(page: Page) {
 
 // Scenario "Transpose isn't saved".
 test("doesn't save a transpose", async ({ page }) => {
-  const id = await createSheet(page);
+  const id = await createGrace(page);
   await openSheet(page, id);
   const keyButton = page.getByRole("button", { name: /^Key / });
   await keyButton.click();
@@ -126,7 +123,7 @@ test("doesn't save a transpose", async ({ page }) => {
 
 // Scenario "Capo isn't saved".
 test("doesn't save a capo", async ({ page }) => {
-  const id = await createSheet(page);
+  const id = await createGrace(page);
   await openSheet(page, id);
   const capoButton = page.getByRole("button", { name: /^Capo/ });
   await capoButton.click();
@@ -146,7 +143,7 @@ test("doesn't save a capo", async ({ page }) => {
 
 // Scenario "Reload after making the song key".
 test("saves the shown key made the song key", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   const keyButton = page.getByRole("button", { name: /^Key / });
   await keyButton.click();
   await keyPanel(page).getByRole("button", { name: "A", exact: true }).click();
@@ -163,7 +160,7 @@ test("saves the shown key made the song key", async ({ page }) => {
 
 // Scenario "Slow save".
 test("says Saving… while a save takes a while", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   await page.route("**/api/sheets/*", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await route.continue();
@@ -175,7 +172,7 @@ test("says Saving… while a save takes a while", async ({ page }) => {
 
 // Scenario "Offline".
 test("keeps trying while saves don't get through", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   await page.route("**/api/sheets/*", (route) => route.abort());
   await typeAtEnd(page, " again");
   await expect(status(page)).toHaveText("Not saved yet. Trying again…");
@@ -194,7 +191,7 @@ function leaveDialog(page: Page) {
 // Scenario "Going back while offline", with Done, and a reload, which the
 // browser itself asks about.
 test("asks before leaving while edits can't be saved", async ({ page }) => {
-  const id = await createSheet(page);
+  const id = await createGrace(page);
   await openSheet(page, id);
   await page.route("**/api/sheets/*", (route) => route.abort());
   await typeAtEnd(page, " again");
@@ -227,7 +224,7 @@ test("asks before leaving while edits can't be saved", async ({ page }) => {
 test("asks before the browser's back while edits can't be saved", async ({
   page,
 }) => {
-  const id = await createSheet(page);
+  const id = await createGrace(page);
   await page.goto(`/sheets/${id}`);
   await page.getByRole("banner").getByRole("link", { name: "Edit" }).click();
   await expect(page.locator(".chord-label")).toHaveCount(1);
@@ -253,7 +250,7 @@ test("stops saving when the sheet changed in another tab", async ({
   page,
   context,
 }) => {
-  const id = await createSheet(page);
+  const id = await createGrace(page);
   const other = await context.newPage();
   await openSheet(page, id);
   await openSheet(other, id);
@@ -321,7 +318,7 @@ function newTitle() {
 
 // Scenarios "Renaming", "Reload after renaming" and "Adding an artist".
 test("renames the sheet and adds an artist in place", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   const title = newTitle();
 
   await titleButton(page).click();
@@ -357,7 +354,7 @@ test("renames the sheet and adds an artist in place", async ({ page }) => {
 test("clears the title to Untitled and removes the artist", async ({
   page,
 }) => {
-  const id = await createSheet(page, "Chris Tomlin");
+  const id = await createGrace(page, "Chris Tomlin");
   await openSheet(page, id);
 
   await titleButton(page).click();
@@ -380,7 +377,7 @@ test("clears the title to Untitled and removes the artist", async ({
 });
 
 test("Escape keeps the old title", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   await titleButton(page).click();
   await page.keyboard.type("Something else");
   await page.keyboard.press("Escape");
@@ -391,7 +388,7 @@ test("Escape keeps the old title", async ({ page }) => {
 
 // Scenario "Renaming with the button".
 test("Rename beside the title opens the title field", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   await renameButton(page).click();
   await expect(page.getByLabel("Title")).toBeFocused();
   await expect(page.getByLabel("Title")).toHaveValue("Amazing Grace");
@@ -402,7 +399,7 @@ test("Rename beside the title opens the title field", async ({ page }) => {
 
 // Scenario "The same in edit mode" (play-page).
 test("the sheet's menu holds what is done with the sheet", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   await menuButton(page).click();
   const items = page.getByRole("menuitem");
   await expect(items).toHaveText(["Choose collections…", "Print", "Delete"]);
@@ -422,14 +419,15 @@ test("the sheet's menu holds what is done with the sheet", async ({ page }) => {
 // Scenarios "Got it" and "Help on a wide screen".
 test("shows how to edit the first time, then behind the help button", async ({
   browser,
+  account,
 }) => {
   const context = await browser.newContext({
-    storageState: authFile,
+    storageState: await account.storageState(),
     viewport: { width: 1280, height: 800 },
   });
   const page = await context.newPage();
   await context.clearCookies({ name: "edit-help" });
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   const note = page.getByRole("note");
   await expect(note).toContainText("Click a section to edit it.");
   await expect(
@@ -463,7 +461,7 @@ test("shows how to edit the first time, then behind the help button", async ({
 
 // Scenario "Undo after renaming".
 test("undo in the editor leaves a rename alone", async ({ page }) => {
-  await openSheet(page, await createSheet(page));
+  await openSheet(page, await createGrace(page));
   await typeAtEnd(page, " again");
   const title = newTitle();
   await titleButton(page).click();
@@ -489,7 +487,7 @@ test("says when the sheet isn't found", async ({ page }) => {
 });
 
 test.describe("not signed in", () => {
-  test.use({ storageState: { cookies: [], origins: [] } });
+  test.use({ signedIn: false });
 
   // Scenario "Not signed in".
   test("sends visitors to sign-in", async ({ page }) => {

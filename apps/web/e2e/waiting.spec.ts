@@ -1,6 +1,12 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
-import { authFile } from "./servers";
+import {
+  createCollection,
+  createSheet,
+  expect,
+  newMark,
+  test,
+} from "./fixtures";
 
 // The loading bar, errors inside the frame, a search that doesn't go
 // through, and an address that leads nowhere. See openspec/specs/site-layout
@@ -11,31 +17,6 @@ const wait = (ms: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
-
-// A word no other sheet or collection holds: letters only, so it is one
-// word for the search.
-function newMark(): string {
-  return Array.from(crypto.getRandomValues(new Uint8Array(10)), (n) =>
-    String.fromCharCode(97 + (n % 26)),
-  ).join("");
-}
-
-async function createSheet(page: Page, title: string) {
-  const response = await page.request.post("/api/sheets", {
-    data: {
-      title,
-      content: { format: "chordsheet", version: 1, sections: [] },
-    },
-  });
-  expect(response.status()).toBe(201);
-}
-
-async function createCollection(page: Page, name: string) {
-  const response = await page.request.post("/api/collections", {
-    data: { name },
-  });
-  expect(response.status()).toBe(201);
-}
 
 const heading = (page: Page) => page.getByRole("heading", { level: 1 });
 const mainNav = (page: Page) => page.getByRole("navigation", { name: "Main" });
@@ -49,7 +30,7 @@ const collectionLink = (page: Page, name: string) =>
   });
 
 test.describe("signed in", () => {
-  test.use({ storageState: authFile });
+  test.use({ signedIn: true });
 
   // Scenario "A slow move". The shell's screens and a sheet show a
   // skeleton rather than wait (e2e/loading.spec.ts), so the move is to
@@ -78,7 +59,7 @@ test.describe("signed in", () => {
   // Scenario "A slow search".
   test("keeps the bar away during a slow search", async ({ page }) => {
     const mark = newMark();
-    await createSheet(page, `Amazing ${mark}`);
+    await createSheet(page, { title: `Amazing ${mark}` });
     await page.goto("/sheets");
     await page.route(/\/sheets\.data\?/, async (route) => {
       await wait(1500);
@@ -132,7 +113,7 @@ test.describe("signed in", () => {
     context,
   }) => {
     const mark = newMark();
-    await createSheet(page, `Amazing ${mark}`);
+    await createSheet(page, { title: `Amazing ${mark}` });
     await page.goto("/sheets");
     const field = page.getByRole("searchbox", { name: "Search sheets" });
     await field.fill(mark);

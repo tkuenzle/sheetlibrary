@@ -1,25 +1,18 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
-import { authFile } from "./servers";
+import {
+  createCollection,
+  createSheet,
+  expect,
+  newMark,
+  test,
+} from "./fixtures";
 
 // A page reached by a move shows with its styles from the first frame. All
 // CSS is one stylesheet that loads with the first page, so a move must never
 // add or remove a stylesheet. See openspec/specs/site-layout.
 
-test.use({ storageState: authFile });
-
-// A word no other sheet or collection holds.
-function newMark(): string {
-  return Array.from(crypto.getRandomValues(new Uint8Array(10)), (n) =>
-    String.fromCharCode(97 + (n % 26)),
-  ).join("");
-}
-
-async function create(page: Page, url: string, data: object): Promise<string> {
-  const response = await page.request.post(url, { data });
-  expect(response.status()).toBe(201);
-  return ((await response.json()) as { id: string }).id;
-}
+test.use({ signedIn: true });
 
 const heading = (page: Page) => page.getByRole("heading", { level: 1 });
 
@@ -61,13 +54,11 @@ test("adds and removes no stylesheet on moves between pages", async ({
   const mark = newMark();
   const title = `Styled ${mark}`;
   const collection = `Styled ${mark}`;
-  const sheetId = await create(page, "/api/sheets", {
+  const sheetId = await createSheet(page, {
     title,
     content: { format: "chordsheet", version: 1, sections: [] },
   });
-  const collectionId = await create(page, "/api/collections", {
-    name: collection,
-  });
+  const collectionId = await createCollection(page, collection);
   const added = await page.request.put(
     `/api/sheets/${sheetId}/collections/${collectionId}`,
   );

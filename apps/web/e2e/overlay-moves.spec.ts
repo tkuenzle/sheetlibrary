@@ -1,6 +1,6 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
-import { authFile } from "./servers";
+import { createSheet, expect, newMark, test } from "./fixtures";
 
 // How overlays come and go: menus and the panels under a button grow from
 // it, dialogs grow from the centre, bottom sheets slide up, the "New sheet"
@@ -8,14 +8,7 @@ import { authFile } from "./servers";
 // every CSS animation that starts on the page, with what it was on and
 // where the focus was. See openspec/specs/design-system and docs/motion.md.
 
-test.use({ storageState: authFile });
-
-// A word no other sheet holds.
-function newMark(): string {
-  return Array.from(crypto.getRandomValues(new Uint8Array(10)), (n) =>
-    String.fromCharCode(97 + (n % 26)),
-  ).join("");
-}
+test.use({ signedIn: true });
 
 const content = {
   format: "chordsheet",
@@ -32,14 +25,6 @@ const content = {
     },
   ],
 };
-
-async function createSheet(page: Page, title: string): Promise<string> {
-  const response = await page.request.post("/api/sheets", {
-    data: { title, content },
-  });
-  expect(response.status()).toBe(201);
-  return ((await response.json()) as { id: string }).id;
-}
 
 function isPhone(testInfo: { project: { name: string } }) {
   return testInfo.project.name === "phone";
@@ -149,7 +134,7 @@ test("the sheet's menu grows from its button, and shrinks back on Escape", async
   page,
 }) => {
   await recordMoves(page);
-  const id = await createSheet(page, newMark());
+  const id = await createSheet(page, { title: newMark(), content });
   await page.goto(`/sheets/${id}`);
 
   await menuButton(page).click();
@@ -177,7 +162,7 @@ test("the key panel grows from its button, and shrinks back on Escape", async ({
   test.skip(isPhone(testInfo), "Needs a wide window");
   await page.setViewportSize({ width: 1200, height: 800 });
   await recordMoves(page);
-  const id = await createSheet(page, newMark());
+  const id = await createSheet(page, { title: newMark(), content });
   await page.goto(`/sheets/${id}`);
 
   const keyButton = page.getByRole("button", { name: /^Key / });
@@ -210,7 +195,7 @@ test("the delete question grows from the centre, and shrinks back on Cancel", as
 }) => {
   await recordMoves(page);
   const title = newMark();
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await page.goto(`/sheets/${id}`);
 
   const dialog = await openDelete(page, title);
@@ -252,7 +237,7 @@ test("deleting a sheet leaves for the library without the dialog's exit", async 
 }) => {
   await recordMoves(page);
   const title = newMark();
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await page.goto(`/sheets/${id}`);
 
   const dialog = await openDelete(page, title);
@@ -413,7 +398,7 @@ test("menus, dialogs and the New sheet ways come and go at once with reduced mot
 }, testInfo) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   const title = newMark();
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await page.goto(`/sheets/${id}`);
 
   await menuButton(page).click();
