@@ -24,7 +24,7 @@
 ## 5. CI evidence
 
 - [x] 5.1 Turn on `trace: "on-first-retry"` and `screenshot: "only-on-failure"`. Add a JSON reporter in CI. Verify that a test made to fail once leaves a trace in `test-results`.
-- [ ] 5.2 In `ci.yml`, add an always-run step that writes flaky and failed test titles to the job summary, and one that uploads `apps/web/test-results`. Verify on the PR's CI run that the summary lists any flaky test and the artifact is there.
+- [x] 5.2 In `ci.yml`, add an always-run step that writes flaky and failed test titles to the job summary, and one that uploads `apps/web/test-results`. Verify on the PR's CI run that the summary lists any flaky test and the artifact is there.
 
 ## Workflow follow-up
 
