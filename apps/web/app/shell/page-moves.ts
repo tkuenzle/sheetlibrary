@@ -242,6 +242,13 @@ export interface MoveArgs {
 // browser's").
 export const browserMovedContext = createContext<boolean>(false);
 
+// Whether this page change is a step back or forward in the history. The
+// middleware sets it for each navigation, and a page's client loader reads
+// it from its `context`: on such a step, a page can show what it showed when
+// it was left (shell/kept.ts). See openspec/specs/site-layout ("Back shows
+// the page as it was left").
+export const historyStepContext = createContext<boolean>(false);
+
 // How long the middleware waits for an announced move to render.
 export const ANNOUNCE_LIMIT = 500;
 
@@ -269,6 +276,7 @@ export async function pageMovesMiddleware<T>(
   const moved = back && browserMoved;
   browserMoved = false;
   args.context.set(browserMovedContext, moved);
+  args.context.set(historyStepContext, back);
   if (back && !moved) await nextTask();
   const result = await next();
   const late = loadingBarShown;

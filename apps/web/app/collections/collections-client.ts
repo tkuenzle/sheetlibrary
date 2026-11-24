@@ -1,3 +1,4 @@
+import { sendChange } from "../changes";
 import { NameRefused } from "../ui/name-dialog";
 import type { SheetCollection } from "./collections";
 
@@ -6,7 +7,7 @@ import type { SheetCollection } from "./collections";
 // NameRefused, whose note the naming dialog shows.
 
 type Fetch = typeof fetch;
-const browserFetch: Fetch = (...args) => fetch(...args);
+const browserFetch: Fetch = sendChange;
 
 export const NAME_TAKEN = "That name is already used.";
 

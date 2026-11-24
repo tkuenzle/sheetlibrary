@@ -1,6 +1,7 @@
 import type { Sheet } from "chordsheet";
 import { useEffect, useRef, useState } from "react";
 
+import { sendChange } from "../changes";
 import type { Saved } from "./sheets-api.server";
 
 // Saves a sheet on its own while it is edited. See openspec/specs/sheet-page
@@ -68,7 +69,7 @@ export class Autosave {
 
   constructor(options: AutosaveOptions) {
     this.options = {
-      fetch: (...args) => fetch(...args),
+      fetch: sendChange,
       quietMs: 1000,
       maxWaitMs: 5000,
       retryMs: 2000,

@@ -19,7 +19,13 @@ import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/account";
-import { fromAnotherPage, handOver, PageData } from "../shell/awaited";
+import {
+  backAsLeft,
+  fromAnotherPage,
+  handOver,
+  PageData,
+} from "../shell/awaited";
+import { addressOf, KeptPages } from "../shell/kept";
 import { useFocusCarriesOver } from "../shell/focus";
 import { RouteError } from "../shell/route-error";
 
@@ -56,7 +62,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
-// On a move from another page, the page waits a moment for the passkeys: if
+// On a step back or forward, the page shows as it was left, and loads again
+// behind it. On another move from another page, the page waits a moment for the passkeys: if
 // they come in time it moves in whole, otherwise with bars, and they follow.
 // After a change to the passkeys, it waits and keeps them. A first load
 // doesn't run this. See openspec/specs/site-layout.
@@ -65,9 +72,18 @@ export async function clientLoader({
   serverLoader,
   url,
 }: Route.ClientLoaderArgs) {
-  if (!fromAnotherPage(url)) return await serverLoader();
+  const back = backAsLeft(kept, url, context, serverLoader);
+  if (back) return back;
+  if (!fromAnotherPage(url)) {
+    return await kept.again(addressOf(url), serverLoader);
+  }
   return await handOver(serverLoader(), context);
 }
+
+// What the page showed last, for a step back to it (shell/kept.ts).
+const kept = new KeptPages<
+  Awaited<ReturnType<Route.ClientLoaderArgs["serverLoader"]>>
+>();
 
 function passkeyName(passkey: PasskeyItem) {
   return passkey.name ?? "Passkey";
@@ -284,6 +300,7 @@ export default function Account({ loaderData }: Route.ComponentProps) {
     <PageData
       data={page}
       skeleton={<LoadedAccount email={null} passkeys={null} />}
+      kept={kept}
     >
       {(loaded) => (
         <LoadedAccount email={loaded.email} passkeys={loaded.passkeys} />

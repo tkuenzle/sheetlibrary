@@ -46,7 +46,13 @@ import { Menu } from "../ui/menu";
 import { NameDialog } from "../ui/name-dialog";
 import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/collection";
-import { fromAnotherPage, handOver, PageData } from "../shell/awaited";
+import {
+  backAsLeft,
+  fromAnotherPage,
+  handOver,
+  PageData,
+} from "../shell/awaited";
+import { addressOf, KeptPages } from "../shell/kept";
 import { useFocusCarriesOver } from "../shell/focus";
 import { revalidateUnlessUnchanged } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
@@ -140,20 +146,32 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   return ok ? { ok } : data({ ok }, { status: 404 });
 }
 
-// On a move from another page, the page waits a moment for the sheets: if
-// they come in time it moves in whole, otherwise with what the rail knows
-// and bars, and the sheets follow. Loading
-// again, as after a change on a row, it waits and keeps its sheets. A first
-// load doesn't run this, so the server renders the page whole. See
+// What each collection showed last, for a step back to it.
+const kept = new KeptPages<CollectionAnswer>();
+
+// On a step back or forward, the collection shows as it was left, and loads
+// again behind it (shell/kept.ts). On another move from another page, it
+// waits a moment for the sheets: if they come in time it moves in whole,
+// otherwise with what the rail knows and bars, and the sheets follow.
+// Loading again, as after a change on a row, it waits and keeps its sheets.
+// A first load doesn't run this, so the server renders the page whole. See
 // openspec/specs/site-layout.
 export async function clientLoader({
   context,
   serverLoader,
   url,
 }: Route.ClientLoaderArgs) {
-  if (!fromAnotherPage(url)) return await serverLoader();
+  const back = backAsLeft(kept, url, context, serverLoader);
+  if (back) return back;
+  if (!fromAnotherPage(url)) {
+    return await kept.again(addressOf(url), serverLoader);
+  }
   return await handOver(serverLoader(), context);
 }
+
+type CollectionAnswer = Awaited<
+  ReturnType<Route.ClientLoaderArgs["serverLoader"]>
+>;
 
 // A change from a row that doesn't get through keeps the list on screen.
 export async function clientAction({
@@ -190,6 +208,7 @@ export default function CollectionPage({
       key={params.id}
       data={page}
       skeleton={<CollectionSkeleton listed={listed} />}
+      kept={kept}
     >
       {(loaded) => <LoadedCollection loaded={loaded} />}
     </PageData>
