@@ -57,7 +57,7 @@ When the browser shows its own move for going back or forward, as when swiping b
 - **THEN** the list replaces the sheet with its rows as soon as the swipe ends, with bars in "Recent"
 
 ### Requirement: A skeleton while a page loads
-On a move inside the app to Sheets, a collection, a sheet or the account page, the new page SHALL wait up to 150ms for its data, and arrive with it, without bars, if it comes in that time. Otherwise it SHALL show and move in, with bars inside the real row's frame, at the real row's height, where data is still on its way. When the data arrives, it SHALL take the bars' place without anything around it shifting. A page loaded in full SHALL arrive with its data, without bars. A step back to a page kept for it SHALL follow "Back shows the page as it was left" instead.
+On a move inside the app to Sheets, a collection, a sheet or the account page, the new page SHALL wait up to 150ms for its data, and arrive with it, without bars, if it comes in that time. Otherwise it SHALL show and move in, with bars inside the real row's frame, at the real row's height, where data is still on its way. When the data arrives, it SHALL take the bars' place without anything around it shifting. A page loaded in full SHALL arrive with its data, without bars.
 
 #### Scenario: A quick collection
 - **WHEN** a person on `/sheets` selects "Christmas" in the rail, and its sheets arrive after 50ms

@@ -23,7 +23,7 @@ None.
 ### Modified Capabilities
 
 - `site-layout`: a step back shows kept data at once and loads again in the background. Back to Sheets falls back to the kept list with bars in Recent. A change forgets kept data.
-- `library-page`: Recent's cards have one height.
+- `library-page`: Recent's cards have one height, as a requirement of its own.
 
 ## Impact
 
