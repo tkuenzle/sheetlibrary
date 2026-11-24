@@ -4,7 +4,11 @@ import "./sign-in.css";
 import "./account.css";
 
 import { useId, useRef, useState } from "react";
-import { redirect, useRevalidator } from "react-router";
+import {
+  redirect,
+  type ShouldRevalidateFunctionArgs,
+  useRevalidator,
+} from "react-router";
 
 import {
   addPasskey,
@@ -25,7 +29,7 @@ import {
   handOver,
   PageData,
 } from "../shell/awaited";
-import { addressOf, KeptPages } from "../shell/kept";
+import { addressOf, KeptPages, loadsKeptAgain } from "../shell/kept";
 import { useFocusCarriesOver } from "../shell/focus";
 import { RouteError } from "../shell/route-error";
 
@@ -84,6 +88,15 @@ export async function clientLoader({
 const kept = new KeptPages<
   Awaited<ReturnType<Route.ClientLoaderArgs["serverLoader"]>>
 >();
+
+// In the load after a step back, the page loads again only when it showed
+// as it was left.
+export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
+  return (
+    loadsKeptAgain(kept, addressOf(args.nextUrl)) ??
+    args.defaultShouldRevalidate
+  );
+}
 
 function passkeyName(passkey: PasskeyItem) {
   return passkey.name ?? "Passkey";

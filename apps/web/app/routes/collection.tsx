@@ -52,7 +52,7 @@ import {
   handOver,
   PageData,
 } from "../shell/awaited";
-import { addressOf, KeptPages } from "../shell/kept";
+import { addressOf, KeptPages, loadsKeptAgain } from "../shell/kept";
 import { useFocusCarriesOver } from "../shell/focus";
 import { revalidateUnlessUnchanged } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
@@ -181,9 +181,13 @@ export async function clientAction({
   return keepListOnFailure(request, serverAction);
 }
 
-// A row's change that didn't get through loads nothing again.
+// A row's change that didn't get through loads nothing again. In the load
+// after a step back, it loads again only when it showed as it was left.
 export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
-  return revalidateUnlessUnchanged(args);
+  return (
+    loadsKeptAgain(kept, addressOf(args.nextUrl)) ??
+    revalidateUnlessUnchanged(args)
+  );
 }
 
 // A page that can't be loaded shows a note in the shell, which stays. See

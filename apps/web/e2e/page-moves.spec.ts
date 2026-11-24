@@ -586,6 +586,26 @@ test("drops a sheet onto the collection as it was left", async ({ page }) => {
   expect((await barsLog(page)).bars).toBe(false);
 });
 
+// Scenario "Fresh data after Back": a sheet added on another device shows
+// once the load behind the page is done.
+test("brings in what changed elsewhere after Back", async ({ page }) => {
+  const mark = newMark();
+  await openNewCollection(page, [`First ${mark}`]);
+  const id = /\/collections\/([^/]+)$/.exec(page.url())?.[1] ?? "";
+  await page.locator(".sheet-list-row").getByRole("link").click();
+  await expect(heading(page)).toHaveText(`First ${mark}`);
+  // Playwright's own request, as from another device: it forgets nothing.
+  const other = await createSheet(page, `Second ${mark}`);
+  const response = await page.request.put(
+    `/api/sheets/${other}/collections/${id}`,
+  );
+  expect(response.ok()).toBe(true);
+  await holdBack(page, /\.data/, 1000);
+  await page.getByRole("link", { name: "Back" }).click();
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(1);
+  await expect(page.locator("main .sheet-list-row")).toHaveCount(2);
+});
+
 // Scenario "Slow collections": Back from a sheet doesn't wait for the
 // shell's collections.
 test("doesn't wait for the rail's collections on Back", async ({ page }) => {
@@ -714,8 +734,11 @@ test("drops a sheet onto the list as it was left, with bars in Recent", async ({
   expect(kindOf(await lastMove(page, before + 1))).toBe("drop");
   await expect(row).toBeVisible();
   await expect(page.locator("main .recent-sheets-skeleton")).toHaveCount(4);
-  // Other tests open sheets on this account too, so it may not stay first.
-  await expect(recentCards(page).filter({ hasText: title })).toHaveCount(1);
+  // The cards take the bars' place. Which sheets they show isn't checked:
+  // other tests open sheets on this account too, and in the 2s held back
+  // they can push this one out of Recent.
+  await expect(page.locator("main .recent-sheets-skeleton")).toHaveCount(0);
+  await expect(recentCards(page).first()).toBeVisible();
   const log = await barsLog(page);
   expect(log.bars).toBe(false);
   expect(log.recentBars).toBe(true);

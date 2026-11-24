@@ -30,7 +30,7 @@ import {
   SkeletonShown,
   type WithLatePart,
 } from "../shell/awaited";
-import { addressOf, KeptPages, useKeep } from "../shell/kept";
+import { addressOf, KeptPages, loadsKeptAgain, useKeep } from "../shell/kept";
 import { historyStepContext } from "../shell/page-moves";
 import { useFocusCarriesOver } from "../shell/focus";
 import { UNTITLED } from "../sheets/details";
@@ -183,9 +183,13 @@ const kept = new KeptPages<
   Awaited<ReturnType<Route.ClientLoaderArgs["serverLoader"]>>
 >();
 
-// A row's change that didn't get through loads nothing again.
+// A row's change that didn't get through loads nothing again. In the load
+// after a step back, it loads again only when it showed as it was left.
 export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
-  return revalidateUnlessUnchanged(args);
+  return (
+    loadsKeptAgain(kept, addressOf(args.nextUrl)) ??
+    revalidateUnlessUnchanged(args)
+  );
 }
 
 // A page that can't be loaded shows a note in the shell, which stays. See

@@ -20,7 +20,7 @@ import { listCollections } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { EdgePanel } from "../shell/edge-panel";
 import { focusHeading } from "../shell/focus";
-import { KeptPages } from "../shell/kept";
+import { KeptPages, loadsKeptAgain } from "../shell/kept";
 import { historyStepContext } from "../shell/page-moves";
 import { revalidateAfterChanges } from "../shell/revalidate";
 import {
@@ -83,9 +83,10 @@ function useKeepShell(data: Route.ComponentProps["loaderData"]) {
 }
 
 // The collections only load again after a change, not on every move. See
-// shell/revalidate.ts.
+// shell/revalidate.ts. In the load after a step back, only when they showed
+// as they were left (shell/kept.ts).
 export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
-  return revalidateAfterChanges(args);
+  return loadsKeptAgain(keptShell, SHELL) ?? revalidateAfterChanges(args);
 }
 
 // The collections the shell loaded, for a screen inside it.

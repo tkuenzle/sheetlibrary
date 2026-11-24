@@ -4,9 +4,11 @@ import {
   addressOf,
   dropHeld,
   forgetKept,
+  isLoadingKeptAgain,
   KEPT_LIMIT,
   keptMiddleware,
   KeptPages,
+  loadsKeptAgain,
   takeLoadDue,
 } from "./kept";
 
@@ -144,5 +146,23 @@ describe("keptMiddleware", () => {
     pages.step("/a", () => Promise.resolve("held"));
     await keptMiddleware(args("GET", "revalidation"), next);
     expect(await pages.again("/a", () => Promise.resolve("new"))).toBe("held");
+  });
+});
+
+describe("loadsKeptAgain", () => {
+  it("has no say outside the background load", () => {
+    const pages = new KeptPages<string>();
+    pages.keep("/a", "kept");
+    pages.step("/a", () => Promise.resolve("fresh"));
+    expect(loadsKeptAgain(pages, "/a")).toBeNull();
+  });
+
+  it("is a change's own rule again once a change forgets", () => {
+    const pages = new KeptPages<string>();
+    pages.keep("/a", "kept");
+    pages.step("/a", () => Promise.resolve("fresh"));
+    forgetKept();
+    expect(isLoadingKeptAgain()).toBe(false);
+    expect(loadsKeptAgain(pages, "/a")).toBeNull();
   });
 });

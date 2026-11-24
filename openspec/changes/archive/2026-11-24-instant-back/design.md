@@ -56,6 +56,8 @@ During this load, a failure returns the kept data instead of throwing, so the pa
 
 The root sits this load out (`shouldRevalidate`). It only says who is signed in, which a step back never changes, and it has no kept data to fall back on: offline, its failure would replace the whole app with its note. Found by the "Offline Back" e2e test.
 
+The same holds for any route that didn't show kept data, such as the shell on a step between two of its screens, where it stays on screen and its loader doesn't run. Each route's `shouldRevalidate` lets it load again in the background only when its store holds a request for it (`loadsKeptAgain()`). Found in CI, by the offline note test going Back from a collection to Sheets.
+
 Alternative: put the fresh data in the loader's answer as a second promise and swap it in the component. That needs every page to merge two versions of its data. The revalidation goes through the path a load after a change already uses.
 
 ### A change forgets everything

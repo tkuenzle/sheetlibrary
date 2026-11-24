@@ -82,6 +82,12 @@ export class KeptPages<T> {
     }
   }
 
+  // Whether a step back showed the kept data of `address`, so that the
+  // background load has a request held for it.
+  isHeld(address: string): boolean {
+    return this.held.has(address);
+  }
+
   dropHeld() {
     this.held.clear();
   }
@@ -96,6 +102,8 @@ export class KeptPages<T> {
 export function forgetKept() {
   for (const store of stores) store.forget();
   due = false;
+  // What a change loads again isn't the background load any more.
+  loadingAgain = false;
 }
 
 // Drops the requests held for a background load, and the load itself, as
@@ -130,12 +138,24 @@ export function keptMiddleware<T>(
   return next();
 }
 
-// Whether the background load after a step back runs. The root, whose data
-// a step back never changes, sits it out: it has nothing kept to fall back
-// on, so offline its failure would take down the whole app.
+// Whether the background load after a step back runs. Only what showed kept
+// data loads again (loadsKeptAgain): anything else has nothing kept to fall
+// back on, so offline its failure would take down the page, or the whole
+// app for the root. The root, whose data a step back never changes, always
+// sits it out.
 let loadingAgain = false;
 export function isLoadingKeptAgain(): boolean {
   return loadingAgain;
+}
+
+// For a route's shouldRevalidate: during the background load, whether the
+// route showed kept data at `address` and so loads again. Null at any other
+// time, for the route's own rule.
+export function loadsKeptAgain<T>(
+  kept: KeptPages<T>,
+  address: string,
+): boolean | null {
+  return loadingAgain ? kept.isHeld(address) : null;
 }
 
 // Keeps what a page shows, under its address, once it shows it. Null, as
