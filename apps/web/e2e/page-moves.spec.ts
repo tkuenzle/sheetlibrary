@@ -1,6 +1,13 @@
-import { expect, type Page, type Route, test } from "@playwright/test";
+import { type Page, type Route } from "@playwright/test";
 
-import { authFile } from "./servers";
+import {
+  createCollection,
+  createSheet,
+  delay,
+  expect,
+  newMark,
+  test,
+} from "./fixtures";
 
 // How page changes move: the shell's screens fade, a sheet rises over the
 // shell and drops on Back, and play to edit only changes the bar. The tests
@@ -8,20 +15,7 @@ import { authFile } from "./servers";
 // set up the move, its kind (the transition's type) and what animates. See
 // openspec/specs/site-layout and docs/motion.md.
 
-test.use({ storageState: authFile });
-
-// A word no other sheet or collection holds.
-function newMark(): string {
-  return Array.from(crypto.getRandomValues(new Uint8Array(10)), (n) =>
-    String.fromCharCode(97 + (n % 26)),
-  ).join("");
-}
-
-async function create(page: Page, url: string, data: object): Promise<string> {
-  const response = await page.request.post(url, { data });
-  expect(response.status()).toBe(201);
-  return ((await response.json()) as { id: string }).id;
-}
+test.use({ signedIn: true });
 
 const content = {
   format: "chordsheet",
@@ -38,10 +32,6 @@ const content = {
     },
   ],
 };
-
-function createSheet(page: Page, title: string) {
-  return create(page, "/api/sheets", { title, content });
-}
 
 interface Move {
   startedAt?: number;
@@ -221,9 +211,9 @@ test("fades between the shell's screens, and not while searching", async ({
   page,
 }) => {
   const name = `Faded ${newMark()}`;
-  await create(page, "/api/collections", { name });
+  await createCollection(page, name);
   // Sheets shows the search only with a sheet in the library.
-  await createSheet(page, name);
+  await createSheet(page, { title: name, content });
   await recordMoves(page);
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
@@ -259,7 +249,7 @@ test("fades between the shell's screens, and not while searching", async ({
 test("moves pages in no time with reduced motion", async ({ page }) => {
   const mark = newMark();
   const title = `Still ${mark}`;
-  await createSheet(page, title);
+  await createSheet(page, { title: title, content });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await recordMoves(page);
   await page.goto(`/sheets?q=${mark}`);
@@ -301,7 +291,7 @@ test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
     if (message.type() === "error") errors.push(message.text());
   });
   const title = `Risen ${newMark()}`;
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   // Opened once, so it is in Recent too.
   await page.goto(`/sheets/${id}`);
   await recordMoves(page);
@@ -382,7 +372,7 @@ test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
 // not which route its address leads to (`/__manifest`).
 test("opens a sheet without looking up its route", async ({ page }) => {
   const title = `Known ${newMark()}`;
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await page.goto("/sheets");
   const row = page
     .locator(".sheet-list-row")
@@ -406,9 +396,15 @@ test("opens a sheet without looking up its route", async ({ page }) => {
 test("drops back into the list where it was scrolled", async ({ page }) => {
   const mark = newMark();
   for (let i = 0; i < 25; i++) {
-    await createSheet(page, `Scrolled ${mark} ${String(i).padStart(2, "0")}`);
+    await createSheet(page, {
+      title: `Scrolled ${mark} ${String(i).padStart(2, "0")}`,
+      content,
+    });
   }
-  const fromLink = await createSheet(page, `Linked ${mark}`);
+  const fromLink = await createSheet(page, {
+    title: `Linked ${mark}`,
+    content,
+  });
   await recordMoves(page);
   await page.goto(`/sheets?q=${mark}`);
   await page.waitForLoadState("networkidle");
@@ -440,7 +436,7 @@ test("drops a sheet onto the list's bars when the list is slow after a change", 
   page,
 }) => {
   const title = `Slow back ${newMark()}`;
-  await createSheet(page, title);
+  await createSheet(page, { title: title, content });
   await recordMoves(page);
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
@@ -455,21 +451,13 @@ test("drops a sheet onto the list's bars when the list is slow after a change", 
   await rename(page, title, `${title} again`);
 
   // Only the list: the shell's collections come in a request of their own.
-  await holdBack(page, /\/sheets\.data\?_routes=routes%2Fsheets$/, 2000);
+  await delay(page, /\/sheets\.data\?_routes=routes%2Fsheets$/, 2000);
   await page.getByRole("link", { name: "Back" }).click();
   await expect(page.locator("main .sheet-list-skeleton").first()).toBeVisible();
   await expect(
     page.locator(".sheet-list-row").filter({ hasText: `${title} again` }),
   ).toBeVisible();
 });
-
-// Holds back the requests whose address matches.
-async function holdBack(page: Page, url: RegExp, ms: number) {
-  await page.route(url, async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, ms));
-    await route.continue();
-  });
-}
 
 // Renames the open sheet in edit mode and goes back to play with Done. The
 // change goes through the app, as a person makes it.
@@ -531,9 +519,9 @@ const clearBarsLog = (page: Page) =>
 // or on a phone from Collections.
 async function openNewCollection(page: Page, titles: string[]) {
   const name = `Kept ${newMark()}`;
-  const id = await create(page, "/api/collections", { name });
+  const id = await createCollection(page, name);
   for (const title of titles) {
-    const sheet = await createSheet(page, title);
+    const sheet = await createSheet(page, { title: title, content });
     const response = await page.request.put(
       `/api/sheets/${sheet}/collections/${id}`,
     );
@@ -573,7 +561,7 @@ test("drops a sheet onto the collection as it was left", async ({ page }) => {
   await clearBarsLog(page);
 
   // Everything: the collection, the shell's collections and the root.
-  await holdBack(page, /\.data/, 2000);
+  await delay(page, /\.data/, 2000);
   await page.getByRole("link", { name: "Back" }).click();
   const drop = await lastMove(page, before + 2);
   expect(kindOf(drop)).toBe("drop");
@@ -595,12 +583,12 @@ test("brings in what changed elsewhere after Back", async ({ page }) => {
   await page.locator(".sheet-list-row").getByRole("link").click();
   await expect(heading(page)).toHaveText(`First ${mark}`);
   // Playwright's own request, as from another device: it forgets nothing.
-  const other = await createSheet(page, `Second ${mark}`);
+  const other = await createSheet(page, { title: `Second ${mark}`, content });
   const response = await page.request.put(
     `/api/sheets/${other}/collections/${id}`,
   );
   expect(response.ok()).toBe(true);
-  await holdBack(page, /\.data/, 1000);
+  await delay(page, /\.data/, 1000);
   await page.getByRole("link", { name: "Back" }).click();
   await expect(page.locator("main .sheet-list-row")).toHaveCount(1);
   await expect(page.locator("main .sheet-list-row")).toHaveCount(2);
@@ -613,7 +601,7 @@ test("doesn't wait for the rail's collections on Back", async ({ page }) => {
   const name = await openNewCollection(page, [`Rail ${mark}`]);
   await page.locator(".sheet-list-row").getByRole("link").click();
   await expect(heading(page)).toHaveText(`Rail ${mark}`);
-  await holdBack(page, /_routes=routes%2Fshell/, 3000);
+  await delay(page, /_routes=routes%2Fshell/, 3000);
   await page.getByRole("link", { name: "Back" }).click();
   await expect(heading(page)).toHaveText(name, { timeout: 1500 });
 });
@@ -643,7 +631,7 @@ test("never shows a sheet's old title on Back after a rename", async ({
   page,
 }) => {
   const title = `Old ${newMark()}`;
-  await createSheet(page, title);
+  await createSheet(page, { title: title, content });
   await recordBars(page);
   await page.goto(`/sheets?q=${title.split(" ")[1] ?? ""}`);
   await expect(page.locator("main .sheet-list-row")).toHaveCount(1);
@@ -672,7 +660,10 @@ test("brings back a search and its scroll at once on Back", async ({
   const mark = newMark();
   await Promise.all(
     Array.from({ length: 40 }, (_, i) =>
-      createSheet(page, `Scroll ${mark} ${String(i).padStart(2, "0")}`),
+      createSheet(page, {
+        title: `Scroll ${mark} ${String(i).padStart(2, "0")}`,
+        content,
+      }),
     ),
   );
   await recordMoves(page);
@@ -691,7 +682,7 @@ test("brings back a search and its scroll at once on Back", async ({
   await lastMove(page, before + 1);
   await clearBarsLog(page);
 
-  await holdBack(page, /\.data/, 2000);
+  await delay(page, /\.data/, 2000);
   await page.getByRole("link", { name: "Back" }).click();
   const drop = await lastMove(page, before + 2);
   expect(kindOf(drop)).toBe("drop");
@@ -702,7 +693,7 @@ test("brings back a search and its scroll at once on Back", async ({
 
 // Opens a new sheet from its row on Sheets, and gives its row's link.
 async function openFromSheets(page: Page, title: string) {
-  await createSheet(page, title);
+  await createSheet(page, { title: title, content });
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
   const before = (await moves(page)).length;
@@ -729,7 +720,7 @@ test("drops a sheet onto the list as it was left, with bars in Recent", async ({
   await recordMoves(page);
   await recordBars(page);
   const { row, before } = await openFromSheets(page, title);
-  await holdBack(page, /\.data/, 2000);
+  await delay(page, /\.data/, 2000);
   await page.getByRole("link", { name: "Back" }).click();
   expect(kindOf(await lastMove(page, before + 1))).toBe("drop");
   await expect(row).toBeVisible();
@@ -753,7 +744,7 @@ test("drops a sheet onto the fresh list when it comes quickly", async ({
   await recordMoves(page);
   await recordBars(page);
   const { before } = await openFromSheets(page, title);
-  await holdBack(page, /\.data/, 50);
+  await delay(page, /\.data/, 50);
   await page.getByRole("link", { name: "Back" }).click();
   expect(kindOf(await lastMove(page, before + 1))).toBe("drop");
   // Other tests open sheets on this account too, so it may not stay first.
@@ -778,7 +769,7 @@ test("shows the list as it was left at once after the browser's own move", async
   await recordMoves(page);
   await recordBars(page);
   const { row, before } = await openFromSheets(page, title);
-  await holdBack(page, /\.data/, 2000);
+  await delay(page, /\.data/, 2000);
   await page.evaluate(() => {
     (window as unknown as { swiped?: boolean }).swiped = true;
   });
@@ -792,7 +783,7 @@ test("shows the list as it was left at once after the browser's own move", async
 // Scenarios "From playing to editing" and "Done".
 test("changes only the bar between play and edit", async ({ page }) => {
   const title = `Mode ${newMark()}`;
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await recordMoves(page);
   await page.goto(`/sheets/${id}`);
   const edit = page.getByRole("banner").getByRole("link", { name: "Edit" });
@@ -827,7 +818,7 @@ test("changes only the bar between play and edit", async ({ page }) => {
 // right after the drop from a sheet.
 test("doesn't move into the page that is open", async ({ page }) => {
   const title = `Same ${newMark()}`;
-  await createSheet(page, title);
+  await createSheet(page, { title: title, content });
   await recordMoves(page);
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
@@ -852,7 +843,7 @@ test("changes at once when the new page's data comes late", async ({
   page,
 }) => {
   const title = `Late ${newMark()}`;
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await recordMoves(page);
   await page.goto(`/sheets/${id}`);
   await page.waitForLoadState("networkidle");
@@ -883,7 +874,7 @@ test("raises a slow sheet with its title moving from the row", async ({
   page,
 }) => {
   const title = `Slow sheet ${newMark()}`;
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await recordMoves(page);
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
@@ -919,7 +910,7 @@ test("raises a slow sheet with its title moving from the row", async ({
 // bar shows.
 test("raises a sheet whose code is slow to load", async ({ page }) => {
   const title = `Slow code ${newMark()}`;
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await recordMoves(page);
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
@@ -946,7 +937,7 @@ const SETTLE_MS = 300;
 // Requirement "Every page change moves", scenario "A new sheet": a page
 // change that no link starts moves by its kind too.
 test("raises a new sheet's edit mode", async ({ page }) => {
-  await createSheet(page, `New ${newMark()}`);
+  await createSheet(page, { title: `New ${newMark()}`, content });
   await recordMoves(page);
   // Making the sheet waits for the server. Once the loading bar has shown,
   // the person has seen the wait, and the page changes without a move
@@ -994,7 +985,7 @@ test("raises a new sheet's edit mode", async ({ page }) => {
 // A fetcher loads without a page change, so it doesn't move.
 test("doesn't move while a dialog loads its list", async ({ page }) => {
   const name = `Dialog ${newMark()}`;
-  const id = await create(page, "/api/collections", { name });
+  const id = await createCollection(page, name);
   await recordMoves(page);
   await page.goto(`/collections/${id}`);
   await page.waitForLoadState("networkidle");
@@ -1009,7 +1000,7 @@ test("doesn't move while a dialog loads its list", async ({ page }) => {
 // move": React shows what arrives once the move has ended.
 test("shows a sheet's lines once its rise has ended", async ({ page }) => {
   const title = `Midway ${newMark()}`;
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await recordMoves(page);
   await page.addInitScript(() => {
     const at = window as unknown as { linesAt?: number };

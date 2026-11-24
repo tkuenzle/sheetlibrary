@@ -1,11 +1,11 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
-import { authFile } from "./servers";
+import { expect, test } from "./fixtures";
 
 // The library's import from photos. The servers use the fake model, which
 // reads "Amazing Grace" from any photos.
 
-test.use({ storageState: authFile });
+test.use({ signedIn: true });
 
 function dialog(page: Page) {
   return page.getByRole("dialog", { name: "Import from photos" });

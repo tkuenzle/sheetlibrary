@@ -1,11 +1,11 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
 
-import { authFile } from "./servers";
+import { createSheet, expect, test } from "./fixtures";
 
 // The play view of a stored sheet, at /sheets/:id. See
 // openspec/specs/play-page.
 
-test.use({ storageState: authFile });
+test.use({ signedIn: true });
 
 const content = {
   format: "chordsheet",
@@ -34,14 +34,6 @@ const content = {
   ],
 };
 
-async function createSheet(page: Page, title: string): Promise<string> {
-  const response = await page.request.post("/api/sheets", {
-    data: { title, content },
-  });
-  expect(response.status()).toBe(201);
-  return ((await response.json()) as { id: string }).id;
-}
-
 function chords(page: Page) {
   return page.locator(".sheet-view-chord");
 }
@@ -69,7 +61,7 @@ async function expectNoOverlap(page: Page) {
 // Scenario "Opening a sheet" (library-page).
 test("a row in the library opens the play view", async ({ page }) => {
   const title = `Play ${crypto.randomUUID().slice(0, 8)}`;
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await page.goto("/sheets");
   await page.getByRole("link", { name: new RegExp(title) }).click();
   await expect(page).toHaveURL(`/sheets/${id}`);
@@ -80,7 +72,7 @@ test("a row in the library opens the play view", async ({ page }) => {
 
 // Scenarios "Transposing to play" and "Picking a capo".
 test("transposes and sets a capo without a page load", async ({ page }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}`);
   await expect(chords(page)).toHaveText(["G", "G7", "C", "Em7", "G"]);
 
@@ -151,7 +143,7 @@ function bar(page: Page) {
 test("opens edit mode and goes back with Done, keeping the key and capo", async ({
   page,
 }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}?key=A&capo=2`);
   await expect(bar(page).getByRole("link", { name: "Play" })).toHaveCount(0);
 
@@ -196,7 +188,7 @@ test("opens edit mode and goes back with Done, keeping the key and capo", async 
 
 // Scenario "Back to playing" (sheet-page): Done sends what waits at once.
 test("saves at once on Done", async ({ page }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}`);
   await bar(page).getByRole("link", { name: "Edit" }).click();
   await expect(page.locator(".chord-label")).toHaveCount(5);
@@ -211,7 +203,7 @@ test("saves at once on Done", async ({ page }) => {
 
 // Scenario "The browser's back" (sheet-page).
 test("goes back to playing with the browser's back", async ({ page }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}`);
   await bar(page).getByRole("link", { name: "Edit" }).click();
   await expect(page.locator(".chord-label")).toHaveCount(5);
@@ -232,7 +224,7 @@ test("goes back to playing with the browser's back", async ({ page }) => {
 // Scenario "Back to a search" (site-layout).
 test("goes back to the search it came from", async ({ page }) => {
   const word = `Find${crypto.randomUUID().slice(0, 8)}`;
-  const id = await createSheet(page, `${word} grace`);
+  const id = await createSheet(page, { title: `${word} grace`, content });
   await page.goto(`/sheets?q=${word}`);
   await page.getByRole("link", { name: new RegExp(word) }).click();
   await expect(page).toHaveURL(`/sheets/${id}`);
@@ -274,8 +266,8 @@ function lyricsSize(page: Page) {
 
 // Scenario "Larger on this device".
 test("keeps a larger text size on this device", async ({ page }) => {
-  const first = await createSheet(page, "Amazing Grace");
-  const second = await createSheet(page, "Shenandoah");
+  const first = await createSheet(page, { title: "Amazing Grace", content });
+  const second = await createSheet(page, { title: "Shenandoah", content });
   await page.goto(`/sheets/${first}`);
   const start = await lyricsSize(page);
   await pickSize(page, "Larger text");
@@ -312,7 +304,7 @@ async function printOpens(page: Page): Promise<boolean> {
 
 // Scenarios "Printing in another key" and "Printing from the menu".
 test("prints the sheet as shown, without the controls", async ({ page }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}?key=A`);
   expect(await printOpens(page)).toBe(true);
 
@@ -334,7 +326,7 @@ test("prints the sheet as shown, without the controls", async ({ page }) => {
 // its icon.
 test("has the same bar on a phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}`);
   const edit = bar(page).getByRole("link", { name: "Edit" });
   await expect(edit).toBeVisible();
@@ -359,7 +351,7 @@ test("has the same bar on a phone", async ({ page }) => {
 test("moves the Lyrics only handle without moving the layout", async ({
   page,
 }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}`);
   const view = await openView(page);
   const toggle = view.getByRole("switch", { name: "Lyrics only" });
@@ -402,7 +394,7 @@ test("moves the Lyrics only handle at once with reduced motion", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}`);
   const view = await openView(page);
   const toggle = view.getByRole("switch", { name: "Lyrics only" });
@@ -430,7 +422,7 @@ async function toggleLyrics(page: Page) {
 test("shows the lyrics only without a page load, as the address keeps", async ({
   page,
 }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}?key=A`);
   await page.evaluate(() => {
     (window as unknown as { stayed: boolean }).stayed = true;
@@ -476,7 +468,7 @@ test("shows the lyrics only without a page load, as the address keeps", async ({
 // Scenario "Deleting while playing".
 test("deletes from the menu and goes back to the list", async ({ page }) => {
   const title = `Gone ${crypto.randomUUID().slice(0, 8)}`;
-  const id = await createSheet(page, title);
+  const id = await createSheet(page, { title: title, content });
   await page.goto("/sheets");
   await page.getByRole("link", { name: new RegExp(title) }).click();
   await expect(page).toHaveURL(`/sheets/${id}`);
@@ -521,7 +513,7 @@ function row(panel: Locator, name: string) {
 
 // Scenarios "No versions yet", "Saving with a name" and "Link to a version".
 test("saves the first version from the song key's menu", async ({ page }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}?key=A`);
 
   const panel = await openKeyPanel(page);
@@ -551,7 +543,7 @@ test("saves the first version from the song key's menu", async ({ page }) => {
 // Scenarios "Trying another key", "Anna sings higher", "Renaming",
 // "Deleting" and "Bookmark after deleting".
 test("changes, renames and deletes a version", async ({ page }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   const anna = await createVersion(page, id, "Anna's key", "A");
   await page.goto(`/sheets/${id}?version=${anna}`);
   await expect(chords(page)).toHaveText(["A", "A7", "D", "F#m7", "A"]);
@@ -613,7 +605,7 @@ test("changes, renames and deletes a version", async ({ page }) => {
 
 // Scenarios "Two versions" and "Switching versions".
 test("lists the versions and switches between them", async ({ page }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await createVersion(page, id, "Anna's key", "A");
   const band = await createVersion(page, id, "Sunday band", "Bb");
   await createVersion(page, id, "Youth choir", "F");
@@ -667,7 +659,7 @@ test("lists the versions and switches between them", async ({ page }) => {
 test("keeps the dialog open when a version can't be saved", async ({
   page,
 }) => {
-  const id = await createSheet(page, "Amazing Grace");
+  const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}`);
   await page.route("**/versions", (route) => route.abort());
   const panel = await openKeyPanel(page);

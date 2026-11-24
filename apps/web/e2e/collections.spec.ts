@@ -1,13 +1,19 @@
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
-import { authFile } from "./servers";
+import {
+  createCollection,
+  createSheet,
+  expect,
+  newMark,
+  test,
+} from "./fixtures";
 
 // Collections: the library's Collections screen, a collection's page, and
 // "Choose collections…" on the play view and from a row. See
 // openspec/specs/collections, collection-page, library-page and sheet-list. The tests share one account, and run on
 // both projects at once, so every name carries a mark of its own.
 
-test.use({ storageState: authFile });
+test.use({ signedIn: true });
 
 const content = {
   format: "chordsheet",
@@ -27,28 +33,6 @@ const content = {
     },
   ],
 };
-
-// A word no other sheet or collection has, so a search finds only this
-// test's sheets.
-function newMark(): string {
-  return `m${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
-}
-
-async function createSheet(page: Page, title: string): Promise<string> {
-  const response = await page.request.post("/api/sheets", {
-    data: { title, content },
-  });
-  expect(response.status()).toBe(201);
-  return ((await response.json()) as { id: string }).id;
-}
-
-async function createCollection(page: Page, name: string): Promise<string> {
-  const response = await page.request.post("/api/collections", {
-    data: { name },
-  });
-  expect(response.status()).toBe(201);
-  return ((await response.json()) as { id: string }).id;
-}
 
 function heading(page: Page) {
   return page.getByRole("heading", { level: 1 });
@@ -101,7 +85,7 @@ test("keeps the add buttons beside the heading, with New sheet floating on a pho
   hasTouch,
 }) => {
   const mark = newMark();
-  const sheet = await createSheet(page, `Floating ${mark}`);
+  const sheet = await createSheet(page, { title: `Floating ${mark}`, content });
   const id = await createCollection(page, `Floating ${mark}`);
   const added = await page.request.put(
     `/api/sheets/${sheet}/collections/${id}`,
@@ -152,8 +136,8 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   const mark = newMark();
   const stille = `Stille Nacht ${mark}`;
   const drue = `Drüü Könige ${mark}`;
-  await createSheet(page, stille);
-  await createSheet(page, drue);
+  await createSheet(page, { title: stille, content });
+  await createSheet(page, { title: drue, content });
   const name = `Christmas ${mark}`;
 
   await page.goto("/sheets");
@@ -307,7 +291,7 @@ test("adds a sheet to collections from the play view", async ({
 }, testInfo) => {
   const mark = newMark();
   const title = `Stille Nacht ${mark}`;
-  const sheetId = await createSheet(page, title);
+  const sheetId = await createSheet(page, { title: title, content });
   const name = `Christmas ${mark}`;
   const collectionId = await createCollection(page, name);
 
@@ -384,7 +368,7 @@ test("adds a sheet to a collection from its row on Sheets", async ({
 }) => {
   const mark = newMark();
   const title = `Stille Nacht ${mark}`;
-  await createSheet(page, title);
+  await createSheet(page, { title: title, content });
   const name = `Christmas ${mark}`;
   const collectionId = await createCollection(page, name);
 
@@ -429,8 +413,8 @@ test("lists a collection in the order chosen on Sheets", async ({ page }) => {
   const mark = newMark();
   const first = `Amazing Grace ${mark}`;
   const second = `Stille Nacht ${mark}`;
-  const firstId = await createSheet(page, first);
-  const secondId = await createSheet(page, second);
+  const firstId = await createSheet(page, { title: first, content });
+  const secondId = await createSheet(page, { title: second, content });
   const collectionId = await createCollection(page, `Christmas ${mark}`);
   // Stille Nacht is added last.
   for (const id of [firstId, secondId]) {
