@@ -18,4 +18,4 @@
 ## 4. Whole suite
 
 - [x] 4.1 Run `just e2e` 5 times with the default workers. Verify that every run passes with no flaky tests.
-- [ ] 4.2 Verify on the PR's CI run that the e2e step passes with no flaky tests in the summary.
+- [x] 4.2 Verify on the PR's CI run that the e2e step passes with no flaky tests in the summary.
