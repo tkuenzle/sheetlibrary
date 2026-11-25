@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { testEnv } from "../db/local-env.test-helper";
 import { addUser } from "../sheets/sheets.test-helper";
-import { hasPasskey } from "./passkeys.server";
+import { countPasskeys, hasPasskey } from "./passkeys.server";
 import { addPasskey } from "./passkeys.test-helper";
 
 describe("hasPasskey", () => {
@@ -24,5 +24,25 @@ describe("hasPasskey", () => {
     await addPasskey(db, "ana");
     expect(await hasPasskey(db, "ana")).toBe(true);
     expect(await hasPasskey(db, "bo")).toBe(false);
+  });
+});
+
+describe("countPasskeys", () => {
+  let test: Awaited<ReturnType<typeof testEnv>>;
+  let db: D1Database;
+  beforeEach(async () => {
+    test = await testEnv();
+    db = test.env.DB;
+    await addUser(db, "ana");
+    await addUser(db, "bo");
+  });
+  afterEach(() => test.dispose());
+
+  it("counts the account's passkeys, and only its own", async () => {
+    expect(await countPasskeys(db, "ana")).toBe(0);
+    await addPasskey(db, "ana");
+    await addPasskey(db, "ana");
+    await addPasskey(db, "bo");
+    expect(await countPasskeys(db, "ana")).toBe(2);
   });
 });

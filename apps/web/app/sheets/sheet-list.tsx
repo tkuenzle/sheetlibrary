@@ -2,9 +2,10 @@ import "../ui/group-list.css";
 import "./sheet-list.css";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Link, useFetcher, useFetchers, useRevalidator } from "react-router";
+import { Link, useFetcher, useFetchers } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
+import { useSheetCollections } from "../collections/sheet-collections";
 import { spokenKey } from "../editor/key-button";
 import { openedFrom, titleName } from "../shell/page-moves";
 import { TitleMove } from "../shell/title-move";
@@ -89,9 +90,7 @@ export function SheetList({
   const [order, setOrder] = useState(keptOrder);
   const [dialog, setDialog] = useState<Dialog>();
   const [note, setNote] = useState<string>();
-  const changed = useRef(false);
   const list = useRef<HTMLDivElement>(null);
-  const { revalidate } = useRevalidator();
   // The fetcher of the row being deleted, shared with that row.
   const deleter = useFetcher<RowAnswer>({
     key: rowKey(dialog?.sheet.id ?? ""),
@@ -121,7 +120,6 @@ export function SheetList({
     return rowMenuItems({
       collection,
       onChoose: () => {
-        changed.current = false;
         setDialog({ kind: "collections", sheet });
       },
       onRemove: remove,
@@ -214,14 +212,9 @@ export function SheetList({
       <ChooseCollectionsDialog
         open={dialog?.kind === "collections"}
         sheet={dialog?.sheet ?? { id: "", title: "" }}
-        onChange={() => {
-          changed.current = true;
-        }}
         onClose={() => {
           const sheet = dialog?.sheet;
           setDialog(undefined);
-          // The rail's counts, and in a collection the list, follow.
-          if (changed.current) void revalidate();
           if (sheet) focusRow(sheet.id);
         }}
       />
@@ -288,6 +281,9 @@ function Row({
   onFailed: (intent: string | undefined) => void;
 }) {
   const fetcher = useFetcher<RowAnswer>({ key: rowKey(sheet.id) });
+  // "Choose collections…" reads them: they start loading when the menu
+  // opens, so the dialog often opens with them.
+  const collections = useSheetCollections(sheet.id);
   const answer = fetcher.state === "idle" ? fetcher.data : undefined;
   const failedNow = answer?.ok === false;
   const reportFailed = useRef(onFailed);
@@ -341,6 +337,7 @@ function Row({
       </Link>
       <Menu
         label={`More for ${sheet.title}`}
+        onOpen={collections.load}
         items={menuItems(() => {
           void fetcher.submit(
             { intent: "remove", sheetId: sheet.id },

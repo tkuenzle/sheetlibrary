@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { createRoutesStub, RouterContextProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { createCollection } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
 import { EditorHelp, FirstTimeHelp } from "../editor/help";
@@ -77,11 +78,30 @@ describe("sheet page loader", () => {
   it("gives the owner their sheet", async () => {
     expect(await load("ana")).toEqual({
       sheet,
+      collections: [],
       isNew: false,
       shownKey: null,
       capo: null,
       helpSeen: false,
     });
+  });
+
+  // Scenario "In edit mode" (play-page).
+  it("gives every collection, ticked when it holds the sheet", async () => {
+    await createCollection(test.env.DB, "ana", {
+      name: "Kinderlieder",
+      sheetId: sheet.id,
+    });
+    await createCollection(test.env.DB, "ana", { name: "Christmas" });
+    const loaded = (await load("ana")) as {
+      collections: { name: string; holds: boolean }[];
+    };
+    expect(
+      loaded.collections.map(({ name, holds }) => ({ name, holds })),
+    ).toEqual([
+      { name: "Christmas", holds: false },
+      { name: "Kinderlieder", holds: true },
+    ]);
   });
 
   // Scenario "Got it".
@@ -100,6 +120,7 @@ describe("sheet page loader", () => {
   it("says when the sheet was just made with New sheet", async () => {
     expect(await load("ana", sheet.id, "?new")).toEqual({
       sheet,
+      collections: [],
       isNew: true,
       shownKey: null,
       capo: null,

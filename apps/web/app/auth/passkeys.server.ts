@@ -11,3 +11,17 @@ export async function hasPasskey(
     .first();
   return row !== null;
 }
+
+// How many passkeys the account has, on all its devices. The shell loads it,
+// so the account page's skeleton has a row for each. See
+// openspec/specs/site-layout ("What the skeleton already knows").
+export async function countPasskeys(
+  db: D1Database,
+  userId: string,
+): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS "count" FROM "passkey" WHERE "userId" = ?')
+    .bind(userId)
+    .first<{ count: number }>();
+  return row?.count ?? 0;
+}

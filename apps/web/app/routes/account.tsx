@@ -23,6 +23,7 @@ import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/account";
+import { useShellPasskeyCount } from "./shell";
 import {
   backAsLeft,
   fromAnotherPage,
@@ -197,9 +198,36 @@ function Passkey({
   );
 }
 
+// A passkey's row while the passkeys load: bars for the name and the date,
+// and the room of its buttons, so the real row takes its place without the
+// rows below it moving. On a phone the buttons wrap below the name.
+function PasskeySkeleton({ width }: { width: number }) {
+  return (
+    <li className="account-row account-passkey" aria-hidden="true">
+      <div className="account-passkey-text">
+        <span className="account-passkey-name">
+          <Bar width={width} />
+        </span>
+        <span className="account-passkey-added">
+          <Bar width={7} />
+        </span>
+      </div>
+      <div className="account-actions account-actions-room">
+        <Button variant="text" size="small" tabIndex={-1}>
+          Rename
+        </Button>
+        <Button variant="text" size="small" tabIndex={-1}>
+          Remove
+        </Button>
+      </div>
+    </li>
+  );
+}
+
 export function AccountView({
   email,
   passkeys,
+  passkeyCount = 1,
   failed,
   onAdd,
   onRename,
@@ -210,6 +238,8 @@ export function AccountView({
   // loader only passes the initial, so the email loads with the passkeys.
   email: string | null;
   passkeys: PasskeyItem[] | null;
+  // How many passkeys the account has, for the rows of bars while they load.
+  passkeyCount?: number;
   failed: boolean;
   onAdd: () => void;
   onRename: (id: string, name: string) => void;
@@ -235,24 +265,14 @@ export function AccountView({
       <section className="account-section" aria-labelledby="account-passkeys">
         <h2 id="account-passkeys">Passkeys</h2>
         <ul className="group-list" aria-busy={loading || undefined}>
-          {passkeys === null ? (
-            SKELETON_PASSKEYS.map((width, i) => (
-              <li
-                className="account-row account-passkey"
+          {passkeys === null && passkeyCount > 0 ? (
+            Array.from({ length: passkeyCount }, (_, i) => (
+              <PasskeySkeleton
                 key={i}
-                aria-hidden="true"
-              >
-                <div className="account-passkey-text">
-                  <span className="account-passkey-name">
-                    <Bar width={width} />
-                  </span>
-                  <span className="account-passkey-added">
-                    <Bar width={7} />
-                  </span>
-                </div>
-              </li>
+                width={SKELETON_PASSKEYS[i % SKELETON_PASSKEYS.length] ?? 6}
+              />
             ))
-          ) : passkeys.length === 0 ? (
+          ) : passkeys === null || passkeys.length === 0 ? (
             <li className="account-row">
               <span className="account-empty">No passkeys yet.</span>
             </li>
@@ -306,13 +326,21 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 // Widths in `em` of the bars for the passkeys' names while they load.
 const SKELETON_PASSKEYS = [8, 5];
 
-// The page's data: whole after a first load, on its way after a move.
+// The page's data: whole after a first load, on its way after a move. The
+// skeleton has a row for each passkey, as the shell counted them.
 export default function Account({ loaderData }: Route.ComponentProps) {
   const page = "page" in loaderData ? loaderData.page : loaderData;
+  const passkeyCount = useShellPasskeyCount();
   return (
     <PageData
       data={page}
-      skeleton={<LoadedAccount email={null} passkeys={null} />}
+      skeleton={
+        <LoadedAccount
+          email={null}
+          passkeys={null}
+          passkeyCount={passkeyCount}
+        />
+      }
       kept={kept}
     >
       {(loaded) => (
@@ -327,9 +355,11 @@ export default function Account({ loaderData }: Route.ComponentProps) {
 function LoadedAccount({
   email,
   passkeys,
+  passkeyCount,
 }: {
   email: string | null;
   passkeys: PasskeyItem[] | null;
+  passkeyCount?: number;
 }) {
   const revalidator = useRevalidator();
   const [failed, setFailed] = useState(false);
@@ -338,6 +368,7 @@ function LoadedAccount({
     <AccountView
       email={email}
       passkeys={passkeys}
+      passkeyCount={passkeyCount}
       failed={failed}
       onAdd={() => {
         setFailed(false);

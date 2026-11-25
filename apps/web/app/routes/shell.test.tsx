@@ -13,6 +13,7 @@ import { testEnv } from "../db/local-env.test-helper";
 import { seedSong } from "../editor/seed-song";
 import { NotFound } from "../sheets/not-found";
 import { createSheet } from "../sheets/sheets.server";
+import { addPasskey } from "../auth/passkeys.test-helper";
 import { addUser } from "../sheets/sheets.test-helper";
 import { SignedInContext } from "../shell/signed-in";
 import type { Route } from "./+types/shell";
@@ -62,6 +63,14 @@ describe("shell loader", () => {
       ["Christmas", 0],
       ["Kinderlieder", 1],
     ]);
+  });
+
+  // Requirement "What the skeleton already knows": the account page's
+  // passkey rows.
+  it("gives how many passkeys the account has", async () => {
+    await addPasskey(test.env.DB, "ana");
+    expect(await load("ana")).toMatchObject({ passkeys: 1 });
+    expect(await load("bo")).toMatchObject({ passkeys: 0 });
   });
 
   // Scenario "Not signed in".
@@ -369,11 +378,12 @@ describe("Shell", () => {
 // Requirement "The frame on a step back".
 describe("shell client loader", () => {
   type Args = Parameters<typeof clientLoader>[0];
-  const fresh = { collections: [] as CollectionListItem[] };
+  const fresh = { collections: [] as CollectionListItem[], passkeys: 0 };
   const asLeft = {
     collections: [
       { id: "c1", name: "Christmas", count: 3 },
     ] as CollectionListItem[],
+    passkeys: 0,
   };
   const args = (back: boolean, serverLoader: () => Promise<typeof fresh>) => {
     const context = new RouterContextProvider();

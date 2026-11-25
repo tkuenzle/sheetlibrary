@@ -13,6 +13,9 @@ import {
 } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
+import type { SheetCollection } from "../collections/collections";
+import { sheetCollections } from "../collections/collections.server";
+import { revalidateUnlessCollectionChange } from "../collections/sheet-collections";
 import { cloudflareContext, sessionContext } from "../context";
 import { EditorHelp, FirstTimeHelp } from "../editor/help";
 import { SheetEditor, type SheetEditorHandle } from "../editor/sheet-editor";
@@ -64,7 +67,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
 // for an id that doesn't exist, with a 404 status. "New sheet" adds `?new`,
 // which opens the title field. `?key` shows the sheet in another key, and
 // `?capo` with the shapes for a capo. Whether "Got it" put away the
-// first-time note comes from this device's cookie.
+// first-time note comes from this device's cookie. The person's collections
+// come too, so "Choose collections…" opens with them.
 export async function loader({
   context,
   params,
@@ -74,7 +78,10 @@ export async function loader({
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
-  const sheet = await readSheet(env.DB, session.user.id, params.id);
+  const [sheet, collections] = await Promise.all([
+    readSheet(env.DB, session.user.id, params.id),
+    sheetCollections(env.DB, session.user.id, params.id),
+  ]);
   if (!sheet) {
     return data(
       { sheet: null, isNew: false, shownKey: null, capo: null },
@@ -83,12 +90,17 @@ export async function loader({
   }
   return {
     sheet,
+    collections: collections ?? [],
     isNew: url.searchParams.has("new"),
     shownKey: url.searchParams.get("key"),
     capo: url.searchParams.get("capo"),
     helpSeen: readEditHelpSeen(request.headers.get("Cookie")),
   };
 }
+
+// A change in "Choose collections" loads only the collections again. See
+// app/collections/sheet-collections.ts.
+export const shouldRevalidate = revalidateUnlessCollectionChange;
 
 // A sheet that can't be loaded shows a note under the top bar. See
 // openspec/specs/site-layout.
@@ -108,6 +120,7 @@ export default function SheetPage({ loaderData }: Route.ComponentProps) {
   return sheet ? (
     <SheetView
       sheet={sheet}
+      collections={loaderData.collections}
       isNew={isNew}
       shownKey={shownKey}
       capo={capo}
@@ -123,12 +136,16 @@ type Editing = "title" | "artist" | null;
 
 export function SheetView({
   sheet,
+  collections = [],
   isNew = false,
   shownKey = null,
   capo = null,
   helpSeen = false,
 }: {
   sheet: Sheet;
+  // The person's collections A to Z, each with whether it holds the sheet,
+  // for "Choose collections…" to open with.
+  collections?: SheetCollection[];
   // Opened from "New sheet": the title field starts open.
   isNew?: boolean;
   // The key to show the sheet in, as the address writes it, such as "F#m".
@@ -146,9 +163,6 @@ export function SheetView({
   const [deleting, setDeleting] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  // Whether "Choose collections…" changed anything, so the rail's counts
-  // follow once it closes.
-  const collectionsChanged = useRef(false);
   const [noteShown, setNoteShown] = useState(!helpSeen);
   const moves = useSheetMoves();
   const { revalidate } = useRevalidator();
@@ -401,14 +415,10 @@ export function SheetView({
       <ChooseCollectionsDialog
         open={collecting}
         sheet={{ id: sheet.id, title }}
-        onChange={() => {
-          collectionsChanged.current = true;
-        }}
+        initial={collections}
         onClose={() => {
           setCollecting(false);
           focusSheetMenu();
-          if (collectionsChanged.current) void revalidate();
-          collectionsChanged.current = false;
         }}
       />
       <ConfirmDialog

@@ -75,10 +75,24 @@ describe("account page", () => {
 // passkeys, and the actions that don't need them stay.
 describe("account page while it loads", () => {
   const noop = () => undefined;
+  const loading = (passkeyCount: number) =>
+    renderToString(
+      <AccountView
+        email={null}
+        passkeys={null}
+        passkeyCount={passkeyCount}
+        failed={false}
+        onAdd={noop}
+        onRename={noop}
+        onRemove={noop}
+        onSignOut={noop}
+      />,
+    );
   const html = renderToString(
     <AccountView
       email={null}
       passkeys={null}
+      passkeyCount={2}
       failed={false}
       onAdd={noop}
       onRename={noop}
@@ -95,6 +109,19 @@ describe("account page while it loads", () => {
     ).toHaveLength(2);
     expect(html).toContain('aria-busy="true"');
     expect(html).not.toContain("No passkeys yet");
+  });
+
+  // Scenario "The account's passkeys": a row of bars for each passkey, with
+  // the room of its buttons, and none without passkeys.
+  it("shows a row for each passkey, with room for its buttons", () => {
+    const one = loading(1);
+    expect(one.match(/class="account-passkey-name"/g)).toHaveLength(1);
+    expect(one).toContain('class="account-actions account-actions-room"');
+    expect(one).toMatch(/account-actions-room"><button[^>]*tabindex="-1"/);
+    expect(loading(3).match(/class="account-passkey-name"/g)).toHaveLength(3);
+    const none = loading(0);
+    expect(none).toContain("No passkeys yet");
+    expect(none).not.toContain("account-passkey-name");
   });
 
   it("keeps Add passkey and Sign out", () => {

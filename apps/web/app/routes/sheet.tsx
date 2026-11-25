@@ -23,7 +23,12 @@ import {
 } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
+import type { SheetCollection } from "../collections/collections";
 import { sheetCollections } from "../collections/collections.server";
+import {
+  revalidateUnlessCollectionChange,
+  useSheetCollections,
+} from "../collections/sheet-collections";
 import { cloudflareContext, sessionContext } from "../context";
 import { CapoButton } from "../editor/capo-button";
 import { KeyButton, keyName } from "../editor/key-button";
@@ -135,9 +140,7 @@ export async function loader({
   return {
     sheet,
     versions,
-    collections: (choices ?? [])
-      .filter((choice) => choice.holds)
-      .map(({ id, name }) => ({ id, name })),
+    collections: choices ?? [],
     versionId,
     shownKey: url.searchParams.get("key"),
     capo: url.searchParams.get("capo"),
@@ -160,6 +163,10 @@ export async function clientLoader({
   if (fromEditMode(url) || !fromAnotherPage(url)) return await serverLoader();
   return await handOver(serverLoader(), context);
 }
+
+// A change in "Choose collections" loads only the collections again. See
+// app/collections/sheet-collections.ts.
+export const shouldRevalidate = revalidateUnlessCollectionChange;
 
 // A sheet that can't be loaded shows a note under the top bar. See
 // openspec/specs/site-layout.
@@ -222,12 +229,6 @@ function listed(versions: SheetVersion[], song: Key | null): ListedVersion[] {
   });
 }
 
-// A collection that holds the sheet, as it shows under the title.
-export interface HoldingCollection {
-  id: string;
-  name: string;
-}
-
 // What a dialog over the page is doing, if one is open.
 type VersionDialog =
   | { kind: "save"; key: Key }
@@ -237,7 +238,7 @@ type VersionDialog =
 export function PlayView({
   sheet,
   versions: loadedVersions = [],
-  collections = [],
+  collections: knownCollections = [],
   versionId = null,
   shownKey = null,
   capo = null,
@@ -247,8 +248,10 @@ export function PlayView({
   sheet: Sheet;
   // The sheet's versions, in the order they were saved.
   versions?: SheetVersion[];
-  // The collections that hold the sheet, A to Z.
-  collections?: HoldingCollection[];
+  // The person's collections A to Z, each with whether it holds the sheet.
+  // "Choose collections…" opens with them, and those that hold the sheet
+  // show under the title.
+  collections?: SheetCollection[];
   // The version the address opens, if any.
   versionId?: string | null;
   // The key to show the sheet in, as the address writes it, such as "F#m".
@@ -334,9 +337,13 @@ export function PlayView({
   const moves = useSheetMoves();
   const { revalidate } = useRevalidator();
   const [deleting, setDeleting] = useState(false);
-  // Whether "Choose collections…" changed anything, so the collections
-  // under the title and the rail's counts follow once it closes.
-  const collectionsChanged = useRef(false);
+  // The collections as the page loaded them, until "Choose collections…"
+  // loads them again. Those that hold the sheet show under the title.
+  const choices = useSheetCollections(sheet.id, knownCollections).state;
+  const collections =
+    choices.kind === "loaded"
+      ? choices.collections.filter((collection) => collection.holds)
+      : [];
   const editQuery = keyQuery({ shown, capo: fret });
   // The key and capo buttons, hidden with lyrics only.
   const keysShown = Boolean(key && current && !lyrics);
@@ -469,14 +476,10 @@ export function PlayView({
       <ChooseCollectionsDialog
         open={collecting}
         sheet={sheet}
-        onChange={() => {
-          collectionsChanged.current = true;
-        }}
+        initial={knownCollections}
         onClose={() => {
           setCollecting(false);
           focusSheetMenu();
-          if (collectionsChanged.current) void revalidate();
-          collectionsChanged.current = false;
         }}
       />
       <ConfirmDialog

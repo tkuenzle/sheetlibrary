@@ -70,6 +70,7 @@ export function Menu({
   size,
   placement = "below-end",
   fixed = false,
+  onOpen,
 }: {
   label: string;
   icon?: IconName;
@@ -82,6 +83,9 @@ export function Menu({
   size?: "large";
   placement?: MenuPlacement;
   fixed?: boolean;
+  // Told each time the menu opens, such as to start loading what an item
+  // needs.
+  onOpen?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [fixedAt, setFixedAt] = useState<CSSProperties>();
@@ -127,6 +131,7 @@ export function Menu({
       if (fixed && !open) {
         setFixedAt(fixedPosition(event.currentTarget, placement));
       }
+      if (!open) onOpen?.();
       setOpen(!open);
     },
   } as const;
