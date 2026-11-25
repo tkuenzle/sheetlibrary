@@ -72,6 +72,11 @@
     justify-content: flex-end;
   }
 
+  /* A skeleton row keeps the room of the buttons without showing them. */
+  .account-actions-room {
+    visibility: hidden;
+  }
+
   .account-passkey-rename {
     display: flex;
     flex: 1;

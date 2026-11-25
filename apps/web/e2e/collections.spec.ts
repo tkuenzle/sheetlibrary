@@ -1,9 +1,11 @@
 import { type Page } from "@playwright/test";
 
 import {
+  addToCollection,
   createCollection,
   createSheet,
   expect,
+  hold,
   newMark,
   test,
 } from "./fixtures";
@@ -362,6 +364,86 @@ test("adds a sheet to collections from the play view", async ({
   ]);
 });
 
+// Scenarios "On a sheet's page" (site-layout) and "In edit mode": the dialog
+// opens with what the page knows, without waiting for the list.
+for (const mode of ["play", "edit"] as const) {
+  test(`opens Choose collections with its ticks in ${mode} mode`, async ({
+    page,
+  }) => {
+    const mark = newMark();
+    const sheetId = await createSheet(page, {
+      title: `Stille Nacht ${mark}`,
+      content,
+    });
+    const name = `Kinderlieder ${mark}`;
+    await addToCollection(page, sheetId, await createCollection(page, name));
+    await page.goto(
+      mode === "play" ? `/sheets/${sheetId}` : `/sheets/${sheetId}/edit`,
+    );
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    const listData = /\/api\/sheets\/[^/]+\/collections$/;
+    const list = await hold(page, listData);
+    const dialog = await openChooseCollections(page);
+    await expect(dialog.getByRole("checkbox", { name })).toBeChecked();
+    await list.requested();
+    // It has grown in, and the list it loads again behind it is still on its
+    // way: no bars, and the size it keeps.
+    await dialog.evaluate((element) =>
+      Promise.all(
+        element.getAnimations({ subtree: true }).map((a) => a.finished),
+      ),
+    );
+    await expect(dialog.locator(".choose-collections-skeleton")).toHaveCount(0);
+    const opened = await dialog.boundingBox();
+    const loaded = page.waitForResponse(listData);
+    list.release();
+    await loaded;
+    await expect(dialog.getByRole("checkbox", { name })).toBeChecked();
+    expect(await dialog.boundingBox()).toEqual(opened);
+  });
+}
+
+// "Errors stay inside the frame" (site-layout): offline, before the dialog
+// was ever used, a tick goes back with its note and the sheet stays.
+test("keeps the sheet when a tick can't be saved offline", async ({
+  page,
+  context,
+}) => {
+  const mark = newMark();
+  const title = `Stille Nacht ${mark}`;
+  const sheetId = await createSheet(page, { title, content });
+  const name = `Christmas ${mark}`;
+  await addToCollection(page, sheetId, await createCollection(page, name));
+  await page.goto(`/sheets/${sheetId}`);
+  await page.waitForLoadState("networkidle");
+  await context.setOffline(true);
+  const dialog = await openChooseCollections(page);
+  await dialog.getByRole("checkbox", { name }).uncheck();
+  await expect(dialog).toContainText("The change couldn’t be saved.");
+  await expect(dialog.getByRole("checkbox", { name })).toBeChecked();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  await context.setOffline(false);
+});
+
+// Requirement "New collection from a sheet": a name already used says so.
+test("says when a new collection's name is already used", async ({ page }) => {
+  const mark = newMark();
+  const sheetId = await createSheet(page, {
+    title: `Stille Nacht ${mark}`,
+    content,
+  });
+  const name = `Christmas ${mark}`;
+  await createCollection(page, name);
+  await page.goto(`/sheets/${sheetId}`);
+  const dialog = await openChooseCollections(page);
+  await dialog.getByRole("button", { name: "New collection" }).click();
+  const naming = nameDialog(page, "New collection");
+  await naming.getByLabel("Name").fill(name);
+  await naming.getByRole("button", { name: "Save" }).click();
+  await expect(naming).toContainText("That name is already used.");
+  await expect(naming).toBeVisible();
+});
+
 // Scenarios "Adding from Sheets" and "First titles on a card".
 test("adds a sheet to a collection from its row on Sheets", async ({
   page,
@@ -389,17 +471,17 @@ test("adds a sheet to a collection from its row on Sheets", async ({
   );
   await dialog.getByRole("checkbox", { name }).check();
   expect((await added).status()).toBe(204);
-  await dialog.getByRole("button", { name: "Done" }).click();
-  await expect(dialog).toBeHidden();
-  await expect(
-    page.getByRole("button", { name: `More for ${title}` }),
-  ).toBeFocused();
-  // The rail follows without a reload.
+  // The rail follows each tick, before the dialog closes.
   if (wide(page)) {
     await expect(mainNav(page).getByRole("link", { name })).toContainText(
       "1 sheet",
     );
   }
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: `More for ${title}` }),
+  ).toBeFocused();
 
   await collectionsLink(page).click();
   await expect(main(page).getByRole("link", { name })).toHaveText(

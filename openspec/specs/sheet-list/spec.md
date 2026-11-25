@@ -58,11 +58,11 @@ Each row SHALL have a menu button named for the sheet, such as "More for Stille 
 - **THEN** it shows "Choose collections…", "Remove from Christmas" and "Delete"
 
 ### Requirement: Choose collections from a row
-"Choose collections…" on a row SHALL open the same dialog as on the play view, for that sheet. The rail SHALL show the new counts once the dialog closes.
+"Choose collections…" on a row SHALL open the same dialog as on the play view, for that sheet. The rail SHALL show the new counts after each change in the dialog.
 
 #### Scenario: Adding from Sheets
-- **WHEN** a person picks "Choose collections…" on the row "Stille Nacht", ticks "Christmas" and selects "Done"
-- **THEN** the page of "Christmas" lists "Stille Nacht", and the rail counts one more sheet in "Christmas"
+- **WHEN** a person picks "Choose collections…" on the row "Stille Nacht" and ticks "Christmas"
+- **THEN** the rail counts one more sheet in "Christmas", and after "Done" the page of "Christmas" lists "Stille Nacht"
 
 ### Requirement: Deleting from a row
 "Delete" on a row SHALL first ask to confirm, as on the sheet page. Confirming SHALL take the row away at once and delete the sheet. The rail SHALL show the new counts of the collections it was in. "Cancel" SHALL keep the sheet.

@@ -75,6 +75,9 @@ test("transposes and sets a capo without a page load", async ({ page }) => {
   const id = await createSheet(page, { title: "Amazing Grace", content });
   await page.goto(`/sheets/${id}`);
   await expect(chords(page)).toHaveText(["G", "G7", "C", "Em7", "G"]);
+  // The page loads the code "Choose collections" needs once it shows, so
+  // the requests are listed from when it has settled.
+  await page.waitForLoadState("networkidle");
 
   // A page load would lose the mark, and a request would be listed.
   await page.evaluate(() => {

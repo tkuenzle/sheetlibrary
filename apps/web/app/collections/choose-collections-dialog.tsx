@@ -2,40 +2,41 @@ import "../ui/confirm-dialog.css";
 import "./choose-collections-dialog.css";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { useFetcher } from "react-router";
 
 import { Button } from "../ui/button";
 import { closeAfterExit, exitOnEscape } from "../ui/exit";
-import { NameDialog } from "../ui/name-dialog";
+import { NameDialog, NameRefused } from "../ui/name-dialog";
 import { Note } from "../ui/note";
 import { Bar, useSkeleton } from "../ui/skeleton";
-import {
-  COLLECTION_NAME_MAX,
-  type SheetCollection,
-  sortedBy,
-} from "./collections";
-import {
-  createCollection,
-  listSheetCollections,
-  setInCollection,
-} from "./collections-client";
+import { COLLECTION_NAME_MAX, type SheetCollection } from "./collections";
 import { collectionFailure, collectionNameText } from "./new-collection";
+import {
+  type ChangeAnswer,
+  sheetCollectionPath,
+  sheetCollectionsPath,
+  type SheetCollectionsState,
+  useCollectionsRoutes,
+  useSheetCollections,
+} from "./sheet-collections";
 
-// "Choose collections…" on the play view: the person's collections A to Z,
-// each ticked when it holds the sheet. A tick adds the sheet at once and an
-// untick takes it out; a change that fails goes back, with a note. "New
-// collection" makes one with the sheet in it. The list loads each time the
-// dialog opens. `onChange` is told each time a change is saved, so a page
-// that shows the collections can load them again. See
-// openspec/specs/play-page and openspec/specs/sheet-list.
+// "Choose collections…" on the play view, in edit mode and on a row: the
+// person's collections A to Z, each ticked when it holds the sheet. A tick
+// adds the sheet at once and an untick takes it out; a change that fails
+// goes back, with a note. "New collection" makes one with the sheet in it.
+// Every change goes through a fetcher, so React Router loads the sheet's
+// collections again by itself (collections/sheet-collections.ts). It opens
+// with `initial`, what the page already knows, and loads the list again
+// behind it. See openspec/specs/play-page and openspec/specs/sheet-list.
 export function ChooseCollectionsDialog({
   open,
   sheet,
-  onChange,
+  initial,
   onClose,
 }: {
   open: boolean;
   sheet: { id: string; title: string };
-  onChange?: () => void;
+  initial?: SheetCollection[];
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -66,7 +67,7 @@ export function ChooseCollectionsDialog({
         <ChooseCollectionsContent
           titleId={titleId}
           sheet={sheet}
-          onChange={onChange}
+          initial={initial}
           onDone={() => {
             closeAfterExit(dialog.current);
           }}
@@ -76,62 +77,30 @@ export function ChooseCollectionsDialog({
   );
 }
 
-export type Loaded =
-  | { kind: "loading" }
-  | { kind: "failed" }
-  | { kind: "loaded"; collections: SheetCollection[] };
+export type Loaded = SheetCollectionsState;
 
 function ChooseCollectionsContent({
   titleId,
   sheet,
-  onChange,
+  initial,
   onDone,
 }: {
   titleId: string;
   sheet: { id: string; title: string };
-  onChange?: () => void;
+  initial?: SheetCollection[];
   onDone: () => void;
 }) {
-  const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
+  const { state: loaded, load } = useSheetCollections(sheet.id, initial);
   const [failed, setFailed] = useState(false);
   const [naming, setNaming] = useState(false);
+  const saveNew = useNewCollection(sheet.id);
 
+  // The list loads each time the dialog opens, behind what the page knows.
+  // From a row, its menu has started it already.
+  const loadOnOpen = useRef(load);
   useEffect(() => {
-    let current = true;
-    listSheetCollections(sheet.id).then(
-      (collections) => {
-        if (current) setLoaded({ kind: "loaded", collections });
-      },
-      () => {
-        if (current) setLoaded({ kind: "failed" });
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [sheet.id]);
-
-  function setHolds(id: string, holds: boolean) {
-    setLoaded((state) =>
-      state.kind === "loaded"
-        ? {
-            kind: "loaded",
-            collections: state.collections.map((collection) =>
-              collection.id === id ? { ...collection, holds } : collection,
-            ),
-          }
-        : state,
-    );
-  }
-
-  function toggle(collection: SheetCollection, holds: boolean) {
-    setFailed(false);
-    setHolds(collection.id, holds);
-    setInCollection(sheet.id, collection.id, holds).then(onChange, () => {
-      setHolds(collection.id, !holds);
-      setFailed(true);
-    });
-  }
+    loadOnOpen.current();
+  }, []);
 
   // A quick list shows without bars; slow, the bars stay a moment (see
   // useSkeleton). A failure shows at once.
@@ -148,9 +117,15 @@ function ChooseCollectionsContent({
         <p>{sheet.title}</p>
       </div>
       <CollectionChoices
+        sheetId={sheet.id}
         loaded={shown}
         waiting={skeleton === "waiting"}
-        onToggle={toggle}
+        onToggle={() => {
+          setFailed(false);
+        }}
+        onFailed={() => {
+          setFailed(true);
+        }}
       />
       {failed && <Note>The change couldn’t be saved. Try again.</Note>}
       <div className="confirm-actions choose-collections-actions">
@@ -174,19 +149,7 @@ function ChooseCollectionsContent({
         maxLength={COLLECTION_NAME_MAX}
         failure={collectionFailure}
         onSave={async (name) => {
-          const made = await createCollection(name, sheet.id);
-          onChange?.();
-          setLoaded((state) =>
-            state.kind === "loaded"
-              ? {
-                  kind: "loaded",
-                  collections: sortedBy(
-                    [...state.collections, { ...made, holds: true }],
-                    (collection) => collection.name,
-                  ),
-                }
-              : state,
-          );
+          await saveNew(name);
           setNaming(false);
         }}
         onClose={() => {
@@ -197,20 +160,60 @@ function ChooseCollectionsContent({
   );
 }
 
+// "New collection" through a fetcher. The promise settles with the
+// fetcher's answer: it throws NameRefused for a name already used, so the
+// naming dialog shows that note, and an Error when the change didn't get
+// through.
+function useNewCollection(sheetId: string): (name: string) => Promise<void> {
+  const fetcher = useFetcher<ChangeAnswer>({
+    key: `new-collection:${sheetId}`,
+  });
+  const ready = useCollectionsRoutes();
+  const waiting = useRef<{
+    resolve: () => void;
+    reject: (error: Error) => void;
+  }>(undefined);
+  const answer = fetcher.state === "idle" ? fetcher.data : undefined;
+  useEffect(() => {
+    const save = waiting.current;
+    if (!answer || !save) return;
+    waiting.current = undefined;
+    if (answer.ok) save.resolve();
+    else if (answer.refused) save.reject(new NameRefused(answer.refused));
+    else save.reject(new Error("The collection wasn’t saved"));
+  }, [answer]);
+  return (name) =>
+    ready().then(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          waiting.current = { resolve, reject };
+          void fetcher.submit(
+            { name },
+            { method: "post", action: sheetCollectionsPath(sheetId) },
+          );
+        }),
+    );
+}
+
 // Widths in `em` of the bars for the names while the collections load.
 const SKELETON_WIDTHS = [6, 8, 10, 7, 5];
 
 // The collections with their tick boxes, or what stands in for them while
 // they load (rows of bars, unseen while `waiting`), when they couldn't
-// load, or when there are none.
+// load, or when there are none. Each box ticks through a fetcher of its own,
+// so ticks on two collections don't cancel each other.
 export function CollectionChoices({
+  sheetId,
   loaded,
   waiting = false,
   onToggle,
+  onFailed,
 }: {
+  sheetId: string;
   loaded: Loaded;
   waiting?: boolean;
-  onToggle: (collection: SheetCollection, holds: boolean) => void;
+  onToggle: () => void;
+  onFailed: () => void;
 }) {
   if (loaded.kind === "loading") {
     return (
@@ -250,18 +253,79 @@ export function CollectionChoices({
     <div className="choose-collections-scroll">
       <fieldset className="choose-collections-list" aria-label="Collections">
         {loaded.collections.map((collection) => (
-          <label key={collection.id}>
-            <input
-              type="checkbox"
-              checked={collection.holds}
-              onChange={(event) => {
-                onToggle(collection, event.target.checked);
-              }}
-            />
-            <span>{collection.name}</span>
-          </label>
+          <Choice
+            key={collection.id}
+            sheetId={sheetId}
+            collection={collection}
+            onToggle={onToggle}
+            onFailed={onFailed}
+          />
         ))}
       </fieldset>
     </div>
+  );
+}
+
+// One collection's tick box. While its change is on its way, and until the
+// list has loaded again, it shows the change. A change that didn't get
+// through shows the box as it was, and tells `onFailed`. A change waits for
+// its route's code before the fetcher has it, so the box keeps what was
+// asked until then.
+function Choice({
+  sheetId,
+  collection,
+  onToggle,
+  onFailed,
+}: {
+  sheetId: string;
+  collection: SheetCollection;
+  onToggle: () => void;
+  onFailed: () => void;
+}) {
+  const fetcher = useFetcher<ChangeAnswer>({
+    key: `tick:${sheetId}:${collection.id}`,
+  });
+  const ready = useCollectionsRoutes();
+  const [asked, setAsked] = useState<boolean>();
+  const busy = fetcher.state !== "idle";
+  useEffect(() => {
+    if (busy) setAsked(undefined);
+  }, [busy]);
+  const pending = busy ? fetcher.formMethod?.toUpperCase() : undefined;
+  const holds = pending ? pending === "PUT" : (asked ?? collection.holds);
+  const answer = fetcher.state === "idle" ? fetcher.data : undefined;
+  const failedNow = answer?.ok === false;
+  const reportFailed = useRef(onFailed);
+  useEffect(() => {
+    reportFailed.current = onFailed;
+  });
+  useEffect(() => {
+    if (failedNow) reportFailed.current();
+  }, [failedNow, answer]);
+
+  return (
+    <label>
+      <input
+        type="checkbox"
+        checked={holds}
+        onChange={(event) => {
+          const checked = event.target.checked;
+          onToggle();
+          setAsked(checked);
+          ready().then(
+            () =>
+              fetcher.submit(null, {
+                method: checked ? "put" : "delete",
+                action: sheetCollectionPath(sheetId, collection.id),
+              }),
+            () => {
+              setAsked(undefined);
+              reportFailed.current();
+            },
+          );
+        }}
+      />
+      <span>{collection.name}</span>
+    </label>
   );
 }

@@ -7,6 +7,7 @@ import {
   createSheet,
   delay,
   expect,
+  hold,
   newMark,
   test,
 } from "./fixtures";
@@ -254,7 +255,28 @@ test("loads a page whole the first time, without bars", async ({ page }) => {
 });
 
 // The account page: bars for the email and the passkeys, which follow.
+// Scenario "The account's passkeys": a row of bars for each passkey, and
+// the real rows take their place at the same height. The
+// account gets a passkey first, from a virtual authenticator. Accounts are
+// shared, so the skeleton is held against the real rows.
 test("shows a slow account page with bars for its data", async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("WebAuthn.enable");
+  await cdp.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "internal",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+    },
+  });
+  await page.goto("/account");
+  const passkeys = page.locator(".account-passkey-name");
+  const before = await passkeys.count();
+  await page.getByRole("button", { name: "Add passkey" }).click();
+  await expect(passkeys).toHaveCount(before + 1);
+
   await page.goto("/sheets");
   await page.waitForLoadState("networkidle");
   await delay(page, /\/account\.data/, 1500);
@@ -262,10 +284,19 @@ test("shows a slow account page with bars for its data", async ({ page }) => {
   await expect(heading(page)).toHaveText("Account");
   await expect(page.locator(".account-email .skeleton-bar")).toBeVisible();
   await expect(page.locator(".account-passkey-name .skeleton-bar")).toHaveCount(
-    2,
+    before + 1,
   );
+  const group = page
+    .getByRole("region", { name: "Passkeys" })
+    .locator(".group-list");
+  const waiting = await group.boundingBox();
   await expect(page.locator(".account-email")).toHaveText(/@example\.com$/);
   await expect(page.locator("main .skeleton-bar")).toHaveCount(0);
+  await expect(passkeys).toHaveCount(before + 1);
+  expect((await group.boundingBox())?.height).toBeCloseTo(
+    waiting?.height ?? 0,
+    0,
+  );
   await expect(heading(page)).toBeFocused();
 });
 
@@ -310,10 +341,9 @@ async function clearLog(page: Page, name: "barsLog" | "pageBarsLog") {
 
 const chooseData = /\/api\/sheets\/[^/]+\/collections$/;
 
-// Opens Choose collections with its list held back `ms`. Or, "from memory":
-// opens it once, closes it, and opens it again with the list answered from
-// memory, so it comes at once.
-async function openChooseCollections(page: Page, ms: number | "from memory") {
+// A sheet on Sheets with a collection to choose, and a way to open Choose
+// collections from its row.
+async function chooseFromRow(page: Page) {
   const mark = newMark();
   const title = `Chosen ${mark}`;
   await createCollection(page, `Pick ${mark}`);
@@ -323,24 +353,28 @@ async function openChooseCollections(page: Page, ms: number | "from memory") {
   await expect(rows(page)).toHaveCount(1);
   const dialog = page.getByRole("dialog");
   const list = dialog.locator("fieldset");
-  const open = async () => {
+  const pick = async () => {
     await page.getByRole("button", { name: `More for ${title}` }).click();
     await page.getByRole("menuitem", { name: "Choose collections…" }).click();
+  };
+  return { dialog, list, pick };
+}
+
+// Opens Choose collections once, closes it, and opens it again with the
+// list answered from memory, so it comes at once.
+async function openChooseCollectionsAgain(page: Page) {
+  const { dialog, list, pick } = await chooseFromRow(page);
+  const open = async () => {
+    await pick();
     await expect(list.getByRole("checkbox").first()).toBeVisible();
   };
-  if (ms === "from memory") {
-    const answers = await answerAtOnce(page, chooseData);
-    await open();
-    await dialog.getByRole("button", { name: "Done" }).click();
-    await expect(dialog).toBeHidden();
-    await clearLog(page, "barsLog");
-    await open();
-    expect(answers.fromMemory()).toBeGreaterThanOrEqual(1);
-    return list;
-  }
-  await delay(page, chooseData, ms);
+  const answers = await answerAtOnce(page, chooseData);
   await open();
-  return list;
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(dialog).toBeHidden();
+  await clearLog(page, "barsLog");
+  await open();
+  expect(answers.fromMemory()).toBeGreaterThanOrEqual(1);
 }
 
 // Scenario "A quick list": no bars for a moment's wait.
@@ -348,20 +382,36 @@ test(
   "shows no bars when the collections come quickly",
   { tag: "@timing" },
   async ({ page }) => {
-    await openChooseCollections(page, "from memory");
+    await openChooseCollectionsAgain(page);
     await wait(500);
     expect((await barsLog(page)).shown).toBeUndefined();
   },
 );
 
 // Scenario "Choose collections": slow, the bars show, and once shown they
-// stay for a moment, also when the list comes just after.
+// stay for a moment, also when the list comes just after. The list starts
+// loading when the row's menu opens, so it is held until the bars show.
 test("keeps the bars a moment once they show", async ({ page }) => {
-  await openChooseCollections(page, 300);
-  await expect.poll(async () => (await barsLog(page)).gone).toBeDefined();
+  const held = await hold(page, chooseData);
+  const { list, pick } = await chooseFromRow(page);
+  await pick();
+  await expect.poll(async () => (await barsLog(page)).shown).toBeDefined();
+  held.release();
+  await expect(list.getByRole("checkbox").first()).toBeVisible();
   const log = await barsLog(page);
-  expect(log.shown).toBeDefined();
   expect((log.gone ?? 0) - (log.shown ?? 0)).toBeGreaterThanOrEqual(390);
+});
+
+// The bars go once the list is there, also when they have shown longer
+// than they are held.
+test("takes the bars away when the list comes long after", async ({ page }) => {
+  const held = await hold(page, chooseData);
+  const { list, pick } = await chooseFromRow(page);
+  await pick();
+  await expect.poll(async () => (await barsLog(page)).shown).toBeDefined();
+  await wait(600);
+  held.release();
+  await expect(list.getByRole("checkbox").first()).toBeVisible();
 });
 
 // Notes when a page's bars show and when they go, from the next page load

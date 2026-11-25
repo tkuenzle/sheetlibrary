@@ -15,6 +15,7 @@ import {
   type CollectionListItem,
   sheetCount,
 } from "../collections/collections";
+import { countPasskeys } from "../auth/passkeys.server";
 import { phone, wide } from "../breakpoints";
 import { listCollections } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
@@ -45,12 +46,17 @@ import type { Route } from "./+types/shell";
 // The id React Router gives this route, for the screens that read its data.
 export const shellRouteId = "routes/shell";
 
-// The collections, for the rail and for the Collections screen.
+// The collections, for the rail and for the Collections screen, and how
+// many passkeys the account has, for the account page's skeleton.
 export async function loader({ context }: Route.LoaderArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
-  return { collections: await listCollections(env.DB, session.user.id) };
+  const [collections, passkeys] = await Promise.all([
+    listCollections(env.DB, session.user.id),
+    countPasskeys(env.DB, session.user.id),
+  ]);
+  return { collections, passkeys };
 }
 
 // What the shell showed last, for a step back to one of its screens.
@@ -92,6 +98,12 @@ export function shouldRevalidate(args: ShouldRevalidateFunctionArgs) {
 // The collections the shell loaded, for a screen inside it.
 export function useShellCollections(): CollectionListItem[] {
   return useRouteLoaderData<typeof loader>(shellRouteId)?.collections ?? [];
+}
+
+// How many passkeys the account has, as the shell loaded it, or undefined
+// outside the shell.
+export function useShellPasskeyCount(): number | undefined {
+  return useRouteLoaderData<typeof loader>(shellRouteId)?.passkeys;
 }
 
 // Where the navigation leads, with the open screen marked. A collection is

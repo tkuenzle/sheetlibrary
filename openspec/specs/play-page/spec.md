@@ -213,7 +213,7 @@ The open version's row SHALL have a "…" that opens its menu. The menu SHALL ho
 - **THEN** the chords stay in A, no version's name shows, and the list no longer holds "Anna's key"
 
 ### Requirement: Choose collections
-"Choose collections…" SHALL open a dialog that lists the owner's collections A to Z, each with a tick box, ticked for the collections that hold the sheet. Ticking SHALL add the sheet to that collection at once, and unticking SHALL take it out at once. "Done" or Escape SHALL close the dialog.
+"Choose collections…" SHALL open a dialog that lists the owner's collections A to Z, each with a tick box, ticked for the collections that hold the sheet. On the play view and in edit mode, the dialog SHALL open with the list and its ticks at once. Ticking SHALL add the sheet to that collection at once, and unticking SHALL take it out at once. "Done" or Escape SHALL close the dialog.
 
 #### Scenario: Adding to a collection
 - **WHEN** the owner opens "Choose collections…" on "Stille Nacht", ticks "Christmas" and selects "Done"
@@ -222,6 +222,10 @@ The open version's row SHALL have a "…" that opens its menu. The menu SHALL ho
 #### Scenario: Already in a collection
 - **WHEN** the owner opens "Choose collections…" on a sheet in "Kinderlieder"
 - **THEN** "Kinderlieder" shows ticked
+
+#### Scenario: In edit mode
+- **WHEN** the owner opens "Choose collections…" in edit mode on a sheet in "Kinderlieder"
+- **THEN** the dialog opens with "Kinderlieder" ticked, without waiting for the list
 
 ### Requirement: New collection from a sheet
 The dialog SHALL offer "New collection", which asks for a name as on the Collections tab. "Save" SHALL make the collection with the sheet in it, and the dialog SHALL list it, ticked.

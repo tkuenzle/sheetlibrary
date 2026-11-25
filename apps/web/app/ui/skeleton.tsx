@@ -1,6 +1,6 @@
 import "./skeleton.css";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { SKELETON_HOLD, SLOW_WAIT, startWait } from "../shell/slow-wait";
 
@@ -12,10 +12,15 @@ import { SKELETON_HOLD, SLOW_WAIT, startWait } from "../shell/slow-wait";
 // openspec/specs/site-layout ("Bars in the dialogs that load").
 export function useSkeleton(loading: boolean): "waiting" | "bars" | "none" {
   const [bars, setBars] = useState(false);
-  // A load that starts again while the bars are held keeps them.
+  // A load that starts again while the bars are held keeps them. The ref
+  // follows in a layout effect, which runs before the effect below cleans
+  // up: bars held long enough hide right in that cleanup, and must see that
+  // the load has ended.
   const loadingNow = useRef(loading);
-  useEffect(() => {
+  useLayoutEffect(() => {
     loadingNow.current = loading;
+  }, [loading]);
+  useEffect(() => {
     if (!loading) return;
     return startWait(
       () => {

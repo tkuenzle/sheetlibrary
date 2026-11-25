@@ -86,16 +86,21 @@ describe("play view loader", () => {
     });
   });
 
-  // Scenario "In two collections".
-  it("gives the collections that hold the sheet, A to Z", async () => {
+  // Scenarios "In two collections" and "On a sheet's page" (site-layout).
+  it("gives every collection A to Z, ticked when it holds the sheet", async () => {
     for (const name of ["Christmas", "Campfire"]) {
       await createCollection(test.env.DB, "ana", { name, sheetId: sheet.id });
     }
     await createCollection(test.env.DB, "ana", { name: "Kinderlieder" });
-    const loaded = (await load("ana")) as { collections: { name: string }[] };
-    expect(loaded.collections.map((c) => c.name)).toEqual([
-      "Campfire",
-      "Christmas",
+    const loaded = (await load("ana")) as {
+      collections: { name: string; holds: boolean }[];
+    };
+    expect(
+      loaded.collections.map(({ name, holds }) => ({ name, holds })),
+    ).toEqual([
+      { name: "Campfire", holds: true },
+      { name: "Christmas", holds: true },
+      { name: "Kinderlieder", holds: false },
     ]);
   });
 
@@ -320,8 +325,9 @@ describe("play view", () => {
       <PlayView
         sheet={amazingGrace}
         collections={[
-          { id: "c1", name: "Campfire" },
-          { id: "c2", name: "Christmas" },
+          { id: "c1", name: "Campfire", holds: true },
+          { id: "c2", name: "Christmas", holds: true },
+          { id: "c3", name: "Kinderlieder", holds: false },
         ]}
       />,
     );
@@ -331,6 +337,7 @@ describe("play view", () => {
     expect(html.indexOf("key-button")).toBeLessThan(
       html.indexOf("play-collections"),
     );
+    expect(html).not.toContain("/collections/c3");
   });
 
   it("shows no collections when none holds the sheet", () => {
@@ -342,8 +349,9 @@ describe("play view", () => {
   describe("choose collections", () => {
     // Scenario "Already in a collection".
     it("ticks the collections that hold the sheet", () => {
-      const html = renderToString(
+      const html = render(
         <CollectionChoices
+          sheetId="abcdefghijkl"
           loaded={{
             kind: "loaded",
             collections: [
@@ -352,6 +360,7 @@ describe("play view", () => {
             ],
           }}
           onToggle={() => undefined}
+          onFailed={() => undefined}
         />,
       );
       expect(html).toMatch(
@@ -360,17 +369,21 @@ describe("play view", () => {
     });
 
     it("says so when there are no collections or they couldn't load", () => {
-      const none = renderToString(
+      const none = render(
         <CollectionChoices
+          sheetId="abcdefghijkl"
           loaded={{ kind: "loaded", collections: [] }}
           onToggle={() => undefined}
+          onFailed={() => undefined}
         />,
       );
       expect(none).toContain("No collections yet");
-      const failed = renderToString(
+      const failed = render(
         <CollectionChoices
+          sheetId="abcdefghijkl"
           loaded={{ kind: "failed" }}
           onToggle={() => undefined}
+          onFailed={() => undefined}
         />,
       );
       expect(failed).toContain("The collections couldn’t be loaded.");
@@ -378,10 +391,12 @@ describe("play view", () => {
 
     // Requirement "Bars in the dialogs that load".
     it("shows rows of bars while the collections load", () => {
-      const html = renderToString(
+      const html = render(
         <CollectionChoices
+          sheetId="abcdefghijkl"
           loaded={{ kind: "loading" }}
           onToggle={() => undefined}
+          onFailed={() => undefined}
         />,
       );
       expect(html).not.toContain("Loading collections");
