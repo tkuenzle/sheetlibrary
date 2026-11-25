@@ -34,6 +34,9 @@ const stateDir = ".wrangler/e2e-state";
 process.env.E2E_RUN_STARTED ??= new Date().toISOString();
 const devStateDir = ".wrangler/e2e-dev-state";
 
+// The tag of tests that run alone, in the timing projects below.
+const timing = /@timing/;
+
 // Applies the migrations to the local D1 in `dir`. --config: after a build,
 // wrangler reads the build output's config, which has no migrations folder.
 function migrate(dir: string) {
@@ -49,6 +52,9 @@ export default defineConfig({
   // signs in a second account make 9, which leaves one to spare.
   workers: Math.min(7, Math.max(1, Math.floor(availableParallelism() / 2))),
   retries: process.env.CI ? 1 : 0,
+  // A test that passes only on its retry fails the run, so a retry doesn't
+  // hide it. The retry still leaves its trace.
+  failOnFlakyTests: !!process.env.CI,
   // In CI, results.json also lists the flaky and failed tests for the run's
   // summary (.github/workflows/ci.yml).
   reporter: process.env.CI
@@ -62,9 +68,34 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      grepInvert: timing,
+    },
     // Phone layout and touch in Chromium. Not a real phone keyboard.
-    { name: "phone", use: { ...devices["Pixel 7"] } },
+    {
+      name: "phone",
+      use: { ...devices["Pixel 7"] },
+      grepInvert: timing,
+    },
+    // Tests tagged @timing need data within the app's set wait (150ms for a
+    // page, 200ms for a dialog). A busy machine misses it, so they run once
+    // every other test has finished, one at a time.
+    {
+      name: "timing-chromium",
+      use: { ...devices["Desktop Chrome"] },
+      grep: timing,
+      workers: 1,
+      dependencies: ["chromium", "phone"],
+    },
+    {
+      name: "timing-phone",
+      use: { ...devices["Pixel 7"] },
+      grep: timing,
+      workers: 1,
+      dependencies: ["timing-chromium"],
+    },
   ],
   webServer: [
     {

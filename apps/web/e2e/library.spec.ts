@@ -1,7 +1,7 @@
 import { type Page } from "@playwright/test";
 
 import { findLink } from "./emails";
-import { createSheet, expect, newMark, test } from "./fixtures";
+import { createSheet, expect, newMark, settled, test } from "./fixtures";
 
 // The Sheets screen of the library, at /sheets, in the shell.
 
@@ -516,6 +516,8 @@ test.describe("the shell", () => {
         panel(page).getByRole("link", { name: "Sheet Library" }),
       ).toBeVisible();
       expect(await focusInPanel(page)).toBe(true);
+      // Measured once the slide-in has ended, not on its way.
+      await settled(panel(page));
       expect((await panel(page).boundingBox())?.width).toBe(304);
 
       await panel(page)

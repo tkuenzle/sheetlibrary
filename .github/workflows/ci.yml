@@ -25,8 +25,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter web exec playwright install --with-deps chromium
       - run: just check
-      # Names the flaky and failed end-to-end tests in the run's summary,
-      # also when the run passes because a retry did.
+      # Names the flaky and failed end-to-end tests in the run's summary. A
+      # flaky test fails the run too (failOnFlakyTests).
       - name: List flaky and failed end-to-end tests
         if: always()
         run: |

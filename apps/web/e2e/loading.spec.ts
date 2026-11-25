@@ -2,6 +2,7 @@ import { type Page } from "@playwright/test";
 
 import {
   addToCollection,
+  answerAtOnce,
   createCollection,
   createSheet,
   delay,
@@ -293,7 +294,26 @@ const barsLog = (page: Page) =>
         .barsLog,
   );
 
-async function openChooseCollections(page: Page, ms: number) {
+// Empties a log of when bars showed and went, kept on the window.
+async function clearLog(page: Page, name: "barsLog" | "pageBarsLog") {
+  await page.evaluate((name) => {
+    const log = (
+      window as unknown as Record<
+        "barsLog" | "pageBarsLog",
+        { shown?: number; gone?: number }
+      >
+    )[name];
+    delete log.shown;
+    delete log.gone;
+  }, name);
+}
+
+const chooseData = /\/api\/sheets\/[^/]+\/collections$/;
+
+// Opens Choose collections with its list held back `ms`. Or, "from memory":
+// opens it once, closes it, and opens it again with the list answered from
+// memory, so it comes at once.
+async function openChooseCollections(page: Page, ms: number | "from memory") {
   const mark = newMark();
   const title = `Chosen ${mark}`;
   await createCollection(page, `Pick ${mark}`);
@@ -301,23 +321,38 @@ async function openChooseCollections(page: Page, ms: number) {
   await recordDialogBars(page);
   await page.goto(`/sheets?q=${mark}`);
   await expect(rows(page)).toHaveCount(1);
-  await page.route(/\/api\/sheets\/[^/]+\/collections$/, async (route) => {
-    await wait(ms);
-    await route.continue();
-  });
-  await page.getByRole("button", { name: `More for ${title}` }).click();
-  await page.getByRole("menuitem", { name: "Choose collections…" }).click();
-  const list = page.getByRole("dialog").locator("fieldset");
-  await expect(list.getByRole("checkbox").first()).toBeVisible();
+  const dialog = page.getByRole("dialog");
+  const list = dialog.locator("fieldset");
+  const open = async () => {
+    await page.getByRole("button", { name: `More for ${title}` }).click();
+    await page.getByRole("menuitem", { name: "Choose collections…" }).click();
+    await expect(list.getByRole("checkbox").first()).toBeVisible();
+  };
+  if (ms === "from memory") {
+    const answers = await answerAtOnce(page, chooseData);
+    await open();
+    await dialog.getByRole("button", { name: "Done" }).click();
+    await expect(dialog).toBeHidden();
+    await clearLog(page, "barsLog");
+    await open();
+    expect(answers.fromMemory()).toBeGreaterThanOrEqual(1);
+    return list;
+  }
+  await delay(page, chooseData, ms);
+  await open();
   return list;
 }
 
 // Scenario "A quick list": no bars for a moment's wait.
-test("shows no bars when the collections come quickly", async ({ page }) => {
-  await openChooseCollections(page, 50);
-  await wait(500);
-  expect((await barsLog(page)).shown).toBeUndefined();
-});
+test(
+  "shows no bars when the collections come quickly",
+  { tag: "@timing" },
+  async ({ page }) => {
+    await openChooseCollections(page, "from memory");
+    await wait(500);
+    expect((await barsLog(page)).shown).toBeUndefined();
+  },
+);
 
 // Scenario "Choose collections": slow, the bars show, and once shown they
 // stay for a moment, also when the list comes just after.
@@ -353,16 +388,34 @@ const pageBarsLog = (page: Page) =>
   );
 
 // Opens a collection whose sheets are held back `ms`, and gives how long its
-// bars showed, or undefined when they didn't.
-async function openHeldBack(page: Page, ms: number) {
+// bars showed, or undefined when they didn't. Or, "from memory": opens it
+// once, leaves it through the navigation, and opens it again with its sheets
+// answered from memory, so they come at once.
+async function openHeldBack(page: Page, ms: number | "from memory") {
   const mark = newMark();
   const name = `Held ${mark}`;
   await collectionWith(page, name, [`One ${mark}`]);
   await recordPageBars(page);
   await startOnCollections(page);
-  await delay(page, collectionData, ms);
-  await openCollection(page, name);
-  await expect(rows(page)).toHaveCount(1);
+  if (ms === "from memory") {
+    const answers = await answerAtOnce(page, collectionData);
+    await openCollection(page, name);
+    await expect(heading(page)).toHaveText(name);
+    await expect(rows(page)).toHaveCount(1);
+    // A link, not a step back, so the second opening loads its page again.
+    const away = wide(page) ? "Sheets" : "Collections";
+    await page.getByRole("link", { name: away, exact: true }).first().click();
+    await expect(heading(page)).toHaveText(away);
+    await clearLog(page, "pageBarsLog");
+    await openCollection(page, name);
+    await expect(heading(page)).toHaveText(name);
+    await expect(rows(page)).toHaveCount(1);
+    expect(answers.fromMemory()).toBeGreaterThanOrEqual(1);
+  } else {
+    await delay(page, collectionData, ms);
+    await openCollection(page, name);
+    await expect(rows(page)).toHaveCount(1);
+  }
   await wait(500);
   const log = await pageBarsLog(page);
   if (log.shown === undefined) return undefined;
@@ -375,10 +428,14 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
 
   // Scenarios "A quick collection" and "A quick page without a move": a
   // page whose data comes in a moment moves in whole.
-  test(`shows no bars for a quick page ${how}`, async ({ page }) => {
-    await page.emulateMedia({ reducedMotion });
-    expect(await openHeldBack(page, 50)).toBeUndefined();
-  });
+  test(
+    `shows no bars for a quick page ${how}`,
+    { tag: "@timing" },
+    async ({ page }) => {
+      await page.emulateMedia({ reducedMotion });
+      expect(await openHeldBack(page, "from memory")).toBeUndefined();
+    },
+  );
 
   // Scenario "Data just after the wait": the bars show, and stay a moment
   // though the data comes soon after.
