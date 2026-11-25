@@ -1,6 +1,7 @@
 import { type Page, type Route } from "@playwright/test";
 
 import {
+  answerAtOnce,
   createCollection,
   createSheet,
   delay,
@@ -172,6 +173,12 @@ async function lastMove(page: Page, count: number): Promise<Move> {
   return move;
 }
 
+// Forgets the moves recorded so far, so the next one counts as the first.
+const forgetMoves = (page: Page) =>
+  page.evaluate(() => {
+    (window as unknown as { moves: Move[] }).moves.length = 0;
+  });
+
 const kindOf = (move: Move) => move.types?.[0] ?? "none";
 
 const kinds = async (page: Page) => (await moves(page)).map(kindOf);
@@ -285,87 +292,103 @@ test("moves pages in no time with reduced motion", async ({ page }) => {
 
 // Scenarios "Opening a sheet" and "The browser's back", with Recent and the
 // list showing the same sheet.
-test("raises a sheet from its row, and drops it on Back", async ({ page }) => {
-  const errors: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
-  });
-  const title = `Risen ${newMark()}`;
-  const id = await createSheet(page, { title: title, content });
-  // Opened once, so it is in Recent too.
-  await page.goto(`/sheets/${id}`);
-  await recordMoves(page);
-  await page.goto("/sheets");
-  await page.waitForLoadState("networkidle");
-  const row = page
-    .locator(".sheet-list-row")
-    .filter({ hasText: title })
-    .getByRole("link");
-  const card = page
-    .locator(".recent-sheets")
-    .getByRole("link", { name: new RegExp(title) });
-  await expect(card).toBeVisible();
+test(
+  "raises a sheet from its row, and drops it on Back",
+  { tag: "@timing" },
+  async ({ page }) => {
+    const errors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    const title = `Risen ${newMark()}`;
+    const id = await createSheet(page, { title: title, content });
+    // Opened once, so it is in Recent too.
+    await page.goto(`/sheets/${id}`);
+    // Sheets is reached by a move inside the app, so its data is in memory
+    // for the step back below, which then comes within the wait.
+    const answers = await answerAtOnce(page, /\/sheets\.data/);
+    await recordMoves(page);
+    await page.goto("/collections");
+    await page.waitForLoadState("networkidle");
+    await page
+      .getByRole("link", { name: "Sheets", exact: true })
+      .first()
+      .click();
+    await expect(heading(page)).toHaveText("Sheets");
+    await lastMove(page, 1);
+    await forgetMoves(page);
+    await page.waitForLoadState("networkidle");
+    const row = page
+      .locator(".sheet-list-row")
+      .filter({ hasText: title })
+      .getByRole("link");
+    const card = page
+      .locator(".recent-sheets")
+      .getByRole("link", { name: new RegExp(title) });
+    await expect(card).toBeVisible();
 
-  await row.scrollIntoViewIfNeeded();
-  const rowTitle = await row.locator(".library-title").boundingBox();
-  await row.click();
-  await expect(heading(page)).toHaveText(title);
-  const rise = await lastMove(page, 1);
-  expect(kindOf(rise)).toBe("rise");
-  // The title moves by translate and scale only, from the row's box.
-  expect(titleGroup(rise)).toMatchObject({ duration: 300 });
-  expect(rise.titleProperties?.sort()).toEqual(["scale", "translate"]);
-  expectBox(rise.titleStart, rowTitle);
-  expect(rise.animations?.find((a) => a.name === "page-rise")).toMatchObject({
-    pseudo: expect.stringContaining(
-      "::view-transition-new(",
-    ) as unknown as string,
-    duration: 300,
-  });
+    await row.scrollIntoViewIfNeeded();
+    const rowTitle = await row.locator(".library-title").boundingBox();
+    await row.click();
+    await expect(heading(page)).toHaveText(title);
+    const rise = await lastMove(page, 1);
+    expect(kindOf(rise)).toBe("rise");
+    // The title moves by translate and scale only, from the row's box.
+    expect(titleGroup(rise)).toMatchObject({ duration: 300 });
+    expect(rise.titleProperties?.sort()).toEqual(["scale", "translate"]);
+    expectBox(rise.titleStart, rowTitle);
+    expect(rise.animations?.find((a) => a.name === "page-rise")).toMatchObject({
+      pseudo: expect.stringContaining(
+        "::view-transition-new(",
+      ) as unknown as string,
+      duration: 300,
+    });
 
-  const headingBox = await heading(page).boundingBox();
-  await page.getByRole("link", { name: "Back" }).click();
-  await expect(heading(page)).toHaveText("Sheets");
-  const drop = await lastMove(page, 2);
-  expect(kindOf(drop)).toBe("drop");
-  expect(titleGroup(drop)).toMatchObject({ duration: 150 });
-  expectBox(drop.titleStart, headingBox);
-  expect(drop.animations?.find((a) => a.name === "page-drop")).toMatchObject({
-    pseudo: expect.stringContaining(
-      "::view-transition-old(",
-    ) as unknown as string,
-    duration: 150,
-  });
+    const headingBox = await heading(page).boundingBox();
+    await page.getByRole("link", { name: "Back" }).click();
+    await expect(heading(page)).toHaveText("Sheets");
+    const drop = await lastMove(page, 2);
+    expect(answers.fromMemory()).toBe(1);
+    expect(kindOf(drop)).toBe("drop");
+    expect(titleGroup(drop)).toMatchObject({ duration: 150 });
+    expectBox(drop.titleStart, headingBox);
+    expect(drop.animations?.find((a) => a.name === "page-drop")).toMatchObject({
+      pseudo: expect.stringContaining(
+        "::view-transition-old(",
+      ) as unknown as string,
+      duration: 150,
+    });
 
-  await card.click();
-  await expect(heading(page)).toHaveText(title);
-  await lastMove(page, 3);
-  await page.goBack();
-  await expect(heading(page)).toHaveText("Sheets");
-  await lastMove(page, 4);
-  // React moves no title to or from an element outside the window. Other
-  // tests open sheets on this account too, so Recent's card may have
-  // scrolled away by now.
-  const cardInView = await card.evaluate((element) => {
-    const box = element.getBoundingClientRect();
-    return box.right > 0 && box.left < window.innerWidth;
-  });
-  // Forward is a step in the history too.
-  await page.goForward();
-  await expect(heading(page)).toHaveText(title);
-  await lastMove(page, 5);
-  const all = await moves(page);
-  expect(all.map(kindOf)).toEqual(["rise", "drop", "rise", "drop", "rise"]);
-  expect(all.map(movesTitle)).toEqual([
-    true,
-    true,
-    true,
-    cardInView,
-    cardInView,
-  ]);
-  // Recent and the list show the sheet with names of their own.
-  expect(errors).toEqual([]);
-});
+    await card.click();
+    await expect(heading(page)).toHaveText(title);
+    await lastMove(page, 3);
+    await page.goBack();
+    await expect(heading(page)).toHaveText("Sheets");
+    await lastMove(page, 4);
+    // React moves no title to or from an element outside the window. Other
+    // tests open sheets on this account too, so Recent's card may have
+    // scrolled away by now.
+    const cardInView = await card.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return box.right > 0 && box.left < window.innerWidth;
+    });
+    // Forward is a step in the history too.
+    await page.goForward();
+    await expect(heading(page)).toHaveText(title);
+    await lastMove(page, 5);
+    const all = await moves(page);
+    expect(all.map(kindOf)).toEqual(["rise", "drop", "rise", "drop", "rise"]);
+    expect(all.map(movesTitle)).toEqual([
+      true,
+      true,
+      true,
+      cardInView,
+      cardInView,
+    ]);
+    // Recent and the list show the sheet with names of their own.
+    expect(errors).toEqual([]);
+  },
+);
 
 // Requirement "Pages known from the start": the first page brings every
 // route, so a sheet opened right after Sheets loads asks only for its data,
@@ -392,7 +415,7 @@ test("opens a sheet without looking up its route", async ({ page }) => {
   expect(asked).toEqual([`/sheets/${id}.data`]);
 });
 
-// Scenario "Back to a search", and Back from a sheet opened from a link.
+// Scenario "Back to a search".
 test("drops back into the list where it was scrolled", async ({ page }) => {
   const mark = newMark();
   for (let i = 0; i < 25; i++) {
@@ -401,10 +424,6 @@ test("drops back into the list where it was scrolled", async ({ page }) => {
       content,
     });
   }
-  const fromLink = await createSheet(page, {
-    title: `Linked ${mark}`,
-    content,
-  });
   await recordMoves(page);
   await page.goto(`/sheets?q=${mark}`);
   await page.waitForLoadState("networkidle");
@@ -422,12 +441,29 @@ test("drops back into the list where it was scrolled", async ({ page }) => {
   const drop = await lastMove(page, 2);
   expect(kindOf(drop)).toBe("drop");
   expect(drop.scrollY).toBe(scrolled);
-
-  await page.goto(`/sheets/${fromLink}`);
-  await page.getByRole("link", { name: "Back" }).click();
-  await expect(page).toHaveURL(/\/sheets$/);
-  expect(kindOf(await lastMove(page, 1))).toBe("drop");
 });
+
+// Back from a sheet opened from a link. The page was loaded fresh, so the
+// list's code loads before its loader runs, and the move must still start
+// before the loading bar shows. The list was opened once before, so its code
+// comes from the browser's cache, as for someone who used the app.
+test(
+  "drops back to the list from a sheet opened from a link",
+  { tag: "@timing" },
+  async ({ page }) => {
+    const id = await createSheet(page, {
+      title: `Linked ${newMark()}`,
+      content,
+    });
+    await recordMoves(page);
+    await page.goto("/sheets");
+    await page.waitForLoadState("networkidle");
+    await page.goto(`/sheets/${id}`);
+    await page.getByRole("link", { name: "Back" }).click();
+    await expect(page).toHaveURL(/\/sheets$/);
+    expect(kindOf(await lastMove(page, 1))).toBe("drop");
+  },
+);
 
 // Scenario "Back to a slow list": after a change, a step back loads the
 // list as on any other move, though the address has already changed when
@@ -737,22 +773,24 @@ test("drops a sheet onto the list as it was left, with bars in Recent", async ({
 
 // Scenario "Back to a quick list": the fresh list, without bars, with the
 // sheet first in Recent.
-test("drops a sheet onto the fresh list when it comes quickly", async ({
-  page,
-}) => {
-  const title = `Quick back ${newMark()}`;
-  await recordMoves(page);
-  await recordBars(page);
-  const { before } = await openFromSheets(page, title);
-  await delay(page, /\.data/, 50);
-  await page.getByRole("link", { name: "Back" }).click();
-  expect(kindOf(await lastMove(page, before + 1))).toBe("drop");
-  // Other tests open sheets on this account too, so it may not stay first.
-  await expect(recentCards(page).filter({ hasText: title })).toHaveCount(1);
-  const log = await barsLog(page);
-  expect(log.bars).toBe(false);
-  expect(log.recentBars).toBe(false);
-});
+test(
+  "drops a sheet onto the fresh list when it comes quickly",
+  { tag: "@timing" },
+  async ({ page }) => {
+    const title = `Quick back ${newMark()}`;
+    await recordMoves(page);
+    await recordBars(page);
+    const { before } = await openFromSheets(page, title);
+    await delay(page, /\.data/, 50);
+    await page.getByRole("link", { name: "Back" }).click();
+    expect(kindOf(await lastMove(page, before + 1))).toBe("drop");
+    // Other tests open sheets on this account too, so it may not stay first.
+    await expect(recentCards(page).filter({ hasText: title })).toHaveCount(1);
+    const log = await barsLog(page);
+    expect(log.bars).toBe(false);
+    expect(log.recentBars).toBe(false);
+  },
+);
 
 // Scenario "Swiping back to a slow list": after the browser's own move, the
 // list as it was left replaces the sheet at once, with bars in Recent. The
@@ -908,27 +946,31 @@ test("raises a slow sheet with its title moving from the row", async ({
 // sheet's loader runs, its route's code and maybe `/__manifest`, counts
 // toward the wait for the data, so the sheet still rises before the loading
 // bar shows.
-test("raises a sheet whose code is slow to load", async ({ page }) => {
-  const title = `Slow code ${newMark()}`;
-  const id = await createSheet(page, { title: title, content });
-  await recordMoves(page);
-  await page.goto("/sheets");
-  await page.waitForLoadState("networkidle");
-  const hold = (ms: number) => async (route: Route) => {
-    await new Promise((resolve) => setTimeout(resolve, ms));
-    await route.continue();
-  };
-  await page.route(/\/assets\/sheet-[^/]*\.js$/, hold(80));
-  await page.route(/\/__manifest\?/, hold(80));
-  await page.route(new RegExp(`/sheets/${id}\\.data`), hold(1000));
-  await page
-    .locator(".sheet-list-row")
-    .filter({ hasText: title })
-    .getByRole("link")
-    .click();
-  await expect(heading(page)).toHaveText(title);
-  expect(kindOf(await lastMove(page, 1))).toBe("rise");
-});
+test(
+  "raises a sheet whose code is slow to load",
+  { tag: "@timing" },
+  async ({ page }) => {
+    const title = `Slow code ${newMark()}`;
+    const id = await createSheet(page, { title: title, content });
+    await recordMoves(page);
+    await page.goto("/sheets");
+    await page.waitForLoadState("networkidle");
+    const hold = (ms: number) => async (route: Route) => {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+      await route.continue();
+    };
+    await page.route(/\/assets\/sheet-[^/]*\.js$/, hold(80));
+    await page.route(/\/__manifest\?/, hold(80));
+    await page.route(new RegExp(`/sheets/${id}\\.data`), hold(1000));
+    await page
+      .locator(".sheet-list-row")
+      .filter({ hasText: title })
+      .getByRole("link")
+      .click();
+    await expect(heading(page)).toHaveText(title);
+    expect(kindOf(await lastMove(page, 1))).toBe("rise");
+  },
+);
 
 // The most time between deciding a move and the browser starting it, while
 // React renders the announced move and then the new page, on a busy machine.

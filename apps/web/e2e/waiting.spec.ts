@@ -4,6 +4,7 @@ import {
   createCollection,
   createSheet,
   expect,
+  hold,
   newMark,
   test,
 } from "./fixtures";
@@ -61,14 +62,15 @@ test.describe("signed in", () => {
     const mark = newMark();
     await createSheet(page, { title: `Amazing ${mark}` });
     await page.goto("/sheets");
-    await page.route(/\/sheets\.data\?/, async (route) => {
-      await wait(1500);
-      await route.continue();
-    });
+    const results = await hold(page, /\/sheets\.data\?/);
     await page.getByRole("searchbox", { name: "Search sheets" }).fill(mark);
+    await results.requested();
     const status = page.getByRole("search").getByRole("status");
+    // "Searching…" and the loading bar wait the same moment, so once
+    // "Searching…" shows, the bar would show too if it were going to.
     await expect(status).toHaveText("Searching…");
     await expect(bar(page)).toHaveCount(0);
+    results.release();
     await expect(status).toHaveText("1 sheet");
   });
 
