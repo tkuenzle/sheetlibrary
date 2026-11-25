@@ -39,7 +39,7 @@ The dialogs know their bars were seen when `useSkeleton` reached "bars". A small
 
 ### Timing and reduced motion
 
-One keyframe, `opacity` from 0 to 1, over `--motion-short` with `--ease-enter`, in a stylesheet next to the skeleton's. With reduced motion the token is 0s, so the animation ends at once and needs no rule of its own (`docs/motion.md`, "Reduced motion").
+One keyframe, `opacity` from 0 to 1, over `--motion-short` with a new `--ease-linear` token, in a stylesheet next to the skeleton's. That is Material 3's fade (`MaterialFade`: 150ms, linear). `--ease-enter`, Material 3's standard decelerate, was tried first: on opacity alone it does half the fade in the first frame, and the fade was barely visible. With reduced motion the token is 0s, so the animation ends at once and needs no rule of its own (`docs/motion.md`, "Reduced motion").
 
 ## Risks / Trade-offs
 

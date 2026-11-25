@@ -15,7 +15,7 @@ Since #168, only a slow page shows bars, and when its data arrives the rows repl
 - What already showed for real, such as the heading, the top bar and Sheets' search field, stays as it is.
 - The fade plays only once, for the first data after the bars. Rows that show later, such as new search results or the rows after a change, show at once as before. So does a page that arrives whole, and a page shown as it was left on Back.
 - The lists in "Add sheets" and "Choose collections" fade in when they replace bars that were seen. A quick list, whose bars stayed unseen, shows at once as before.
-- The fade is a CSS animation of `opacity` only, `--motion-short` with `--ease-enter`. It is not a view transition, so taps never wait for it. The bars go at once and the rows fade in from nothing; there is no crossfade.
+- The fade is a CSS animation of `opacity` only, `--motion-short` with linear easing, as Material 3's fade, through a new `--ease-linear` token. It is not a view transition, so taps never wait for it. The bars go at once and the rows fade in from nothing; there is no crossfade.
 - With reduced motion, the rows show at once.
 - `docs/motion.md`'s "Rows show once the page is in" drops its "for now" and describes the fade.
 

@@ -531,6 +531,7 @@ interface Arrival {
   text: string;
   // In milliseconds.
   duration: number;
+  easing: string;
   inRecent: boolean;
   inSearch: boolean;
   // The classes of its first child, for a wrapper.
@@ -554,6 +555,7 @@ async function recordArrivals(page: Page) {
           duration:
             Number.parseFloat(getComputedStyle(target).animationDuration) *
             1000,
+          easing: getComputedStyle(target).animationTimingFunction,
           inRecent: !!target.closest(".recent-sheets"),
           inSearch: !!target.closest("[role=search]"),
           child: target.firstElementChild?.getAttribute("class") ?? "",
@@ -600,6 +602,7 @@ test("fades Sheets' rows and Recent's cards in where the bars were", async ({
   expect(faded.some((arrival) => arrival.tag === "h1")).toBe(false);
   expect(faded.some((arrival) => arrival.inSearch)).toBe(false);
   expect(faded.every((arrival) => arrival.duration === 150)).toBe(true);
+  expect(faded.every((arrival) => arrival.easing === "linear")).toBe(true);
 
   // A sheet the page hasn't shown yet: the search mounts a new row for it.
   await createSheet(page, { title: `Later ${mark}` });

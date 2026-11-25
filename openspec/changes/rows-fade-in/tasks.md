@@ -2,7 +2,7 @@
 
 ## 1. The fade and the "arriving" signal
 
-- [x] 1.1 Add the fade's keyframes and class (`opacity` 0 to 1, `--motion-short`, `--ease-enter`) in a stylesheet next to `ui/skeleton.css`. Verify with `pnpm lint` and a check that reduced motion gives it a 0s duration.
+- [x] 1.1 Add the fade's keyframes and class (`opacity` 0 to 1, `--motion-short`, a new `--ease-linear` token) in a stylesheet next to `ui/skeleton.css`. Verify with `pnpm lint` and a check that reduced motion gives it a 0s duration.
 - [x] 1.2 Add an "arriving" context and a hook that reads it once at mount. Make `PageData` provide true in the commit where the content replaces the skeleton, and false for whole data and from the first effect after. Verify with unit tests in `shell/awaited.test.ts`: true for content after the skeleton, false for whole data, false for a part that mounts after the arrival.
 - [x] 1.3 Make `RecentOnItsWay` in `routes/sheets.tsx` provide the same context around Recent's cards. Verify with the unit tests from 1.2 or a case of its own.
 
