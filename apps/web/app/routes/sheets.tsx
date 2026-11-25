@@ -49,6 +49,7 @@ import {
   type SearchResult,
   type SheetListItem,
 } from "../sheets/sheets.server";
+import { Arriving } from "../ui/arriving";
 import { IconButton } from "../ui/button";
 import { Icon } from "../ui/icon";
 import type { IconName } from "../ui/icons";
@@ -234,13 +235,19 @@ function LoadedLibrary({ loaded }: { loaded: LibraryAnswer }) {
 
 // "Recent", whole or on its way. On its way, it shows its bars until it is
 // there, held as a page's (see "Bars never blink" in
-// openspec/specs/site-layout).
+// openspec/specs/site-layout), and its cards then fade in (ui/arriving.tsx).
+// As in PageData, the choice is kept while the page stays: the load that
+// follows a step back answers with Recent whole, and the cards that faded
+// in stay.
 function RecentOnItsWay({
   recent,
 }: {
   recent: SheetListItem[] | Promise<SheetListItem[]>;
 }) {
-  if (!(recent instanceof Promise)) return <RecentSheets sheets={recent} />;
+  const [streamed] = useState(() => recent instanceof Promise);
+  if (!streamed && !(recent instanceof Promise)) {
+    return <RecentSheets sheets={recent} />;
+  }
   return (
     <Suspense
       fallback={
@@ -251,7 +258,11 @@ function RecentOnItsWay({
       }
     >
       <Await resolve={recent}>
-        {(sheets) => <RecentSheets sheets={sheets} />}
+        {(sheets) => (
+          <Arriving>
+            <RecentSheets sheets={sheets} />
+          </Arriving>
+        )}
       </Await>
     </Suspense>
   );

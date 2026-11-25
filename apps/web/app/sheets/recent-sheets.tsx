@@ -4,6 +4,7 @@ import { Link, useFetcher } from "react-router";
 
 import { openedFrom, titleName } from "../shell/page-moves";
 import { TitleMove } from "../shell/title-move";
+import { useArrives } from "../ui/arriving";
 import { Bar } from "../ui/skeleton";
 import { KeyText, type ListSheet, type RowAnswer, rowKey } from "./sheet-list";
 
@@ -27,9 +28,10 @@ export function RecentSheets({ sheets }: { sheets: ListSheet[] }) {
 // comes back with it if the delete doesn't get through.
 function RecentCard({ sheet }: { sheet: ListSheet }) {
   const fetcher = useFetcher<RowAnswer>({ key: rowKey(sheet.id) });
+  const arrives = useArrives();
   if (fetcher.state !== "idle" || fetcher.data?.ok === true) return null;
   return (
-    <li>
+    <li {...arrives}>
       <Link to={`/sheets/${sheet.id}`} state={openedFrom("recent", sheet)}>
         <TitleMove name={titleName("recent", sheet.id)}>
           <span className="recent-sheets-title">{sheet.title}</span>

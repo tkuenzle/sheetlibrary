@@ -37,6 +37,15 @@ export function useSkeleton(loading: boolean): "waiting" | "bars" | "none" {
   return loading ? "waiting" : "none";
 }
 
+// Whether useSkeleton()'s bars have shown, so that what replaces them fades
+// in (ui/arriving.tsx). A quick answer, whose bars stayed unseen, shows at
+// once.
+export function useBarsSeen(skeleton: "waiting" | "bars" | "none"): boolean {
+  const [seen, setSeen] = useState(false);
+  if (skeleton === "bars" && !seen) setSeen(true);
+  return seen || skeleton === "bars";
+}
+
 // A bar where data is still on its way, inside the real markup of what it
 // stands for. It sits in the line like a word, so the line keeps the height
 // of the text it stands for, and the row around it keeps its own. `width`

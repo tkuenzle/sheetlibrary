@@ -67,6 +67,7 @@ import {
 } from "../sheets/versions";
 import { takeHandedView } from "../sheets/view-hand-off";
 import { type ListedVersion, VersionsPart } from "../sheets/versions-part";
+import { Arrives } from "../ui/arriving";
 import { IconButton } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Icon } from "../ui/icon";
@@ -264,7 +265,11 @@ export function PlayView({
   textStep?: number;
 }) {
   // The heading takes the title's name while it moves from the row.
-  const titleName = headingTitleName(sheet.id, useLocation().state);
+  const location = useLocation();
+  const titleName = headingTitleName(sheet.id, location.state);
+  // Without the row it was opened from, the skeleton showed bars for the
+  // title and artist, so they fade in with the rest (ui/arriving.tsx).
+  const titleWasBar = rowDetails(location.state) === null;
   // The versions are kept here and changed from each answer of the API,
   // without loading the page again. The address follows the open one.
   const [savedVersions, setSavedVersions] = useState(loadedVersions);
@@ -374,104 +379,124 @@ export function PlayView({
       <main className="play-page">
         <div className="play-heading">
           <TitleMove name={titleName}>
-            <h1>{sheet.title}</h1>
+            <Arrives stoodForBars={titleWasBar}>
+              {(arrives) => <h1 {...arrives}>{sheet.title}</h1>}
+            </Arrives>
           </TitleMove>
           {(sheet.artist ?? open) && (
-            <p className="play-artist">
-              {sheet.artist}
-              {/* The open version's name is in the key button; on paper,
+            <Arrives className="play-artist" stoodForBars={titleWasBar}>
+              {(arrives) => (
+                <p {...arrives}>
+                  {sheet.artist}
+                  {/* The open version's name is in the key button; on paper,
                   where the buttons are gone, it follows the artist. */}
-              {open && (
-                <span className="play-print-version">
-                  {sheet.artist ? ` · ${open.name}` : open.name}
-                </span>
+                  {open && (
+                    <span className="play-print-version">
+                      {sheet.artist ? ` · ${open.name}` : open.name}
+                    </span>
+                  )}
+                </p>
               )}
-            </p>
+            </Arrives>
           )}
           {(keysShown || collections.length > 0) && (
-            <div className="play-chips">
-              {key && current && !lyrics && (
-                <>
-                  <KeyButton
-                    current={current}
-                    song={key}
-                    home={open?.shows ?? key}
-                    version={open?.name}
-                    songPart={(closePanel) => (
-                      <VersionsPart
-                        song={key}
-                        guessed={guessed}
+            <Arrives className="play-chips">
+              {(arrives) => (
+                <div {...arrives}>
+                  {key && current && !lyrics && (
+                    <>
+                      <KeyButton
                         current={current}
-                        versions={versions}
-                        openId={open?.id ?? null}
-                        onOpen={openVersion}
-                        onSave={() => {
-                          closePanel();
-                          setDialog({ kind: "save", key: current });
+                        song={key}
+                        home={open?.shows ?? key}
+                        version={open?.name}
+                        songPart={(closePanel) => (
+                          <VersionsPart
+                            song={key}
+                            guessed={guessed}
+                            current={current}
+                            versions={versions}
+                            openId={open?.id ?? null}
+                            onOpen={openVersion}
+                            onSave={() => {
+                              closePanel();
+                              setDialog({ kind: "save", key: current });
+                            }}
+                            onMake={() => {
+                              if (!open) return;
+                              void changeVersion(sheet.id, open.id, {
+                                key: keyName(current),
+                              })
+                                .then((version) => {
+                                  keep(version);
+                                  openHome(current);
+                                })
+                                // The version keeps its key; trying again works.
+                                .catch(() => undefined);
+                            }}
+                            onRename={() => {
+                              if (!open) return;
+                              closePanel();
+                              setDialog({ kind: "rename", version: open });
+                            }}
+                            onDelete={() => {
+                              if (!open) return;
+                              closePanel();
+                              setDialog({ kind: "delete", version: open });
+                            }}
+                          />
+                        )}
+                        guessed={guessed}
+                        guess={guess}
+                        viewOnly
+                        onPick={(to) => {
+                          show(to);
                         }}
-                        onMake={() => {
-                          if (!open) return;
-                          void changeVersion(sheet.id, open.id, {
-                            key: keyName(current),
-                          })
-                            .then((version) => {
-                              keep(version);
-                              openHome(current);
-                            })
-                            // The version keeps its key; trying again works.
-                            .catch(() => undefined);
+                        onStep={(step) => {
+                          show(stepKey(current, step));
                         }}
-                        onRename={() => {
-                          if (!open) return;
-                          closePanel();
-                          setDialog({ kind: "rename", version: open });
-                        }}
-                        onDelete={() => {
-                          if (!open) return;
-                          closePanel();
-                          setDialog({ kind: "delete", version: open });
+                        onBack={() => {
+                          show(open?.shows ?? null);
                         }}
                       />
-                    )}
-                    guessed={guessed}
-                    guess={guess}
-                    viewOnly
-                    onPick={(to) => {
-                      show(to);
-                    }}
-                    onStep={(step) => {
-                      show(stepKey(current, step));
-                    }}
-                    onBack={() => {
-                      show(open?.shows ?? null);
-                    }}
-                  />
-                  <CapoButton sounding={current} capo={fret} onPick={setCapo} />
-                </>
+                      <CapoButton
+                        sounding={current}
+                        capo={fret}
+                        onPick={setCapo}
+                      />
+                    </>
+                  )}
+                  {collections.length > 0 && (
+                    <ul className="play-collections" aria-label="Collections">
+                      {collections.map((collection) => (
+                        <li key={collection.id}>
+                          <Link
+                            className="play-collection"
+                            to={`/collections/${collection.id}`}
+                          >
+                            <Icon name="stacks" size={18} />
+                            {collection.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
-              {collections.length > 0 && (
-                <ul className="play-collections" aria-label="Collections">
-                  {collections.map((collection) => (
-                    <li key={collection.id}>
-                      <Link
-                        className="play-collection"
-                        to={`/collections/${collection.id}`}
-                      >
-                        <Icon name="stacks" size={18} />
-                        {collection.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            </Arrives>
           )}
         </div>
-        <SheetView
-          sheet={content}
-          fontSize={textSize(step)}
-          lyricsOnly={lyrics}
-        />
+        <Arrives>
+          {(arrives) => (
+            <div {...arrives}>
+              <SheetView
+                sheet={content}
+                fontSize={textSize(step)}
+                lyricsOnly={lyrics}
+              />
+            </div>
+          )}
+        </Arrives>
       </main>
       <ChooseCollectionsDialog
         open={collecting}

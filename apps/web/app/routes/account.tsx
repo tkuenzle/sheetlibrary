@@ -18,6 +18,7 @@ import {
 } from "../auth/auth-client";
 import { getAuth } from "../auth/auth.server";
 import { cloudflareContext, sessionContext } from "../context";
+import { useArrives } from "../ui/arriving";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
@@ -125,6 +126,8 @@ function Passkey({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(passkey.name ?? "");
   const fieldId = useId();
+  // It stood for a row of bars (ui/arriving.tsx).
+  const arrives = useArrives("account-row account-passkey");
 
   if (editing) {
     return (
@@ -169,7 +172,7 @@ function Passkey({
   }
 
   return (
-    <li className="account-row account-passkey">
+    <li {...arrives}>
       <div className="account-passkey-text">
         <span className="account-passkey-name">{passkeyName(passkey)}</span>
         <span className="account-passkey-added">{added(passkey)}</span>
@@ -247,6 +250,7 @@ export function AccountView({
   onSignOut: () => void;
 }) {
   const loading = passkeys === null;
+  const emailArrives = useArrives("account-email");
   const heading = useRef<HTMLHeadingElement>(null);
   useFocusCarriesOver(loading ? heading : null);
   return (
@@ -258,7 +262,7 @@ export function AccountView({
         <h2 id="account-email">Email</h2>
         <ul className="group-list">
           <li className="account-row">
-            <span className="account-email">{email ?? <Bar width={12} />}</span>
+            <span {...emailArrives}>{email ?? <Bar width={12} />}</span>
           </li>
         </ul>
       </section>

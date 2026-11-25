@@ -256,9 +256,10 @@ test("loads a page whole the first time, without bars", async ({ page }) => {
 
 // The account page: bars for the email and the passkeys, which follow.
 // Scenario "The account's passkeys": a row of bars for each passkey, and
-// the real rows take their place at the same height. The
-// account gets a passkey first, from a virtual authenticator. Accounts are
-// shared, so the skeleton is held against the real rows.
+// the real rows take their place at the same height, fading in with the
+// email ("Data fades in where the bars were"). The account gets a passkey
+// first, from a virtual authenticator. Accounts are shared, so the skeleton
+// is held against the real rows.
 test("shows a slow account page with bars for its data", async ({ page }) => {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("WebAuthn.enable");
@@ -271,6 +272,7 @@ test("shows a slow account page with bars for its data", async ({ page }) => {
       isUserVerified: true,
     },
   });
+  await recordArrivals(page);
   await page.goto("/account");
   const passkeys = page.locator(".account-passkey-name");
   const before = await passkeys.count();
@@ -298,6 +300,19 @@ test("shows a slow account page with bars for its data", async ({ page }) => {
     0,
   );
   await expect(heading(page)).toBeFocused();
+  await expect
+    .poll(
+      async () =>
+        (await arrivals(page)).filter((arrival) =>
+          arrival.classes.includes("account-passkey"),
+        ).length,
+    )
+    .toBe(before + 1);
+  expect(
+    (await arrivals(page)).some((arrival) =>
+      arrival.classes.includes("account-email"),
+    ),
+  ).toBe(true);
 });
 
 // Notes when Choose collections' bars show and go, from the next page
@@ -361,8 +376,12 @@ async function chooseFromRow(page: Page) {
 }
 
 // Opens Choose collections once, closes it, and opens it again with the
-// list answered from memory, so it comes at once.
-async function openChooseCollectionsAgain(page: Page) {
+// list answered from memory, so it comes at once. `beforeAgain` runs just
+// before the second opening.
+async function openChooseCollectionsAgain(
+  page: Page,
+  beforeAgain: () => Promise<void> = () => Promise.resolve(),
+) {
   const { dialog, list, pick } = await chooseFromRow(page);
   const open = async () => {
     await pick();
@@ -373,6 +392,7 @@ async function openChooseCollectionsAgain(page: Page) {
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(dialog).toBeHidden();
   await clearLog(page, "barsLog");
+  await beforeAgain();
   await open();
   expect(answers.fromMemory()).toBeGreaterThanOrEqual(1);
 }
@@ -499,4 +519,288 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
 test("keeps a slow page's bars until its data is there", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(await openHeldBack(page, 700)).toBeGreaterThanOrEqual(390);
+});
+
+// Fades: what takes the bars' place fades in once, and what showed for
+// real stays as it is. See openspec/specs/site-layout ("Data fades in where
+// the bars were") and ui/arriving.tsx.
+
+interface Arrival {
+  tag: string;
+  classes: string;
+  text: string;
+  // In milliseconds.
+  duration: number;
+  inRecent: boolean;
+  inSearch: boolean;
+  // The classes of its first child, for a wrapper.
+  child: string;
+}
+
+// Records each fade of data in place of bars, from the next page load on.
+async function recordArrivals(page: Page) {
+  await page.addInitScript(() => {
+    const log: Record<string, unknown>[] = [];
+    (window as unknown as { arrivals: unknown }).arrivals = log;
+    document.addEventListener(
+      "animationstart",
+      (event) => {
+        if (event.animationName !== "arrive") return;
+        const target = event.target as HTMLElement;
+        log.push({
+          tag: target.tagName.toLowerCase(),
+          classes: target.getAttribute("class") ?? "",
+          text: target.textContent.trim().slice(0, 60),
+          duration:
+            Number.parseFloat(getComputedStyle(target).animationDuration) *
+            1000,
+          inRecent: !!target.closest(".recent-sheets"),
+          inSearch: !!target.closest("[role=search]"),
+          child: target.firstElementChild?.getAttribute("class") ?? "",
+        });
+      },
+      true,
+    );
+  });
+}
+
+const arrivals = (page: Page) =>
+  page.evaluate(() => (window as unknown as { arrivals: Arrival[] }).arrivals);
+
+async function clearArrivals(page: Page) {
+  await page.evaluate(() => {
+    (window as unknown as { arrivals: Arrival[] }).arrivals.length = 0;
+  });
+}
+
+const isRow = (arrival: Arrival) =>
+  arrival.classes.split(" ").includes("sheet-list-row");
+
+// Scenario "A slow collection", for Sheets, and "A search after the fade".
+test("fades Sheets' rows and Recent's cards in where the bars were", async ({
+  page,
+}) => {
+  const mark = newMark();
+  const id = await createSheet(page, { title: `Faded ${mark}` });
+  await recordArrivals(page);
+  // Opened once, so that Recent has a card.
+  await page.goto(`/sheets/${id}`);
+  await expect(heading(page)).toHaveText(`Faded ${mark}`);
+  await page.goto("/collections");
+  await page.waitForLoadState("networkidle");
+  await delay(page, sheetsData, 1500);
+  await mainNav(page)
+    .getByRole("link", { name: "Sheets", exact: true })
+    .click();
+  await expect(bars(page)).toHaveCount(8);
+  await expect(rows(page).filter({ hasText: `Faded ${mark}` })).toHaveCount(1);
+  await expect.poll(async () => (await arrivals(page)).some(isRow)).toBe(true);
+  const faded = await arrivals(page);
+  expect(faded.some((arrival) => arrival.inRecent)).toBe(true);
+  expect(faded.some((arrival) => arrival.tag === "h1")).toBe(false);
+  expect(faded.some((arrival) => arrival.inSearch)).toBe(false);
+  expect(faded.every((arrival) => arrival.duration === 150)).toBe(true);
+
+  // A sheet the page hasn't shown yet: the search mounts a new row for it.
+  await createSheet(page, { title: `Later ${mark}` });
+  await clearArrivals(page);
+  await page.getByRole("searchbox", { name: "Search sheets" }).fill(mark);
+  await expect(rows(page).filter({ hasText: `Later ${mark}` })).toHaveCount(1);
+  await expect(rows(page)).toHaveCount(2);
+  await wait(300);
+  expect(await arrivals(page)).toEqual([]);
+});
+
+// Scenario "Back to Sheets": only Recent's cards fade, the list stays.
+test("fades only Recent's cards in on a slow step back to Sheets", async ({
+  page,
+}) => {
+  const title = `Back fade ${newMark()}`;
+  await createSheet(page, { title });
+  await recordArrivals(page);
+  await page.goto("/sheets");
+  await page.waitForLoadState("networkidle");
+  const row = rows(page).filter({ hasText: title });
+  await row.scrollIntoViewIfNeeded();
+  await row.click();
+  await expect(heading(page)).toHaveText(title);
+  await clearArrivals(page);
+  await delay(page, /\.data/, 1500);
+  await page.getByRole("link", { name: "Back" }).click();
+  await expect(page.locator("main .recent-sheets-skeleton")).toHaveCount(4);
+  await expect(page.locator("main .recent-sheets-skeleton")).toHaveCount(0);
+  await expect
+    .poll(async () => (await arrivals(page)).some((a) => a.inRecent))
+    .toBe(true);
+  expect((await arrivals(page)).some(isRow)).toBe(false);
+});
+
+// Scenario "A slow collection": the rows fade, the name and count the rail
+// knew stay. With reduced motion the fade ends at once.
+for (const reducedMotion of ["no-preference", "reduce"] as const) {
+  const how = reducedMotion === "reduce" ? " with reduced motion" : "";
+  test(`fades a slow collection's rows in, not its name and count${how}`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion });
+    const mark = newMark();
+    const name = `Fading ${mark}`;
+    await collectionWith(page, name, [`One ${mark}`, `Two ${mark}`]);
+    await recordArrivals(page);
+    await startOnCollections(page);
+    await delay(page, collectionData, 1500);
+    await openCollection(page, name);
+    await expect(bars(page)).toHaveCount(2);
+    await expect(rows(page)).toHaveCount(2);
+    await expect
+      .poll(async () => (await arrivals(page)).filter(isRow).length)
+      .toBe(2);
+    const faded = await arrivals(page);
+    expect(faded.some((arrival) => arrival.text.includes(name))).toBe(false);
+    expect(faded.some((arrival) => arrival.text === "2 sheets")).toBe(false);
+    expect(faded.map((arrival) => arrival.duration)).toEqual(
+      faded.map(() => (reducedMotion === "reduce" ? 0 : 150)),
+    );
+  });
+}
+
+const songContent = {
+  format: "chordsheet",
+  version: 1,
+  sections: [
+    {
+      label: "Verse",
+      lines: [{ text: "Amazing grace", chords: [{ at: 0, root: "G" }] }],
+    },
+  ],
+};
+
+const sheetData = /\/sheets\/[^/]+\.data/;
+const sheetFaded = (arrivals: Arrival[]) => ({
+  title: arrivals.some((arrival) => arrival.tag === "h1"),
+  chips: arrivals.some((arrival) => arrival.classes.includes("play-chips")),
+  lines: arrivals.some((arrival) => arrival.child.includes("sheet-view")),
+});
+
+// Scenario "A sheet from a row": the title and artist from the row stay,
+// the chips and lines fade in.
+test("fades a slow sheet's chips and lines in, not the row's title", async ({
+  page,
+}) => {
+  const title = `Sheet fade ${newMark()}`;
+  await createSheet(page, { title, artist: "Someone", content: songContent });
+  await recordArrivals(page);
+  await page.goto(`/sheets?q=${encodeURIComponent(title)}`);
+  await expect(rows(page)).toHaveCount(1);
+  await delay(page, sheetData, 1500);
+  await rows(page).click();
+  await expect(
+    page.locator(".play-heading .skeleton-bar").first(),
+  ).toBeVisible();
+  await expect(page.locator(".sheet-view-line").first()).toBeVisible();
+  await expect
+    .poll(async () => sheetFaded(await arrivals(page)).lines)
+    .toBe(true);
+  expect(sheetFaded(await arrivals(page))).toEqual({
+    title: false,
+    chips: true,
+    lines: true,
+  });
+  expect(
+    (await arrivals(page)).some((arrival) => arrival.text === "Someone"),
+  ).toBe(false);
+});
+
+// A sheet without the row it was opened from: its title was a bar too.
+// Loaded fresh, the sheet's history entry has no row. Back pushes Sheets,
+// so a step back to the sheet shows the skeleton without one.
+test("fades a slow sheet's title in when it was a bar", async ({ page }) => {
+  const title = `Sheet bar ${newMark()}`;
+  const id = await createSheet(page, { title, content: songContent });
+  await recordArrivals(page);
+  await page.goto(`/sheets/${id}`);
+  await page.getByRole("link", { name: "Back" }).click();
+  await expect(page).toHaveURL(/\/sheets$/);
+  await page.waitForLoadState("networkidle");
+  await delay(page, sheetData, 1500);
+  await page.goBack();
+  await expect(page.locator(".play-heading h1 .skeleton-bar")).toBeVisible();
+  await expect(heading(page)).toHaveText(title);
+  await expect
+    .poll(async () => sheetFaded(await arrivals(page)).title)
+    .toBe(true);
+  expect(sheetFaded(await arrivals(page)).lines).toBe(true);
+});
+
+const inDialog = (arrival: Arrival, tag: string) => arrival.tag === tag;
+
+// Scenario "A slow list" (dialogs): seen bars give way to collections that
+// fade in.
+test("fades Choose collections' list in where its bars were", async ({
+  page,
+}) => {
+  const held = await hold(page, chooseData);
+  await recordArrivals(page);
+  const { list, pick } = await chooseFromRow(page);
+  await pick();
+  await expect.poll(async () => (await barsLog(page)).shown).toBeDefined();
+  held.release();
+  await expect(list.getByRole("checkbox").first()).toBeVisible();
+  await expect
+    .poll(async () =>
+      (await arrivals(page)).some((arrival) => inDialog(arrival, "label")),
+    )
+    .toBe(true);
+});
+
+// Scenario "A quick list" (dialogs): no bars, so no fade either.
+test(
+  "shows a quick Choose collections list without a fade",
+  { tag: "@timing" },
+  async ({ page }) => {
+    await recordArrivals(page);
+    await openChooseCollectionsAgain(page, () => clearArrivals(page));
+    await wait(300);
+    expect(
+      (await arrivals(page)).some((arrival) => inDialog(arrival, "label")),
+    ).toBe(false);
+  },
+);
+
+// Add sheets: its rows fade in where its bars were, and a search after
+// shows its results at once.
+test("fades Add sheets' rows in once, not a search's results", async ({
+  page,
+}) => {
+  const mark = newMark();
+  const name = `Adding ${mark}`;
+  await collectionWith(page, name, []);
+  await createSheet(page, { title: `Addable ${mark}` });
+  await recordArrivals(page);
+  await startOnCollections(page);
+  await openCollection(page, name);
+  await expect(heading(page)).toHaveText(name);
+  const held = await hold(page, sheetsData);
+  await page.getByRole("button", { name: "Add sheets" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog
+      .locator(".add-sheets-list:not(.skeleton-waiting) .skeleton-bar")
+      .first(),
+  ).toBeVisible();
+  held.release();
+  await expect(dialog.getByRole("checkbox").first()).toBeVisible();
+  await expect
+    .poll(async () =>
+      (await arrivals(page)).some((arrival) => inDialog(arrival, "li")),
+    )
+    .toBe(true);
+
+  // A sheet the list hasn't shown yet: the search mounts a new row for it.
+  await createSheet(page, { title: `Addable later ${mark}` });
+  await clearArrivals(page);
+  await dialog.getByRole("searchbox", { name: "Search sheets" }).fill(mark);
+  await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+  await wait(300);
+  expect(await arrivals(page)).toEqual([]);
 });
