@@ -11,6 +11,7 @@
   | `page-moves`: "raises a sheet from its row, and drops it on Back" | The title moves into Recent only if the fresh list comes within 150ms | Yes. The sheet is in Recent before the first visit |
   | `page-moves`: "drops a sheet onto the fresh list when it comes quickly" | Same, and Recent must show the sheet just opened | No. An answer from before the sheet was opened lacks it |
   | `page-moves`: "raises a sheet whose code is slow to load" | 80ms + 80ms of slowed code must still fit before the bar at 200ms | No. The slowed code is what it checks |
+  | `page-moves`: "drops back to the list from a sheet opened from a link" | After a fresh page load, the list's code must load and the move start before the bar at 200ms | No. What is slow is the code |
   | `loading`: "shows no bars for a quick page", with and without a move | The collection's data within 150ms | Yes, on a second visit |
   | `loading`: "shows no bars when the collections come quickly" | The dialog's list within 200ms | Yes, on a second opening |
 
@@ -18,7 +19,7 @@
 
 **Non-Goals:**
 - Changing `HEAD_START`, `SLOW_WAIT` or anything else in the app.
-- The seven tests #180 lists as failing only under load. They passed in two full runs here. `failOnFlakyTests` names any that still fail.
+- The seven tests #180 lists as failing only under load. They passed in two full runs here. `failOnFlakyTests` names any that still fail. One did on this PR's second CI run: the last step of "drops back into the list where it was scrolled", a Back link on a freshly loaded sheet. That step is now a test of its own in the table above. The step back through history stays in the parallel run.
 - Replacing the slow `delay()` calls of 1 second or more. They only make data late.
 
 ## Decisions
@@ -56,6 +57,6 @@ Alternative: open `/design` once in a global setup, in case Vite was still prepa
 ## Risks / Trade-offs
 
 - [Playwright skips dependent projects when a test in a project they depend on fails] → The tagged tests then don't run. The run has failed already, and they run once it is fixed.
-- [A run takes longer, as the tagged tests run one at a time] → 6 tests on 2 devices, a few seconds each.
+- [A run takes longer, as the tagged tests run one at a time] → 7 tests on 2 devices, a few seconds each.
 - [React Router may add a different `_routes` to the Back's `.data` request than to the first visit's, so `answerAtOnce()` wouldn't find it] → Check the addresses when writing the test. If they differ, match on the path without `_routes`.
 - [A tagged test can still miss on a slow CI machine running alone] → `failOnFlakyTests` names it. The next step would then be a hook in the app, as a new issue.

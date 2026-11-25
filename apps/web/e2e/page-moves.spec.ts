@@ -415,7 +415,7 @@ test("opens a sheet without looking up its route", async ({ page }) => {
   expect(asked).toEqual([`/sheets/${id}.data`]);
 });
 
-// Scenario "Back to a search", and Back from a sheet opened from a link.
+// Scenario "Back to a search".
 test("drops back into the list where it was scrolled", async ({ page }) => {
   const mark = newMark();
   for (let i = 0; i < 25; i++) {
@@ -424,10 +424,6 @@ test("drops back into the list where it was scrolled", async ({ page }) => {
       content,
     });
   }
-  const fromLink = await createSheet(page, {
-    title: `Linked ${mark}`,
-    content,
-  });
   await recordMoves(page);
   await page.goto(`/sheets?q=${mark}`);
   await page.waitForLoadState("networkidle");
@@ -445,12 +441,29 @@ test("drops back into the list where it was scrolled", async ({ page }) => {
   const drop = await lastMove(page, 2);
   expect(kindOf(drop)).toBe("drop");
   expect(drop.scrollY).toBe(scrolled);
-
-  await page.goto(`/sheets/${fromLink}`);
-  await page.getByRole("link", { name: "Back" }).click();
-  await expect(page).toHaveURL(/\/sheets$/);
-  expect(kindOf(await lastMove(page, 1))).toBe("drop");
 });
+
+// Back from a sheet opened from a link. The page was loaded fresh, so the
+// list's code loads before its loader runs, and the move must still start
+// before the loading bar shows. The list was opened once before, so its code
+// comes from the browser's cache, as for someone who used the app.
+test(
+  "drops back to the list from a sheet opened from a link",
+  { tag: "@timing" },
+  async ({ page }) => {
+    const id = await createSheet(page, {
+      title: `Linked ${newMark()}`,
+      content,
+    });
+    await recordMoves(page);
+    await page.goto("/sheets");
+    await page.waitForLoadState("networkidle");
+    await page.goto(`/sheets/${id}`);
+    await page.getByRole("link", { name: "Back" }).click();
+    await expect(page).toHaveURL(/\/sheets$/);
+    expect(kindOf(await lastMove(page, 1))).toBe("drop");
+  },
+);
 
 // Scenario "Back to a slow list": after a change, a step back loads the
 // list as on any other move, though the address has already changed when

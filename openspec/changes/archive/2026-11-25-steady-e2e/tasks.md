@@ -8,7 +8,7 @@
 ## 2. Tests that need data in time
 
 - [x] 2.1 In `playwright.config.ts`, add `timing-chromium` and `timing-phone` (one worker each, run only `@timing`, chained after `chromium` and `phone`), and `grepInvert: /@timing/` on `chromium` and `phone`. Verify with `--list` that each tagged test is listed only under the timing projects, and in a run that they start after the others.
-- [x] 2.2 Tag the six tests in design.md's table `@timing`. Verify `--list --grep @timing` shows the six on each device.
+- [x] 2.2 Tag the tests in design.md's table `@timing`. Verify `--list --grep @timing` shows them on each device.
 - [x] 2.3 Answer from memory after a first visit in the Back test, the two quick-page tests and the quick-collections test, as design.md describes. Check that the step's `.data` address matches the first visit's. Verify that `fromMemory()` is at least 1 in each, and that the tests pass.
 
 ## 3. Flaky tests fail CI
