@@ -8,11 +8,12 @@ import { useFetcher } from "react-router";
 import type { loader as libraryLoader } from "../routes/sheets";
 import { isSearch, LIST_ONLY } from "../sheets/search";
 import { SEARCH_PAUSE } from "../sheets/search-field";
+import { Arrives, Arriving } from "../ui/arriving";
 import { Button } from "../ui/button";
 import { closeAfterExit, exitOnEscape } from "../ui/exit";
 import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
-import { Bar, useSkeleton } from "../ui/skeleton";
+import { Bar, useBarsSeen, useSkeleton } from "../ui/skeleton";
 
 // "Add sheets" on a collection's page: the person's sheets with a tick box
 // each, found with the library's own loader, so the list and the search are
@@ -132,6 +133,8 @@ function AddSheetsContent({
   // quick list shows without them, and held a moment once seen (see
   // useSkeleton). A later search keeps the list it shows while it loads.
   const skeleton = useSkeleton(!sheets.data);
+  // Once seen, the bars give way to rows that fade in.
+  const arrived = useBarsSeen(skeleton) && skeleton === "none";
   const loaded = skeleton === "none" ? sheets.data : undefined;
   const list = loaded && "sheets" in loaded ? loaded.sheets : [];
   const busy = adding.state !== "idle";
@@ -201,36 +204,42 @@ function AddSheetsContent({
               </div>
             </li>
           ))}
-        {list.map((sheet) => {
-          const held = holds.has(sheet.id);
-          return (
-            <li key={sheet.id}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={held || picked.has(sheet.id)}
-                  disabled={held || busy}
-                  onChange={(event) => {
-                    const next = new Set(picked);
-                    if (event.target.checked) next.add(sheet.id);
-                    else next.delete(sheet.id);
-                    setPicked(next);
-                  }}
-                />
-                <span className="add-sheets-text">
-                  <span className="add-sheets-title">{sheet.title}</span>
-                  {(sheet.artist ?? held) && (
-                    <span className="add-sheets-details">
-                      {[sheet.artist, held && "In this collection"]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  )}
-                </span>
-              </label>
-            </li>
-          );
-        })}
+        <Arriving arrived={arrived}>
+          {list.map((sheet) => {
+            const held = holds.has(sheet.id);
+            return (
+              <Arrives key={sheet.id}>
+                {(arrives) => (
+                  <li {...arrives}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={held || picked.has(sheet.id)}
+                        disabled={held || busy}
+                        onChange={(event) => {
+                          const next = new Set(picked);
+                          if (event.target.checked) next.add(sheet.id);
+                          else next.delete(sheet.id);
+                          setPicked(next);
+                        }}
+                      />
+                      <span className="add-sheets-text">
+                        <span className="add-sheets-title">{sheet.title}</span>
+                        {(sheet.artist ?? held) && (
+                          <span className="add-sheets-details">
+                            {[sheet.artist, held && "In this collection"]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  </li>
+                )}
+              </Arrives>
+            );
+          })}
+        </Arriving>
       </ul>
       {sheets.state === "idle" && loaded && list.length === 0 && (
         <p className="add-sheets-none">

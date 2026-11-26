@@ -12,6 +12,7 @@ import {
   useNavigate,
 } from "react-router";
 
+import { Arriving } from "../ui/arriving";
 import { addressOf, type KeptPages, useKeep } from "./kept";
 import {
   browserMovedContext,
@@ -192,6 +193,9 @@ export function backAsLeft<T>(
 //
 // With `kept`, it keeps the data once it is whole, for a step back to the
 // page (shell/kept.ts).
+//
+// Data that replaces the skeleton is arriving (ui/arriving.tsx), so the
+// parts that stood for bars fade in. Whole data shows at once.
 export function PageData<T>({
   data,
   skeleton,
@@ -221,7 +225,7 @@ export function PageData<T>({
       }
     >
       <Await resolve={data} errorElement={<AwaitError />}>
-        {render}
+        {(whole) => <Arriving>{render(whole)}</Arriving>}
       </Await>
     </Suspense>
   );

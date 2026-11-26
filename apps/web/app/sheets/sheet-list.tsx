@@ -9,6 +9,7 @@ import { useSheetCollections } from "../collections/sheet-collections";
 import { spokenKey } from "../editor/key-button";
 import { openedFrom, titleName } from "../shell/page-moves";
 import { TitleMove } from "../shell/title-move";
+import { useArrives } from "../ui/arriving";
 import { Button } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Icon } from "../ui/icon";
@@ -143,7 +144,7 @@ export function SheetList({
           {heading && (
             <h2 className="sheet-list-heading">
               {`${heading} `}
-              <span className="sheet-list-count">{count}</span>
+              <Count count={count} />
             </h2>
           )}
           <Menu
@@ -222,6 +223,11 @@ export function SheetList({
   );
 }
 
+// How many rows the list has, in its heading. It stood for a bar.
+function Count({ count }: { count: number }) {
+  return <span {...useArrives("sheet-list-count")}>{count}</span>;
+}
+
 // The note when a row's change didn't get through, and the row came back.
 export function failureNote(
   title: string,
@@ -294,10 +300,12 @@ function Row({
     if (failedNow) reportFailed.current(answer.intent);
   }, [failedNow, answer]);
 
+  const arrives = useArrives("sheet-list-row");
+
   if (fetcher.state !== "idle" || answer?.ok === true) return null;
 
   return (
-    <li className="sheet-list-row" data-sheet={sheet.id}>
+    <li {...arrives} data-sheet={sheet.id}>
       <Link
         className="library-columns"
         to={`/sheets/${sheet.id}`}

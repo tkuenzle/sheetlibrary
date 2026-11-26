@@ -67,7 +67,7 @@
     /*
       Motion (see docs/motion.md): leaving and small changes; overlays coming
       in; page changes. The curves are Material 3's standard decelerate,
-      accelerate and standard.
+      accelerate and standard, and linear for what only fades.
     */
     --motion-short: 150ms;
     --motion-medium: 200ms;
@@ -75,6 +75,7 @@
     --ease-enter: cubic-bezier(0, 0, 0, 1);
     --ease-exit: cubic-bezier(0.3, 0, 1, 1);
     --ease-move: cubic-bezier(0.2, 0, 0, 1);
+    --ease-linear: linear;
   }
 
   /*

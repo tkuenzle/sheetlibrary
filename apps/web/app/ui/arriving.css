@@ -1,0 +1,17 @@
+@layer components {
+  /* Data that takes the place of bars fades in once, as it mounts
+     (arriving.tsx, docs/motion.md "Rows fade in where the bars were"), as
+     Material 3's fade does: 150ms, linear. A decelerating curve would do
+     half of it in the first frame. It fades only, so it runs off the main
+     thread. With reduced motion the token is 0s: it ends at once, and its
+     animationend still comes. */
+  .arrives {
+    animation: arrive var(--motion-short) var(--ease-linear);
+  }
+
+  @keyframes arrive {
+    from {
+      opacity: 0;
+    }
+  }
+}

@@ -8,7 +8,8 @@ import { Button } from "../ui/button";
 import { closeAfterExit, exitOnEscape } from "../ui/exit";
 import { NameDialog, NameRefused } from "../ui/name-dialog";
 import { Note } from "../ui/note";
-import { Bar, useSkeleton } from "../ui/skeleton";
+import { Arriving, useArrives } from "../ui/arriving";
+import { Bar, useBarsSeen, useSkeleton } from "../ui/skeleton";
 import { COLLECTION_NAME_MAX, type SheetCollection } from "./collections";
 import { collectionFailure, collectionNameText } from "./new-collection";
 import {
@@ -105,6 +106,8 @@ function ChooseCollectionsContent({
   // A quick list shows without bars; slow, the bars stay a moment (see
   // useSkeleton). A failure shows at once.
   const skeleton = useSkeleton(loaded.kind === "loading");
+  // Once seen, the bars give way to collections that fade in.
+  const arrived = useBarsSeen(skeleton) && skeleton === "none";
   const shown: Loaded =
     skeleton !== "none" && loaded.kind !== "failed"
       ? { kind: "loading" }
@@ -116,17 +119,19 @@ function ChooseCollectionsContent({
         <h2 id={titleId}>Choose collections</h2>
         <p>{sheet.title}</p>
       </div>
-      <CollectionChoices
-        sheetId={sheet.id}
-        loaded={shown}
-        waiting={skeleton === "waiting"}
-        onToggle={() => {
-          setFailed(false);
-        }}
-        onFailed={() => {
-          setFailed(true);
-        }}
-      />
+      <Arriving arrived={arrived}>
+        <CollectionChoices
+          sheetId={sheet.id}
+          loaded={shown}
+          waiting={skeleton === "waiting"}
+          onToggle={() => {
+            setFailed(false);
+          }}
+          onFailed={() => {
+            setFailed(true);
+          }}
+        />
+      </Arriving>
       {failed && <Note>The change couldn’t be saved. Try again.</Note>}
       <div className="confirm-actions choose-collections-actions">
         <Button
@@ -302,9 +307,10 @@ function Choice({
   useEffect(() => {
     if (failedNow) reportFailed.current();
   }, [failedNow, answer]);
+  const arrives = useArrives();
 
   return (
-    <label>
+    <label {...arrives}>
       <input
         type="checkbox"
         checked={holds}

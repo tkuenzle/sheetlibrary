@@ -40,6 +40,7 @@ import {
 import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList, SheetListSkeleton } from "../sheets/sheet-list";
 import { deleteSheet } from "../sheets/sheets.server";
+import { useArrives } from "../ui/arriving";
 import { Button, IconButton } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Menu } from "../ui/menu";
@@ -214,7 +215,9 @@ export default function CollectionPage({
       skeleton={<CollectionSkeleton listed={listed} />}
       kept={kept}
     >
-      {(loaded) => <LoadedCollection loaded={loaded} />}
+      {(loaded) => (
+        <LoadedCollection loaded={loaded} nameWasBar={listed === undefined} />
+      )}
     </PageData>
   );
 }
@@ -222,8 +225,10 @@ export default function CollectionPage({
 // The collection once its data is there, or "not found".
 function LoadedCollection({
   loaded,
+  nameWasBar,
 }: {
   loaded: { collection: Collection | null; order?: SheetOrder };
+  nameWasBar: boolean;
 }) {
   const navigate = useNavigate();
   const { revalidate } = useRevalidator();
@@ -232,6 +237,7 @@ function LoadedCollection({
     <CollectionView
       collection={loaded.collection}
       order={loaded.order}
+      nameWasBar={nameWasBar}
       onRenamed={revalidate}
       onDeleted={() => {
         // Deleted with a plain fetch, so the rail is told to drop it
@@ -245,12 +251,16 @@ function LoadedCollection({
 export function CollectionView({
   collection,
   order = "title",
+  nameWasBar = false,
   onRenamed,
   onDeleted,
 }: {
   collection: Collection;
   // The order this device keeps.
   order?: SheetOrder;
+  // Whether the skeleton showed bars for the name and count, without the
+  // rail's entry, so they fade in with the rows (ui/arriving.tsx).
+  nameWasBar?: boolean;
   onRenamed: () => Promise<void>;
   onDeleted: () => void;
 }) {
@@ -261,6 +271,8 @@ export function CollectionView({
     [collection.sheets],
   );
   const count = collection.sheets.length;
+  const nameArrives = useArrives("", nameWasBar);
+  const countArrives = useArrives("", nameWasBar);
 
   // The menu item or the row that opened a dialog may be gone, so the focus
   // goes back to the heading.
@@ -284,10 +296,12 @@ export function CollectionView({
     <div className="library library-with-sheets collection">
       <div className="collection-heading">
         <div className="collection-title">
-          <h1 ref={heading} tabIndex={-1}>
+          <h1 ref={heading} tabIndex={-1} {...nameArrives}>
             {collection.name}
           </h1>
-          <p>{count === 0 ? "No sheets yet" : sheetCount(count)}</p>
+          <p {...countArrives}>
+            {count === 0 ? "No sheets yet" : sheetCount(count)}
+          </p>
         </div>
         {count > 0 && (
           <div className="library-actions library-actions-beside">
