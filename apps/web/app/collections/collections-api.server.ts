@@ -19,7 +19,9 @@ import {
 // the sheets API. The pages' dialogs and the play view's "Add to
 // collection…" use it. See openspec/specs/collections.
 
-const collectionNotFound = () => error(404, "Collection not found");
+const collectionNotFound = () =>
+  error(404, "Collection not found", { code: "not-found" });
+const nameNotValid = () => error(400, "Name is not valid", { code: "invalid" });
 const sheetNotFound = () => error(404, "Sheet not found");
 const noContent = () => new Response(null, { status: 204 });
 
@@ -28,9 +30,9 @@ function collectionAnswer(result: CollectionResult, status = 200): Response {
     case "saved":
       return Response.json(result.collection, { status });
     case "invalid":
-      return error(400, "Name is not valid");
+      return nameNotValid();
     case "taken":
-      return error(409, "Name is already used");
+      return error(409, "Name is already used", { code: "taken" });
     case "not-found":
       return collectionNotFound();
   }
@@ -44,7 +46,7 @@ async function readName(
   if ("response" in body) return body;
   const name = stringField(body.value, "name");
   if (typeof name !== "string") {
-    return { response: error(400, "Name is not valid") };
+    return { response: nameNotValid() };
   }
   return { name };
 }
@@ -84,6 +86,36 @@ export async function handleCollection(
   const body = await readName(request);
   if ("response" in body) return body.response;
   return collectionAnswer(await renameCollection(db, userId, id, body.name));
+}
+
+// /api/collections/:id/sheets: POST adds the sheets in `sheetIds` to the
+// collection, in one write. Sheets it holds already stay. A sheet or a
+// collection that isn't the person's answers "not found", and nothing is
+// added.
+export async function handleCollectionSheets(
+  request: Request,
+  db: D1Database,
+  userId: string | null,
+  id: string,
+): Promise<Response> {
+  if (request.method !== "POST") return notAllowed();
+  if (!userId) return notSignedIn();
+  const body = await readBody(request);
+  if ("response" in body) return body.response;
+  const sheetIds =
+    typeof body.value === "object" && body.value !== null
+      ? (body.value as { sheetIds?: unknown }).sheetIds
+      : undefined;
+  if (
+    !Array.isArray(sheetIds) ||
+    sheetIds.length === 0 ||
+    !sheetIds.every((sheetId) => typeof sheetId === "string")
+  ) {
+    return error(400, "Sheets are not valid", { code: "invalid" });
+  }
+  return (await addSheets(db, userId, id, sheetIds))
+    ? noContent()
+    : collectionNotFound();
 }
 
 // /api/sheets/:id/collections: GET lists the person's collections, each with

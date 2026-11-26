@@ -1,3 +1,4 @@
+import { serverAnswer } from "../changes";
 import { handleSheet } from "../sheets/sheets-api.server";
 import { cloudflareContext, sessionContext } from "../context";
 import type { Route } from "./+types/api.sheet";
@@ -12,3 +13,12 @@ function handle({ request, context, params }: Route.LoaderArgs) {
 
 export const loader = handle;
 export const action = handle;
+
+// Deleting from a row of the sheet list, through a fetcher. A delete that
+// doesn't get through answers `{ ok: false }`, so the row comes back with
+// its note. Autosave and the play view's delete call the API with a plain
+// `fetch`, which doesn't come here. See app/changes.ts.
+export async function clientAction({ serverAction }: Route.ClientActionArgs) {
+  const answer = await serverAnswer(serverAction);
+  return { ok: answer.ok };
+}

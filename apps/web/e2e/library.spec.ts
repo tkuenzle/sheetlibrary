@@ -194,8 +194,8 @@ test("a new account signs in to an empty library and starts a sheet", async ({
   const answered = new Promise<void>((resolve) => {
     answer = resolve;
   });
-  await page.route("**/sheets.data*", async (route) => {
-    if (route.request().method() === "POST") {
+  await page.route("**/api/sheets/*.data", async (route) => {
+    if (route.request().method() === "DELETE") {
       held = true;
       await answered;
     }
@@ -834,7 +834,7 @@ test.describe("the sheet list", () => {
     await expect(menuButton).toBeFocused();
 
     const deleted = page.waitForResponse(
-      (response) => response.request().method() === "POST",
+      (response) => response.request().method() === "DELETE",
     );
     await menuButton.click();
     await page.getByRole("menuitem", { name: "Delete" }).click();

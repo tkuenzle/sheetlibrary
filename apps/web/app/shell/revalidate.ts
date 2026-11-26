@@ -6,11 +6,11 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 // changes it, so they keep it on a plain move, a search included. Offline,
 // a failed move then fails only the new screen, and the frame stays.
 //
-// They load again after a form or a fetcher, after `revalidate()`, and when
-// the same address loads again, as after "Try again". A change made with a
-// plain `fetch`, such as making or deleting a collection, calls
-// `revalidate()` so the rail follows it. A change that didn't get through
-// changed nothing, so nothing loads again (see changedNothing). See
+// They load again after a form or a fetcher, and when the same address
+// loads again, as after "Try again". Every change to the person's data goes
+// through a fetcher or a form (app/changes.ts), so nothing calls
+// `revalidate()` by hand. A change that didn't get through changed nothing,
+// so nothing loads again (see changedNothing). See
 // openspec/specs/site-layout.
 export function revalidateAfterChanges({
   currentUrl,
@@ -26,8 +26,8 @@ export function revalidateAfterChanges({
   return false;
 }
 
-// Whether an action answered that its change didn't get through, as a row
-// of the sheet list does offline (sheets/row-changes.ts). Loading again then
+// Whether an action answered that its change didn't get through, as a
+// fetcher's `clientAction` does offline (app/changes.ts). Loading again then
 // would only fail too, and take the page down with it.
 export function changedNothing(actionResult: unknown): boolean {
   return (
@@ -38,8 +38,8 @@ export function changedNothing(actionResult: unknown): boolean {
   );
 }
 
-// For a page whose action has row changes: it loads again after a change,
-// as React Router does, unless the change didn't get through.
+// For a page with row changes: it loads again after a change, as React
+// Router does, unless the change didn't get through.
 export function revalidateUnlessUnchanged({
   actionResult,
   defaultShouldRevalidate,

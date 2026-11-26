@@ -202,7 +202,7 @@ test("makes a collection, fills it, renames it and deletes it", async ({
   // Removing, from the row's menu, keeps the sheet in the library. The row
   // goes at once, so the reload waits for the server's answer.
   const removed = page.waitForResponse(
-    (response) => response.request().method() === "POST",
+    (response) => response.request().method() === "DELETE",
   );
   await page.getByRole("button", { name: `More for ${stille}` }).click();
   await expect(page.getByRole("menuitem")).toHaveText([
@@ -307,7 +307,7 @@ test("adds a sheet to collections from the play view", async ({
   await expect(box).not.toBeChecked();
   const added = page.waitForResponse(
     (response) =>
-      response.url().endsWith(`/collections/${collectionId}`) &&
+      response.url().endsWith(`/collections/${collectionId}.data`) &&
       response.request().method() === "PUT",
   );
   await box.check();
@@ -381,7 +381,7 @@ for (const mode of ["play", "edit"] as const) {
       mode === "play" ? `/sheets/${sheetId}` : `/sheets/${sheetId}/edit`,
     );
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    const listData = /\/api\/sheets\/[^/]+\/collections$/;
+    const listData = /\/api\/sheets\/[^/]+\/collections\.data(\?|$)/;
     const list = await hold(page, listData);
     const dialog = await openChooseCollections(page);
     await expect(dialog.getByRole("checkbox", { name })).toBeChecked();
@@ -422,6 +422,84 @@ test("keeps the sheet when a tick can't be saved offline", async ({
   await expect(dialog).toContainText("The change couldn’t be saved.");
   await expect(dialog.getByRole("checkbox", { name })).toBeChecked();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  await context.setOffline(false);
+});
+
+// "Errors stay inside the frame" (site-layout): offline, a rename keeps the
+// dialog open with its note, and the collection's page stays.
+test("keeps the collection's page when a rename can't be saved offline", async ({
+  page,
+  context,
+}) => {
+  const mark = newMark();
+  const name = `Christmas ${mark}`;
+  const id = await createCollection(page, name);
+  await page.goto(`/collections/${id}`);
+  await expect(heading(page)).toHaveText(name);
+  await page.waitForLoadState("networkidle");
+  await context.setOffline(true);
+  await openMenuItem(page, "Rename");
+  const rename = nameDialog(page, "Rename collection");
+  await rename.getByLabel("Name").fill(`Weihnachten ${mark}`);
+  await rename.getByRole("button", { name: "Save" }).click();
+  await expect(rename).toContainText(
+    "The collection couldn’t be saved. Try again.",
+  );
+  await expect(rename).toBeVisible();
+  await expect(heading(page)).toHaveText(name);
+  await context.setOffline(false);
+});
+
+// Scenario "Deleting offline" (sheet-list), for "Remove from …": the row
+// comes back with its note, and the list stays.
+test("brings the row back when removing doesn't get through", async ({
+  page,
+  context,
+}) => {
+  const mark = newMark();
+  const title = `Stille Nacht ${mark}`;
+  const sheetId = await createSheet(page, { title, content });
+  const name = `Christmas ${mark}`;
+  const id = await createCollection(page, name);
+  await addToCollection(page, sheetId, id);
+  await page.goto(`/collections/${id}`);
+  await expect(heading(page)).toHaveText(name);
+  await page.waitForLoadState("networkidle");
+  await context.setOffline(true);
+  await page.getByRole("button", { name: `More for ${title}` }).click();
+  await page.getByRole("menuitem", { name: `Remove from ${name}` }).click();
+  await expect(page.locator(".sheet-list-status")).toHaveText(
+    `“${title}” couldn’t be removed from ${name}. Try again.`,
+  );
+  await expect(main(page).locator(".library-title")).toHaveText([title]);
+  await expect(heading(page)).toHaveText(name);
+  await context.setOffline(false);
+});
+
+// "Errors stay inside the frame" (site-layout): "Add sheets" that can't be
+// saved offline keeps the dialog open with its note.
+test("keeps Add sheets open when adding can't be saved offline", async ({
+  page,
+  context,
+}) => {
+  const mark = newMark();
+  const title = `Stille Nacht ${mark}`;
+  await createSheet(page, { title, content });
+  const name = `Christmas ${mark}`;
+  const id = await createCollection(page, name);
+  await page.goto(`/collections/${id}`);
+  await page.getByRole("button", { name: "Add sheets" }).click();
+  const picker = page.getByRole("dialog", { name: `Add sheets to “${name}”` });
+  await picker.getByRole("searchbox", { name: "Search sheets" }).fill(mark);
+  await picker.getByRole("checkbox", { name: title }).check();
+  await page.waitForLoadState("networkidle");
+  await context.setOffline(true);
+  await picker.getByRole("button", { name: "Add 1 sheet" }).click();
+  await expect(picker).toContainText(
+    "The sheets couldn’t be added. Try again.",
+  );
+  await expect(picker).toBeVisible();
+  await expect(heading(page)).toHaveText(name);
   await context.setOffline(false);
 });
 
@@ -466,7 +544,7 @@ test("adds a sheet to a collection from its row on Sheets", async ({
   await expect(dialog).toContainText(title);
   const added = page.waitForResponse(
     (response) =>
-      response.url().endsWith(`/collections/${collectionId}`) &&
+      response.url().endsWith(`/collections/${collectionId}.data`) &&
       response.request().method() === "PUT",
   );
   await dialog.getByRole("checkbox", { name }).check();

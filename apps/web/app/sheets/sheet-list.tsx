@@ -2,11 +2,17 @@ import "../ui/group-list.css";
 import "./sheet-list.css";
 
 import { Fragment, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Link, useFetcher, useFetchers } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
-import { useSheetCollections } from "../collections/sheet-collections";
+import {
+  isSheetCollectionsPath,
+  sheetCollectionPath,
+  useSheetCollections,
+} from "../collections/sheet-collections";
 import { spokenKey } from "../editor/key-button";
+import { useRouteCode } from "../route-code";
 import { openedFrom, titleName } from "../shell/page-moves";
 import { TitleMove } from "../shell/title-move";
 import { useArrives } from "../ui/arriving";
@@ -44,12 +50,20 @@ export interface ListSheet extends ListedSheet {
   line?: TextPart[];
 }
 
-// What a row's change answers: the page's action (`intent` "delete" or
-// "remove") or, when the server can't be reached, its `clientAction`.
+// What a row's change answers: the `clientAction` of the API route it went
+// to, `{ ok: false }` when it didn't get through (app/changes.ts).
 export interface RowAnswer {
   ok: boolean;
-  intent?: string;
 }
+
+// The routes a row's changes go to: "Delete" to the sheet's, and "Remove
+// from …" to the sheet's place in the collection, the same change as
+// unticking it in "Choose collections…". Their code loads with the list
+// (app/route-code.ts).
+const ROW_ROUTES = ["routes/api.sheet", "routes/api.sheet-collection"];
+
+// What a row sent, for its note when it doesn't get through.
+type RowChange = "delete" | "remove";
 
 // A row's change and the confirm dialog share the row's fetcher by its key,
 // so the row knows when it goes, and when it comes back. A "Recent" card
@@ -96,6 +110,7 @@ export function SheetList({
   const deleter = useFetcher<RowAnswer>({
     key: rowKey(dialog?.sheet.id ?? ""),
   });
+  const ready = useRouteCode(ROW_ROUTES);
 
   const shown = sorted ? sortSheets(sheets, order) : sheets;
   // A row whose change is under way is gone already, so it isn't counted.
@@ -113,8 +128,8 @@ export function SheetList({
     else onGone();
   }
 
-  function failed(sheet: ListSheet, intent: string | undefined) {
-    setNote(failureNote(sheet.title, intent, collection));
+  function failed(sheet: ListSheet, change: RowChange) {
+    setNote(failureNote(sheet.title, change, collection));
   }
 
   function menuItems(sheet: ListSheet, remove: () => void): MenuItem[] {
@@ -175,12 +190,16 @@ export function SheetList({
             key={sheet.id}
             sheet={sheet}
             menuItems={(remove) => menuItems(sheet, remove)}
+            removeAction={
+              collection && sheetCollectionPath(sheet.id, collection.id)
+            }
+            ready={ready}
             onRemove={() => {
               setNote(undefined);
               onGone();
             }}
-            onFailed={(intent) => {
-              failed(sheet, intent);
+            onFailed={(change) => {
+              failed(sheet, change);
             }}
           />
         ))}
@@ -192,16 +211,32 @@ export function SheetList({
         confirm="Delete"
         failure="The sheet couldn’t be deleted. Try again."
         onConfirm={() => {
-          if (dialog) {
-            setNote(undefined);
-            void deleter.submit(
-              { intent: "delete", sheetId: dialog.sheet.id },
-              { method: "post" },
-            );
-          }
-          // Closing the dialog moves the focus to the heading below.
-          setDialog(undefined);
-          return Promise.resolve();
+          // Once the route's code is there, the row goes. The dialog closes
+          // at once and the focus moves to the heading here, not on its
+          // close event: the last sheet's delete can swap the list for the
+          // empty state before that event comes.
+          const sheet = dialog?.sheet;
+          if (!sheet) return Promise.resolve();
+          setNote(undefined);
+          const leave = () => {
+            flushSync(() => {
+              setDialog(undefined);
+            });
+            onGone();
+          };
+          return ready().then(
+            () => {
+              void deleter.submit(null, {
+                method: "delete",
+                action: `/api/sheets/${sheet.id}`,
+              });
+              leave();
+            },
+            () => {
+              failed(sheet, "delete");
+              leave();
+            },
+          );
         }}
         onClose={() => {
           const sheet = dialog?.sheet;
@@ -231,10 +266,10 @@ function Count({ count }: { count: number }) {
 // The note when a row's change didn't get through, and the row came back.
 export function failureNote(
   title: string,
-  intent: string | undefined,
+  change: RowChange,
   collection?: { name: string },
 ): string {
-  return intent === "remove" && collection
+  return change === "remove" && collection
     ? `“${title}” couldn’t be removed from ${collection.name}. Try again.`
     : `“${title}” couldn’t be deleted. Try again.`;
 }
@@ -278,15 +313,32 @@ export function rowMenuItems({
 function Row({
   sheet,
   menuItems,
+  removeAction,
+  ready,
   onRemove,
   onFailed,
 }: {
   sheet: ListSheet;
   menuItems: (remove: () => void) => MenuItem[];
+  // Where "Remove from …" goes, in a collection.
+  removeAction?: string;
+  // Settles once the code of the routes the row's changes go to is there.
+  ready: () => Promise<unknown>;
   onRemove: () => void;
-  onFailed: (intent: string | undefined) => void;
+  onFailed: (change: RowChange) => void;
 }) {
   const fetcher = useFetcher<RowAnswer>({ key: rowKey(sheet.id) });
+  // Which change the row sent, read from where its fetcher went while it
+  // was on its way. The list's delete dialog shares the row's fetcher.
+  const sent = useRef<RowChange>("delete");
+  const busy = fetcher.state !== "idle";
+  useEffect(() => {
+    if (busy) {
+      sent.current = isSheetCollectionsPath(fetcher.formAction)
+        ? "remove"
+        : "delete";
+    }
+  }, [busy, fetcher.formAction]);
   // "Choose collections…" reads them: they start loading when the menu
   // opens, so the dialog often opens with them.
   const collections = useSheetCollections(sheet.id);
@@ -297,12 +349,12 @@ function Row({
     reportFailed.current = onFailed;
   });
   useEffect(() => {
-    if (failedNow) reportFailed.current(answer.intent);
+    if (failedNow) reportFailed.current(sent.current);
   }, [failedNow, answer]);
 
   const arrives = useArrives("sheet-list-row");
 
-  if (fetcher.state !== "idle" || answer?.ok === true) return null;
+  if (busy || answer?.ok === true) return null;
 
   return (
     <li {...arrives} data-sheet={sheet.id}>
@@ -347,11 +399,21 @@ function Row({
         label={`More for ${sheet.title}`}
         onOpen={collections.load}
         items={menuItems(() => {
-          void fetcher.submit(
-            { intent: "remove", sheetId: sheet.id },
-            { method: "post" },
+          if (removeAction === undefined) return;
+          // The row goes, then the focus moves on, once the route's code is
+          // there.
+          ready().then(
+            () => {
+              void fetcher.submit(null, {
+                method: "delete",
+                action: removeAction,
+              });
+              onRemove();
+            },
+            () => {
+              reportFailed.current("remove");
+            },
           );
-          onRemove();
         })}
       />
     </li>

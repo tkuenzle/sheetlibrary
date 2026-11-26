@@ -5,6 +5,7 @@ import "./add-sheets-dialog.css";
 import { useEffect, useId, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 
+import { useRouteCode } from "../route-code";
 import type { loader as libraryLoader } from "../routes/sheets";
 import { isSearch, LIST_ONLY } from "../sheets/search";
 import { SEARCH_PAUSE } from "../sheets/search-field";
@@ -18,7 +19,8 @@ import { Bar, useBarsSeen, useSkeleton } from "../ui/skeleton";
 // "Add sheets" on a collection's page: the person's sheets with a tick box
 // each, found with the library's own loader, so the list and the search are
 // the library's. Sheets already in the collection show ticked and can't be
-// unticked. "Add 2 sheets" posts the ticked ones to the page's action. See
+// unticked. "Add 2 sheets" posts the ticked ones to the collection's API
+// route (routes/api.collection-sheets.ts). See
 // openspec/specs/collection-page.
 export function AddSheetsDialog({
   open,
@@ -81,6 +83,9 @@ export function addLabel(count: number): string {
   return count === 1 ? "Add 1 sheet" : `Add ${String(count)} sheets`;
 }
 
+// The route "Add 2 sheets" goes to.
+const ADD_ROUTES = ["routes/api.collection-sheets"];
+
 function AddSheetsContent({
   titleId,
   collection,
@@ -94,6 +99,9 @@ function AddSheetsContent({
 }) {
   const sheets = useFetcher<typeof libraryLoader>();
   const adding = useFetcher<{ ok: boolean }>();
+  const ready = useRouteCode(ADD_ROUTES);
+  // The route's code couldn't load, so the sheets weren't added.
+  const [unreachable, setUnreachable] = useState(false);
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   const field = useRef<HTMLInputElement>(null);
@@ -138,16 +146,26 @@ function AddSheetsContent({
   const loaded = skeleton === "none" ? sheets.data : undefined;
   const list = loaded && "sheets" in loaded ? loaded.sheets : [];
   const busy = adding.state !== "idle";
-  const failed = adding.state === "idle" && adding.data?.ok === false;
+  const failed = !busy && (unreachable || adding.data?.ok === false);
 
+  // Adds the ticked sheets through the collection's API route, as JSON, in
+  // one write. The page and the rail load again by themselves.
   function add() {
-    const form = new FormData();
-    form.set("intent", "add");
-    for (const id of picked) form.append("sheetId", id);
-    void adding.submit(form, {
-      method: "post",
-      action: `/collections/${collection.id}`,
-    });
+    setUnreachable(false);
+    ready().then(
+      () =>
+        adding.submit(
+          { sheetIds: [...picked] },
+          {
+            method: "post",
+            action: `/api/collections/${collection.id}/sheets`,
+            encType: "application/json",
+          },
+        ),
+      () => {
+        setUnreachable(true);
+      },
+    );
   }
 
   return (

@@ -4,20 +4,24 @@ import "./choose-collections-dialog.css";
 import { useEffect, useId, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 
+import type { ChangeAnswer } from "../changes";
+import { useRouteCode } from "../route-code";
 import { Button } from "../ui/button";
 import { closeAfterExit, exitOnEscape } from "../ui/exit";
-import { NameDialog, NameRefused } from "../ui/name-dialog";
+import { NameDialog } from "../ui/name-dialog";
 import { Note } from "../ui/note";
 import { Arriving, useArrives } from "../ui/arriving";
 import { Bar, useBarsSeen, useSkeleton } from "../ui/skeleton";
 import { COLLECTION_NAME_MAX, type SheetCollection } from "./collections";
-import { collectionFailure, collectionNameText } from "./new-collection";
 import {
-  type ChangeAnswer,
+  collectionFailure,
+  collectionNameText,
+  useNewCollection,
+} from "./new-collection";
+import {
+  COLLECTIONS_ROUTES,
   sheetCollectionPath,
-  sheetCollectionsPath,
   type SheetCollectionsState,
-  useCollectionsRoutes,
   useSheetCollections,
 } from "./sheet-collections";
 
@@ -165,41 +169,6 @@ function ChooseCollectionsContent({
   );
 }
 
-// "New collection" through a fetcher. The promise settles with the
-// fetcher's answer: it throws NameRefused for a name already used, so the
-// naming dialog shows that note, and an Error when the change didn't get
-// through.
-function useNewCollection(sheetId: string): (name: string) => Promise<void> {
-  const fetcher = useFetcher<ChangeAnswer>({
-    key: `new-collection:${sheetId}`,
-  });
-  const ready = useCollectionsRoutes();
-  const waiting = useRef<{
-    resolve: () => void;
-    reject: (error: Error) => void;
-  }>(undefined);
-  const answer = fetcher.state === "idle" ? fetcher.data : undefined;
-  useEffect(() => {
-    const save = waiting.current;
-    if (!answer || !save) return;
-    waiting.current = undefined;
-    if (answer.ok) save.resolve();
-    else if (answer.refused) save.reject(new NameRefused(answer.refused));
-    else save.reject(new Error("The collection wasn’t saved"));
-  }, [answer]);
-  return (name) =>
-    ready().then(
-      () =>
-        new Promise<void>((resolve, reject) => {
-          waiting.current = { resolve, reject };
-          void fetcher.submit(
-            { name },
-            { method: "post", action: sheetCollectionsPath(sheetId) },
-          );
-        }),
-    );
-}
-
 // Widths in `em` of the bars for the names while the collections load.
 const SKELETON_WIDTHS = [6, 8, 10, 7, 5];
 
@@ -290,7 +259,7 @@ function Choice({
   const fetcher = useFetcher<ChangeAnswer>({
     key: `tick:${sheetId}:${collection.id}`,
   });
-  const ready = useCollectionsRoutes();
+  const ready = useRouteCode(COLLECTIONS_ROUTES);
   const [asked, setAsked] = useState<boolean>();
   const busy = fetcher.state !== "idle";
   useEffect(() => {

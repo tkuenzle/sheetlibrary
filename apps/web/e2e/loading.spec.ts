@@ -354,7 +354,7 @@ async function clearLog(page: Page, name: "barsLog" | "pageBarsLog") {
   }, name);
 }
 
-const chooseData = /\/api\/sheets\/[^/]+\/collections$/;
+const chooseData = /\/api\/sheets\/[^/]+\/collections\.data(\?|$)/;
 
 // A sheet on Sheets with a collection to choose, and a way to open Choose
 // collections from its row.

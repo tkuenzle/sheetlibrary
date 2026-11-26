@@ -6,8 +6,6 @@ import {
   data,
   redirect,
   type ShouldRevalidateFunctionArgs,
-  useNavigate,
-  useRevalidator,
 } from "react-router";
 
 import { AddSheetsDialog } from "../collections/add-sheets-dialog";
@@ -17,29 +15,22 @@ import {
   sheetCount,
 } from "../collections/collections";
 import {
-  deleteCollection,
-  renameCollection,
-} from "../collections/collections-client";
-import {
-  addSheets,
   type Collection,
   readCollection,
-  removeSheet,
 } from "../collections/collections.server";
 import {
   collectionFailure,
   collectionNameText,
 } from "../collections/new-collection";
 import { cloudflareContext, sessionContext } from "../context";
+import { useFetcherSave } from "../fetcher-save";
 import { NotFound } from "../sheets/not-found";
 import {
   keptSheetOrder,
   readSheetOrder,
   type SheetOrder,
 } from "../sheets/order";
-import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList, SheetListSkeleton } from "../sheets/sheet-list";
-import { deleteSheet } from "../sheets/sheets.server";
 import { useArrives } from "../ui/arriving";
 import { Button, IconButton } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
@@ -63,6 +54,9 @@ import { shellRouteId, useShellCollections } from "./shell";
 // row menus add "Remove from …", "Add sheets", and the collection's menu with
 // "Rename" and "Delete". It sits in the shell (routes/shell.tsx). See
 // openspec/specs/collection-page and openspec/specs/sheet-list.
+
+// The route renaming and deleting go to (routes/api.collection.ts).
+const COLLECTION_ROUTES = ["routes/api.collection"];
 
 // The most rows of bars while the sheets load: about a screenful.
 const SKELETON_ROWS = 8;
@@ -114,39 +108,6 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     : data({ collection: null }, { status: 404 });
 }
 
-// Takes a sheet out ("remove"), adds the ticked ones ("add"), or deletes a
-// sheet from its row ("delete"). A form on another site can't get here
-// signed in, since the session cookie is SameSite=Lax.
-export async function action({ context, params, request }: Route.ActionArgs) {
-  const session = context.get(sessionContext);
-  if (!session) return redirect("/sign-in");
-  const { env } = context.get(cloudflareContext);
-  const form = await request.formData();
-  const userId = session.user.id;
-  const sheetIds = form.getAll("sheetId").map(String);
-  let ok: boolean;
-  switch (form.get("intent")) {
-    case "remove":
-      return rowAnswer(
-        "remove",
-        await removeSheet(env.DB, userId, params.id, sheetIds[0] ?? ""),
-      );
-    case "delete":
-      return rowAnswer(
-        "delete",
-        await deleteSheet(env.DB, userId, sheetIds[0] ?? ""),
-      );
-    case "add":
-      ok =
-        sheetIds.length > 0 &&
-        (await addSheets(env.DB, userId, params.id, sheetIds));
-      break;
-    default:
-      return data({ ok: false }, { status: 400 });
-  }
-  return ok ? { ok } : data({ ok }, { status: 404 });
-}
-
 // What each collection showed last, for a step back to it.
 const kept = new KeptPages<CollectionAnswer>();
 
@@ -173,14 +134,6 @@ export async function clientLoader({
 type CollectionAnswer = Awaited<
   ReturnType<Route.ClientLoaderArgs["serverLoader"]>
 >;
-
-// A change from a row that doesn't get through keeps the list on screen.
-export async function clientAction({
-  request,
-  serverAction,
-}: Route.ClientActionArgs) {
-  return keepListOnFailure(request, serverAction);
-}
 
 // A row's change that didn't get through loads nothing again. In the load
 // after a step back, it loads again only when it showed as it was left.
@@ -230,20 +183,12 @@ function LoadedCollection({
   loaded: { collection: Collection | null; order?: SheetOrder };
   nameWasBar: boolean;
 }) {
-  const navigate = useNavigate();
-  const { revalidate } = useRevalidator();
   if (!loaded.collection) return <NotFound what="collection" />;
   return (
     <CollectionView
       collection={loaded.collection}
       order={loaded.order}
       nameWasBar={nameWasBar}
-      onRenamed={revalidate}
-      onDeleted={() => {
-        // Deleted with a plain fetch, so the rail is told to drop it
-        // (shell/revalidate.ts).
-        void Promise.resolve(navigate("/collections")).then(revalidate);
-      }}
     />
   );
 }
@@ -252,8 +197,6 @@ export function CollectionView({
   collection,
   order = "title",
   nameWasBar = false,
-  onRenamed,
-  onDeleted,
 }: {
   collection: Collection;
   // The order this device keeps.
@@ -261,10 +204,13 @@ export function CollectionView({
   // Whether the skeleton showed bars for the name and count, without the
   // rail's entry, so they fade in with the rows (ui/arriving.tsx).
   nameWasBar?: boolean;
-  onRenamed: () => Promise<void>;
-  onDeleted: () => void;
 }) {
   const [dialog, setDialog] = useState<"add" | "rename" | "delete">();
+  // Renaming and deleting go to the collection's API route, and the page
+  // and the rail load again by themselves. Deleting opens Collections.
+  const rename = useFetcherSave(`rename:${collection.id}`, COLLECTION_ROUTES);
+  const remove = useFetcherSave(`delete:${collection.id}`, COLLECTION_ROUTES);
+  const address = `/api/collections/${collection.id}`;
   const heading = useRef<HTMLHeadingElement>(null);
   const holds = useMemo(
     () => new Set(collection.sheets.map((sheet) => sheet.id)),
@@ -356,8 +302,10 @@ export function CollectionView({
         maxLength={COLLECTION_NAME_MAX}
         failure={collectionFailure}
         onSave={async (name) => {
-          await renameCollection(collection.id, name);
-          await onRenamed();
+          await rename(
+            { name },
+            { method: "patch", action: address, encType: "application/json" },
+          );
           closed();
         }}
         onClose={closed}
@@ -368,10 +316,7 @@ export function CollectionView({
         text="Its sheets stay in the library. This can’t be undone."
         confirm="Delete"
         failure="The collection couldn’t be deleted. Try again."
-        onConfirm={async () => {
-          await deleteCollection(collection.id);
-          onDeleted();
-        }}
+        onConfirm={() => remove(null, { method: "delete", action: address })}
         onClose={closed}
       />
     </div>

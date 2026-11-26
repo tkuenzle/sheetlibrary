@@ -1,7 +1,7 @@
 import "./sheets.css";
 import "./collections.css";
 
-import { Link, useNavigate, useRevalidator } from "react-router";
+import { Link } from "react-router";
 
 import {
   type CollectionListItem,
@@ -31,28 +31,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 }
 
 export default function Collections() {
-  const navigate = useNavigate();
-  const { revalidate } = useRevalidator();
-  return (
-    <CollectionsView
-      collections={useShellCollections()}
-      onCreated={(collection) => {
-        // The shell keeps its data on a move. The collection was made with
-        // a plain fetch, so the rail is told to follow (shell/revalidate.ts).
-        void Promise.resolve(navigate(`/collections/${collection.id}`)).then(
-          revalidate,
-        );
-      }}
-    />
-  );
+  return <CollectionsView collections={useShellCollections()} />;
 }
 
 export function CollectionsView({
   collections,
-  onCreated,
 }: {
   collections: CollectionListItem[];
-  onCreated: (collection: { id: string; name: string }) => void;
 }) {
   if (collections.length === 0) {
     return (
@@ -61,7 +46,7 @@ export function CollectionsView({
         <section className="library-empty" aria-labelledby="collections-empty">
           <h2 id="collections-empty">No collections yet</h2>
           <div className="library-actions">
-            <NewCollection onCreated={onCreated} />
+            <NewCollection />
           </div>
         </section>
       </div>
@@ -73,7 +58,7 @@ export function CollectionsView({
       <div className="library-heading">
         <h1>Collections</h1>
         <div className="library-actions library-actions-beside">
-          <NewCollection variant="tonal" onCreated={onCreated} />
+          <NewCollection variant="tonal" />
         </div>
       </div>
       <ul className="collections-cards">
