@@ -1,5 +1,5 @@
 import { handleSheetCollection } from "../collections/collections-api.server";
-import { submitTick } from "../collections/sheet-collections";
+import { serverAnswer } from "../changes";
 import { cloudflareContext, sessionContext } from "../context";
 import type { Route } from "./+types/api.sheet-collection";
 
@@ -23,6 +23,6 @@ export const action = handle;
 // A fetcher in the browser goes through this, which answers `{ ok: false }`
 // rather than throw when the API can't be reached. See
 // app/collections/sheet-collections.ts.
-export function clientAction({ params, request }: Route.ClientActionArgs) {
-  return submitTick(params.id, params.collectionId, request);
+export function clientAction({ serverAction }: Route.ClientActionArgs) {
+  return serverAnswer(serverAction);
 }

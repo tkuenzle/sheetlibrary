@@ -5,6 +5,7 @@ import {
   type Sheet,
 } from "chordsheet";
 
+import type { ErrorCode } from "../changes";
 import {
   changeVersion,
   createSheet,
@@ -29,9 +30,17 @@ export interface Saved {
   revision: number;
 }
 
-export function error(status: number, message: string, problems?: Problem[]) {
+// An error's body: what went wrong, and where a caller needs to tell errors
+// apart, a `code` that says it without the wording. A fetcher's
+// `clientAction` reads the code, since React Router hands it the body but
+// not the status (see app/changes.ts).
+export function error(
+  status: number,
+  message: string,
+  { problems, code }: { problems?: Problem[]; code?: ErrorCode } = {},
+) {
   return Response.json(
-    problems ? { error: message, problems } : { error: message },
+    { error: message, ...(code && { code }), ...(problems && { problems }) },
     { status },
   );
 }
@@ -77,7 +86,8 @@ export async function handleSheets(
     id: newSheetId(),
     revision: FIRST_REVISION,
   });
-  if (problems.length > 0) return error(400, "Sheet is not valid", problems);
+  if (problems.length > 0)
+    return error(400, "Sheet is not valid", { problems });
   const { title, artist, content } = body.value as Sheet;
   const sheet = await createSheet(db, userId, { title, artist, content });
   return Response.json(sheet, { status: 201 });
@@ -108,7 +118,8 @@ export async function handleSheet(
   const body = await readBody(request);
   if ("response" in body) return body.response;
   const problems = checkEnvelope(body.value);
-  if (problems.length > 0) return error(400, "Sheet is not valid", problems);
+  if (problems.length > 0)
+    return error(400, "Sheet is not valid", { problems });
   const sheet = body.value as Sheet;
   if (sheet.id !== id) return error(400, "Id doesn't match the URL");
   const result = await saveSheet(db, userId, sheet);

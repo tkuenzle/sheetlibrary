@@ -20,7 +20,6 @@ import {
   type SheetOrder,
 } from "../sheets/order";
 import { RecentSheets, RecentSheetsSkeleton } from "../sheets/recent-sheets";
-import { keepListOnFailure, rowAnswer } from "../sheets/row-changes";
 import { SheetList, SheetListSkeleton } from "../sheets/sheet-list";
 import {
   fromAnotherPage,
@@ -41,7 +40,6 @@ import { revalidateUnlessUnchanged } from "../shell/revalidate";
 import { RouteError } from "../shell/route-error";
 import {
   createSheet,
-  deleteSheet,
   hasSheets,
   listSheets,
   recentSheets,
@@ -109,36 +107,19 @@ export async function loader({ context, request, url }: Route.LoaderArgs) {
   };
 }
 
-// "Write a new sheet", from any screen in the shell, or deleting a sheet
-// from its row (`intent` "delete"). A form
-// on another site can't get here signed in, since the session cookie is
-// SameSite=Lax, so it is sent to sign-in like a visitor.
-export async function action({ context, request }: Route.ActionArgs) {
+// "Write a new sheet", from any screen in the shell. A form on another site
+// can't get here signed in, since the session cookie is SameSite=Lax, so it
+// is sent to sign-in like a visitor. A row's delete goes to the sheet's API
+// route (sheets/sheet-list.tsx).
+export async function action({ context }: Route.ActionArgs) {
   const session = context.get(sessionContext);
   if (!session) return redirect("/sign-in");
   const { env } = context.get(cloudflareContext);
-  const form = await request.formData();
-  if (form.get("intent") === "delete") {
-    const sheetId = form.get("sheetId");
-    return rowAnswer(
-      "delete",
-      typeof sheetId === "string" &&
-        (await deleteSheet(env.DB, session.user.id, sheetId)),
-    );
-  }
   const sheet = await createSheet(env.DB, session.user.id, {
     title: UNTITLED,
     content: { format: "chordsheet", version: 1, sections: [] },
   });
   return redirect(`/sheets/${sheet.id}/edit?new`);
-}
-
-// A delete from a row that doesn't get through keeps the list on screen.
-export async function clientAction({
-  request,
-  serverAction,
-}: Route.ClientActionArgs) {
-  return keepListOnFailure(request, serverAction);
 }
 
 // In the browser, a search that can't reach the server doesn't fail the
@@ -471,7 +452,11 @@ export function LibraryView({
   if (!hasSheets) {
     return (
       <div className="library">
-        <h1>Sheets</h1>
+        {/* Focusable as with sheets, so a heading that has the focus when
+            the last sheet is deleted keeps it. */}
+        <h1 ref={heading} tabIndex={-1}>
+          Sheets
+        </h1>
         {offer}
         <FirstSheet />
       </div>

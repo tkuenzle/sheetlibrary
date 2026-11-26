@@ -7,23 +7,20 @@ import { useId, useRef, useState } from "react";
 import {
   redirect,
   type ShouldRevalidateFunctionArgs,
-  useRevalidator,
+  useFetcher,
 } from "react-router";
 
-import {
-  addPasskey,
-  removePasskey,
-  renamePasskey,
-  signOut,
-} from "../auth/auth-client";
+import { signOut } from "../auth/auth-client";
 import { getAuth } from "../auth/auth.server";
 import { cloudflareContext, sessionContext } from "../context";
+import { useRouteCode } from "../route-code";
 import { useArrives } from "../ui/arriving";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Note } from "../ui/note";
 import { Bar } from "../ui/skeleton";
 import type { Route } from "./+types/account";
+import type { PasskeyChange } from "./api.passkeys";
 import { useShellPasskeyCount } from "./shell";
 import {
   backAsLeft,
@@ -327,6 +324,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return <RouteError error={error} />;
 }
 
+// The route passkey changes go to (routes/api.passkeys.ts).
+const PASSKEY_ROUTES = ["routes/api.passkeys"];
+
 // Widths in `em` of the bars for the passkeys' names while they load.
 const SKELETON_PASSKEYS = [8, 5];
 
@@ -365,8 +365,31 @@ function LoadedAccount({
   passkeys: PasskeyItem[] | null;
   passkeyCount?: number;
 }) {
-  const revalidator = useRevalidator();
-  const [failed, setFailed] = useState(false);
+  // Passkey changes go to /api/passkeys through fetchers, and the page and
+  // the shell load again by themselves. Adding has its own, for its note.
+  const adding = useFetcher<{ ok: boolean }>({ key: "passkey-add" });
+  const changing = useFetcher<{ ok: boolean }>({ key: "passkey-change" });
+  const ready = useRouteCode(PASSKEY_ROUTES);
+  // The route's code couldn't load, so no passkey was added.
+  const [unreachable, setUnreachable] = useState(false);
+  const failed =
+    adding.state === "idle" && (unreachable || adding.data?.ok === false);
+
+  function send(
+    fetcher: typeof adding,
+    change: PasskeyChange,
+    onUnreachable?: () => void,
+  ) {
+    ready().then(
+      () =>
+        fetcher.submit(change, {
+          method: "post",
+          action: "/api/passkeys",
+          encType: "application/json",
+        }),
+      () => onUnreachable?.(),
+    );
+  }
 
   return (
     <AccountView
@@ -375,20 +398,16 @@ function LoadedAccount({
       passkeyCount={passkeyCount}
       failed={failed}
       onAdd={() => {
-        setFailed(false);
-        void addPasskey().then(async (saved) => {
-          if (!saved) {
-            setFailed(true);
-            return;
-          }
-          await revalidator.revalidate();
+        setUnreachable(false);
+        send(adding, { intent: "add" }, () => {
+          setUnreachable(true);
         });
       }}
       onRename={(id, name) => {
-        void renamePasskey(id, name).then(() => revalidator.revalidate());
+        send(changing, { intent: "rename", id, name });
       }}
       onRemove={(id) => {
-        void removePasskey(id).then(() => revalidator.revalidate());
+        send(changing, { intent: "remove", id });
       }}
       onSignOut={() => {
         void signOut().then(() => {

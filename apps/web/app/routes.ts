@@ -41,6 +41,8 @@ export default [
   ),
   route("api/collections", "routes/api.collections.ts"),
   route("api/collections/:id", "routes/api.collection.ts"),
+  route("api/collections/:id/sheets", "routes/api.collection-sheets.ts"),
+  route("api/passkeys", "routes/api.passkeys.ts"),
   route("api/photo-import", "routes/api.photo-import.ts"),
   ...(withDesignPage ? [route("design", "routes/design.tsx")] : []),
   // Last, so it only gets what no route above matches.

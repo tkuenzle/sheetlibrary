@@ -11,12 +11,7 @@ function render(collections: CollectionListItem[]) {
   const Stub = createRoutesStub([
     {
       path: "/collections",
-      Component: () => (
-        <CollectionsView
-          collections={collections}
-          onCreated={() => undefined}
-        />
-      ),
+      Component: () => <CollectionsView collections={collections} />,
     },
   ]);
   return renderToString(<Stub initialEntries={["/collections"]} />);

@@ -7,7 +7,6 @@ import {
   addSheets,
   type Collection,
   createCollection,
-  readCollection,
 } from "../collections/collections.server";
 import { cloudflareContext, sessionContext } from "../context";
 import { testEnv } from "../db/local-env.test-helper";
@@ -16,14 +15,7 @@ import { createSheet } from "../sheets/sheets.server";
 import type { SheetOrder } from "../sheets/order";
 import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/collection";
-import {
-  action,
-  clientAction,
-  CollectionSkeleton,
-  CollectionView,
-  loader,
-  meta,
-} from "./collection";
+import { CollectionSkeleton, CollectionView, loader, meta } from "./collection";
 
 describe("collection loader and action", () => {
   let test: Awaited<ReturnType<typeof testEnv>>;
@@ -68,20 +60,6 @@ describe("collection loader and action", () => {
       }),
     } as unknown as Route.LoaderArgs);
 
-  function post(userId: string | null, fields: [string, string][]) {
-    const body = new FormData();
-    for (const [name, value] of fields) body.append(name, value);
-    const request = new Request(
-      `https://sheetlibrary.com/collections/${christmas}`,
-      { method: "POST", body },
-    );
-    return action({
-      context: context(userId),
-      params: { id: christmas },
-      request,
-    } as unknown as Route.ActionArgs);
-  }
-
   // Scenario "A to Z".
   it("gives the collection with its sheets, A to Z", async () => {
     await addSheets(db, "ana", christmas, [stille, drue]);
@@ -118,60 +96,6 @@ describe("collection loader and action", () => {
   it("sends visitors who aren't signed in to sign-in", async () => {
     const response = (await load(null)) as Response;
     expect(response.headers.get("Location")).toBe("/sign-in");
-    const posted = (await post(null, [["intent", "add"]])) as Response;
-    expect(posted.headers.get("Location")).toBe("/sign-in");
-  });
-
-  it("adds the ticked sheets and takes one out", async () => {
-    expect(
-      await post("ana", [
-        ["intent", "add"],
-        ["sheetId", stille],
-        ["sheetId", drue],
-      ]),
-    ).toEqual({ ok: true });
-    expect(
-      await post("ana", [
-        ["intent", "remove"],
-        ["sheetId", stille],
-      ]),
-    ).toEqual({ ok: true, intent: "remove" });
-    expect((await readCollection(db, "ana", christmas))?.sheets).toMatchObject([
-      { id: drue, title: "Drüü Könige", artist: "Trad." },
-    ]);
-  });
-
-  // Scenario "Deleting a sheet" from a row in a collection: the sheet goes
-  // from the library and from the collection.
-  it("deletes a sheet from its row", async () => {
-    await addSheets(db, "ana", christmas, [stille, drue]);
-    expect(
-      await post("ana", [
-        ["intent", "delete"],
-        ["sheetId", stille],
-      ]),
-    ).toEqual({ ok: true, intent: "delete" });
-    expect((await readCollection(db, "ana", christmas))?.sheets).toMatchObject([
-      { id: drue },
-    ]);
-    const theirs = (await post("bo", [
-      ["intent", "delete"],
-      ["sheetId", drue],
-    ])) as unknown as { init: { status: number } };
-    expect(theirs.init.status).toBe(404);
-  });
-
-  it("refuses someone else's collection and an unknown intent", async () => {
-    const theirs = (await post("bo", [
-      ["intent", "add"],
-      ["sheetId", stille],
-    ])) as unknown as { init: { status: number } };
-    expect(theirs.init.status).toBe(404);
-    const unknown = (await post("ana", [["intent", "rename"]])) as unknown as {
-      init: { status: number };
-    };
-    expect(unknown.init.status).toBe(400);
-    expect((await readCollection(db, "ana", christmas))?.sheets).toEqual([]);
   });
 });
 
@@ -200,14 +124,7 @@ function render(collection: Collection, order?: SheetOrder) {
   const Stub = createRoutesStub([
     {
       path: "/collections/:id",
-      Component: () => (
-        <CollectionView
-          collection={collection}
-          order={order}
-          onRenamed={() => Promise.resolve()}
-          onDeleted={() => undefined}
-        />
-      ),
+      Component: () => <CollectionView collection={collection} order={order} />,
     },
   ]);
   return renderToString(
@@ -411,25 +328,5 @@ describe("Add sheets", () => {
     expect(html).toMatch(
       /<button type="submit"[^>]*disabled=""[^>]*>Add sheets/,
     );
-  });
-});
-
-// Scenario "Deleting offline": the list stays, and the row comes back.
-describe("a row's change that doesn't get through", () => {
-  it("answers { ok: false } rather than failing the page", async () => {
-    const body = new FormData();
-    body.append("intent", "remove");
-    body.append("sheetId", "stille000000");
-    const answer = await clientAction({
-      request: new Request(
-        "https://sheetlibrary.com/collections/abcdefghijkl",
-        {
-          method: "POST",
-          body,
-        },
-      ),
-      serverAction: () => Promise.reject(new TypeError("Failed to fetch")),
-    } as unknown as Parameters<typeof clientAction>[0]);
-    expect(answer).toEqual({ ok: false, intent: "remove" });
   });
 });

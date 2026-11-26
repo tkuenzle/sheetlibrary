@@ -9,7 +9,6 @@ import {
   redirect,
   useBlocker,
   useNavigate,
-  useRevalidator,
 } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
@@ -165,7 +164,6 @@ export function SheetView({
   const [helpOpen, setHelpOpen] = useState(false);
   const [noteShown, setNoteShown] = useState(!helpSeen);
   const moves = useSheetMoves();
-  const { revalidate } = useRevalidator();
   const autosave = useAutosave(sheet, () => {
     const handed = editor.current?.handBack();
     return handed?.ok ? { title, artist, content: handed.sheet } : null;
@@ -432,9 +430,9 @@ export function SheetView({
           // Edits not saved yet go with the sheet.
           autosave.stop();
           leaving.current = true;
+          // Every page it leads to loads anew, so the lists and the rail's
+          // counts no longer hold the sheet.
           await moves.go(afterDelete("edit", moves.history()));
-          // The lists and the rail's counts no longer hold the sheet.
-          await revalidate();
         }}
         onClose={() => {
           setDeleting(false);

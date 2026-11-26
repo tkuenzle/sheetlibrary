@@ -24,6 +24,11 @@ export interface SheetCollection {
   holds: boolean;
 }
 
+// The note when a name is already used, and the API's refusals with it, for
+// a fetcher's `clientAction` (app/changes.ts).
+export const NAME_TAKEN = "That name is already used.";
+export const nameRefusals = { taken: NAME_TAKEN };
+
 // The longest name a collection can have, in UTF-16 code units.
 export const COLLECTION_NAME_MAX = 40;
 

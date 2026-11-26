@@ -20,7 +20,6 @@ import { addUser } from "../sheets/sheets.test-helper";
 import type { Route } from "./+types/sheets";
 import {
   action,
-  clientAction,
   clientLoader,
   LibrarySkeleton,
   LibraryView,
@@ -204,7 +203,7 @@ describe("library loader and action", () => {
 
   // Scenario "Naming a new sheet": `?new` opens the title field.
   it("creates an Untitled sheet and opens it, to be named", async () => {
-    const response = (await post("ana")) as Response;
+    const response = await post("ana");
     expect(response.status).toBe(302);
     const id = /^\/sheets\/([\w-]+)\/edit\?new$/.exec(
       response.headers.get("Location") ?? "",
@@ -215,38 +214,8 @@ describe("library loader and action", () => {
     });
   });
 
-  // Requirement "Deleting from a row".
-  it("deletes a sheet from its row", async () => {
-    const { id } = await createSheet(test.env.DB, "ana", {
-      title: "Stille Nacht",
-      content: seedSong,
-    });
-    expect(
-      await post("ana", [
-        ["intent", "delete"],
-        ["sheetId", id],
-      ]),
-    ).toEqual({ ok: true, intent: "delete" });
-    expect(await readSheet(test.env.DB, "ana", id)).toBeNull();
-  });
-
-  it("answers 404 for someone else's sheet, and keeps it", async () => {
-    await addUser(test.env.DB, "bo");
-    const { id } = await createSheet(test.env.DB, "bo", {
-      title: "Shenandoah",
-      content: seedSong,
-    });
-    const answer = (await post("ana", [
-      ["intent", "delete"],
-      ["sheetId", id],
-    ])) as unknown as { data: unknown; init: { status: number } };
-    expect(answer.data).toEqual({ ok: false, intent: "delete" });
-    expect(answer.init.status).toBe(404);
-    expect(await readSheet(test.env.DB, "bo", id)).not.toBeNull();
-  });
-
   it("sends a new sheet without a session to sign-in", async () => {
-    const response = (await post(null)) as Response;
+    const response = await post(null);
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe("/sign-in");
   });
@@ -789,22 +758,5 @@ describe("Sheets while its sheets load", () => {
     const html = renderSkeleton("/sheets?q=grace");
     expect(html).not.toContain("recent-sheets-skeleton");
     expect(html).toContain('value="grace"');
-  });
-});
-
-// Scenario "Deleting offline": the list stays, and the row comes back.
-describe("a row's change that doesn't get through", () => {
-  it("answers { ok: false } rather than failing the page", async () => {
-    const body = new FormData();
-    body.append("intent", "delete");
-    body.append("sheetId", "stille000000");
-    const answer = await clientAction({
-      request: new Request("https://sheetlibrary.com/sheets", {
-        method: "POST",
-        body,
-      }),
-      serverAction: () => Promise.reject(new TypeError("Failed to fetch")),
-    } as unknown as Parameters<typeof clientAction>[0]);
-    expect(answer).toEqual({ ok: false, intent: "delete" });
   });
 });

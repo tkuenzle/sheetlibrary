@@ -1,33 +1,15 @@
 import type { ShouldRevalidateFunctionArgs } from "react-router";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { NAME_TAKEN } from "./collections-client";
 import {
   collectionsState,
   isSheetCollectionsPath,
   loadSheetCollections,
   revalidateUnlessCollectionChange,
-  submitNewCollection,
-  submitTick,
 } from "./sheet-collections";
 
 const christmas = { id: "c1", name: "Christmas", holds: true };
 const campfire = { id: "c2", name: "Campfire", holds: false };
-
-function answering(response: Response | Error) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(() =>
-      response instanceof Error
-        ? Promise.reject(response)
-        : Promise.resolve(response),
-    ),
-  );
-}
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe("collectionsState", () => {
   it("answers what the page knows until the fetcher has loaded", () => {
@@ -85,45 +67,23 @@ describe("revalidateUnlessCollectionChange", () => {
   });
 });
 
-describe("the routes' client answers", () => {
+describe("loadSheetCollections", () => {
   it("loads the list, or answers that it failed", async () => {
-    answering(Response.json([christmas]));
-    expect(await loadSheetCollections("s1")).toEqual({
+    expect(
+      await loadSheetCollections(() => Promise.resolve([christmas])),
+    ).toEqual({
       ok: true,
       collections: [christmas],
     });
-    answering(new TypeError("Failed to fetch"));
-    expect(await loadSheetCollections("s1")).toEqual({ ok: false });
-  });
-
-  it("ticks, or answers that the change didn't get through", async () => {
-    const put = () =>
-      new Request("http://localhost/api/sheets/s1/collections/c1", {
-        method: "PUT",
-      });
-    answering(new Response(null, { status: 204 }));
-    expect(await submitTick("s1", "c1", put())).toEqual({ ok: true });
-    answering(new TypeError("Failed to fetch"));
-    expect(await submitTick("s1", "c1", put())).toEqual({ ok: false });
-  });
-
-  it("makes a collection, or says why not", async () => {
-    const post = () => {
-      const body = new FormData();
-      body.set("name", "Christmas");
-      return new Request("http://localhost/api/sheets/s1/collections", {
-        method: "POST",
-        body,
-      });
-    };
-    answering(Response.json({ id: "c1", name: "Christmas" }, { status: 201 }));
-    expect(await submitNewCollection("s1", post())).toEqual({ ok: true });
-    answering(new Response(null, { status: 409 }));
-    expect(await submitNewCollection("s1", post())).toEqual({
-      ok: false,
-      refused: NAME_TAKEN,
-    });
-    answering(new TypeError("Failed to fetch"));
-    expect(await submitNewCollection("s1", post())).toEqual({ ok: false });
+    expect(
+      await loadSheetCollections(() =>
+        Promise.resolve({ error: "Sheet not found" }),
+      ),
+    ).toEqual({ ok: false });
+    expect(
+      await loadSheetCollections(() =>
+        Promise.reject(new TypeError("Failed to fetch")),
+      ),
+    ).toEqual({ ok: false });
   });
 });

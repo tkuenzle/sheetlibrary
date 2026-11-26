@@ -1,6 +1,13 @@
 import { type Page } from "@playwright/test";
 
-import { createSheet, expect, test } from "./fixtures";
+import {
+  addToCollection,
+  createCollection,
+  createSheet,
+  expect,
+  newMark,
+  test,
+} from "./fixtures";
 
 // The page for a stored sheet. Sheets are made through the API, since the
 // library page comes later (#51).
@@ -566,6 +573,45 @@ test("deletes the sheet after asking, and goes to the library", async ({
   );
   expect((await page.request.get(`/api/sheets/${id}`)).status()).toBe(404);
 });
+
+// Deleting from the play view and from edit mode, opened from a collection:
+// back on the collection, its list and the rail's count no longer hold the
+// sheet, without the page asking for a reload by hand.
+for (const mode of ["play", "edit"] as const) {
+  test(`deletes the sheet in ${mode} mode and the collection follows`, async ({
+    page,
+  }) => {
+    const title = newTitle();
+    const id = await createTitled(page, title);
+    const name = `Christmas ${newMark()}`;
+    const collectionId = await createCollection(page, name);
+    await addToCollection(page, id, collectionId);
+    await page.goto(`/collections/${collectionId}`);
+    await expect(heading(page)).toHaveText(name);
+    await page.getByRole("link", { name: new RegExp(title) }).click();
+    await expect(heading(page)).toHaveText(title);
+    if (mode === "edit") {
+      await page
+        .getByRole("banner")
+        .getByRole("link", { name: "Edit" })
+        .click();
+      await expect(page).toHaveURL(`/sheets/${id}/edit`);
+    }
+
+    const dialog = await openDelete(page, title);
+    await dialog.getByRole("button", { name: "Delete" }).click();
+    await expect(page).toHaveURL(`/collections/${collectionId}`);
+    await expect(heading(page)).toHaveText(name);
+    await expect(page.getByText("No sheets in this collection")).toBeVisible();
+    if ((page.viewportSize()?.width ?? 0) >= 1024) {
+      await expect(
+        page
+          .getByRole("navigation", { name: "Main" })
+          .getByRole("link", { name }),
+      ).toContainText("0 sheets");
+    }
+  });
+}
 
 // Scenario "Offline" (deleting).
 test("keeps the dialog open when the delete doesn't get through", async ({

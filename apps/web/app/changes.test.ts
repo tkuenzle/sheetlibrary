@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { sendChange } from "./changes";
+import { serverAnswer, sendChange } from "./changes";
 import { forgetKept, KeptPages } from "./shell/kept";
 
 describe("sendChange", () => {
@@ -53,5 +53,53 @@ describe("the app's requests", () => {
       .filter(([, text]) => /(^|[^\w.])fetch\(/m.test(text))
       .map(([path]) => path);
     expect(callers).toEqual([]);
+  });
+});
+
+describe("serverAnswer", () => {
+  const refusals = { taken: "That name is already used." };
+
+  it("answers ok with what came back", async () => {
+    expect(
+      await serverAnswer(() => Promise.resolve({ id: "c1" }), refusals),
+    ).toEqual({ ok: true, value: { id: "c1" } });
+    expect(await serverAnswer(() => Promise.resolve(undefined))).toEqual({
+      ok: true,
+      value: undefined,
+    });
+  });
+
+  it("answers the note for a name already used", async () => {
+    expect(
+      await serverAnswer(
+        () => Promise.resolve({ error: "Name is already used", code: "taken" }),
+        refusals,
+      ),
+    ).toEqual({
+      ok: false,
+      refused: "That name is already used.",
+      code: "taken",
+    });
+  });
+
+  it("answers not ok, with the code but no note, for another error", async () => {
+    expect(
+      await serverAnswer(
+        () =>
+          Promise.resolve({ error: "Collection not found", code: "not-found" }),
+        refusals,
+      ),
+    ).toEqual({ ok: false, code: "not-found" });
+    expect(
+      await serverAnswer(() => Promise.resolve({ error: "Not signed in" })),
+    ).toEqual({ ok: false });
+  });
+
+  it("answers not ok when the server can't be reached", async () => {
+    expect(
+      await serverAnswer(() =>
+        Promise.reject(new TypeError("Failed to fetch")),
+      ),
+    ).toEqual({ ok: false });
   });
 });

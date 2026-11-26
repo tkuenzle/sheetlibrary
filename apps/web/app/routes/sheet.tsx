@@ -14,13 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  data,
-  Link,
-  redirect,
-  useLocation,
-  useRevalidator,
-} from "react-router";
+import { data, Link, redirect, useLocation } from "react-router";
 
 import { ChooseCollectionsDialog } from "../collections/choose-collections-dialog";
 import type { SheetCollection } from "../collections/collections";
@@ -340,7 +334,6 @@ export function PlayView({
   }, [sheet.id]);
 
   const moves = useSheetMoves();
-  const { revalidate } = useRevalidator();
   const [deleting, setDeleting] = useState(false);
   // The collections as the page loaded them, until "Choose collections…"
   // loads them again. Those that hold the sheet show under the title.
@@ -515,9 +508,9 @@ export function PlayView({
         failure="The sheet couldn’t be deleted. Try again."
         onConfirm={async () => {
           await deleteStoredSheet(sheet.id);
+          // Every page it leads to loads anew, so the lists and the rail's
+          // counts no longer hold the sheet.
           await moves.go(afterDelete("play", moves.history()));
-          // The lists and the rail's counts no longer hold the sheet.
-          await revalidate();
         }}
         onClose={() => {
           setDeleting(false);
