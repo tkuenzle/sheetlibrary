@@ -82,8 +82,15 @@ test("adds and removes no stylesheet on moves between pages", async ({
     .getByRole("main")
     .getByRole("link", { name: new RegExp(title) })
     .click();
+  // The sheet and the collection share a name, so the address tells them
+  // apart. Edit is named exactly, since the rail may list another test's
+  // collection whose mark holds "edit".
+  await expect(page).toHaveURL(new RegExp(`/sheets/${sheetId}$`));
   await expect(heading(page)).toHaveText(title);
-  await page.getByRole("link", { name: "Edit" }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("link", { name: "Edit", exact: true })
+    .click();
   await expect(page).toHaveURL(new RegExp(`/sheets/${sheetId}/edit$`));
 
   for (const back of [`/sheets/${sheetId}`, `/collections/${collectionId}`]) {
