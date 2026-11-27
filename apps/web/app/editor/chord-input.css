@@ -172,7 +172,7 @@
     bottom: 0;
     left: 0;
     z-index: 3;
-    transition: opacity var(--motion-short) var(--ease-move);
+    transition: opacity var(--motion-short) var(--ease-linear);
     animation: chord-input-in var(--motion-medium) var(--ease-enter);
   }
 

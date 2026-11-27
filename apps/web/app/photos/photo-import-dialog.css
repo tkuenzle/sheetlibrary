@@ -33,7 +33,7 @@
   }
 
   .photo-import-dialog[open]::backdrop {
-    animation: overlay-fade-in var(--motion-medium) var(--ease-enter);
+    animation: overlay-fade-in var(--motion-medium) var(--ease-linear);
   }
 
   .photo-import-dialog[data-closing] {
@@ -41,7 +41,7 @@
   }
 
   .photo-import-dialog[data-closing]::backdrop {
-    animation: overlay-fade-out var(--motion-short) var(--ease-exit) forwards;
+    animation: overlay-fade-out var(--motion-short) var(--ease-linear) forwards;
   }
 
   .photo-import {
@@ -256,7 +256,9 @@
   }
 
   /* Phone-wide: a sheet from the bottom, as wide as the screen. It slides
-     up from the bottom edge, and back down. */
+     up from the bottom edge, and back down. It can nearly fill the screen,
+     so it takes longer than the smaller sheets, on Material 3's emphasized
+     curves (docs/motion.md, "Material 3"). */
   @media (max-width: 640px) {
     .photo-import-dialog {
       width: 100vw;
@@ -266,11 +268,22 @@
     }
 
     .photo-import-dialog[open] {
-      animation: overlay-slide-in var(--motion-medium) var(--ease-enter);
+      animation: overlay-slide-in var(--motion-long)
+        var(--ease-enter-emphasized);
+    }
+
+    .photo-import-dialog[open]::backdrop {
+      animation: overlay-fade-in var(--motion-long) var(--ease-linear);
     }
 
     .photo-import-dialog[data-closing] {
-      animation: overlay-slide-out var(--motion-short) var(--ease-exit) forwards;
+      animation: overlay-slide-out var(--motion-medium)
+        var(--ease-exit-emphasized) forwards;
+    }
+
+    .photo-import-dialog[data-closing]::backdrop {
+      animation: overlay-fade-out var(--motion-medium) var(--ease-linear)
+        forwards;
     }
 
     .photo-import {

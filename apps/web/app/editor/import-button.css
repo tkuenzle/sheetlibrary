@@ -47,7 +47,7 @@
   }
 
   .import-dialog[open]::backdrop {
-    animation: overlay-fade-in var(--motion-medium) var(--ease-enter);
+    animation: overlay-fade-in var(--motion-medium) var(--ease-linear);
   }
 
   .import-dialog[data-closing] {
@@ -55,7 +55,7 @@
   }
 
   .import-dialog[data-closing]::backdrop {
-    animation: overlay-fade-out var(--motion-short) var(--ease-exit) forwards;
+    animation: overlay-fade-out var(--motion-short) var(--ease-linear) forwards;
   }
 
   .import-form {

@@ -65,9 +65,11 @@
     --corner-full: 999px;
 
     /*
-      Motion (see docs/motion.md): leaving and small changes; overlays coming
-      in; page changes. The curves are Material 3's standard decelerate,
-      accelerate and standard, and linear for what only fades.
+      Motion (see docs/motion.md, "Material 3"): leaving and small changes;
+      overlays coming in, and large ones leaving; page changes, and large
+      overlays coming in. The curves are Material 3's standard decelerate,
+      accelerate and standard, its emphasized decelerate and accelerate for
+      large overlays, and linear for what only fades.
     */
     --motion-short: 150ms;
     --motion-medium: 200ms;
@@ -75,6 +77,8 @@
     --ease-enter: cubic-bezier(0, 0, 0, 1);
     --ease-exit: cubic-bezier(0.3, 0, 1, 1);
     --ease-move: cubic-bezier(0.2, 0, 0, 1);
+    --ease-enter-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+    --ease-exit-emphasized: cubic-bezier(0.3, 0, 0.8, 0.15);
     --ease-linear: linear;
   }
 

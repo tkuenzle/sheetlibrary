@@ -82,7 +82,7 @@
      The step is a sixth of an item's rise, so it is no time with reduced
      motion. */
   .floating-menu[open]::backdrop {
-    animation: overlay-fade-in var(--motion-medium) var(--ease-enter);
+    animation: overlay-fade-in var(--motion-medium) var(--ease-linear);
   }
 
   .floating-menu[open] .floating-menu-item {
@@ -91,12 +91,12 @@
   }
 
   .floating-menu[open] .floating-menu-close {
-    animation: overlay-fade-in var(--motion-medium) var(--ease-enter);
+    animation: overlay-fade-in var(--motion-medium) var(--ease-linear);
   }
 
   .floating-menu[data-closing]::backdrop,
   .floating-menu[data-closing] .floating-menu-close {
-    animation: overlay-fade-out var(--motion-short) var(--ease-exit) forwards;
+    animation: overlay-fade-out var(--motion-short) var(--ease-linear) forwards;
   }
 
   .floating-menu[data-closing] .floating-menu-item {

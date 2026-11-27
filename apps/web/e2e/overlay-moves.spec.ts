@@ -263,10 +263,14 @@ test("photo import slides up on a phone, and back down on Cancel", async ({
   await page.getByRole("menuitem", { name: "From photos…" }).click();
   const dialog = page.getByRole("dialog", { name: "Import from photos" });
   await expect(dialog).toBeVisible();
+  // It can nearly fill the screen, so it takes longer than the smaller
+  // sheets (docs/motion.md, "Material 3"). The scrim takes the same time.
   const opening = await moveOf(page, "overlay-slide-in", "photo-import-dialog");
-  await moveOf(page, "overlay-fade-in", "photo-import-dialog", {
+  expect(opening.duration).toBe(300);
+  const dimming = await moveOf(page, "overlay-fade-in", "photo-import-dialog", {
     pseudo: "::backdrop",
   });
+  expect(dimming.duration).toBe(300);
 
   await dialog.getByRole("button", { name: "Cancel" }).click();
   const leaving = await moveOf(
@@ -274,8 +278,41 @@ test("photo import slides up on a phone, and back down on Cancel", async ({
     "overlay-slide-out",
     "photo-import-dialog",
   );
-  expect(leaving.duration).toBeLessThan(opening.duration);
+  expect(leaving.duration).toBe(200);
+  const brightening = await moveOf(
+    page,
+    "overlay-fade-out",
+    "photo-import-dialog",
+    { pseudo: "::backdrop" },
+  );
+  expect(brightening.duration).toBe(200);
   await expect(dialog).toBeHidden();
+});
+
+// Scenario "A large sheet takes longer".
+test("photo import slides up for longer than the key panel on a phone", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isPhone(testInfo), "Sheets from the bottom on a phone");
+  await recordMoves(page);
+  const id = await createSheet(page, { title: newMark(), content });
+  await page.goto(`/sheets/${id}`);
+
+  const keyPanel = page.getByRole("dialog", { name: "Key" });
+  await page.getByRole("button", { name: /^Key / }).click();
+  await expect(keyPanel).toBeVisible();
+  const key = await moveOf(page, "key-panel-in", "key-panel");
+  await page.keyboard.press("Escape");
+  await expect(keyPanel).toBeHidden();
+
+  await page.goto("/sheets");
+  await page.getByRole("button", { name: "New sheet" }).click();
+  await page.getByRole("menuitem", { name: "From photos…" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Import from photos" }),
+  ).toBeVisible();
+  const photos = await moveOf(page, "overlay-slide-in", "photo-import-dialog");
+  expect(photos.duration).toBeGreaterThan(key.duration);
 });
 
 // Scenario "The ways rise in turn".
