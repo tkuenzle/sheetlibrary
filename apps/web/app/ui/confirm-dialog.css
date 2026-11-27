@@ -26,7 +26,7 @@
   }
 
   .confirm-dialog[open]::backdrop {
-    animation: overlay-fade-in var(--motion-medium) var(--ease-enter);
+    animation: overlay-fade-in var(--motion-medium) var(--ease-linear);
   }
 
   .confirm-dialog[data-closing] {
@@ -34,7 +34,7 @@
   }
 
   .confirm-dialog[data-closing]::backdrop {
-    animation: overlay-fade-out var(--motion-short) var(--ease-exit) forwards;
+    animation: overlay-fade-out var(--motion-short) var(--ease-linear) forwards;
   }
 
   .confirm-content {

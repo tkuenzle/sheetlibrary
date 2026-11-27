@@ -301,7 +301,7 @@
     }
 
     .key-panel[open]::backdrop {
-      animation: key-panel-fade var(--motion-medium) var(--ease-enter);
+      animation: key-panel-fade var(--motion-medium) var(--ease-linear);
     }
 
     /* Sliding out before the sheet closes (see KeyButton). */
@@ -310,7 +310,7 @@
     }
 
     .key-panel[data-closing]::backdrop {
-      animation: key-panel-fade-out var(--motion-short) var(--ease-exit)
+      animation: key-panel-fade-out var(--motion-short) var(--ease-linear)
         forwards;
     }
 

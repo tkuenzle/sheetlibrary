@@ -1,6 +1,6 @@
 # Motion
 
-How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89. Page changes are built in #136 and moved to React's view transitions in #167, overlays in #160, skeletons in #137 and timed in #168.
+How things move in Sheet Library, and when they don't. Every part that moves follows this page, through the tokens in `apps/web/app/ui/tokens.css`. Decided in #89. Page changes are built in #136 and moved to React's view transitions in #167, overlays in #160, skeletons in #137 and timed in #168. Lined up with Material 3 in #187.
 
 ## Why things move
 
@@ -77,7 +77,7 @@ Page changes use the browser's View Transitions, through React's `<ViewTransitio
 
 - **Menus** fade and grow a little from their button. So do the panels that hang under their button on wider screens (the key, capo and View panels), and the chord input under its letter.
 - **Dialogs** fade and grow a little from the centre, over a fading scrim.
-- **Panels and bottom sheets** slide in from their edge, over a fading scrim: the opened rail, the help, the key, capo and View panels and photo import on a phone, and the docked chord input.
+- **Panels and bottom sheets** slide in from their edge, over a fading scrim: the opened rail, the help, the key, capo and View panels and photo import on a phone, and the docked chord input. Photo import on a phone can nearly fill the screen, so it takes longer, on the emphasized curves (see "Material 3").
 - **The "New sheet" menu on a phone:** its ways rise above the button one after another, the nearest first, and "Close" fades in with the scrim. They leave together.
 - **Leaving** is the same move backwards, and faster.
 
@@ -91,7 +91,7 @@ Only `opacity`, `scale` and `translate` move (see "Off the main thread"). Coming
 
 ## Calm
 
-- **No springs and no overshoot.** Things arrive and stop.
+- **No springs and no overshoot.** Things arrive and stop. "Material 3" says why there are no springs.
 - **Exits are faster than entries.** Waiting for something to leave feels slow.
 - **Nothing around a moving part shifts.** See the next section.
 
@@ -104,17 +104,45 @@ Every animation runs off the main thread. On a phone, the main thread is busiest
 - **View transitions are no exception.** The browser's own move of a named element animates its box's `width` and `height` when the two boxes differ in size, and that runs on the main thread. Replace it with `translate` and `scale` from the same boxes, as the sheet's title does, or don't animate the box at all, as the page's frame (see "Page changes").
 - **Check it with a trace.** Record a performance trace with the `blink.animations` category while the animation runs. Chrome lists each animation it couldn't run off the main thread with `compositeFailed`, and names the cause in `unsupportedProperties`. The browser's `-ua-mix-blend-mode-plus-lighter` in a view transition is listed too; it doesn't move anything and can stay.
 
+## Material 3
+
+Our motion follows Material 3, in this order (#187):
+
+1. **Our constraints first:** off the main thread, page moves at 300ms or less, reduced motion, calm.
+2. **Then Material 3's reasoning:** a curve for each role, a duration that grows with the area that moves, and its fade patterns.
+3. **Then its numbers,** as defaults wherever our constraints don't object.
+
+Material 3 doesn't give one set of numbers. Its motion doc for Android (`docs/theming/Motion.md` in Material Components for Android) gives its fade 150ms linear in and 75ms out, and its fade through and shared axis `cubic-bezier(0.4, 0, 0.2, 1)`. The library's code gives the fade 400ms on emphasized decelerate in and 150ms on emphasized accelerate out, and the fade through and shared axis the emphasized curve. So we follow the reasoning, not either source number for number.
+
+- **A curve for each role.** What stays on screen and changes takes standard (`--ease-move`), what comes in standard decelerate (`--ease-enter`), what leaves standard accelerate (`--ease-exit`).
+- **Large overlays take the emphasized pair.** Emphasized decelerate covers most of the way at once and then lands softly. On a 60Hz phone, photo import's first frame covers about 45% of the way, and it looks arrived after about 150ms, as quick as a 200ms slide on standard decelerate. The extra time goes into the landing. Standard decelerate over 300ms would look arrived only after about 220ms.
+- **Page moves stay on standard.** A view transition holds taps until it ends ("Taps wait"). On emphasized, a sheet would look finished after about 150ms but still hold taps until 300ms, so a quick tap would do nothing. Overlays take taps while they move, so a long landing costs them nothing.
+- **The duration grows with the area.** Menus, dialogs and the surfaces that partly cover the screen come in over 200ms: the docked chord input, the key, capo and View panels on a phone, the opened rail and help. Material 3's "default" spring, for such surfaces, looks settled after about 170 to 195ms. Photo import on a phone can nearly fill the screen, so it takes 300ms in and 200ms out, like Material 3's "slow" spring for the full screen (about 255 to 295ms). It keeps that time when it is small, with no pages yet: it looks arrived after about 150ms anyway, and CSS can't time a move by an element's height. Three durations cover this, so we don't take Material 3's sixteen.
+- **What only fades is linear.** A curve that front-loads its change spends most of a fade in its first frames, and the fade is barely seen (#185). So the scrims, "Close" under the "New sheet" ways and rows replacing their bars fade linearly, as Material 3's fade does. A menu's or a dialog's opacity takes the curve of its growth.
+
+Where we differ, and why:
+
+| Material 3                      | Ours                                 | Why                                                                                                                                                                                                                                                                                   |
+| ------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Moves of 400 and 500ms          | Page moves of 300ms or less          | Taps land on the pictures while a view transition plays. On Android a tap can interrupt a move.                                                                                                                                                                                       |
+| A fade through between peers    | The shell's screens crossfade        | The rail is part of the page's picture. It stays solid because the browser adds the two pictures, and in a crossfade their opacities always sum to one. A fade through fades the old one out before the new one comes in, so the rail would nearly vanish a third of the way through. |
+| Springs (Material 3 Expressive) | Durations and curves                 | Its effects springs settle in about 110, 165 and 230ms, close to our durations. A spring's gain is that an interrupted move keeps its speed, and CSS keyframes can't do that, even with `linear()`. Its spatial springs overshoot a little, and things here arrive and stop.          |
+| Its fade grows from 0.8         | Overlays grow from 0.95              | Calmer, for a screen on a music stand.                                                                                                                                                                                                                                                |
+| Nothing like it                 | The "New sheet" ways rise one by one | Ours, from #160. Material 3 has no move to follow instead.                                                                                                                                                                                                                            |
+
 ## Tokens
 
-| Token             | Value                        | For                                                   |
-| ----------------- | ---------------------------- | ----------------------------------------------------- |
-| `--motion-short`  | 150ms                        | Leaving, and small changes of state, such as a switch |
-| `--motion-medium` | 200ms                        | Overlays coming in: menus, dialogs, panels            |
-| `--motion-long`   | 300ms                        | Page changes and the title turning into the heading   |
-| `--ease-enter`    | `cubic-bezier(0, 0, 0, 1)`   | Things arriving (Material 3's standard decelerate)    |
-| `--ease-exit`     | `cubic-bezier(0.3, 0, 1, 1)` | Things leaving (standard accelerate)                  |
-| `--ease-move`     | `cubic-bezier(0.2, 0, 0, 1)` | Things that stay on screen and change (standard)      |
-| `--ease-linear`   | `linear`                     | What only fades, such as rows replacing their bars    |
+| Token                     | Value                             | For                                                                              |
+| ------------------------- | --------------------------------- | -------------------------------------------------------------------------------- |
+| `--motion-short`          | 150ms                             | Leaving, and small changes of state, such as a switch                            |
+| `--motion-medium`         | 200ms                             | Overlays coming in: menus, dialogs, panels; large overlays leaving               |
+| `--motion-long`           | 300ms                             | Page changes, the title turning into the heading; large overlays coming in       |
+| `--ease-enter`            | `cubic-bezier(0, 0, 0, 1)`        | Things arriving (Material 3's standard decelerate)                               |
+| `--ease-exit`             | `cubic-bezier(0.3, 0, 1, 1)`      | Things leaving (standard accelerate)                                             |
+| `--ease-move`             | `cubic-bezier(0.2, 0, 0, 1)`      | Things that stay on screen and change (standard)                                 |
+| `--ease-enter-emphasized` | `cubic-bezier(0.05, 0.7, 0.1, 1)` | Large overlays arriving, such as photo import on a phone (emphasized decelerate) |
+| `--ease-exit-emphasized`  | `cubic-bezier(0.3, 0, 0.8, 0.15)` | Large overlays leaving (emphasized accelerate)                                   |
+| `--ease-linear`           | `linear`                          | What only fades: scrims, and rows replacing their bars                           |
 
 Use the tokens, never numbers. Signs that repeat are the exception for now: the loading bar slides and the skeleton bars pulse over 1.4s, by fading only. A token for them is open (#137). The `chord-editor` package takes its duration from `--chord-editor-motion`, which the app sets to `--motion-short`.
 

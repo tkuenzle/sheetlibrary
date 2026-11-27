@@ -45,7 +45,7 @@
   }
 
   .edge-panel[open]::backdrop {
-    animation: edge-panel-fade var(--motion-medium) var(--ease-enter);
+    animation: edge-panel-fade var(--motion-medium) var(--ease-linear);
   }
 
   /* Sliding out before the panel closes (see EdgePanel). */
@@ -54,7 +54,8 @@
   }
 
   .edge-panel[data-closing]::backdrop {
-    animation: edge-panel-fade-out var(--motion-short) var(--ease-exit) forwards;
+    animation: edge-panel-fade-out var(--motion-short) var(--ease-linear)
+      forwards;
   }
 
   @keyframes edge-panel-in {
